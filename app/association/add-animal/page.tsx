@@ -1,157 +1,151 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Pencil, Eye, Trash2, PawPrint } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
 
-export default function AddAnimalPage() {
-  const [step, setStep] = useState(1);
+export default function AnimalsPage() {
+  const router = useRouter();
 
-  const [animal, setAnimal] = useState({
-    name: "",
-    species: "Chien",
-    breed: "",
-    sex: "Femelle",
-    age: "",
-    size: "",
-    island: "",
-    city: "",
-    description: "",
-  });
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  function updateField(field: string, value: string) {
-    setAnimal((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  useEffect(() => {
+    loadAnimals();
+  }, []);
+
+  async function loadAnimals() {
+    setLoading(true);
+
+    const { data: animalsData, error } = await supabase
+      .from("animals")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    const { data: photosData } = await supabase
+      .from("animal_photos")
+      .select("*");
+
+    const animalsWithPhotos =
+      animalsData?.map((animal) => {
+        const cover = photosData?.find(
+          (photo) => photo.animal_id === animal.id && photo.is_cover === true
+        );
+
+        return {
+          ...animal,
+          photo_url: cover?.photo_url || "",
+        };
+      }) || [];
+
+    setAnimals(animalsWithPhotos);
+    setLoading(false);
   }
 
+  const filtered = animals.filter((animal) =>
+    animal.animal_name?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <main className="min-h-screen bg-[#fbf7ef] p-8 text-[#064b42]">
-      <section className="mx-auto max-w-4xl">
-        <h1 className="text-5xl font-black">Ajouter un animal</h1>
+    <main className="min-h-screen bg-[#f8f4ec] p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-5xl font-black text-[#064b42]">
+              Mes animaux
+            </h1>
+            <p className="mt-2 text-gray-500">
+              Gérez les animaux publiés par votre association.
+            </p>
+          </div>
 
-        <p className="mt-3 text-gray-500">
-          Étape {step} / 7 — Création du passeport animal
-        </p>
+          <Button onClick={() => router.push("/association/add-animal")}>
+            <Plus size={20} />
+            <span className="ml-2">Ajouter un animal</span>
+          </Button>
+        </div>
 
-        <div className="mt-6 h-4 rounded-full bg-white">
-          <div
-            className="h-4 rounded-full bg-[#064b42]"
-            style={{ width: `${(step / 7) * 100}%` }}
+        <div className="mb-8 rounded-2xl bg-white px-5 py-4 shadow flex items-center">
+          <Search size={22} className="mr-3 text-gray-400" />
+          <input
+            placeholder="Rechercher un animal..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full outline-none"
           />
         </div>
 
-        <Card className="mt-10 space-y-6">
-          {step === 1 && (
-            <>
-              <h2 className="text-3xl font-black">Informations générales</h2>
-
-              <Input
-                placeholder="Nom de l'animal"
-                value={animal.name}
-                onChange={(value) => updateField("name", value)}
-              />
-
-              <select
-                value={animal.species}
-                onChange={(e) => updateField("species", e.target.value)}
-                className="w-full rounded-2xl border border-[#eadfce] bg-white px-5 py-4 text-lg outline-none"
-              >
-                <option>Chien</option>
-                <option>Chat</option>
-                <option>Canard</option>
-                <option>Poule</option>
-                <option>Autre</option>
-              </select>
-
-              <Input
-                placeholder="Race"
-                value={animal.breed}
-                onChange={(value) => updateField("breed", value)}
-              />
-
-              <select
-                value={animal.sex}
-                onChange={(e) => updateField("sex", e.target.value)}
-                className="w-full rounded-2xl border border-[#eadfce] bg-white px-5 py-4 text-lg outline-none"
-              >
-                <option>Femelle</option>
-                <option>Mâle</option>
-                <option>Inconnu</option>
-              </select>
-
-              <Input
-                placeholder="Âge estimé"
-                value={animal.age}
-                onChange={(value) => updateField("age", value)}
-              />
-
-              <Input
-                placeholder="Taille / poids"
-                value={animal.size}
-                onChange={(value) => updateField("size", value)}
-              />
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <h2 className="text-3xl font-black">Localisation</h2>
-
-              <Input
-                placeholder="Île"
-                value={animal.island}
-                onChange={(value) => updateField("island", value)}
-              />
-
-              <Input
-                placeholder="Commune / quartier"
-                value={animal.city}
-                onChange={(value) => updateField("city", value)}
-              />
-            </>
-          )}
-
-          {step === 3 && (
-            <>
-              <h2 className="text-3xl font-black">Description</h2>
-
-              <textarea
-                placeholder="Décris son caractère, son histoire, son comportement..."
-                value={animal.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                className="min-h-48 w-full rounded-2xl border border-[#eadfce] bg-white px-5 py-4 text-lg outline-none"
-              />
-            </>
-          )}
-
-          {step >= 4 && (
-            <div>
-              <h2 className="text-3xl font-black">Étape {step}</h2>
-              <p className="mt-3 text-gray-500">
-                Cette étape sera développée ensuite.
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-between pt-6">
+        {loading ? (
+          <Card>Chargement...</Card>
+        ) : filtered.length === 0 ? (
+          <Card className="py-20 text-center">
+            <PawPrint size={80} className="mx-auto text-[#064b42]" />
+            <h2 className="mt-6 text-3xl font-black">Aucun animal</h2>
+            <p className="mt-3 text-gray-500">
+              Commencez par créer votre première fiche.
+            </p>
             <Button
-              variant="secondary"
-              onClick={() => setStep((prev) => Math.max(1, prev - 1))}
+              className="mt-8"
+              onClick={() => router.push("/association/add-animal")}
             >
-              Retour
+              Ajouter un animal
             </Button>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            {filtered.map((animal) => (
+              <Card key={animal.id} className="space-y-5">
+                <div className="h-60 overflow-hidden rounded-2xl bg-gray-100">
+                  <img
+                    src={
+                      animal.photo_url ||
+                      "https://placehold.co/600x600?text=Pas+de+photo"
+                    }
+                    alt={animal.animal_name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
-            <Button
-              onClick={() => setStep((prev) => Math.min(7, prev + 1))}
-            >
-              Suivant
-            </Button>
+                <div>
+                  <h2 className="text-3xl font-black text-[#064b42]">
+                    {animal.animal_name}
+                  </h2>
+                  <p className="mt-1 text-gray-500">
+                    {animal.breed || animal.animal_type}
+                  </p>
+                  <p className="mt-1 text-sm font-bold">
+                    {animal.is_published ? "Publié" : "Brouillon"}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="secondary">
+                    <Eye size={18} />
+                  </Button>
+
+                  <Button variant="secondary">
+                    <Pencil size={18} />
+                  </Button>
+
+                  <Button variant="danger">
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
-        </Card>
-      </section>
+        )}
+      </div>
     </main>
   );
 }
