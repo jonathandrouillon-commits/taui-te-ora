@@ -26,7 +26,7 @@ export default function RootLayout({
               className="flex items-center gap-4"
             >
               <Image
-                src="/logo.png"
+                src="public/logo.png"
                 alt="TAUI TE ORA"
                 width={90}
                 height={90}
