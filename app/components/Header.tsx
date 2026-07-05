@@ -8,8 +8,8 @@ export default function Header() {
     <header className="w-full mb-8">
       <div className="flex items-start justify-between">
         <Image
-          src="/logo-taui-te-ora.png"
-          alt="Taui Te Ora"
+          src="/logo.png"
+          alt="logo"
           width={300}
           height={210}
           priority
