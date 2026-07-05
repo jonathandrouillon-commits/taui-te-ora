@@ -1,0 +1,19 @@
+.input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #eadfce;
+  background: white;
+  padding: 1rem 1.25rem;
+  font-size: 1.05rem;
+  outline: none;
+}
+
+.box {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  border-radius: 1rem;
+  background: #f8f4ec;
+  padding: 1.25rem;
+  font-weight: 800;
+}

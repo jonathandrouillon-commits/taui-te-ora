@@ -1,18 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { useAnimals } from "./hooks/useAnimals";
+import { useEffect, useState } from "react";
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
-import Header from "./components/Header";
-import Dashboard from "./components/Dashboard";
-import BottomNavigation from "./components/BottomNavigation";
+import { animalService } from "./services/animal.service";
 
 export default function Home() {
-  const { animals, loading } = useAnimals();
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState(0);
   const [startX, setStartX] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    loadAnimals();
+  }, []);
+
+  async function loadAnimals() {
+    try {
+      const data = await animalService.getPublishedWithPhotos();
+      setAnimals(data);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const animal = animals[index];
   const nextAnimal =
@@ -29,30 +42,46 @@ export default function Home() {
   }
 
   function handleEnd() {
-    if (drag > 130) {
-      goNext("❤️ Coup de cœur ajouté");
-    } else if (drag < -130) {
-      goNext("Profil passé");
-    } else {
-      setDrag(0);
-    }
+    if (drag > 130) goNext("❤️ Coup de cœur ajouté");
+    else if (drag < -130) goNext("Profil passé");
+    else setDrag(0);
 
     setStartX(null);
   }
 
-  if (loading || !animal) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center font-black text-[#064b42]">
+      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center text-[#064b42] font-black">
         Chargement des animaux...
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-[#fbf7ef] text-[#063f38] px-6 py-6 pb-32 overflow-hidden">
-      <Header />
+  if (!animal) {
+    return (
+      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center p-8 text-center">
+        <div className="bg-white rounded-[32px] p-10 shadow-xl max-w-xl">
+          <h1 className="text-4xl font-black text-[#064b42]">
+            Aucun animal publié
+          </h1>
+          <p className="mt-4 text-gray-500">
+            Publie un animal depuis le dashboard association pour le voir ici.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
-      <Dashboard totalAnimals={animals.length} />
+  return (
+    <main className="min-h-screen bg-[#fbf7ef] text-[#063f38] px-6 py-8 pb-32 overflow-hidden">
+      <section className="mx-auto max-w-7xl mb-8">
+        <h1 className="text-5xl font-black text-[#064b42]">
+          Découvrir les animaux
+        </h1>
+        <p className="mt-2 text-gray-500 text-lg">
+          Swipe à droite pour un coup de cœur, à gauche pour passer.
+        </p>
+      </section>
 
       <AnimalSwipeCard
         animal={animal}
@@ -67,8 +96,6 @@ export default function Home() {
         handleEnd={handleEnd}
         goNext={goNext}
       />
-
-      <BottomNavigation />
     </main>
   );
 }

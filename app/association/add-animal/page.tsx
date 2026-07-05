@@ -1,151 +1,143 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Eye, Trash2, PawPrint } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
+import { animalService } from "../../services/animal.service";
 
-export default function AnimalsPage() {
+import ProgressBar from "./ProgressBar";
+import Step1General from "./Step1General";
+import Step2Photos from "./Step2Photos";
+import Step3Health from "./Step3Health";
+import Step4Character from "./Step4Character";
+import Step5Story from "./Step5Story";
+import Step6Location from "./Step6Location";
+import Step7Preview from "./Step7Preview";
+
+export default function AddAnimalPage() {
   const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
 
-  const [animals, setAnimals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [animal, setAnimal] = useState({
+    animal_name: "",
+    animal_type: "Chien",
+    breed: "",
+    sex: "Femelle",
+    age_label: "",
+    size_label: "",
+    weight_kg: "",
+    island: "",
+    city: "",
+    description_character: "",
+    story: "",
+    health_status: "",
+    vaccinated: false,
+    sterilized: false,
+    microchipped: false,
+    is_published: false,
+  });
 
-  useEffect(() => {
-    loadAnimals();
-  }, []);
-
-  async function loadAnimals() {
-    setLoading(true);
-
-    const { data: animalsData, error } = await supabase
-      .from("animals")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    const { data: photosData } = await supabase
-      .from("animal_photos")
-      .select("*");
-
-    const animalsWithPhotos =
-      animalsData?.map((animal) => {
-        const cover = photosData?.find(
-          (photo) => photo.animal_id === animal.id && photo.is_cover === true
-        );
-
-        return {
-          ...animal,
-          photo_url: cover?.photo_url || "",
-        };
-      }) || [];
-
-    setAnimals(animalsWithPhotos);
-    setLoading(false);
+  function updateField(field: string, value: any) {
+    setAnimal((prev) => ({ ...prev, [field]: value }));
   }
 
-  const filtered = animals.filter((animal) =>
-    animal.animal_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  async function uploadFile(file: File, animalId: string, index: number) {
+    const path = `${animalId}/photos/${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from("animals")
+      .upload(path, file, { upsert: true });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage.from("animals").getPublicUrl(path);
+
+    await supabase.from("animal_photos").insert({
+      animal_id: animalId,
+      photo_url: data.publicUrl,
+      is_cover: index === 0,
+      sort_order: index,
+    });
+  }
+
+  async function saveAnimal(publish: boolean) {
+    try {
+      setSaving(true);
+
+      const createdAnimal = await animalService.create({
+        ...animal,
+        weight_kg: animal.weight_kg ? Number(animal.weight_kg) : null,
+        is_published: publish,
+      });
+
+      for (let i = 0; i < photos.length; i++) {
+        await uploadFile(photos[i], createdAnimal.id, i);
+      }
+
+      router.push("/association/animals");
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-5xl font-black text-[#064b42]">
-              Mes animaux
-            </h1>
-            <p className="mt-2 text-gray-500">
-              Gérez les animaux publiés par votre association.
-            </p>
-          </div>
+    <main className="min-h-screen bg-[#fbf7ef] p-8 text-[#064b42]">
+      <section className="mx-auto max-w-5xl">
+        <h1 className="text-5xl font-black">Ajouter un animal</h1>
+        <p className="mt-2 text-gray-500">
+          Créez une fiche animal complète.
+        </p>
 
-          <Button onClick={() => router.push("/association/add-animal")}>
-            <Plus size={20} />
-            <span className="ml-2">Ajouter un animal</span>
-          </Button>
-        </div>
+        <ProgressBar step={step} />
 
-        <div className="mb-8 rounded-2xl bg-white px-5 py-4 shadow flex items-center">
-          <Search size={22} className="mr-3 text-gray-400" />
-          <input
-            placeholder="Rechercher un animal..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full outline-none"
-          />
-        </div>
+        <div className="mt-8 rounded-[32px] bg-white p-8 shadow-xl">
+          {step === 1 && <Step1General animal={animal} updateField={updateField} />}
+          {step === 2 && <Step2Photos photos={photos} setPhotos={setPhotos} />}
+          {step === 3 && <Step3Health animal={animal} updateField={updateField} />}
+          {step === 4 && <Step4Character animal={animal} updateField={updateField} />}
+          {step === 5 && <Step5Story animal={animal} updateField={updateField} />}
+          {step === 6 && <Step6Location animal={animal} updateField={updateField} />}
+          {step === 7 && <Step7Preview animal={animal} photos={photos} />}
 
-        {loading ? (
-          <Card>Chargement...</Card>
-        ) : filtered.length === 0 ? (
-          <Card className="py-20 text-center">
-            <PawPrint size={80} className="mx-auto text-[#064b42]" />
-            <h2 className="mt-6 text-3xl font-black">Aucun animal</h2>
-            <p className="mt-3 text-gray-500">
-              Commencez par créer votre première fiche.
-            </p>
-            <Button
-              className="mt-8"
-              onClick={() => router.push("/association/add-animal")}
+          <div className="mt-10 flex justify-between">
+            <button
+              onClick={() => (step === 1 ? router.push("/association/animals") : setStep(step - 1))}
+              className="rounded-2xl bg-gray-100 px-6 py-4 font-black"
             >
-              Ajouter un animal
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-3">
-            {filtered.map((animal) => (
-              <Card key={animal.id} className="space-y-5">
-                <div className="h-60 overflow-hidden rounded-2xl bg-gray-100">
-                  <img
-                    src={
-                      animal.photo_url ||
-                      "https://placehold.co/600x600?text=Pas+de+photo"
-                    }
-                    alt={animal.animal_name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+              {step === 1 ? "Annuler" : "Retour"}
+            </button>
 
-                <div>
-                  <h2 className="text-3xl font-black text-[#064b42]">
-                    {animal.animal_name}
-                  </h2>
-                  <p className="mt-1 text-gray-500">
-                    {animal.breed || animal.animal_type}
-                  </p>
-                  <p className="mt-1 text-sm font-bold">
-                    {animal.is_published ? "Publié" : "Brouillon"}
-                  </p>
-                </div>
+            {step < 7 ? (
+              <button
+                onClick={() => setStep(step + 1)}
+                className="rounded-2xl bg-[#064b42] px-6 py-4 font-black text-white"
+              >
+                Suivant
+              </button>
+            ) : (
+              <div className="flex gap-4">
+                <button
+                  onClick={() => saveAnimal(false)}
+                  className="rounded-2xl bg-gray-100 px-6 py-4 font-black"
+                >
+                  {saving ? "Sauvegarde..." : "Brouillon"}
+                </button>
 
-                <div className="flex gap-2">
-                  <Button variant="secondary">
-                    <Eye size={18} />
-                  </Button>
-
-                  <Button variant="secondary">
-                    <Pencil size={18} />
-                  </Button>
-
-                  <Button variant="danger">
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                <button
+                  onClick={() => saveAnimal(true)}
+                  className="rounded-2xl bg-[#064b42] px-6 py-4 font-black text-white"
+                >
+                  {saving ? "Publication..." : "Publier"}
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Eye, Trash2, PawPrint } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { Plus, Search, Pencil, Trash2, PawPrint } from "lucide-react";
 import { animalService } from "../../services/animal.service";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
@@ -20,45 +19,20 @@ export default function AnimalsPage() {
   }, []);
 
   async function loadAnimals() {
-    setLoading(true);
-
-    const { data: animalsData, error } = await supabase
-      .from("animals")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
+    try {
+      setLoading(true);
+      const data = await animalService.getAllWithPhotos();
+      setAnimals(data);
+    } catch (error: any) {
       alert(error.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: photosData } = await supabase
-      .from("animal_photos")
-      .select("*");
-
-    const result =
-      animalsData?.map((animal) => {
-        const cover = photosData?.find(
-          (photo) => photo.animal_id === animal.id && photo.is_cover === true
-        );
-
-        return {
-          ...animal,
-          photo_url: cover?.photo_url || "",
-        };
-      }) || [];
-
-    setAnimals(result);
-    setLoading(false);
   }
 
   async function deleteAnimal(id: string) {
-    const confirmDelete = window.confirm(
-      "Voulez-vous vraiment supprimer cet animal ?"
-    );
-
-    if (!confirmDelete) return;
+    const ok = window.confirm("Supprimer définitivement cet animal ?");
+    if (!ok) return;
 
     try {
       await animalService.delete(id);
@@ -86,12 +60,9 @@ export default function AnimalsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-black text-[#064b42]">
-              Mes animaux
-            </h1>
-
+            <h1 className="text-5xl font-black text-[#064b42]">Mes animaux</h1>
             <p className="mt-2 text-gray-500">
-              Gérez les animaux de votre association.
+              Gérez les fiches animaux de votre association.
             </p>
           </div>
 
@@ -103,7 +74,6 @@ export default function AnimalsPage() {
 
         <div className="mb-8 flex items-center rounded-2xl bg-white px-5 py-4 shadow">
           <Search size={22} className="mr-3 text-gray-400" />
-
           <input
             placeholder="Rechercher un animal..."
             value={search}
@@ -117,19 +87,10 @@ export default function AnimalsPage() {
         ) : filtered.length === 0 ? (
           <Card className="py-20 text-center">
             <PawPrint size={80} className="mx-auto text-[#064b42]" />
-
             <h2 className="mt-6 text-3xl font-black">Aucun animal</h2>
-
             <p className="mt-3 text-gray-500">
               Commencez par créer votre première fiche.
             </p>
-
-            <Button
-              className="mt-8"
-              onClick={() => router.push("/association/add-animal")}
-            >
-              Ajouter un animal
-            </Button>
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
@@ -170,10 +131,6 @@ export default function AnimalsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="secondary">
-                    <Eye size={18} />
-                  </Button>
-
                   <Button
                     variant="secondary"
                     onClick={() =>
