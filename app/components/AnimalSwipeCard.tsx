@@ -25,6 +25,16 @@ type Props = {
   goNext: (text: string) => void;
 };
 
+const FALLBACK_IMAGE = "https://placehold.co/600x800?text=TAUI+TE+ORA";
+
+function getImageUrl(url?: string) {
+  if (!url || url.trim() === "") {
+    return FALLBACK_IMAGE;
+  }
+
+  return url;
+}
+
 export default function AnimalSwipeCard({
   animal,
   nextAnimal,
@@ -47,8 +57,8 @@ export default function AnimalSwipeCard({
       {nextAnimal && (
         <div className="absolute right-10 top-28 hidden h-[600px] w-[360px] rotate-6 overflow-hidden rounded-[40px] bg-[#0f5d52] opacity-70 md:block">
           <img
-            src={nextAnimal.photo_url}
-            alt={nextAnimal.animal_name}
+            src={getImageUrl(nextAnimal.photo_url)}
+            alt={nextAnimal.animal_name || "Animal"}
             className="h-full w-full object-cover opacity-35"
           />
 
@@ -78,8 +88,8 @@ export default function AnimalSwipeCard({
         onTouchEnd={handleEnd}
       >
         <img
-          src={animal.photo_url}
-          alt={animal.animal_name}
+          src={getImageUrl(animal.photo_url)}
+          alt={animal.animal_name || "Animal"}
           className="absolute inset-0 h-full w-full object-cover"
           style={{ objectPosition: "center", transform: "scale(1.08)" }}
         />
@@ -115,12 +125,13 @@ export default function AnimalSwipeCard({
 
         <div className="absolute bottom-0 w-full p-10 text-white">
           <h2 className="mb-2 text-7xl font-black">
-            {animal.animal_name} <span className="text-red-400">♥</span>
+            {animal.animal_name || "Animal"}{" "}
+            <span className="text-red-400">♥</span>
           </h2>
 
           <p className="mb-5 text-2xl font-bold">
-            {animal.sex} • {animal.age_label} •{" "}
-            {animal.size_label || "Taille moyenne"}
+            {animal.sex || "Sexe inconnu"} • {animal.age_label || "Âge inconnu"}{" "}
+            • {animal.size_label || "Taille inconnue"}
           </p>
 
           <div className="mb-6 flex flex-wrap gap-3">
@@ -139,7 +150,8 @@ export default function AnimalSwipeCard({
           </div>
 
           <p className="mb-6 max-w-4xl text-xl font-medium leading-relaxed">
-            {animal.description_character}
+            {animal.description_character ||
+              "Aucune description disponible pour le moment."}
           </p>
 
           <div className="grid grid-cols-3 overflow-hidden rounded-3xl border border-white/20 bg-black/35 backdrop-blur">
@@ -185,7 +197,7 @@ export default function AnimalSwipeCard({
 
         <button
           onClick={() => goNext("À voir plus tard")}
-          className="mt-4 flex h-18 w-18 items-center justify-center rounded-full bg-white p-5 text-[#c89a44] shadow-xl"
+          className="mt-4 flex items-center justify-center rounded-full bg-white p-5 text-[#c89a44] shadow-xl"
         >
           <Star size={38} fill="currentColor" />
         </button>
