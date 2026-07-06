@@ -88,12 +88,10 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#fbf7ef] px-6 py-8 pb-32 text-[#063f38]">
       <section className="mx-auto mb-10 max-w-7xl text-center">
         <h1 className="text-5xl font-black text-[#064b42]">
-          Trouve ton compagnon idéal
+          On ne sauvera pas le monde, 
+          mais on sauvera le leur
         </h1>
 
-        <p className="mt-2 text-lg text-gray-500">
-          Choisissez une catégorie puis swipez les profils.
-        </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {categories.map((item) => (
