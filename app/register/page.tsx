@@ -104,12 +104,12 @@ export default function RegisterPage() {
             <span className="text-6xl">🐶</span>
           </div>
 
-          <h1 className="text-6xl font-black text-[#5a2c1d]">
-            Famille Adoptante
+          <h1 className="mx-auto w-fit rounded-full bg-white/80 px-8 py-3 text-center text-3xl font-extrabold tracking-wide text-[#064b42] shadow-lg md:text-4xl">
+            Famille adoptante
           </h1>
 
-          <div className="mx-auto mt-4 w-fit rounded-full bg-[#416b49] px-8 py-3 text-xl font-black text-white shadow">
-            PROFIL ADOPTANT
+          <div className="mx-auto mt-5 w-fit rounded-full bg-gradient-to-r from-[#0f766e] to-[#16a085] px-8 py-3 text-lg font-bold uppercase tracking-widest text-white shadow-xl">
+            Créer mon profil
           </div>
 
           <p className="mx-auto mt-6 max-w-2xl text-xl font-semibold">
