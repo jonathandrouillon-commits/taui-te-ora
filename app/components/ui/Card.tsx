@@ -1,11 +1,12 @@
-type CardProps = {
+export default function Card({
+  children,
+  className = "",
+}: {
   children: React.ReactNode;
   className?: string;
-};
-
-export default function Card({ children, className = "" }: CardProps) {
+}) {
   return (
-    <div className={`rounded-[32px] bg-white p-6 shadow-xl ${className}`}>
+    <div className={`taui-card taui-paper p-6 ${className}`}>
       {children}
     </div>
   );
