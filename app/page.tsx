@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
+import PawAuthButtons from "./components/ui/PawAuthButtons";
 import { animalService } from "./services/animal.service";
 
 export default function Home() {
@@ -51,7 +52,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center text-[#064b42] font-black">
+      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] font-black text-[#064b42]">
         Chargement des animaux...
       </main>
     );
@@ -59,28 +60,34 @@ export default function Home() {
 
   if (!animal) {
     return (
-      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center p-8 text-center">
-        <div className="bg-white rounded-[32px] p-10 shadow-xl max-w-xl">
+      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] p-8 text-center">
+        <div className="max-w-xl rounded-[32px] bg-white p-10 shadow-xl">
           <h1 className="text-4xl font-black text-[#064b42]">
             Aucun animal publié
           </h1>
+
           <p className="mt-4 text-gray-500">
             Publie un animal depuis le dashboard association pour le voir ici.
           </p>
+
+          <PawAuthButtons />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf7ef] text-[#063f38] px-6 py-8 pb-32 overflow-hidden">
-      <section className="mx-auto max-w-7xl mb-8">
+    <main className="min-h-screen overflow-hidden bg-[#fbf7ef] px-6 py-8 pb-32 text-[#063f38]">
+      <section className="mx-auto mb-10 max-w-7xl text-center">
         <h1 className="text-5xl font-black text-[#064b42]">
           Découvrir les animaux
         </h1>
-        <p className="mt-2 text-gray-500 text-lg">
+
+        <p className="mt-2 text-lg text-gray-500">
           Swipe à droite pour un coup de cœur, à gauche pour passer.
         </p>
+
+        <PawAuthButtons />
       </section>
 
       <AnimalSwipeCard

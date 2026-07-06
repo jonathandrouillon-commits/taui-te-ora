@@ -3,94 +3,97 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
-
+import { profileService } from "../services/profile.service";
 import Card from "../components/ui/Card";
-import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 
 export default function LoginPage() {
-
   const router = useRouter();
 
-  const [email,setEmail]=useState("");
-  const [password,setPassword]=useState("");
-  const [loading,setLoading]=useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function login(){
+  async function login() {
+    try {
+      setLoading(true);
 
-    setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const {error}=await supabase.auth.signInWithPassword({
+      if (error) throw error;
 
-      email,
-      password
+      const profile = await profileService.getCurrentProfile();
 
-    });
+      if (!profile) {
+        router.push("/pending-approval");
+        return;
+      }
 
-    setLoading(false);
+      if (
+        profile.approval_status !== "approved" ||
+        profile.is_active === false
+      ) {
+        router.push("/pending-approval");
+        return;
+      }
 
-    if(error){
+      if (profile.role === "admin") {
+        router.push("/admin/dashboard");
+        return;
+      }
 
+      if (profile.role === "association") {
+        router.push("/association/dashboard");
+        return;
+      }
+
+      if (profile.role === "refuge") {
+        router.push("/refuge/dashboard");
+        return;
+      }
+
+      router.push("/");
+    } catch (error: any) {
       alert(error.message);
-
-      return;
-
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/");
-
   }
 
-  return(
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] p-8">
+      <Card className="w-full max-w-lg space-y-5">
+        <h1 className="text-4xl font-black text-[#064b42]">Connexion</h1>
 
-    <main className="min-h-screen bg-[#fbf7ef] flex justify-center items-center p-10">
-
-      <Card className="max-w-lg w-full space-y-5">
-
-        <h1 className="text-4xl font-black text-[#064b42]">
-
-          Connexion
-
-        </h1>
-
-        <Input
-
+        <input
+          className="input"
           placeholder="Email"
-
           value={email}
-
-          onChange={setEmail}
-
+          onChange={(e) => setEmail(e.target.value)}
         />
 
-        <Input
-
+        <input
+          className="input"
           type="password"
-
           placeholder="Mot de passe"
-
           value={password}
-
-          onChange={setPassword}
-
+          onChange={(e) => setPassword(e.target.value)}
         />
 
-        <Button
-
-          onClick={login}
-
-          className="w-full"
-
-        >
-
+        <Button onClick={login} className="w-full">
           {loading ? "Connexion..." : "Se connecter"}
-
         </Button>
-
       </Card>
-
     </main>
-
   );
-
-}
+}<div className="text-right mt-2">
+  <a
+    href="/forgot-password"
+    className="text-sm font-semibold text-[#064b42] hover:underline"
+  >
+    Mot de passe oublié ?
+  </a>
+</div>
