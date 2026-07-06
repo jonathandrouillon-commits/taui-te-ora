@@ -1,15 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Heart,
-  X,
-  Star,
-  Info,
-  MapPin,
-  Home,
-  ShieldCheck,
-} from "lucide-react";
+import { Heart, X, Star, Info, Calendar, Venus, Mars } from "lucide-react";
 
 type Props = {
   animal: any;
@@ -28,10 +20,7 @@ type Props = {
 const FALLBACK_IMAGE = "https://placehold.co/600x800?text=TAUI+TE+ORA";
 
 function getImageUrl(url?: string) {
-  if (!url || url.trim() === "") {
-    return FALLBACK_IMAGE;
-  }
-
+  if (!url || url.trim() === "") return FALLBACK_IMAGE;
   return url;
 }
 
@@ -50,28 +39,25 @@ export default function AnimalSwipeCard({
 }: Props) {
   const router = useRouter();
 
+  const name = animal.animal_name || "Animal";
+  const age = animal.age_label || "Âge inconnu";
+  const sex = animal.sex || "Sexe inconnu";
+  const isFemale = sex.toLowerCase().includes("femelle");
+
   return (
     <section className="relative mx-auto mt-6 max-w-7xl pb-40">
-      <div className="absolute left-10 top-28 hidden h-[600px] w-[360px] -rotate-6 rounded-[40px] bg-red-300/25 md:block" />
-
       {nextAnimal && (
-        <div className="absolute right-10 top-28 hidden h-[600px] w-[360px] rotate-6 overflow-hidden rounded-[40px] bg-[#0f5d52] opacity-70 md:block">
+        <div className="absolute right-10 top-28 hidden h-[620px] w-[390px] rotate-6 overflow-hidden rounded-[40px] bg-[#0f5d52] opacity-60 md:block">
           <img
             src={getImageUrl(nextAnimal.photo_url)}
             alt={nextAnimal.animal_name || "Animal"}
             className="h-full w-full object-cover opacity-35"
           />
-
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="rotate-12 rounded-2xl border-4 border-[#40e0c8] px-6 py-3 text-4xl font-black text-[#40e0c8]">
-              ADOPTER
-            </div>
-          </div>
         </div>
       )}
 
       <div
-        className="relative mx-auto h-[720px] w-[90vw] max-w-5xl cursor-grab overflow-hidden rounded-[42px] bg-black shadow-2xl"
+        className="relative mx-auto h-[720px] w-[90vw] max-w-[430px] cursor-grab overflow-hidden rounded-[42px] bg-black shadow-2xl"
         style={{
           transform: `translateX(${drag}px) rotate(${drag * 0.045}deg)`,
           transition:
@@ -89,33 +75,34 @@ export default function AnimalSwipeCard({
       >
         <img
           src={getImageUrl(animal.photo_url)}
-          alt={animal.animal_name || "Animal"}
+          alt={name}
           className="absolute inset-0 h-full w-full object-cover"
-          style={{ objectPosition: "center", transform: "scale(1.08)" }}
         />
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/10 to-black/90" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
-        <div className="absolute left-7 top-6 rounded-full bg-white/90 px-6 py-3 text-xl font-black text-[#064b42] shadow">
+        <div className="absolute left-6 top-6 z-20 rounded-2xl bg-white px-5 py-3 text-xl font-black text-[#064b42] shadow">
           {index + 1} / {total}
         </div>
 
         <button
+          type="button"
           onClick={() => router.push(`/animal/${animal.id}`)}
-          className="absolute right-7 top-6 flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#064b42] shadow-lg"
+          className="absolute right-6 top-6 z-20 flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#064b42] shadow-lg"
+          aria-label="Voir les informations complètes"
         >
           <Info size={30} />
         </button>
 
         <div
-          className="absolute right-12 top-36 rotate-12 rounded-2xl border-4 border-[#33d6c5] px-7 py-4 text-5xl font-black text-[#33d6c5]"
+          className="absolute right-8 top-36 rotate-12 rounded-2xl border-4 border-[#33d6c5] px-6 py-3 text-4xl font-black text-[#33d6c5]"
           style={{ opacity: drag > 60 ? Math.min(drag / 160, 1) : 0 }}
         >
           ADOPTER
         </div>
 
         <div
-          className="absolute left-12 top-36 -rotate-12 rounded-2xl border-4 border-red-400 px-7 py-4 text-5xl font-black text-red-300"
+          className="absolute left-8 top-36 -rotate-12 rounded-2xl border-4 border-red-400 px-6 py-3 text-4xl font-black text-red-300"
           style={{
             opacity: drag < -60 ? Math.min(Math.abs(drag) / 160, 1) : 0,
           }}
@@ -123,55 +110,21 @@ export default function AnimalSwipeCard({
           PASSER
         </div>
 
-        <div className="absolute bottom-0 w-full p-10 text-white">
-          <h2 className="mb-2 text-7xl font-black">
-            {animal.animal_name || "Animal"}{" "}
+        <div className="absolute bottom-10 left-7 right-7 z-20 text-white">
+          <h2 className="mb-6 flex items-center gap-3 text-6xl font-black drop-shadow-lg">
+            {name}
             <span className="text-red-400">♥</span>
           </h2>
 
-          <p className="mb-5 text-2xl font-bold">
-            {animal.sex || "Sexe inconnu"} • {animal.age_label || "Âge inconnu"}{" "}
-            • {animal.size_label || "Taille inconnue"}
-          </p>
-
-          <div className="mb-6 flex flex-wrap gap-3">
-            <span className="rounded-full bg-[#fff2cf] px-5 py-2 font-black text-[#6b4a16]">
-              🐾 Sociable
-            </span>
-            <span className="rounded-full bg-[#ffe1e1] px-5 py-2 font-black text-[#9b2f2f]">
-              ❤️ Douce
-            </span>
-            <span className="rounded-full bg-[#daf4ee] px-5 py-2 font-black text-[#064b42]">
-              🌿 Calme
-            </span>
-            <span className="rounded-full bg-[#fff4d8] px-5 py-2 font-black text-[#7b5420]">
-              😊 Affectueuse
-            </span>
-          </div>
-
-          <p className="mb-6 max-w-4xl text-xl font-medium leading-relaxed">
-            {animal.description_character ||
-              "Aucune description disponible pour le moment."}
-          </p>
-
-          <div className="grid grid-cols-3 overflow-hidden rounded-3xl border border-white/20 bg-black/35 backdrop-blur">
-            <div className="flex items-center gap-4 border-r border-white/15 p-5">
-              <MapPin size={34} className="text-[#16cabb]" />
-              <span className="font-bold">{animal.island || "Tahiti"}</span>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-[#fff2cf] px-5 py-4 text-lg font-black uppercase text-[#6b4a16] shadow-md">
+              <Calendar size={22} />
+              {age}
             </div>
 
-            <div className="flex items-center gap-4 border-r border-white/15 p-5">
-              <Home size={34} className="text-[#16cabb]" />
-              <span className="font-bold">
-                {animal.association_name || "Association"}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4 p-5">
-              <ShieldCheck size={34} className="text-[#16cabb]" />
-              <span className="font-bold">
-                {animal.health_status || "Santé OK"}
-              </span>
+            <div className="flex items-center gap-3 rounded-2xl bg-[#ffe1e1] px-5 py-4 text-lg font-black uppercase text-[#9b2f2f] shadow-md">
+              {isFemale ? <Venus size={24} /> : <Mars size={24} />}
+              {sex}
             </div>
           </div>
         </div>
