@@ -4,7 +4,6 @@ export type Animal = {
   id: string;
   created_at?: string;
   updated_at?: string;
-
   reference_number?: string | null;
   animal_name: string | null;
   animal_type: string | null;
@@ -31,30 +30,41 @@ export type Animal = {
   sterilized?: boolean | null;
   microchipped?: boolean | null;
   owner_id?: string | null;
-
-  // Compatibilité avec les anciennes pages
-  nom?: string | null;
-  type?: string | null;
-  sexe?: string | null;
-  age?: string | null;
-  race?: string | null;
-  taille?: string | null;
-  poids?: string | null;
-  ile?: string | null;
-  localisation?: string | null;
-  lieu_capture?: string | null;
-  temps_rue?: string | null;
-  statut?: string | null;
-  histoire?: string | null;
-  caractere?: string | null;
-  sante?: string | null;
-  sterilise?: boolean | null;
-  vaccine?: boolean | null;
-  identifie?: boolean | null;
-  photo_url?: string | null;
-  association_id?: string | null;
-  created_by?: string | null;
+  animal_photos?: any[];
+  owner_profile?: {
+    id: string;
+    organization_name: string | null;
+    avatar_url: string | null;
+    role: string | null;
+  } | null;
 };
+
+async function attachOwnerProfiles(animals: any[]) {
+  const ownerIds = Array.from(
+    new Set(
+      animals
+        .map((animal) => animal.owner_id)
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+
+  if (ownerIds.length === 0) {
+    return animals.map((animal) => ({ ...animal, owner_profile: null }));
+  }
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("id, organization_name, avatar_url, role")
+    .in("id", ownerIds);
+
+  if (error) throw error;
+
+  return animals.map((animal) => ({
+    ...animal,
+    owner_profile:
+      profiles?.find((profile) => profile.id === animal.owner_id) || null,
+  }));
+}
 
 async function getAll() {
   const { data, error } = await supabase
@@ -63,7 +73,7 @@ async function getAll() {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as Animal[];
+  return attachOwnerProfiles(data || []) as Promise<Animal[]>;
 }
 
 async function getMyAnimals() {
@@ -75,50 +85,46 @@ async function getMyAnimals() {
 
   const { data, error } = await supabase
     .from("animals")
-    .select("*")
+    .select("*, animal_photos (*)")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as Animal[];
+  return attachOwnerProfiles(data || []) as Promise<Animal[]>;
 }
 
 async function getById(id: string) {
   const { data, error } = await supabase
     .from("animals")
-    .select("*")
+    .select("*, animal_photos (*)")
     .eq("id", id)
     .single();
 
   if (error) throw error;
-  return data as Animal;
+
+  const result = await attachOwnerProfiles([data]);
+  return result[0] as Animal;
 }
 
 async function getPublishedWithPhotos() {
   const { data, error } = await supabase
     .from("animals")
-    .select(`
-      *,
-      animal_photos (*)
-    `)
+    .select("*, animal_photos (*)")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as any[];
+  return attachOwnerProfiles(data || []);
 }
 
 async function getAllWithPhotos() {
   const { data, error } = await supabase
     .from("animals")
-    .select(`
-      *,
-      animal_photos (*)
-    `)
+    .select("*, animal_photos (*)")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as any[];
+  return attachOwnerProfiles(data || []);
 }
 
 async function create(animal: Partial<Animal>) {

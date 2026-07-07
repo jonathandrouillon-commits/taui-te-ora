@@ -10,7 +10,7 @@ import AnimalHistory from "../../components/animal/AnimalHistory";
 import AnimalHealth from "../../components/animal/AnimalHealth";
 import AnimalCompatibility from "../../components/animal/AnimalCompatibility";
 
-import { animalService, Animal } from "../../services/animal.service";
+import { animalService } from "../../services/animal.service";
 
 export default function AnimalPublicPage() {
   const router = useRouter();
@@ -22,23 +22,23 @@ export default function AnimalPublicPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    async function loadAnimal() {
-      try {
-        setLoading(true);
-        setErrorMessage("");
-
-        const data = await animalService.getById(id);
-        setAnimal(data);
-      } catch (error) {
-        console.error(error);
-        setErrorMessage("Animal introuvable ou erreur de chargement.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (id) loadAnimal();
+    loadAnimal();
   }, [id]);
+
+  async function loadAnimal() {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const data = await animalService.getById(id);
+      setAnimal(data);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Animal introuvable ou erreur de chargement.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -76,8 +76,12 @@ export default function AnimalPublicPage() {
   const poids = animal.weight_kg ? `${animal.weight_kg} kg` : animal.poids || "";
   const ile = animal.island || animal.ile || "";
   const localisation = animal.city || animal.localisation || "";
-  const association = animal.association_name || animal.association_id || "";
-  const statut = animal.is_published ? "Publié" : "Brouillon";
+  const association =
+    animal.owner_profile?.organization_name ||
+    animal.association_name ||
+    animal.association_id ||
+    "";
+  const statut = animal.is_published ? "À adopter" : "Brouillon";
 
   const mainPhoto =
     animal.animal_photos?.find((photo: any) => photo.is_cover)?.photo_url ||
@@ -133,9 +137,9 @@ export default function AnimalPublicPage() {
           />
 
           <AnimalCompatibility
-            compatibleChiens={animal.compatible_chiens ?? null}
-            compatibleChats={animal.compatible_chats ?? null}
-            compatibleEnfants={animal.compatible_enfants ?? null}
+            compatibleChiens={animal.compatible_chiens || null}
+            compatibleChats={animal.compatible_chats || null}
+            compatibleEnfants={animal.compatible_enfants || null}
           />
         </section>
       </div>

@@ -31,7 +31,13 @@ export default function AddAnimalPage() {
     weight_kg: "",
     island: "",
     city: "",
+    capture_location: "",
+    street_duration_number: "",
+    street_duration_unit: "jours",
     description_character: "",
+    compatible_chiens: "",
+    compatible_chats: "",
+    compatible_enfants: "",
     story: "",
     health_status: "",
     vaccinated: false,
@@ -81,6 +87,10 @@ export default function AddAnimalPage() {
 
       setSaving(true);
 
+      const streetDuration = animal.street_duration_number
+        ? `${animal.street_duration_number} ${animal.street_duration_unit}`
+        : null;
+
       const createdAnimal = await animalService.create({
         animal_name: animal.animal_name,
         animal_type: animal.animal_type,
@@ -91,14 +101,19 @@ export default function AddAnimalPage() {
         weight_kg: animal.weight_kg ? Number(animal.weight_kg) : null,
         island: animal.island || null,
         city: animal.city || null,
+        capture_location: animal.capture_location || null,
+        street_duration: streetDuration,
         description_character: animal.description_character || null,
+        compatible_chiens: animal.compatible_chiens || null,
+        compatible_chats: animal.compatible_chats || null,
+        compatible_enfants: animal.compatible_enfants || null,
         story: animal.story || null,
         health_status: animal.health_status || null,
         vaccinated: animal.vaccinated,
         sterilized: animal.sterilized,
         microchipped: animal.microchipped,
         is_published: publish,
-      });
+      } as any);
 
       if (photos.length > 0) {
         await photoService.uploadMany(photos, createdAnimal.id);

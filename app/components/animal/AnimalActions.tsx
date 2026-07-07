@@ -18,7 +18,7 @@ export default function AnimalActions({ animalId }: AnimalActionsProps) {
       setLoadingFavorite(true);
       setMessage("");
 
-      await favoriteService.addFavorite(animalId);
+      await favoriteService.add(animalId);
 
       setMessage("Coup de cœur enregistré.");
     } catch (error) {
