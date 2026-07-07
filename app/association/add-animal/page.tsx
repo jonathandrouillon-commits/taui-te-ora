@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import { animalService } from "../../services/animal.service";
+import { photoService } from "../../services/photo.service";
 
 import ProgressBar from "./ProgressBar";
 import Step1General from "./Step1General";
@@ -75,33 +75,6 @@ export default function AddAnimalPage() {
     return true;
   }
 
-  async function uploadFile(file: File, animalId: string, index: number) {
-    const safeName = file.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9.-]/g, "-")
-      .toLowerCase();
-
-    const path = `${animalId}/photos/${Date.now()}-${index}-${safeName}`;
-
-    const { error } = await supabase.storage
-      .from("animals")
-      .upload(path, file, { upsert: true });
-
-    if (error) throw error;
-
-    const { data } = supabase.storage.from("animals").getPublicUrl(path);
-
-    const { error: photoError } = await supabase.from("animal_photos").insert({
-      animal_id: animalId,
-      photo_url: data.publicUrl,
-      is_cover: index === 0,
-      sort_order: index,
-    });
-
-    if (photoError) throw photoError;
-  }
-
   async function saveAnimal(publish: boolean) {
     try {
       if (!validateAnimal()) return;
@@ -127,8 +100,8 @@ export default function AddAnimalPage() {
         is_published: publish,
       });
 
-      for (let i = 0; i < photos.length; i++) {
-        await uploadFile(photos[i], createdAnimal.id, i);
+      if (photos.length > 0) {
+        await photoService.uploadMany(photos, createdAnimal.id);
       }
 
       alert(
@@ -182,9 +155,7 @@ export default function AddAnimalPage() {
             <Step6Location animal={animal} updateField={updateField} />
           )}
 
-          {step === 7 && (
-            <Step7Preview animal={animal} photos={photos} />
-          )}
+          {step === 7 && <Step7Preview animal={animal} photos={photos} />}
 
           <div className="mt-10 flex justify-between gap-4">
             <button

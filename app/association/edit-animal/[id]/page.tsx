@@ -2,47 +2,51 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import { Save, Trash2, Eye } from "lucide-react";
+
 import { animalService } from "../../../services/animal.service";
 import { photoService } from "../../../services/photo.service";
-import { videoService } from "../../../services/video.service";
-import PhotoGalleryEditor from "../../../components/animal/PhotoGalleryEditor";
-import VideoGalleryEditor from "../../../components/animal/VideoGalleryEditor";
+
+import AnimalTabs, { TabKey } from "./AnimalTabs";
+import GeneralTab from "./GeneralTab";
+import PhotosTab from "./PhotosTab";
+import HealthTab from "./HealthTab";
+import CharacterTab from "./CharacterTab";
+import StoryTab from "./StoryTab";
+import LocationTab from "./LocationTab";
+import AdoptionTab from "./AdoptionTab";
+import PreviewTab from "./PreviewTab";
 
 export default function EditAnimalPage() {
   const router = useRouter();
   const params = useParams();
   const id = String(params.id);
 
+  const [activeTab, setActiveTab] = useState<TabKey>("general");
+  const [animal, setAnimal] = useState<any>(null);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [animal, setAnimal] = useState<any>({});
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [newPhotos, setNewPhotos] = useState<File[]>([]);
-  const [newVideos, setNewVideos] = useState<File[]>([]);
-
   useEffect(() => {
-    loadData();
-  }, []);
+    loadAnimal();
+  }, [id]);
 
-  async function loadData() {
+  async function loadAnimal() {
     try {
-      const animalData = await animalService.getById(id);
-      const photosData = await photoService.getByAnimal(id);
-      const videosData = await videoService.getByAnimal(id);
+      setLoading(true);
 
-      setAnimal({
-        ...animalData,
-        weight_kg: animalData.weight_kg || "",
-      });
+      const [animalData, photosData] = await Promise.all([
+        animalService.getById(id),
+        photoService.getByAnimalId(id),
+      ]);
 
-      setPhotos(photosData);
-      setVideos(videosData);
+      setAnimal(animalData);
+      setPhotos(photosData || []);
     } catch (error: any) {
-      alert(error.message);
+      console.error(error);
+      alert(error.message || "Impossible de charger l’animal.");
+      router.push("/association/animals");
     } finally {
       setLoading(false);
     }
@@ -55,312 +59,209 @@ export default function EditAnimalPage() {
     }));
   }
 
-  async function saveChanges() {
+  async function saveAnimal() {
+    if (!animal) return;
+
     try {
       setSaving(true);
 
       await animalService.update(id, {
-        ...animal,
+        animal_name: animal.animal_name || null,
+        animal_type: animal.animal_type || null,
+        breed: animal.breed || null,
+        sex: animal.sex || null,
+        age_label: animal.age_label || null,
+        size_label: animal.size_label || null,
         weight_kg: animal.weight_kg ? Number(animal.weight_kg) : null,
+
+        island: animal.island || null,
+        city: animal.city || null,
+        map_address: animal.map_address || null,
+        map_visibility: animal.map_visibility || null,
+
+        description_character: animal.description_character || null,
+        story: animal.story || null,
+        capture_location: animal.capture_location || null,
+        street_duration: animal.street_duration || null,
+
+        health_status: animal.health_status || null,
+        special_needs: animal.special_needs || null,
+        vaccinated: !!animal.vaccinated,
+        sterilized: !!animal.sterilized,
+        microchipped: !!animal.microchipped,
+
+        is_published: !!animal.is_published,
       });
 
-      for (const photo of newPhotos) {
-        await photoService.upload(photo, id);
-      }
-
-      for (const video of newVideos) {
-        await videoService.upload(video, id);
-      }
-
-      router.push("/association/animals");
+      alert("Animal sauvegardé.");
+      await loadAnimal();
     } catch (error: any) {
-      alert(error.message);
+      console.error(error);
+      alert(error.message || "Erreur lors de la sauvegarde.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function setCover(photoId: string) {
+  async function deleteAnimal() {
+    if (!confirm("Supprimer définitivement cet animal ?")) return;
+
     try {
-      await photoService.setCover(photoId, id);
-      await loadData();
+      setSaving(true);
+      await animalService.delete(id);
+      alert("Animal supprimé.");
+      router.push("/association/animals");
     } catch (error: any) {
-      alert(error.message);
+      console.error(error);
+      alert(error.message || "Erreur lors de la suppression.");
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function deletePhoto(photoId: string) {
-    const ok = window.confirm("Supprimer cette photo ?");
-    if (!ok) return;
+  async function togglePublished() {
+    if (!animal) return;
 
     try {
-      await photoService.delete(photoId);
-      await loadData();
-    } catch (error: any) {
-      alert(error.message);
-    }
-  }
+      setSaving(true);
 
-  async function deleteVideo(videoId: string) {
-    const ok = window.confirm("Supprimer cette vidéo ?");
-    if (!ok) return;
+      const nextValue = !animal.is_published;
 
-    try {
-      await videoService.delete(videoId);
-      await loadData();
+      await animalService.togglePublished(id, nextValue);
+
+      setAnimal((prev: any) => ({
+        ...prev,
+        is_published: nextValue,
+      }));
+
+      alert(nextValue ? "Animal publié." : "Animal passé en brouillon.");
     } catch (error: any) {
-      alert(error.message);
+      alert(error.message || "Erreur lors du changement de statut.");
+    } finally {
+      setSaving(false);
     }
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#fbf7ef] flex items-center justify-center font-black text-[#064b42]">
-        Chargement...
+      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] text-[#064b42]">
+        <p className="text-xl font-black">Chargement de l’éditeur...</p>
+      </main>
+    );
+  }
+
+  if (!animal) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] text-[#064b42]">
+        <p className="text-xl font-black">Animal introuvable.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf7ef] p-8 text-[#064b42]">
-      <section className="mx-auto max-w-6xl">
-        <h1 className="text-5xl font-black">Modifier l’animal</h1>
-
-        <p className="mt-2 text-gray-500">
-          Modifiez les informations, les photos et les vidéos de la fiche.
-        </p>
-
-        <Card className="mt-8 space-y-10">
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Informations générales</h2>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <input
-                className="input"
-                placeholder="Nom"
-                value={animal.animal_name || ""}
-                onChange={(e) => updateField("animal_name", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Espèce"
-                value={animal.animal_type || ""}
-                onChange={(e) => updateField("animal_type", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Race"
-                value={animal.breed || ""}
-                onChange={(e) => updateField("breed", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Sexe"
-                value={animal.sex || ""}
-                onChange={(e) => updateField("sex", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Âge estimé"
-                value={animal.age_label || ""}
-                onChange={(e) => updateField("age_label", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Taille"
-                value={animal.size_label || ""}
-                onChange={(e) => updateField("size_label", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Poids kg"
-                value={animal.weight_kg || ""}
-                onChange={(e) => updateField("weight_kg", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Santé"
-                value={animal.health_status || ""}
-                onChange={(e) => updateField("health_status", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Île"
-                value={animal.island || ""}
-                onChange={(e) => updateField("island", e.target.value)}
-              />
-
-              <input
-                className="input"
-                placeholder="Commune"
-                value={animal.city || ""}
-                onChange={(e) => updateField("city", e.target.value)}
-              />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Santé</h2>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <label className="box">
-                <input
-                  type="checkbox"
-                  checked={animal.vaccinated || false}
-                  onChange={(e) => updateField("vaccinated", e.target.checked)}
-                />
-                Vacciné
-              </label>
-
-              <label className="box">
-                <input
-                  type="checkbox"
-                  checked={animal.sterilized || false}
-                  onChange={(e) => updateField("sterilized", e.target.checked)}
-                />
-                Stérilisé
-              </label>
-
-              <label className="box">
-                <input
-                  type="checkbox"
-                  checked={animal.microchipped || false}
-                  onChange={(e) =>
-                    updateField("microchipped", e.target.checked)
-                  }
-                />
-                Identifié
-              </label>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Caractère</h2>
-
-            <textarea
-              className="min-h-40 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
-              placeholder="Caractère de l'animal"
-              value={animal.description_character || ""}
-              onChange={(e) =>
-                updateField("description_character", e.target.value)
-              }
-            />
-          </section>
-
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Histoire</h2>
-
-            <textarea
-              className="min-h-40 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
-              placeholder="Histoire de l'animal"
-              value={animal.story || ""}
-              onChange={(e) => updateField("story", e.target.value)}
-            />
-          </section>
-
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Photos existantes</h2>
-
-            <PhotoGalleryEditor
-              photos={photos}
-              onSetCover={setCover}
-              onDelete={deletePhoto}
-            />
-
-            <h3 className="mb-3 mt-8 text-2xl font-black">
-              Ajouter des photos
-            </h3>
-
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setNewPhotos(Array.from(e.target.files || []))}
-              className="w-full rounded-2xl bg-white p-5"
-            />
-
-            {newPhotos.length > 0 && (
-              <div className="mt-5 grid gap-5 md:grid-cols-3">
-                {newPhotos.map((file, index) => (
-                  <div
-                    key={index}
-                    className="overflow-hidden rounded-2xl bg-gray-100"
-                  >
-                    <img
-                      src={URL.createObjectURL(file)}
-                      className="h-52 w-full object-cover"
-                      alt="Nouvelle photo"
-                    />
-
-                    <p className="p-3 text-center text-sm font-black">
-                      Nouvelle photo
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <h2 className="mb-5 text-3xl font-black">Vidéos existantes</h2>
-
-            <VideoGalleryEditor videos={videos} onDelete={deleteVideo} />
-
-            <h3 className="mb-3 mt-8 text-2xl font-black">
-              Ajouter des vidéos
-            </h3>
-
-            <input
-              type="file"
-              accept="video/*"
-              multiple
-              onChange={(e) => setNewVideos(Array.from(e.target.files || []))}
-              className="w-full rounded-2xl bg-white p-5"
-            />
-
-            {newVideos.length > 0 && (
-              <div className="mt-5 grid gap-5 md:grid-cols-2">
-                {newVideos.map((file, index) => (
-                  <div
-                    key={index}
-                    className="overflow-hidden rounded-2xl bg-gray-100"
-                  >
-                    <video
-                      src={URL.createObjectURL(file)}
-                      controls
-                      className="h-64 w-full object-cover"
-                    />
-
-                    <p className="p-3 text-center text-sm font-black">
-                      Nouvelle vidéo
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <div className="flex justify-between pt-6">
-            <Button
-              variant="secondary"
+    <main className="min-h-screen bg-[#fbf7ef] p-6 text-[#064b42]">
+      <section className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <button
+              type="button"
               onClick={() => router.push("/association/animals")}
+              className="mb-3 rounded-2xl bg-white px-4 py-2 font-bold shadow"
             >
-              Annuler
-            </Button>
+              ← Retour aux animaux
+            </button>
 
-            <Button onClick={saveChanges}>
-              {saving ? "Enregistrement..." : "Enregistrer"}
-            </Button>
+            <p className="text-sm font-black uppercase tracking-[0.3em] text-[#b68b2f]">
+              Édition animal
+            </p>
+
+            <h1 className="mt-2 text-4xl font-black">
+              {animal.animal_name || "Animal sans nom"}
+            </h1>
+
+            <p className="mt-2 text-gray-500">
+              {animal.is_published ? "Publié" : "Brouillon"}
+            </p>
           </div>
-        </Card>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => router.push(`/animal/${id}`)}
+              className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 font-black shadow"
+            >
+              <Eye size={18} />
+              Voir
+            </button>
+
+            <button
+              type="button"
+              onClick={togglePublished}
+              disabled={saving}
+              className={`rounded-2xl px-5 py-3 font-black text-white disabled:opacity-60 ${
+                animal.is_published ? "bg-orange-600" : "bg-green-700"
+              }`}
+            >
+              {animal.is_published ? "Dépublier" : "Publier"}
+            </button>
+
+            <button
+              type="button"
+              onClick={saveAnimal}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-60"
+            >
+              <Save size={18} />
+              {saving ? "Sauvegarde..." : "Sauvegarder"}
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteAnimal}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-black text-white disabled:opacity-60"
+            >
+              <Trash2 size={18} />
+              Supprimer
+            </button>
+          </div>
+        </div>
+
+        <AnimalTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        <div className="mt-6 rounded-3xl bg-white p-8 shadow-xl">
+          {activeTab === "general" && (
+            <GeneralTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "photos" && (
+            <PhotosTab animalId={id} photos={photos} setPhotos={setPhotos} />
+          )}
+
+          {activeTab === "health" && (
+            <HealthTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "character" && (
+            <CharacterTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "story" && (
+            <StoryTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "location" && (
+            <LocationTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "adoption" && (
+            <AdoptionTab animal={animal} updateField={updateField} />
+          )}
+
+          {activeTab === "preview" && (
+            <PreviewTab animal={animal} photos={photos} />
+          )}
+        </div>
       </section>
     </main>
   );

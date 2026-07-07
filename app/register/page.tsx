@@ -9,7 +9,6 @@ export default function RegisterPage() {
 
   const [role, setRole] = useState("adoptant");
   const [loading, setLoading] = useState(false);
-  const [profileImage, setProfileImage] = useState<File | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
@@ -20,28 +19,23 @@ export default function RegisterPage() {
   const [island, setIsland] = useState("");
   const [city, setCity] = useState("");
 
+  const [adopterExperience, setAdopterExperience] = useState("");
+  const [currentAnimals, setCurrentAnimals] = useState("");
+  const [adoptionFor, setAdoptionFor] = useState("");
+  const [childrenAge, setChildrenAge] = useState("");
+  const [gardenType, setGardenType] = useState("");
+
+  const [ageWanted, setAgeWanted] = useState("");
+  const [sexWanted, setSexWanted] = useState("");
+  const [sizeWanted, setSizeWanted] = useState("");
+  const [activityWanted, setActivityWanted] = useState("");
+  const [raceWanted, setRaceWanted] = useState("");
+  const [hypoallergenicWanted, setHypoallergenicWanted] = useState("");
+  const [cleanWanted, setCleanWanted] = useState("");
+  const [specialNeedsOpen, setSpecialNeedsOpen] = useState("");
+
   const isOrganization = role === "association" || role === "refuge";
-
-  async function uploadProfileImage(userId: string) {
-    if (!profileImage) return null;
-
-    const safeName = profileImage.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9.-]/g, "-")
-      .toLowerCase();
-
-    const path = `${userId}/${Date.now()}-${safeName}`;
-
-    const { error } = await supabase.storage
-      .from("profiles")
-      .upload(path, profileImage, { upsert: true });
-
-    if (error) throw error;
-
-    const { data } = supabase.storage.from("profiles").getPublicUrl(path);
-    return data.publicUrl;
-  }
+  const isAdoptant = role === "adoptant";
 
   async function register() {
     try {
@@ -66,40 +60,38 @@ export default function RegisterPage() {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            organization_name: isOrganization ? organizationName.trim() : "",
+            role,
+            phone: phone.trim(),
+            island: island.trim(),
+            city: city.trim(),
+
+            adopter_experience: isAdoptant ? adopterExperience : "",
+            current_animals: isAdoptant ? currentAnimals : "",
+            adoption_for: isAdoptant ? adoptionFor : "",
+            children_age: isAdoptant ? childrenAge : "",
+            garden_type: isAdoptant ? gardenType : "",
+
+            age_souhaite: isAdoptant ? ageWanted : "",
+            sexe_souhaite: isAdoptant ? sexWanted : "",
+            taille_souhaitee: isAdoptant ? sizeWanted : "",
+            activite_souhaitee: isAdoptant ? activityWanted : "",
+            race_souhaitee: isAdoptant ? raceWanted : "",
+            hypoallergenique: isAdoptant ? hypoallergenicWanted : "",
+            proprete: isAdoptant ? cleanWanted : "",
+            besoins_speciaux: isAdoptant ? specialNeedsOpen : "",
+          },
+        },
       });
 
       if (error) throw error;
-
-      const userId = data.user?.id;
-
-      if (!userId) {
-        alert("Compte créé. Vérifiez votre email pour confirmer l’inscription.");
-        router.push("/login");
-        return;
-      }
-
-      const avatarUrl = await uploadProfileImage(userId);
-
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: userId,
-        email: email.trim(),
-        first_name: firstName,
-        last_name: lastName,
-        organization_name: isOrganization ? organizationName.trim() : null,
-        role,
-        phone: phone.trim(),
-        island: island.trim(),
-        city: city.trim(),
-        avatar_url: avatarUrl,
-        approval_status: role === "adoptant" ? "approved" : "pending",
-        is_verified: role === "adoptant",
-        is_active: true,
-      });
-
-      if (profileError) throw profileError;
 
       alert(
         isOrganization
@@ -110,15 +102,7 @@ export default function RegisterPage() {
       router.push(isOrganization ? "/pending-approval" : "/login");
     } catch (error: any) {
       console.error("ERREUR CREATION COMPTE:", error);
-
-      alert(
-        error?.message ||
-          error?.error_description ||
-          error?.details ||
-          error?.hint ||
-          JSON.stringify(error) ||
-          "Erreur inconnue lors de la création du compte."
-      );
+      alert(error?.message || "Erreur inconnue lors de la création du compte.");
     } finally {
       setLoading(false);
     }
@@ -153,27 +137,6 @@ export default function RegisterPage() {
             <option value="association">Association</option>
             <option value="refuge">Refuge</option>
           </select>
-
-          <div className="rounded-[28px] bg-white p-6 shadow">
-            <h2 className="mb-4 text-2xl font-black text-[#064b42]">
-              {isOrganization ? "Logo de la structure" : "Photo de profil"}
-            </h2>
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
-              className="w-full rounded-2xl bg-[#f8f4ec] p-5"
-            />
-
-            {profileImage && (
-              <img
-                src={URL.createObjectURL(profileImage)}
-                alt="Aperçu"
-                className="mt-5 h-40 w-40 rounded-full object-cover shadow-xl"
-              />
-            )}
-          </div>
 
           <input
             className="input"
@@ -227,6 +190,168 @@ export default function RegisterPage() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
           />
+
+          {isAdoptant && (
+            <>
+              <div className="pt-6">
+                <h2 className="text-3xl font-black text-[#064b42]">
+                  Questionnaire adoptant
+                </h2>
+              </div>
+
+              <select
+                className="input"
+                value={adopterExperience}
+                onChange={(e) => setAdopterExperience(e.target.value)}
+              >
+                <option value="">Êtes-vous déjà propriétaire d’un animal ?</option>
+                <option value="oui">Oui</option>
+                <option value="avant">Avant</option>
+                <option value="premiere_fois">Première fois</option>
+              </select>
+
+              <select
+                className="input"
+                value={currentAnimals}
+                onChange={(e) => setCurrentAnimals(e.target.value)}
+              >
+                <option value="">Avez-vous actuellement un animal ?</option>
+                <option value="chien">Chien</option>
+                <option value="chat">Chat</option>
+                <option value="autre">Autre</option>
+                <option value="aucun">Aucun</option>
+              </select>
+
+              <select
+                className="input"
+                value={adoptionFor}
+                onChange={(e) => setAdoptionFor(e.target.value)}
+              >
+                <option value="">Vous adoptez pour :</option>
+                <option value="moi">Moi</option>
+                <option value="ma_famille">Ma famille</option>
+              </select>
+
+              <select
+                className="input"
+                value={childrenAge}
+                onChange={(e) => setChildrenAge(e.target.value)}
+              >
+                <option value="">Avez-vous des enfants ?</option>
+                <option value="moins_8_ans">Moins de 8 ans</option>
+                <option value="plus_8_ans">Plus de 8 ans</option>
+                <option value="plus_15_ans">Plus de 15 ans</option>
+              </select>
+
+              <select
+                className="input"
+                value={gardenType}
+                onChange={(e) => setGardenType(e.target.value)}
+              >
+                <option value="">Type de jardin</option>
+                <option value="cloture">Clôturé</option>
+                <option value="ouvert">Ouvert</option>
+                <option value="pas_de_jardin">Pas de jardin</option>
+              </select>
+
+              <div className="pt-6">
+                <h2 className="text-3xl font-black text-[#064b42]">
+                  🐾 Mon animal idéal
+                </h2>
+                <p className="mt-1 text-gray-600">
+                  Ces réponses permettront de proposer des animaux compatibles.
+                </p>
+              </div>
+
+              <select
+                className="input"
+                value={ageWanted}
+                onChange={(e) => setAgeWanted(e.target.value)}
+              >
+                <option value="">Âge souhaité</option>
+                <option value="puppy">Puppy — moins de 1 an</option>
+                <option value="young">Young — 1 à 3 ans</option>
+                <option value="adult">Adult — 3 à 8 ans</option>
+                <option value="senior">Senior</option>
+                <option value="aucune_preference">Aucune préférence</option>
+              </select>
+
+              <select
+                className="input"
+                value={sexWanted}
+                onChange={(e) => setSexWanted(e.target.value)}
+              >
+                <option value="">Sexe souhaité</option>
+                <option value="male">Mâle</option>
+                <option value="femelle">Femelle</option>
+                <option value="aucune_preference">Aucune préférence</option>
+              </select>
+
+              <select
+                className="input"
+                value={sizeWanted}
+                onChange={(e) => setSizeWanted(e.target.value)}
+              >
+                <option value="">Taille souhaitée</option>
+                <option value="petit">Petit — 0 à 10 kg</option>
+                <option value="moyen">Moyen — 11 à 27 kg</option>
+                <option value="large">Large — 28 à 45 kg</option>
+                <option value="xl">XL — plus de 45 kg</option>
+              </select>
+
+              <select
+                className="input"
+                value={activityWanted}
+                onChange={(e) => setActivityWanted(e.target.value)}
+              >
+                <option value="">Activité souhaitée</option>
+                <option value="chien_de_compagnie">Chien de compagnie</option>
+                <option value="cool_dog">Cool Dog</option>
+                <option value="actif">Actif</option>
+                <option value="tres_actif">Très actif</option>
+                <option value="pas_de_preference">Pas de préférence</option>
+              </select>
+
+              <input
+                className="input"
+                placeholder="Race de prédilection ou pas de préférence"
+                value={raceWanted}
+                onChange={(e) => setRaceWanted(e.target.value)}
+              />
+
+              <select
+                className="input"
+                value={hypoallergenicWanted}
+                onChange={(e) => setHypoallergenicWanted(e.target.value)}
+              >
+                <option value="">Hypoallergénique ?</option>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+
+              <select
+                className="input"
+                value={cleanWanted}
+                onChange={(e) => setCleanWanted(e.target.value)}
+              >
+                <option value="">Animal déjà propre ?</option>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+
+              <select
+                className="input"
+                value={specialNeedsOpen}
+                onChange={(e) => setSpecialNeedsOpen(e.target.value)}
+              >
+                <option value="">
+                  Ouvert à un animal avec besoins spécifiques ?
+                </option>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+            </>
+          )}
 
           <button
             type="button"

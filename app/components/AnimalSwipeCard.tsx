@@ -21,6 +21,32 @@ export default function AnimalSwipeCard({
   const [translateX, setTranslateX] = useState(0);
   const [actionLabel, setActionLabel] = useState("");
 
+  if (!animal) {
+    return (
+      <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
+        <p className="text-xl font-black text-[#4B5A3D]">
+          Aucun animal disponible.
+        </p>
+      </div>
+    );
+  }
+
+  const name = animal.animal_name || animal.nom || "Animal";
+  const age = animal.age_label || animal.age || "Âge non renseigné";
+  const sex = animal.sex || animal.sexe || "Sexe non renseigné";
+  const city = animal.city || animal.localisation || "Localisation";
+  const island = animal.island || animal.ile || "Île";
+
+  const mainPhoto =
+    animal.animal_photos?.find((photo: any) => photo.is_cover)?.photo_url ||
+    animal.animal_photos?.[0]?.photo_url ||
+    animal.photo_url ||
+    "";
+
+  const isSterilized = animal.sterilized ?? animal.sterilise;
+  const isVaccinated = animal.vaccinated ?? animal.vaccine;
+  const isMicrochipped = animal.microchipped ?? animal.identifie;
+
   function handleStart(clientX: number) {
     setStartX(clientX);
     setActionLabel("");
@@ -68,16 +94,6 @@ export default function AnimalSwipeCard({
     if (animal?.id) router.push(`/animal/${animal.id}`);
   }
 
-  if (!animal) {
-    return (
-      <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
-        <p className="text-xl font-black text-[#4B5A3D]">
-          Aucun animal disponible.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="relative mx-auto w-full max-w-sm">
       {actionLabel && (
@@ -116,10 +132,10 @@ export default function AnimalSwipeCard({
           ))}
         </div>
 
-        {animal.photo_url ? (
+        {mainPhoto ? (
           <img
-            src={animal.photo_url}
-            alt={animal.nom || "Animal"}
+            src={mainPhoto}
+            alt={name}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -131,8 +147,8 @@ export default function AnimalSwipeCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/5" />
 
         <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
-          <Badge>{animal.statut || "À adopter"}</Badge>
-          <Badge light>{animal.sexe || "Sexe ?"}</Badge>
+          <Badge>{animal.is_published ? "À adopter" : "Brouillon"}</Badge>
+          <Badge light>{sex}</Badge>
         </div>
 
         <button
@@ -145,23 +161,22 @@ export default function AnimalSwipeCard({
 
         <div className="absolute bottom-6 left-6 right-6 z-20 text-white">
           <h2 className="text-5xl font-black leading-none drop-shadow">
-            {animal.nom || "Animal"}
+            {name}
             <span className="ml-2 text-3xl text-[#D8A33A]">🐾</span>
           </h2>
 
           <p className="mt-3 text-lg font-bold">
-            {animal.age || "Âge non renseigné"} •{" "}
-            {animal.sexe || "Sexe non renseigné"}
+            {age} • {sex}
           </p>
 
           <p className="mt-2 text-sm font-black uppercase tracking-wide">
-            📍 {animal.localisation || "Localisation"} · {animal.ile || "Île"}
+            📍 {city} · {island}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {animal.sterilise && <SmallBadge label="Stérilisé" />}
-            {animal.vaccine && <SmallBadge label="Vacciné" />}
-            {animal.compatible_enfants && <SmallBadge label="Enfants OK" />}
+            {isSterilized && <SmallBadge label="Stérilisé" />}
+            {isVaccinated && <SmallBadge label="Vacciné" />}
+            {isMicrochipped && <SmallBadge label="Identifié" />}
           </div>
         </div>
       </article>

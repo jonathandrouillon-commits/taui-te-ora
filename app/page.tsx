@@ -18,10 +18,15 @@ export default function Home() {
   async function loadAnimals() {
     try {
       setLoading(true);
+
       const data = await animalService.getPublishedWithPhotos();
+
+      console.log("ANIMAUX PUBLIÉS CHARGÉS :", data);
+
       setAnimals(data || []);
+      setCurrentIndex(0);
     } catch (error) {
-      console.error(error);
+      console.error("ERREUR CHARGEMENT ANIMAUX :", error);
       setAnimals([]);
     } finally {
       setLoading(false);
@@ -46,6 +51,10 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-b from-[#F7F2E8] via-[#F3EADB] to-[#EDE0CC] px-4 pb-32 pt-5">
       <TopBar />
 
+      <div className="mx-auto mb-4 max-w-sm rounded-2xl bg-white/80 p-3 text-center text-xs font-bold text-[#4B5A3D] shadow">
+        Animaux publiés chargés : {animals.length}
+      </div>
+
       <section className="flex justify-center">
         {currentAnimal ? (
           <AnimalSwipeCard
@@ -67,10 +76,7 @@ export default function Home() {
 
             <button
               type="button"
-              onClick={() => {
-                setCurrentIndex(0);
-                loadAnimals();
-              }}
+              onClick={loadAnimals}
               className="mt-6 rounded-2xl bg-[#6E7E5D] px-6 py-3 font-black text-white"
             >
               Recharger
