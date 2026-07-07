@@ -40,7 +40,6 @@ export default function RegisterPage() {
     if (error) throw error;
 
     const { data } = supabase.storage.from("profiles").getPublicUrl(path);
-
     return data.publicUrl;
   }
 
@@ -74,16 +73,18 @@ export default function RegisterPage() {
 
       if (error) throw error;
 
-      if (!data.user) {
+      const userId = data.user?.id;
+
+      if (!userId) {
         alert("Compte créé. Vérifiez votre email pour confirmer l’inscription.");
         router.push("/login");
         return;
       }
 
-      const avatarUrl = await uploadProfileImage(data.user.id);
+      const avatarUrl = await uploadProfileImage(userId);
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: data.user.id,
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: userId,
         email: email.trim(),
         first_name: firstName,
         last_name: lastName,
