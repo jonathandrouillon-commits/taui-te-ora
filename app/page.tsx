@@ -6,138 +6,88 @@ import { animalService } from "./services/animal.service";
 
 export default function Home() {
   const [animals, setAnimals] = useState<any[]>([]);
-  const [filteredAnimals, setFilteredAnimals] = useState<any[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [index, setIndex] = useState(0);
-  const [drag, setDrag] = useState(0);
-  const [startX, setStartX] = useState<number | null>(null);
-  const [message, setMessage] = useState("");
-  const [category, setCategory] = useState("Tous");
 
   useEffect(() => {
     loadAnimals();
   }, []);
 
-  useEffect(() => {
-    filterAnimals();
-  }, [category, animals]);
-
   async function loadAnimals() {
     try {
+      setLoading(true);
       const data = await animalService.getPublishedWithPhotos();
-      setAnimals(data);
-    } catch (error: any) {
-      alert(error.message);
+      setAnimals(data || []);
+    } catch (error) {
+      console.error(error);
+      setAnimals([]);
     } finally {
       setLoading(false);
     }
   }
 
-  function filterAnimals() {
-    if (category === "Tous") {
-      setFilteredAnimals(animals);
-    } else {
-      setFilteredAnimals(
-        animals.filter(
-          (animal) =>
-            animal.animal_type?.toLowerCase() === category.toLowerCase()
-        )
-      );
-    }
-
-    setIndex(0);
+  function goNext() {
+    setCurrentIndex((prev) => prev + 1);
   }
 
-  const animal = filteredAnimals[index];
-  const nextAnimal =
-    filteredAnimals.length > 1
-      ? filteredAnimals[(index + 1) % filteredAnimals.length]
-      : undefined;
-
-  function goNext(text: string) {
-    setMessage(text);
-
-    setTimeout(() => {
-      setIndex((prev) =>
-        prev + 1 >= filteredAnimals.length ? 0 : prev + 1
-      );
-      setDrag(0);
-      setMessage("");
-    }, 650);
-  }
-
-  function handleEnd() {
-    if (drag > 130) goNext("❤️ Coup de cœur ajouté");
-    else if (drag < -130) goNext("Profil passé");
-    else setDrag(0);
-
-    setStartX(null);
-  }
-
-  const categories = ["Tous", "Chien", "Chat", "Autre"];
+  const currentAnimal = animals[currentIndex];
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] font-black text-[#064b42]">
-        Chargement des animaux...
+      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
+        <p className="text-xl font-black">Chargement des animaux...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#fbf7ef] px-6 py-8 pb-32 text-[#063f38]">
-      <section className="mx-auto mb-10 max-w-7xl text-center">
-        <h1 className="text-5xl font-black text-[#064b42]">
-          On ne sauvera pas le monde, 
-          mais on sauvera le leur
+    <main className="min-h-screen bg-[#f4eee3] px-4 py-6">
+      <header className="mx-auto mb-6 max-w-md text-center">
+        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#b68b2f]">
+          Powered by Les Veilleurs de Kali
+        </p>
+
+        <h1 className="mt-2 text-4xl font-black text-[#064b42]">
+          TAUI TE ORA
         </h1>
 
+        <p className="mt-2 text-sm font-bold text-gray-600">
+          Swipe gauche pour passer · Swipe droite pour coup de cœur
+        </p>
+      </header>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {categories.map((item) => (
+      <section className="flex justify-center">
+        {currentAnimal ? (
+          <AnimalSwipeCard
+            animal={currentAnimal}
+            onPass={goNext}
+            onFavorite={goNext}
+          />
+        ) : (
+          <div className="flex h-[520px] w-full max-w-md flex-col items-center justify-center rounded-[2rem] bg-white p-8 text-center shadow">
+            <div className="text-6xl">🐾</div>
+
+            <h2 className="mt-4 text-2xl font-black text-[#064b42]">
+              Plus aucun animal à afficher
+            </h2>
+
+            <p className="mt-3 text-gray-600">
+              Revenez bientôt, de nouveaux profils seront ajoutés.
+            </p>
+
             <button
-              key={item}
-              onClick={() => setCategory(item)}
-              className={`rounded-full px-6 py-3 font-black transition ${
-                category === item
-                  ? "bg-[#064b42] text-white shadow-lg"
-                  : "bg-white text-[#064b42] shadow"
-              }`}
+              type="button"
+              onClick={() => {
+                setCurrentIndex(0);
+                loadAnimals();
+              }}
+              className="mt-6 rounded-2xl bg-[#064b42] px-6 py-3 font-black text-white"
             >
-              {item === "Chien" && "🐶 "}
-              {item === "Chat" && "🐱 "}
-              {item === "Autre" && "🐾 "}
-              {item}
+              Recharger
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </section>
-
-      {!animal ? (
-        <section className="mx-auto max-w-xl rounded-[32px] bg-white p-10 text-center shadow-xl">
-          <h2 className="text-4xl font-black text-[#064b42]">
-            Aucun animal trouvé
-          </h2>
-
-          <p className="mt-4 text-gray-500">
-            Aucun animal publié dans cette catégorie pour le moment.
-          </p>
-        </section>
-      ) : (
-        <AnimalSwipeCard
-          animal={animal}
-          nextAnimal={nextAnimal}
-          index={index}
-          total={filteredAnimals.length}
-          drag={drag}
-          startX={startX}
-          message={message}
-          setDrag={setDrag}
-          setStartX={setStartX}
-          handleEnd={handleEnd}
-          goNext={goNext}
-        />
-      )}
     </main>
   );
 }

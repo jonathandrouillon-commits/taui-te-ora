@@ -1,167 +1,189 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Heart, X, Star, Info, Calendar, Venus, Mars } from "lucide-react";
+import { useState } from "react";
+import { favoriteService } from "../services/favorite.service";
 
-type Props = {
+type AnimalSwipeCardProps = {
   animal: any;
-  nextAnimal?: any;
-  index: number;
-  total: number;
-  drag: number;
-  startX: number | null;
-  message: string;
-  setDrag: (value: number) => void;
-  setStartX: (value: number | null) => void;
-  handleEnd: () => void;
-  goNext: (text: string) => void;
+  onPass?: () => void;
+  onFavorite?: () => void;
 };
-
-const FALLBACK_IMAGE = "https://placehold.co/600x800?text=TAUI+TE+ORA";
-
-function getImageUrl(url?: string) {
-  if (!url || url.trim() === "") return FALLBACK_IMAGE;
-  return url;
-}
 
 export default function AnimalSwipeCard({
   animal,
-  nextAnimal,
-  index,
-  total,
-  drag,
-  startX,
-  message,
-  setDrag,
-  setStartX,
-  handleEnd,
-  goNext,
-}: Props) {
+  onPass,
+  onFavorite,
+}: AnimalSwipeCardProps) {
   const router = useRouter();
 
-  const name = animal.animal_name || "Animal";
-  const age = animal.age_label || "Âge inconnu";
-  const sex = animal.sex || "Sexe inconnu";
-  const isFemale = sex.toLowerCase().includes("femelle");
+  const [startX, setStartX] = useState<number | null>(null);
+  const [translateX, setTranslateX] = useState(0);
+  const [actionLabel, setActionLabel] = useState("");
+
+  function handleStart(clientX: number) {
+    setStartX(clientX);
+    setActionLabel("");
+  }
+
+  function handleMove(clientX: number) {
+    if (startX === null) return;
+
+    const diff = clientX - startX;
+    setTranslateX(diff);
+
+    if (diff > 80) {
+      setActionLabel("❤️ Coup de cœur");
+    } else if (diff < -80) {
+      setActionLabel("Passer");
+    } else {
+      setActionLabel("");
+    }
+  }
+
+  async function handleEnd() {
+    if (translateX > 120) {
+      await handleFavorite();
+    } else if (translateX < -120) {
+      handlePass();
+    }
+
+    setStartX(null);
+    setTranslateX(0);
+    setActionLabel("");
+  }
+
+  function handlePass() {
+    if (onPass) onPass();
+  }
+
+  async function handleFavorite() {
+    try {
+      if (animal?.id) {
+        await favoriteService.toggle(animal.id);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (onFavorite) onFavorite();
+  }
+
+  function handleAdopt() {
+    if (!animal?.id) return;
+    router.push(`/adoption/start/${animal.id}`);
+  }
+
+  function handleInfo() {
+    if (!animal?.id) return;
+    router.push(`/animal/${animal.id}`);
+  }
+
+  if (!animal) {
+    return (
+      <div className="flex h-[620px] w-full max-w-md items-center justify-center rounded-[2rem] bg-white p-8 text-center shadow">
+        <p className="text-xl font-black text-[#064b42]">
+          Aucun animal disponible pour le moment.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <section className="relative mx-auto mt-6 max-w-7xl pb-40">
-      {nextAnimal && (
-        <div className="absolute right-10 top-28 hidden h-[620px] w-[390px] rotate-6 overflow-hidden rounded-[40px] bg-[#0f5d52] opacity-60 md:block">
-          <img
-            src={getImageUrl(nextAnimal.photo_url)}
-            alt={nextAnimal.animal_name || "Animal"}
-            className="h-full w-full object-cover opacity-35"
-          />
+    <div className="relative w-full max-w-md">
+      {actionLabel && (
+        <div className="absolute left-1/2 top-8 z-20 -translate-x-1/2 rounded-full bg-white px-5 py-3 text-lg font-black text-[#064b42] shadow">
+          {actionLabel}
         </div>
       )}
 
       <div
-        className="relative mx-auto h-[720px] w-[90vw] max-w-[430px] cursor-grab overflow-hidden rounded-[42px] bg-black shadow-2xl"
-        style={{
-          transform: `translateX(${drag}px) rotate(${drag * 0.045}deg)`,
-          transition:
-            startX === null ? "0.32s cubic-bezier(.2,.8,.2,1)" : "none",
-        }}
-        onMouseDown={(e) => setStartX(e.clientX)}
-        onMouseMove={(e) => startX !== null && setDrag(e.clientX - startX)}
+        onMouseDown={(e) => handleStart(e.clientX)}
+        onMouseMove={(e) => handleMove(e.clientX)}
         onMouseUp={handleEnd}
-        onMouseLeave={() => startX !== null && handleEnd()}
-        onTouchStart={(e) => setStartX(e.touches[0].clientX)}
-        onTouchMove={(e) =>
-          startX !== null && setDrag(e.touches[0].clientX - startX)
-        }
+        onMouseLeave={() => {
+          if (startX !== null) handleEnd();
+        }}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
         onTouchEnd={handleEnd}
+        className="relative h-[620px] cursor-grab overflow-hidden rounded-[2rem] bg-white shadow-2xl transition-transform duration-200 active:cursor-grabbing"
+        style={{
+          transform: `translateX(${translateX}px) rotate(${translateX / 18}deg)`,
+        }}
       >
-        <img
-          src={getImageUrl(animal.photo_url)}
-          alt={name}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-        <div className="absolute left-6 top-6 z-20 rounded-2xl bg-white px-5 py-3 text-xl font-black text-[#064b42] shadow">
-          {index + 1} / {total}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => router.push(`/animal/${animal.id}`)}
-          className="absolute right-6 top-6 z-20 flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#064b42] shadow-lg"
-          aria-label="Voir les informations complètes"
-        >
-          <Info size={30} />
-        </button>
-
-        <div
-          className="absolute right-8 top-36 rotate-12 rounded-2xl border-4 border-[#33d6c5] px-6 py-3 text-4xl font-black text-[#33d6c5]"
-          style={{ opacity: drag > 60 ? Math.min(drag / 160, 1) : 0 }}
-        >
-          ADOPTER
-        </div>
-
-        <div
-          className="absolute left-8 top-36 -rotate-12 rounded-2xl border-4 border-red-400 px-6 py-3 text-4xl font-black text-red-300"
-          style={{
-            opacity: drag < -60 ? Math.min(Math.abs(drag) / 160, 1) : 0,
-          }}
-        >
-          PASSER
-        </div>
-
-        <div className="absolute bottom-10 left-7 right-7 z-20 text-white">
-          <h2 className="mb-6 flex items-center gap-3 text-6xl font-black drop-shadow-lg">
-            {name}
-            <span className="text-red-400">♥</span>
-          </h2>
-
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-3 rounded-2xl bg-[#fff2cf] px-5 py-4 text-lg font-black uppercase text-[#6b4a16] shadow-md">
-              <Calendar size={22} />
-              {age}
+        <div className="relative h-[440px] bg-[#d9c7a3]">
+          {animal.photo_url ? (
+            <img
+              src={animal.photo_url}
+              alt={animal.nom || "Animal"}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-2xl font-black text-[#064b42]">
+              Photo
             </div>
+          )}
 
-            <div className="flex items-center gap-3 rounded-2xl bg-[#ffe1e1] px-5 py-4 text-lg font-black uppercase text-[#9b2f2f] shadow-md">
-              {isFemale ? <Venus size={24} /> : <Mars size={24} />}
-              {sex}
-            </div>
+          <div className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-sm font-black text-[#064b42] shadow">
+            {animal.statut || "Disponible"}
           </div>
         </div>
-      </div>
 
-      {message && (
-        <div className="mx-auto mt-5 max-w-md rounded-2xl bg-white p-4 text-center font-black shadow-xl">
-          {message}
+        <div className="p-5 text-[#064b42]">
+          <h2 className="text-3xl font-black">
+            {animal.nom || "Animal sans nom"}
+          </h2>
+
+          <p className="mt-1 text-gray-600">
+            {animal.sexe || "Sexe non renseigné"} ·{" "}
+            {animal.age || "Âge non renseigné"}
+          </p>
+
+          <p className="mt-1 text-gray-600">
+            {animal.ile || "Île non renseignée"} ·{" "}
+            {animal.localisation || "Localisation non renseignée"}
+          </p>
+
+          <div className="mt-5 grid grid-cols-4 gap-3">
+            <button
+              type="button"
+              onClick={handlePass}
+              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
+            >
+              ✕
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAdopt}
+              className="rounded-2xl bg-[#b68b2f] py-4 text-2xl font-black text-white shadow"
+            >
+              🐾
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFavorite}
+              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
+            >
+              ❤️
+            </button>
+
+            <button
+              type="button"
+              onClick={handleInfo}
+              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
+            >
+              ℹ️
+            </button>
+          </div>
+
+          <p className="mt-4 text-center text-xs font-bold text-gray-500">
+            Swipe gauche pour passer · Swipe droite pour coup de cœur
+          </p>
         </div>
-      )}
-
-      <p className="mt-6 text-center text-2xl font-semibold italic text-[#064b42]">
-        Swipe à droite pour adopter →
-      </p>
-
-      <div className="mt-8 flex justify-center gap-12">
-        <button
-          onClick={() => goNext("Profil passé")}
-          className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-red-500 shadow-xl"
-        >
-          <X size={54} />
-        </button>
-
-        <button
-          onClick={() => goNext("À voir plus tard")}
-          className="mt-4 flex items-center justify-center rounded-full bg-white p-5 text-[#c89a44] shadow-xl"
-        >
-          <Star size={38} fill="currentColor" />
-        </button>
-
-        <button
-          onClick={() => goNext("❤️ Coup de cœur ajouté")}
-          className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-[#0f9f8d] shadow-xl"
-        >
-          <Heart size={54} fill="currentColor" />
-        </button>
       </div>
-    </section>
+    </div>
   );
 }

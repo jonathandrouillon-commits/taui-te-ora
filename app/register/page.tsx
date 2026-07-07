@@ -78,13 +78,12 @@ export default function RegisterPage() {
         });
       }
 
-      alert("Compte créé. Il est en attente de validation.");
-      router.push("/pending-approval");
-    } catch (error: any) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
+      } catch (error: any) {
+  console.error("ERREUR CREATION COMPTE:", error);
+  alert(JSON.stringify(error, null, 2));
+} finally {
+  setLoading(false);
+}
   }
 
   const isOrganization = role === "association" || role === "refuge";

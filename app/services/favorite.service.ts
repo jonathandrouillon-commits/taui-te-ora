@@ -1,55 +1,97 @@
 import { supabase } from "../lib/supabase";
 
-export const favoriteService = {
-  async isFavorite(animalId: string) {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+export type Favorite = {
+  id: string;
+  animal_id: string;
+  user_id?: string;
+  created_at?: string;
+};
 
-    if (!user) return false;
+async function getCurrentUserId() {
+  const { data, error } = await supabase.auth.getUser();
 
-    const { data } = await supabase
-      .from("favorites")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("animal_id", animalId)
-      .maybeSingle();
+  if (error) throw error;
+  if (!data.user) throw new Error("Utilisateur non connecté.");
 
-    return !!data;
-  },
+  return data.user.id;
+}
 
-  async toggle(animalId: string) {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+async function isFavorite(animalId: string) {
+  const userId = await getCurrentUserId();
 
-    if (!user) {
-      throw new Error("Tu dois être connecté pour ajouter un coup de cœur.");
-    }
+  const { data, error } = await supabase
+    .from("favoris")
+    .select("id")
+    .eq("animal_id", animalId)
+    .eq("user_id", userId)
+    .maybeSingle();
 
-    const { data: existing } = await supabase
-      .from("favorites")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("animal_id", animalId)
-      .maybeSingle();
+  if (error) throw error;
 
-    if (existing) {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("id", existing.id);
+  return !!data;
+}
 
-      if (error) throw error;
+async function addFavorite(animalId: string) {
+  const userId = await getCurrentUserId();
 
-      return false;
-    }
-
-    const { error } = await supabase.from("favorites").insert({
-      user_id: user.id,
+  const { data, error } = await supabase
+    .from("favoris")
+    .insert({
       animal_id: animalId,
-    });
+      user_id: userId,
+    })
+    .select()
+    .single();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    return true;
-  },
+  return data as Favorite;
+}
+
+async function removeFavorite(animalId: string) {
+  const userId = await getCurrentUserId();
+
+  const { error } = await supabase
+    .from("favoris")
+    .delete()
+    .eq("animal_id", animalId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  return true;
+}
+
+async function toggle(animalId: string) {
+  const alreadyFavorite = await isFavorite(animalId);
+
+  if (alreadyFavorite) {
+    await removeFavorite(animalId);
+    return false;
+  }
+
+  await addFavorite(animalId);
+  return true;
+}
+
+async function getMyFavorites() {
+  const userId = await getCurrentUserId();
+
+  const { data, error } = await supabase
+    .from("favoris")
+    .select("*, animaux(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+export const favoriteService = {
+  isFavorite,
+  addFavorite,
+  removeFavorite,
+  toggle,
+  getMyFavorites,
 };
