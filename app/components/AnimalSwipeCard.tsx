@@ -250,7 +250,7 @@ export default function AnimalSwipeCard({
 
       <div className="mt-7 flex items-start justify-between gap-3">
         <ActionButton label="PASSER" icon="✕" color="cream" onClick={handlePass} />
-        <ActionButton label="LIKE" icon="❤️" color="orange" onClick={handleFavorite} />
+        <ActionButton label="LIKE" icon="♥" color="orange" onClick={handleFavorite} />
         <ActionButton label="ADOPTER" icon="🐾" color="green" onClick={handleAdopt} />
         <ActionButton label="INFO" icon="i" color="gold" onClick={handleInfo} />
       </div>
@@ -295,26 +295,59 @@ function ActionButton({
   color: "cream" | "orange" | "green" | "gold";
   onClick: () => void;
 }) {
-  const colors = {
-    cream: "bg-[#F7F2E8] text-[#6E7E5D]",
-    orange: "bg-[#D67B52] text-white",
-    green: "bg-[#6E7E5D] text-white",
-    gold: "bg-[#D8A33A] text-white",
+  const styles = {
+    cream: {
+      fill: "#F7F2E8",
+      text: "#6E7E5D",
+    },
+    orange: {
+      fill: "#D67B52",
+      text: "#FFFFFF",
+    },
+    green: {
+      fill: "#6E7E5D",
+      text: "#FFFFFF",
+    },
+    gold: {
+      fill: "#D8A33A",
+      text: "#FFFFFF",
+    },
   };
+
+  const current = styles[color];
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-1 flex-col items-center"
+      className="group flex flex-1 flex-col items-center"
     >
-      <div
-        className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl font-black shadow-xl ${colors[color]}`}
-      >
-        {icon}
+      <div className="relative h-[86px] w-[86px] transition-all duration-200 group-hover:-translate-y-1 group-active:scale-95">
+        <svg
+          viewBox="0 0 120 120"
+          className="h-full w-full drop-shadow-[0_12px_14px_rgba(0,0,0,0.20)]"
+        >
+          <ellipse cx="26" cy="50" rx="15" ry="21" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(-28 26 50)" />
+          <ellipse cx="46" cy="25" rx="15" ry="22" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(-10 46 25)" />
+          <ellipse cx="74" cy="25" rx="15" ry="22" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(10 74 25)" />
+          <ellipse cx="94" cy="50" rx="15" ry="21" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(28 94 50)" />
+          <path
+            d="M35 78C35 58 48 47 60 47C72 47 85 58 85 78C85 96 74 105 60 105C46 105 35 96 35 78Z"
+            fill={current.fill}
+            stroke="#FFF5E8"
+            strokeWidth="6"
+          />
+        </svg>
+
+        <div
+          className="absolute bottom-[16px] left-1/2 flex h-[34px] w-[42px] -translate-x-1/2 items-center justify-center text-[24px] font-black"
+          style={{ color: current.text }}
+        >
+          {icon}
+        </div>
       </div>
 
-      <span className="mt-2 text-[10px] font-black uppercase tracking-wide text-[#6E7E5D]">
+      <span className="mt-1 text-[10px] font-black uppercase tracking-wide text-[#6E7E5D]">
         {label}
       </span>
     </button>
