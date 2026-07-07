@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { animalService } from "../../../services/animal.service";
-import { adoptionService } from "../../../services/adoption.service";
 import { notificationService } from "../../../services/notification.service";
 
 export default function AdoptionQuestionnairePage() {
@@ -67,52 +66,64 @@ export default function AdoptionQuestionnairePage() {
         return;
       }
 
-      const createurAnimalUserId = animal.created_by || null;
+      const ownerId = animal.owner_id || animal.created_by || null;
 
-      const demande = await adoptionService.create({
-        animal_id: animalId,
-        adoptant_id: null,
-        demandeur_user_id: user.id,
-        createur_animal_user_id: createurAnimalUserId,
-        statut: "nouvelle",
-        motivation: form.motivation,
-        delai_accueil: form.delaiAccueil,
-        deja_rencontre: form.dejaRencontre,
-        visite_domicile: form.visiteDomicile,
-        commentaire: form.commentaire,
-      });
-
-      const notifications = [];
-
-      if (createurAnimalUserId) {
-        notifications.push(
-          notificationService.create({
-            user_id: createurAnimalUserId,
-            type: "demande_adoption",
-            titre: "Nouvelle demande d'adoption",
-            message: `Une personne souhaite adopter ${
-              animal.nom || "cet animal"
-            }.`,
-            lien: `/association/demandes/${demande.id}`,
-          })
-        );
+      if (!ownerId) {
+        alert("Impossible d’identifier l’association responsable de cet animal.");
+        return;
       }
+
+      const animalName = animal.animal_name || animal.nom || "cet animal";
+
+      const fullMessage = `
+Motivation : ${form.motivation}
+
+Délai d'accueil : ${form.delaiAccueil}
+
+Déjà rencontré : ${form.dejaRencontre}
+
+Visite à domicile : ${form.visiteDomicile}
+
+Commentaire : ${form.commentaire}
+      `.trim();
+
+      const { data: demande, error } = await supabase
+        .from("adoption_requests")
+        .insert({
+          animal_id: animalId,
+          requester_id: user.id,
+          owner_id: ownerId,
+          status: "pending",
+          message: fullMessage,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await notificationService.create({
+        user_id: ownerId,
+        type: "demande_adoption",
+        titre: "Nouvelle demande d'adoption",
+        message: `Une personne souhaite adopter ${animalName}.`,
+        animal_id: animalId,
+        adoption_request_id: demande.id,
+        lien: `/association/demandes/${demande.id}`,
+      });
 
       const adminUserId = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
 
-      if (adminUserId && adminUserId !== createurAnimalUserId) {
-        notifications.push(
-          notificationService.create({
-            user_id: adminUserId,
-            type: "demande_adoption",
-            titre: "Nouvelle demande d'adoption",
-            message: `Nouvelle demande pour ${animal.nom || "un animal"}.`,
-            lien: `/admin/demandes/${demande.id}`,
-          })
-        );
+      if (adminUserId && adminUserId !== ownerId) {
+        await notificationService.create({
+          user_id: adminUserId,
+          type: "demande_adoption",
+          titre: "Nouvelle demande d'adoption",
+          message: `Nouvelle demande pour ${animalName}.`,
+          animal_id: animalId,
+          adoption_request_id: demande.id,
+          lien: `/admin/demandes/${demande.id}`,
+        });
       }
-
-      await Promise.all(notifications);
 
       alert("Votre demande d'adoption a bien été envoyée.");
       router.push(`/animal/${animalId}`);
@@ -141,12 +152,11 @@ export default function AdoptionQuestionnairePage() {
           <h1 className="text-3xl font-black">Questionnaire d’adoption</h1>
 
           <p className="mt-3 text-gray-600">
-            Ces questions concernent uniquement l’animal que vous souhaitez
-            adopter.
+            Ces questions concernent uniquement l’animal que vous souhaitez adopter.
           </p>
 
           <div className="mt-4 rounded-2xl bg-[#f4eee3] p-4 text-sm font-bold">
-            Animal concerné : {animal?.nom || animalId}
+            Animal concerné : {animal?.animal_name || animal?.nom || animalId}
           </div>
         </div>
 

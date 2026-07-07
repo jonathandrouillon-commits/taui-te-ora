@@ -17,7 +17,7 @@ export default function AnimalPublicPage() {
   const params = useParams();
   const id = String(params.id);
 
-  const [animal, setAnimal] = useState<Animal | null>(null);
+  const [animal, setAnimal] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -67,6 +67,24 @@ export default function AnimalPublicPage() {
     );
   }
 
+  const name = animal.animal_name || animal.nom || "Animal";
+  const type = animal.animal_type || animal.type || "";
+  const sexe = animal.sex || animal.sexe || "";
+  const age = animal.age_label || animal.age || "";
+  const race = animal.breed || animal.race || "";
+  const taille = animal.size_label || animal.taille || "";
+  const poids = animal.weight_kg ? `${animal.weight_kg} kg` : animal.poids || "";
+  const ile = animal.island || animal.ile || "";
+  const localisation = animal.city || animal.localisation || "";
+  const association = animal.association_name || animal.association_id || "";
+  const statut = animal.is_published ? "Publié" : "Brouillon";
+
+  const mainPhoto =
+    animal.animal_photos?.find((photo: any) => photo.is_cover)?.photo_url ||
+    animal.animal_photos?.[0]?.photo_url ||
+    animal.photo_url ||
+    null;
+
   return (
     <main className="min-h-screen bg-[#f4eee3] px-4 py-6 text-[#064b42]">
       <div className="mx-auto max-w-6xl">
@@ -79,21 +97,21 @@ export default function AnimalPublicPage() {
         </button>
 
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <AnimalGallery mainPhoto={animal.photo_url} name={animal.nom} />
+          <AnimalGallery mainPhoto={mainPhoto} name={name} />
 
           <div>
             <AnimalHeader
-              nom={animal.nom}
-              statut={animal.statut}
-              type={animal.type}
-              sexe={animal.sexe}
-              age={animal.age}
-              race={animal.race}
-              taille={animal.taille}
-              poids={animal.poids}
-              ile={animal.ile}
-              localisation={animal.localisation}
-              association={animal.association_id}
+              nom={name}
+              statut={statut}
+              type={type}
+              sexe={sexe}
+              age={age}
+              race={race}
+              taille={taille}
+              poids={poids}
+              ile={ile}
+              localisation={localisation}
+              association={association}
             />
 
             <AnimalActions animalId={animal.id} />
@@ -102,22 +120,22 @@ export default function AnimalPublicPage() {
 
         <section className="mt-6 grid gap-6 lg:grid-cols-3">
           <AnimalHistory
-            histoire={animal.histoire}
-            lieuCapture={animal.lieu_capture}
-            tempsRue={animal.temps_rue}
+            histoire={animal.story || animal.histoire || ""}
+            lieuCapture={animal.capture_location || animal.lieu_capture || ""}
+            tempsRue={animal.street_duration || animal.temps_rue || ""}
           />
 
           <AnimalHealth
-            sterilise={animal.sterilise}
-            vaccine={animal.vaccine}
-            identifie={animal.identifie}
-            sante={animal.sante}
+            sterilise={animal.sterilized ?? animal.sterilise ?? false}
+            vaccine={animal.vaccinated ?? animal.vaccine ?? false}
+            identifie={animal.microchipped ?? animal.identifie ?? false}
+            sante={animal.health_status || animal.sante || ""}
           />
 
           <AnimalCompatibility
-            compatibleChiens={animal.compatible_chiens}
-            compatibleChats={animal.compatible_chats}
-            compatibleEnfants={animal.compatible_enfants}
+            compatibleChiens={animal.compatible_chiens ?? null}
+            compatibleChats={animal.compatible_chats ?? null}
+            compatibleEnfants={animal.compatible_enfants ?? null}
           />
         </section>
       </div>

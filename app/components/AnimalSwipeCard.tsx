@@ -32,21 +32,14 @@ export default function AnimalSwipeCard({
     const diff = clientX - startX;
     setTranslateX(diff);
 
-    if (diff > 80) {
-      setActionLabel("❤️ Coup de cœur");
-    } else if (diff < -80) {
-      setActionLabel("Passer");
-    } else {
-      setActionLabel("");
-    }
+    if (diff > 70) setActionLabel("❤️ COUP DE CŒUR");
+    else if (diff < -70) setActionLabel("PASSER");
+    else setActionLabel("");
   }
 
   async function handleEnd() {
-    if (translateX > 120) {
-      await handleFavorite();
-    } else if (translateX < -120) {
-      handlePass();
-    }
+    if (translateX > 120) await handleFavorite();
+    if (translateX < -120) handlePass();
 
     setStartX(null);
     setTranslateX(0);
@@ -54,50 +47,49 @@ export default function AnimalSwipeCard({
   }
 
   function handlePass() {
-    if (onPass) onPass();
+    onPass?.();
   }
 
   async function handleFavorite() {
     try {
-      if (animal?.id) {
-        await favoriteService.toggle(animal.id);
-      }
+      if (animal?.id) await favoriteService.toggle(animal.id);
     } catch (error) {
       console.error(error);
     }
 
-    if (onFavorite) onFavorite();
+    onFavorite?.();
   }
 
   function handleAdopt() {
-    if (!animal?.id) return;
-    router.push(`/adoption/start/${animal.id}`);
+    if (animal?.id) router.push(`/adoption/start/${animal.id}`);
   }
 
   function handleInfo() {
-    if (!animal?.id) return;
-    router.push(`/animal/${animal.id}`);
+    if (animal?.id) router.push(`/animal/${animal.id}`);
   }
 
   if (!animal) {
     return (
-      <div className="flex h-[620px] w-full max-w-md items-center justify-center rounded-[2rem] bg-white p-8 text-center shadow">
-        <p className="text-xl font-black text-[#064b42]">
-          Aucun animal disponible pour le moment.
+      <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
+        <p className="text-xl font-black text-[#4B5A3D]">
+          Aucun animal disponible.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full max-w-md">
+    <div className="relative mx-auto w-full max-w-sm">
       {actionLabel && (
-        <div className="absolute left-1/2 top-8 z-20 -translate-x-1/2 rounded-full bg-white px-5 py-3 text-lg font-black text-[#064b42] shadow">
+        <div className="absolute left-1/2 top-10 z-40 -translate-x-1/2 rounded-full bg-white px-6 py-3 text-lg font-black text-[#4B5A3D] shadow-2xl">
           {actionLabel}
         </div>
       )}
 
-      <div
+      <div className="absolute left-5 top-6 h-[520px] w-[92%] rotate-[-5deg] rounded-[36px] bg-[#D67B52] opacity-80 shadow-xl" />
+      <div className="absolute left-2 top-3 h-[530px] w-[96%] rotate-[-2deg] rounded-[36px] bg-[#6E7E5D] opacity-90 shadow-xl" />
+
+      <article
         onMouseDown={(e) => handleStart(e.clientX)}
         onMouseMove={(e) => handleMove(e.clientX)}
         onMouseUp={handleEnd}
@@ -107,83 +99,138 @@ export default function AnimalSwipeCard({
         onTouchStart={(e) => handleStart(e.touches[0].clientX)}
         onTouchMove={(e) => handleMove(e.touches[0].clientX)}
         onTouchEnd={handleEnd}
-        className="relative h-[620px] cursor-grab overflow-hidden rounded-[2rem] bg-white shadow-2xl transition-transform duration-200 active:cursor-grabbing"
+        className="relative z-10 h-[560px] cursor-grab overflow-hidden rounded-[36px] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.22)] active:cursor-grabbing"
         style={{
           transform: `translateX(${translateX}px) rotate(${translateX / 18}deg)`,
+          transition: startX === null ? "transform 0.25s ease" : "none",
         }}
       >
-        <div className="relative h-[440px] bg-[#d9c7a3]">
-          {animal.photo_url ? (
-            <img
-              src={animal.photo_url}
-              alt={animal.nom || "Animal"}
-              className="h-full w-full object-cover"
+        <div className="absolute left-5 right-5 top-5 z-20 flex gap-2">
+          {[0, 1, 2, 3].map((dot) => (
+            <div
+              key={dot}
+              className={`h-1.5 flex-1 rounded-full ${
+                dot === 0 ? "bg-white" : "bg-white/40"
+              }`}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl font-black text-[#064b42]">
-              Photo
-            </div>
-          )}
-
-          <div className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-sm font-black text-[#064b42] shadow">
-            {animal.statut || "Disponible"}
-          </div>
+          ))}
         </div>
 
-        <div className="p-5 text-[#064b42]">
-          <h2 className="text-3xl font-black">
-            {animal.nom || "Animal sans nom"}
+        {animal.photo_url ? (
+          <img
+            src={animal.photo_url}
+            alt={animal.nom || "Animal"}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">
+            Photo
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/5" />
+
+        <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
+          <Badge>{animal.statut || "À adopter"}</Badge>
+          <Badge light>{animal.sexe || "Sexe ?"}</Badge>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleInfo}
+          className="absolute right-5 top-10 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-xl font-black text-[#4B5A3D] shadow-xl"
+        >
+          i
+        </button>
+
+        <div className="absolute bottom-6 left-6 right-6 z-20 text-white">
+          <h2 className="text-5xl font-black leading-none drop-shadow">
+            {animal.nom || "Animal"}
+            <span className="ml-2 text-3xl text-[#D8A33A]">🐾</span>
           </h2>
 
-          <p className="mt-1 text-gray-600">
-            {animal.sexe || "Sexe non renseigné"} ·{" "}
-            {animal.age || "Âge non renseigné"}
+          <p className="mt-3 text-lg font-bold">
+            {animal.age || "Âge non renseigné"} •{" "}
+            {animal.sexe || "Sexe non renseigné"}
           </p>
 
-          <p className="mt-1 text-gray-600">
-            {animal.ile || "Île non renseignée"} ·{" "}
-            {animal.localisation || "Localisation non renseignée"}
+          <p className="mt-2 text-sm font-black uppercase tracking-wide">
+            📍 {animal.localisation || "Localisation"} · {animal.ile || "Île"}
           </p>
 
-          <div className="mt-5 grid grid-cols-4 gap-3">
-            <button
-              type="button"
-              onClick={handlePass}
-              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
-            >
-              ✕
-            </button>
-
-            <button
-              type="button"
-              onClick={handleAdopt}
-              className="rounded-2xl bg-[#b68b2f] py-4 text-2xl font-black text-white shadow"
-            >
-              🐾
-            </button>
-
-            <button
-              type="button"
-              onClick={handleFavorite}
-              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
-            >
-              ❤️
-            </button>
-
-            <button
-              type="button"
-              onClick={handleInfo}
-              className="rounded-2xl bg-white py-4 text-2xl font-black shadow"
-            >
-              ℹ️
-            </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {animal.sterilise && <SmallBadge label="Stérilisé" />}
+            {animal.vaccine && <SmallBadge label="Vacciné" />}
+            {animal.compatible_enfants && <SmallBadge label="Enfants OK" />}
           </div>
-
-          <p className="mt-4 text-center text-xs font-bold text-gray-500">
-            Swipe gauche pour passer · Swipe droite pour coup de cœur
-          </p>
         </div>
+      </article>
+
+      <div className="mt-7 flex items-start justify-between gap-3">
+        <ActionButton label="PASSER" icon="✕" color="cream" onClick={handlePass} />
+        <ActionButton label="LIKE" icon="❤️" color="orange" onClick={handleFavorite} />
+        <ActionButton label="ADOPTER" icon="🐾" color="green" onClick={handleAdopt} />
+        <ActionButton label="INFO" icon="i" color="gold" onClick={handleInfo} />
       </div>
     </div>
+  );
+}
+
+function Badge({
+  children,
+  light = false,
+}: {
+  children: React.ReactNode;
+  light?: boolean;
+}) {
+  return (
+    <span
+      className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${
+        light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SmallBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">
+      {label}
+    </span>
+  );
+}
+
+function ActionButton({
+  label,
+  icon,
+  color,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  color: "cream" | "orange" | "green" | "gold";
+  onClick: () => void;
+}) {
+  const colors = {
+    cream: "bg-[#F7F2E8] text-[#6E7E5D]",
+    orange: "bg-[#D67B52] text-white",
+    green: "bg-[#6E7E5D] text-white",
+    gold: "bg-[#D8A33A] text-white",
+  };
+
+  return (
+    <button type="button" onClick={onClick} className="flex flex-1 flex-col items-center">
+      <div
+        className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl font-black shadow-xl ${colors[color]}`}
+      >
+        {icon}
+      </div>
+
+      <span className="mt-2 text-[10px] font-black uppercase tracking-wide text-[#6E7E5D]">
+        {label}
+      </span>
+    </button>
   );
 }

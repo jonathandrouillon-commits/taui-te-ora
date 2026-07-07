@@ -1,164 +1,174 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { notificationService } from "../services/notification.service";
-
-type NotificationItem = {
-  id: string;
-  type: string;
-  titre: string;
-  message: string | null;
-  lien: string | null;
-  is_read: boolean;
-  created_at: string;
-};
+import { supabase } from "../lib/supabase";
+import {
+  notificationService,
+  Notification,
+} from "../services/notification.service";
 
 export default function NotificationsPage() {
-  const router = useRouter();
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadNotifications();
+    initNotifications();
   }, []);
 
-  async function loadNotifications() {
-    try {
-      setLoading(true);
-      const data = await notificationService.getMyNotifications();
-      setNotifications(data || []);
-    } catch (error) {
-      console.error(error);
-      setNotifications([]);
-    } finally {
+  async function initNotifications() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
       setLoading(false);
+      return;
     }
+
+    setUserId(user.id);
+    await loadNotifications(user.id);
+    setLoading(false);
   }
 
-  async function openNotification(notification: NotificationItem) {
-    try {
-      if (!notification.is_read) {
-        await notificationService.markAsRead(notification.id);
-      }
-
-      if (notification.lien) {
-        router.push(notification.lien);
-      } else {
-        await loadNotifications();
-      }
-    } catch (error) {
-      console.error(error);
-    }
+  async function loadNotifications(id: string) {
+    const data = await notificationService.getMyNotifications(id);
+    setNotifications(data);
   }
 
-  async function archiveNotification(id: string) {
-    try {
-      await notificationService.archive(id);
-      await loadNotifications();
-    } catch (error) {
-      console.error(error);
-    }
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`notifications-page-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        async () => {
+          await loadNotifications(userId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  async function markAsRead(id: string) {
+    await notificationService.markAsRead(id);
+
+    setNotifications((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, is_read: true } : item
+      )
+    );
   }
+
+  async function markAllAsRead() {
+    if (!userId) return;
+
+    await notificationService.markAllAsRead(userId);
+
+    setNotifications((current) =>
+      current.map((item) => ({
+        ...item,
+        is_read: true,
+      }))
+    );
+  }
+
+  const unreadCount = notifications.filter((item) => !item.is_read).length;
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
-        <p className="text-xl font-black">Chargement des notifications...</p>
+      <main className="min-h-screen bg-[#f7efe7] px-4 py-8">
+        Chargement...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f4eee3] px-4 py-8 text-[#064b42]">
+    <main className="min-h-screen bg-[#f7efe7] px-4 py-8">
       <section className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.3em] text-[#b68b2f]">
-              TAUI TE ORA
-            </p>
+            <h1 className="text-3xl font-bold text-stone-900">
+              Notifications
+            </h1>
 
-            <h1 className="mt-2 text-4xl font-black">Notifications</h1>
+            <p className="mt-1 text-sm text-stone-600">
+              {unreadCount > 0
+                ? `${unreadCount} notification(s) non lue(s)`
+                : "Toutes les notifications sont lues"}
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded-2xl bg-white px-5 py-3 font-bold shadow"
-          >
-            Retour
-          </button>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Tout marquer comme lu
+            </button>
+          )}
         </div>
 
-        {notifications.length === 0 ? (
-          <div className="rounded-3xl bg-white p-8 text-center shadow">
-            <div className="text-6xl">🔔</div>
-
-            <h2 className="mt-4 text-2xl font-black">
-              Aucune notification
-            </h2>
-
-            <p className="mt-3 text-gray-600">
-              Les nouvelles demandes d’adoption et les alertes apparaîtront ici.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {notifications.map((notification) => (
+        <div className="mt-6 space-y-4">
+          {notifications.length === 0 ? (
+            <div className="rounded-3xl bg-white p-6 shadow">
+              Aucune notification pour le moment.
+            </div>
+          ) : (
+            notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`rounded-3xl bg-white p-5 shadow ${
-                  notification.is_read ? "opacity-75" : "ring-2 ring-[#b68b2f]"
+                className={`rounded-3xl border p-5 shadow ${
+                  notification.is_read
+                    ? "border-stone-200 bg-white"
+                    : "border-orange-300 bg-orange-50"
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => openNotification(notification)}
-                  className="block w-full text-left"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f4eee3] text-2xl">
-                      {notification.type === "demande_adoption" ? "🐾" : "🔔"}
-                    </div>
+                <p className="text-xs uppercase text-orange-600">
+                  {notification.type}
+                </p>
 
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <h2 className="text-lg font-black">
-                          {notification.titre}
-                        </h2>
+                <h2 className="mt-1 text-lg font-bold text-stone-900">
+                  {notification.title}
+                </h2>
 
-                        {!notification.is_read && (
-                          <span className="rounded-full bg-[#b68b2f] px-3 py-1 text-xs font-black text-white">
-                            Nouveau
-                          </span>
-                        )}
-                      </div>
+                <p className="mt-2 text-stone-700">
+                  {notification.message}
+                </p>
 
-                      <p className="mt-2 text-gray-600">
-                        {notification.message || "Notification"}
-                      </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {notification.lien && (
+                    <a
+                      href={notification.lien}
+                      className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Voir
+                    </a>
+                  )}
 
-                      <p className="mt-3 text-xs font-bold text-gray-400">
-                        {new Date(notification.created_at).toLocaleString(
-                          "fr-FR"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => archiveNotification(notification.id)}
-                  className="mt-4 rounded-xl bg-[#f4eee3] px-4 py-2 text-sm font-bold"
-                >
-                  Archiver
-                </button>
+                  {!notification.is_read && (
+                    <button
+                      onClick={() => markAsRead(notification.id)}
+                      className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow"
+                    >
+                      Marquer comme lu
+                    </button>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </section>
     </main>
   );

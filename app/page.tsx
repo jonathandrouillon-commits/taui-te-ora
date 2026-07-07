@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
+import BottomNavigation from "./components/ui/BottomNavigation";
+import TopBar from "./components/ui/TopBar";
 import { animalService } from "./services/animal.service";
 
 export default function Home() {
@@ -34,27 +36,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
+      <main className="flex min-h-screen items-center justify-center bg-[#F7F2E8] text-[#304032]">
         <p className="text-xl font-black">Chargement des animaux...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f4eee3] px-4 py-6">
-      <header className="mx-auto mb-6 max-w-md text-center">
-        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#b68b2f]">
-          Powered by Les Veilleurs de Kali
-        </p>
-
-        <h1 className="mt-2 text-4xl font-black text-[#064b42]">
-          TAUI TE ORA
-        </h1>
-
-        <p className="mt-2 text-sm font-bold text-gray-600">
-          Swipe gauche pour passer · Swipe droite pour coup de cœur
-        </p>
-      </header>
+    <main className="min-h-screen bg-gradient-to-b from-[#F7F2E8] via-[#F3EADB] to-[#EDE0CC] px-4 pb-32 pt-5">
+      <TopBar />
 
       <section className="flex justify-center">
         {currentAnimal ? (
@@ -64,10 +54,10 @@ export default function Home() {
             onFavorite={goNext}
           />
         ) : (
-          <div className="flex h-[520px] w-full max-w-md flex-col items-center justify-center rounded-[2rem] bg-white p-8 text-center shadow">
+          <div className="flex h-[520px] w-full max-w-md flex-col items-center justify-center rounded-[2.5rem] bg-white p-8 text-center shadow-2xl">
             <div className="text-6xl">🐾</div>
 
-            <h2 className="mt-4 text-2xl font-black text-[#064b42]">
+            <h2 className="mt-4 text-2xl font-black text-[#4B5A3D]">
               Plus aucun animal à afficher
             </h2>
 
@@ -81,13 +71,15 @@ export default function Home() {
                 setCurrentIndex(0);
                 loadAnimals();
               }}
-              className="mt-6 rounded-2xl bg-[#064b42] px-6 py-3 font-black text-white"
+              className="mt-6 rounded-2xl bg-[#6E7E5D] px-6 py-3 font-black text-white"
             >
               Recharger
             </button>
           </div>
         )}
       </section>
+
+      <BottomNavigation />
     </main>
   );
 }

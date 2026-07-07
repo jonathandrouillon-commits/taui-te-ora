@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Bell, Search, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
+import { Search, SlidersHorizontal } from "lucide-react";
+import NotificationBadge from "./NotificationBadge";
 
 export default function Header() {
   return (
@@ -36,9 +38,12 @@ export default function Header() {
           />
         </div>
 
-        <button className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center">
-          <Bell size={28} className="text-[#0f5d52]" />
-        </button>
+        <Link
+          href="/notifications"
+          className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition"
+        >
+          <NotificationBadge />
+        </Link>
 
         <button className="bg-[#0f5d52] rounded-full px-8 text-white flex items-center gap-3 shadow-md">
           <SlidersHorizontal size={24} />

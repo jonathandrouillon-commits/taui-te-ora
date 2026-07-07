@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Trash2, PawPrint } from "lucide-react";
-import { animalService } from "../../services/animal.service";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { animalService, Animal } from "../../services/animal.service";
 
-export default function AnimalsPage() {
-  const router = useRouter();
-
+export default function AssociationAnimalsPage() {
   const [animals, setAnimals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     loadAnimals();
@@ -21,134 +18,212 @@ export default function AnimalsPage() {
   async function loadAnimals() {
     try {
       setLoading(true);
-      const data = await animalService.getAllWithPhotos();
-      setAnimals(data);
-    } catch (error: any) {
-      alert(error.message);
+      const data = await animalService.getMyAnimals();
+      setAnimals(data || []);
+    } catch (error) {
+      console.error(error);
+      alert("Impossible de charger les animaux.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function togglePublished(id: string, current: boolean) {
+    try {
+      await animalService.togglePublished(id, !current);
+      await loadAnimals();
+    } catch (error: any) {
+      alert(error.message || "Impossible de modifier la publication.");
+    }
+  }
+
   async function deleteAnimal(id: string) {
-    const ok = window.confirm("Supprimer définitivement cet animal ?");
-    if (!ok) return;
+    if (!confirm("Supprimer définitivement cet animal ?")) return;
 
     try {
       await animalService.delete(id);
       await loadAnimals();
     } catch (error: any) {
-      alert(error.message);
+      alert(error.message || "Impossible de supprimer cet animal.");
     }
   }
 
-  async function togglePublished(id: string, currentStatus: boolean) {
-    try {
-      await animalService.togglePublished(id, !currentStatus);
-      await loadAnimals();
-    } catch (error: any) {
-      alert(error.message);
-    }
-  }
+  const filteredAnimals = useMemo(() => {
+    return animals.filter((animal) => {
+      const name = animal.animal_name || animal.nom || "";
+      const breed = animal.breed || animal.race || "";
 
-  const filtered = animals.filter((animal) =>
-    animal.animal_name?.toLowerCase().includes(search.toLowerCase())
-  );
+      const matchSearch =
+        name.toLowerCase().includes(search.toLowerCase()) ||
+        breed.toLowerCase().includes(search.toLowerCase());
+
+      if (!matchSearch) return false;
+
+      if (filter === "published") return animal.is_published === true;
+      if (filter === "draft") return animal.is_published === false;
+
+      return true;
+    });
+  }, [animals, search, filter]);
+
+  function getMainPhoto(animal: any) {
+    return (
+      animal.animal_photos?.find((photo: any) => photo.is_cover)?.photo_url ||
+      animal.animal_photos?.[0]?.photo_url ||
+      animal.photo_url ||
+      "/placeholder-animal.png"
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] p-8">
+    <main className="min-h-screen bg-[#f4eee3] px-6 py-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-5xl font-black text-[#064b42]">Mes animaux</h1>
-            <p className="mt-2 text-gray-500">
-              Gérez les fiches animaux de votre association.
+            <p className="font-black uppercase tracking-[0.3em] text-[#b68b2f]">
+              Association
             </p>
+
+            <h1 className="mt-2 text-4xl font-black text-[#064b42]">
+              Mes animaux
+            </h1>
           </div>
 
-          <Button onClick={() => router.push("/association/add-animal")}>
-            <Plus size={20} />
-            <span className="ml-2">Ajouter un animal</span>
-          </Button>
+          <Link
+            href="/association/add-animal"
+            className="rounded-2xl bg-[#064b42] px-6 py-4 font-black text-white"
+          >
+            + Ajouter un animal
+          </Link>
         </div>
 
-        <div className="mb-8 flex items-center rounded-2xl bg-white px-5 py-4 shadow">
-          <Search size={22} className="mr-3 text-gray-400" />
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
           <input
-            placeholder="Rechercher un animal..."
+            placeholder="Rechercher par nom ou race..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full outline-none"
+            className="rounded-2xl bg-white p-4 shadow outline-none"
           />
+
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-2xl bg-white p-4 shadow outline-none"
+          >
+            <option value="all">Tous</option>
+            <option value="published">Publiés</option>
+            <option value="draft">Brouillons</option>
+          </select>
         </div>
 
         {loading ? (
-          <Card>Chargement...</Card>
-        ) : filtered.length === 0 ? (
-          <Card className="py-20 text-center">
-            <PawPrint size={80} className="mx-auto text-[#064b42]" />
-            <h2 className="mt-6 text-3xl font-black">Aucun animal</h2>
-            <p className="mt-3 text-gray-500">
-              Commencez par créer votre première fiche.
+          <div className="rounded-3xl bg-white p-10 text-center font-bold shadow">
+            Chargement...
+          </div>
+        ) : filteredAnimals.length === 0 ? (
+          <div className="rounded-3xl bg-white p-10 text-center shadow">
+            <div className="text-6xl">🐾</div>
+            <h2 className="mt-4 text-2xl font-black text-[#064b42]">
+              Aucun animal trouvé
+            </h2>
+            <p className="mt-2 text-gray-500">
+              Ajoutez votre premier animal pour commencer les tests.
             </p>
-          </Card>
+          </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3">
-            {filtered.map((animal) => (
-              <Card key={animal.id} className="space-y-5">
-                <div className="h-60 overflow-hidden rounded-2xl bg-gray-100">
-                  <img
-                    src={
-                      animal.photo_url ||
-                      "https://placehold.co/600x600?text=Pas+de+photo"
-                    }
-                    alt={animal.animal_name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+          <div className="overflow-hidden rounded-3xl bg-white shadow">
+            <table className="w-full">
+              <thead className="bg-[#064b42] text-white">
+                <tr>
+                  <th className="p-4 text-left">Animal</th>
+                  <th className="p-4 text-left">Type</th>
+                  <th className="p-4 text-left">Sexe</th>
+                  <th className="p-4 text-left">Île</th>
+                  <th className="p-4 text-left">Publication</th>
+                  <th className="p-4 text-left">Actions</th>
+                </tr>
+              </thead>
 
-                <div>
-                  <h2 className="text-3xl font-black text-[#064b42]">
-                    {animal.animal_name}
-                  </h2>
+              <tbody>
+                {filteredAnimals.map((animal) => {
+                  const name = animal.animal_name || animal.nom || "Sans nom";
+                  const type = animal.animal_type || animal.type || "-";
+                  const breed = animal.breed || animal.race || "";
+                  const sex = animal.sex || animal.sexe || "-";
+                  const island = animal.island || animal.ile || "-";
 
-                  <p className="mt-1 text-gray-500">
-                    {animal.breed || animal.animal_type}
-                  </p>
+                  return (
+                    <tr key={animal.id} className="border-b">
+                      <td className="p-4">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={getMainPhoto(animal)}
+                            alt={name}
+                            className="h-16 w-16 rounded-xl object-cover"
+                          />
 
-                  <button
-                    onClick={() =>
-                      togglePublished(animal.id, animal.is_published)
-                    }
-                    className={`mt-3 rounded-full px-4 py-2 text-sm font-black ${
-                      animal.is_published
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {animal.is_published ? "Publié" : "Brouillon"}
-                  </button>
-                </div>
+                          <div>
+                            <p className="font-black text-[#064b42]">{name}</p>
+                            <p className="text-sm text-gray-500">
+                              {breed || "Race non renseignée"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      router.push(`/association/edit-animal/${animal.id}`)
-                    }
-                  >
-                    <Pencil size={18} />
-                  </Button>
+                      <td className="p-4 font-bold">{type}</td>
+                      <td className="p-4">{sex}</td>
+                      <td className="p-4">{island}</td>
 
-                  <Button
-                    variant="danger"
-                    onClick={() => deleteAnimal(animal.id)}
-                  >
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                      <td className="p-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            togglePublished(
+                              animal.id,
+                              animal.is_published || false
+                            )
+                          }
+                          className={`rounded-xl px-4 py-2 font-bold ${
+                            animal.is_published
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {animal.is_published ? "Publié" : "Brouillon"}
+                        </button>
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`/animal/${animal.id}`}
+                            className="rounded-xl bg-gray-100 px-3 py-2 font-bold"
+                          >
+                            Voir
+                          </Link>
+
+                          <Link
+                            href={`/association/edit-animal/${animal.id}`}
+                            className="rounded-xl bg-blue-100 px-3 py-2 font-bold text-blue-700"
+                          >
+                            Modifier
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteAnimal(animal.id)}
+                            className="rounded-xl bg-red-100 px-3 py-2 font-bold text-red-700"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

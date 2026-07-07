@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adoptionService } from "../../services/adoption.service";
+import { supabase } from "../../lib/supabase";
 
 type Demande = {
   id: string;
   animal_id: string;
-  statut: string;
-  motivation: string | null;
+  requester_id: string;
+  owner_id: string;
+  status: string;
+  message: string | null;
   created_at: string;
 };
 
@@ -24,7 +26,24 @@ export default function AssociationDemandesPage() {
   async function loadDemandes() {
     try {
       setLoading(true);
-      const data = await adoptionService.getAssociationRequests();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("adoption_requests")
+        .select("*")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
       setDemandes(data || []);
     } catch (error) {
       console.error(error);
@@ -32,6 +51,13 @@ export default function AssociationDemandesPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getStatusLabel(status: string) {
+    if (status === "pending") return "Nouvelle";
+    if (status === "accepted") return "Acceptée";
+    if (status === "refused") return "Refusée";
+    return status || "Nouvelle";
   }
 
   if (loading) {
@@ -88,15 +114,15 @@ export default function AssociationDemandesPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-black uppercase text-[#b68b2f]">
-                      {demande.statut || "nouvelle"}
+                      {getStatusLabel(demande.status)}
                     </p>
 
                     <h2 className="mt-1 text-xl font-black">
                       Demande d’adoption
                     </h2>
 
-                    <p className="mt-2 text-gray-600">
-                      {demande.motivation || "Aucune motivation renseignée."}
+                    <p className="mt-2 line-clamp-3 text-gray-600">
+                      {demande.message || "Aucun message renseigné."}
                     </p>
 
                     <p className="mt-3 text-xs font-bold text-gray-400">

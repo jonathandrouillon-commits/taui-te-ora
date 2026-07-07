@@ -9,7 +9,6 @@ export default function RegisterPage() {
 
   const [role, setRole] = useState("adoptant");
   const [loading, setLoading] = useState(false);
-
   const [profileImage, setProfileImage] = useState<File | null>(null);
 
   const [fullName, setFullName] = useState("");
@@ -21,8 +20,10 @@ export default function RegisterPage() {
   const [island, setIsland] = useState("");
   const [city, setCity] = useState("");
 
+  const isOrganization = role === "association" || role === "refuge";
+
   async function uploadProfileImage(userId: string) {
-    if (!profileImage) return "";
+    if (!profileImage) return null;
 
     const safeName = profileImage.name
       .normalize("NFD")
@@ -47,6 +48,21 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
+      if (!email || !password || !fullName) {
+        alert("Merci de remplir le nom complet, l'email et le mot de passe.");
+        return;
+      }
+
+      if (isOrganization && !organizationName) {
+        alert("Merci d’indiquer le nom de l'association ou du refuge.");
+        return;
+      }
+
+      if (password.length < 6) {
+        alert("Le mot de passe doit contenir au moins 6 caractères.");
+        return;
+      }
+
       const nameParts = fullName.trim().split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
@@ -58,35 +74,47 @@ export default function RegisterPage() {
 
       if (error) throw error;
 
-      if (data.user) {
-        const avatarUrl = await uploadProfileImage(data.user.id);
-
-        await supabase.from("profiles").upsert({
-          id: data.user.id,
-          email,
-          first_name: firstName,
-          last_name: lastName,
-          organization_name: organizationName,
-          role,
-          phone,
-          island,
-          city,
-          avatar_url: avatarUrl,
-          approval_status: "pending",
-          is_verified: false,
-          is_active: true,
-        });
+      if (!data.user) {
+        alert("Compte créé. Vérifiez votre email pour confirmer l’inscription.");
+        router.push("/login");
+        return;
       }
 
-      } catch (error: any) {
-  console.error("ERREUR CREATION COMPTE:", error);
-  alert(JSON.stringify(error, null, 2));
-} finally {
-  setLoading(false);
-}
-  }
+      const avatarUrl = await uploadProfileImage(data.user.id);
 
-  const isOrganization = role === "association" || role === "refuge";
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        organization_name: isOrganization ? organizationName : null,
+        role,
+        phone,
+        island,
+        city,
+        avatar_url: avatarUrl,
+        approval_status: role === "adoptant" ? "approved" : "pending",
+        is_verified: role === "adoptant",
+        is_active: true,
+        created_at: new Date().toISOString(),
+      });
+
+      if (profileError) throw profileError;
+
+      alert(
+        isOrganization
+          ? "Votre compte association/refuge a été créé. Il doit maintenant être validé par l’administration."
+          : "Votre compte adoptant a été créé."
+      );
+
+      router.push(isOrganization ? "/pending-approval" : "/login");
+    } catch (error: any) {
+      console.error("ERREUR CREATION COMPTE:", error);
+      alert(error.message || "Erreur lors de la création du compte.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f5ead8] p-6 text-[#3b2417]">
@@ -103,7 +131,7 @@ export default function RegisterPage() {
           </h1>
 
           <p className="mt-2 text-gray-600">
-            Votre compte devra être validé par l’administration.
+            Les associations et refuges doivent être validés par l’administration.
           </p>
         </div>
 
@@ -116,7 +144,6 @@ export default function RegisterPage() {
             <option value="adoptant">Adoptant</option>
             <option value="association">Association</option>
             <option value="refuge">Refuge</option>
-            <option value="admin">Administration</option>
           </select>
 
           <div className="rounded-[28px] bg-white p-6 shadow">
@@ -194,6 +221,7 @@ export default function RegisterPage() {
           />
 
           <button
+            type="button"
             onClick={register}
             disabled={loading}
             className="w-full rounded-full bg-[#064b42] py-4 text-xl font-black text-white shadow-xl disabled:opacity-60"

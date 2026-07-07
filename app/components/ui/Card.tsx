@@ -1,12 +1,15 @@
-export default function Card({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
+import { ReactNode } from "react";
+
+type CardProps = {
+  children: ReactNode;
   className?: string;
-}) {
+};
+
+export default function Card({ children, className = "" }: CardProps) {
   return (
-    <div className={`taui-card taui-paper p-6 ${className}`}>
+    <div
+      className={`rounded-[32px] bg-white p-6 shadow-[0_12px_40px_rgba(0,0,0,0.10)] ${className}`}
+    >
       {children}
     </div>
   );

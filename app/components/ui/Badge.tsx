@@ -1,18 +1,24 @@
+import { ReactNode } from "react";
+
+type BadgeVariant = "green" | "orange" | "gold" | "cream";
+
 type BadgeProps = {
-  children: React.ReactNode;
-  color?: "green" | "gold" | "red" | "blue";
+  children: ReactNode;
+  variant?: BadgeVariant;
 };
 
-export default function Badge({ children, color = "green" }: BadgeProps) {
-  const colors = {
-    green: "bg-[#dff5ee] text-[#064b42]",
-    gold: "bg-[#fff2cf] text-[#7b5420]",
-    red: "bg-[#ffe1e1] text-[#9b2f2f]",
-    blue: "bg-[#e1f0ff] text-[#164a7b]",
+export default function Badge({ children, variant = "green" }: BadgeProps) {
+  const variants = {
+    green: "bg-[#6E7E5D] text-white",
+    orange: "bg-[#D67B52] text-white",
+    gold: "bg-[#D8A33A] text-white",
+    cream: "bg-[#F7F2E8] text-[#304032]",
   };
 
   return (
-    <span className={`rounded-full px-4 py-2 text-sm font-black ${colors[color]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-black uppercase ${variants[variant]}`}
+    >
       {children}
     </span>
   );
