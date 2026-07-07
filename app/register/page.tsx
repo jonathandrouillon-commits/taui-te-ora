@@ -48,12 +48,12 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
-      if (!email || !password || !fullName) {
+      if (!email.trim() || !password.trim() || !fullName.trim()) {
         alert("Merci de remplir le nom complet, l'email et le mot de passe.");
         return;
       }
 
-      if (isOrganization && !organizationName) {
+      if (isOrganization && !organizationName.trim()) {
         alert("Merci d’indiquer le nom de l'association ou du refuge.");
         return;
       }
@@ -68,7 +68,7 @@ export default function RegisterPage() {
       const lastName = nameParts.slice(1).join(" ") || "";
 
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -84,19 +84,18 @@ export default function RegisterPage() {
 
       const { error: profileError } = await supabase.from("profiles").upsert({
         id: data.user.id,
-        email,
+        email: email.trim(),
         first_name: firstName,
         last_name: lastName,
-        organization_name: isOrganization ? organizationName : null,
+        organization_name: isOrganization ? organizationName.trim() : null,
         role,
-        phone,
-        island,
-        city,
+        phone: phone.trim(),
+        island: island.trim(),
+        city: city.trim(),
         avatar_url: avatarUrl,
         approval_status: role === "adoptant" ? "approved" : "pending",
         is_verified: role === "adoptant",
         is_active: true,
-        created_at: new Date().toISOString(),
       });
 
       if (profileError) throw profileError;
@@ -110,7 +109,15 @@ export default function RegisterPage() {
       router.push(isOrganization ? "/pending-approval" : "/login");
     } catch (error: any) {
       console.error("ERREUR CREATION COMPTE:", error);
-      alert(error.message || "Erreur lors de la création du compte.");
+
+      alert(
+        error?.message ||
+          error?.error_description ||
+          error?.details ||
+          error?.hint ||
+          JSON.stringify(error) ||
+          "Erreur inconnue lors de la création du compte."
+      );
     } finally {
       setLoading(false);
     }

@@ -42,10 +42,30 @@ function AdoptantProfileContent() {
   }
 
   function continuer() {
+    if (!form.nom.trim()) {
+      alert("Merci de renseigner votre nom.");
+      return;
+    }
+
+    if (!form.prenom.trim()) {
+      alert("Merci de renseigner votre prénom.");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      alert("Merci de renseigner votre email.");
+      return;
+    }
+
+    if (!form.telephone.trim()) {
+      alert("Merci de renseigner votre téléphone.");
+      return;
+    }
+
     if (animalId) {
       router.push(`/adoption/questionnaire/${animalId}`);
     } else {
-      router.push("/adoption/questionnaire");
+      router.push("/");
     }
   }
 
@@ -106,7 +126,7 @@ function AdoptantProfileContent() {
         <button
           type="button"
           onClick={continuer}
-          className="mt-8 w-full rounded-2xl bg-[#064b42] py-4 text-lg font-black text-white"
+          className="mt-8 w-full rounded-2xl bg-[#064b42] py-4 text-lg font-black text-white transition hover:bg-[#086555]"
         >
           Continuer →
         </button>
@@ -124,12 +144,14 @@ type InputProps = {
 function Input({ label, value, onChange }: InputProps) {
   return (
     <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
+      <label className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </label>
 
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        className="w-full rounded-2xl border border-gray-300 p-4 outline-none transition focus:border-[#064b42]"
       />
     </div>
   );
