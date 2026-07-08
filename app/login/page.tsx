@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
@@ -8,10 +8,9 @@ import { profileService } from "../services/profile.service";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const redirectTo = searchParams.get("redirect");
 
   const [email, setEmail] = useState("");
@@ -31,7 +30,7 @@ export default function LoginPage() {
 
       const profile = await profileService.getCurrentProfile();
 
-            if (
+      if (
         profile.approval_status !== "approved" ||
         profile.is_active === false
       ) {
@@ -48,19 +47,15 @@ export default function LoginPage() {
         case "admin":
           router.push("/admin/dashboard");
           return;
-
         case "association":
           router.push("/association/dashboard");
           return;
-
         case "refuge":
           router.push("/refuge/dashboard");
           return;
-
         case "adoptant":
           router.push("/dashboard");
           return;
-
         default:
           router.push("/dashboard");
       }
@@ -81,9 +76,7 @@ export default function LoginPage() {
             className="mx-auto mb-4 h-24 w-24"
           />
 
-          <h1 className="text-4xl font-black text-[#064b42]">
-            Connexion
-          </h1>
+          <h1 className="text-4xl font-black text-[#064b42]">Connexion</h1>
 
           <p className="mt-2 text-gray-500">
             Connectez-vous à votre espace TAUI TE ORA
@@ -147,5 +140,19 @@ export default function LoginPage() {
         </div>
       </Card>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] p-8">
+          Chargement...
+        </main>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
