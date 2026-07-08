@@ -1,38 +1,122 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Bell,
+  Home,
+  PawPrint,
+  Search,
+  Shield,
+  User,
+  Users,
+  Building2,
+} from "lucide-react";
 
-type TopBarProps = {
-  title?: string;
-  subtitle?: string;
+type Props = {
+  mode?: "public" | "association" | "admin" | "adoptant" | "refuge";
 };
 
-export default function TopBar({
-  title = "TAUI TE ORA",
-  subtitle = "Powered by Les Veilleurs de Kali",
-}: TopBarProps) {
+export default function AppTopBar({ mode = "public" }: Props) {
+  const router = useRouter();
+
   return (
-    <header className="mx-auto mb-6 flex w-full max-w-md items-center justify-between rounded-[28px] bg-white/80 px-5 py-4 shadow-xl backdrop-blur">
-      <Link
-        href="/"
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F2E8] text-2xl shadow"
-      >
-        🐾
-      </Link>
+    <header className="sticky top-0 z-50 bg-[#f4eee3]/90 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between bg-white px-4 py-3 shadow-lg">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:bg-[#ead9bb]"
+          title="Retour"
+        >
+          <ArrowLeft size={22} />
+        </button>
 
-      <div className="text-center">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-[#D8A33A]">
-          {subtitle}
-        </p>
-        <h1 className="text-2xl font-black text-[#4B5A3D]">{title}</h1>
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="flex items-center gap-3"
+          title="Accueil"
+        >
+          <PawPrint size={28} className="text-[#064b42]" />
+
+          <div className="text-left">
+            <div className="font-black text-[#064b42]">TAUI TE ORA</div>
+            <div className="text-xs text-gray-500">Changer une vie</div>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <IconButton
+            onClick={() => router.push("/")}
+            icon={<Home size={20} />}
+            tooltip="Accueil"
+          />
+
+          <IconButton
+            onClick={() => router.push("/search")}
+            icon={<Search size={20} />}
+            tooltip="Recherche"
+          />
+
+          <IconButton
+            onClick={() => router.push("/notifications")}
+            icon={<Bell size={20} />}
+            tooltip="Notifications"
+          />
+
+          <IconButton
+            onClick={() => router.push("/profile")}
+            icon={<User size={20} />}
+            tooltip="Mon profil"
+          />
+
+          {mode === "association" && (
+            <IconButton
+              onClick={() => router.push("/association/dashboard")}
+              icon={<Users size={20} />}
+              tooltip="Dashboard association"
+            />
+          )}
+
+          {mode === "refuge" && (
+            <IconButton
+              onClick={() => router.push("/refuge/dashboard")}
+              icon={<Building2 size={20} />}
+              tooltip="Dashboard refuge"
+            />
+          )}
+
+          {mode === "admin" && (
+            <IconButton
+              onClick={() => router.push("/admin/dashboard")}
+              icon={<Shield size={20} />}
+              tooltip="Administration"
+            />
+          )}
+        </div>
       </div>
-
-      <Link
-        href="/notifications"
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F2E8] text-2xl shadow"
-      >
-        🔔
-      </Link>
     </header>
+  );
+}
+
+function IconButton({
+  icon,
+  onClick,
+  tooltip,
+}: {
+  icon: React.ReactNode;
+  onClick: () => void;
+  tooltip: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={tooltip}
+      onClick={onClick}
+      className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:scale-105 hover:bg-[#ead9bb]"
+    >
+      {icon}
+    </button>
   );
 }

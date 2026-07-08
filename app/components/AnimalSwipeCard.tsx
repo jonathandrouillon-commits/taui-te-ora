@@ -10,13 +10,8 @@ type AnimalSwipeCardProps = {
   onFavorite?: () => void;
 };
 
-export default function AnimalSwipeCard({
-  animal,
-  onPass,
-  onFavorite,
-}: AnimalSwipeCardProps) {
+export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSwipeCardProps) {
   const router = useRouter();
-
   const [startX, setStartX] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [actionLabel, setActionLabel] = useState("");
@@ -25,9 +20,7 @@ export default function AnimalSwipeCard({
   if (!animal) {
     return (
       <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
-        <p className="text-xl font-black text-[#4B5A3D]">
-          Aucun animal disponible.
-        </p>
+        <p className="text-xl font-black text-[#4B5A3D]">Aucun animal disponible.</p>
       </div>
     );
   }
@@ -37,12 +30,7 @@ export default function AnimalSwipeCard({
   const sex = animal.sex || animal.sexe || "Sexe non renseigné";
   const city = animal.city || animal.localisation || "Localisation";
   const island = animal.island || animal.ile || "Île";
-
-  const associationName =
-    animal.owner_profile?.organization_name ||
-    animal.association_name ||
-    "Association";
-
+  const associationName = animal.owner_profile?.organization_name || animal.association_name || "Association";
   const associationLogo = animal.owner_profile?.avatar_url || "";
 
   const mediaItems = useMemo(() => {
@@ -51,21 +39,15 @@ export default function AnimalSwipeCard({
         type: "photo",
         url: photo.photo_url,
         is_cover: photo.is_cover,
-        sort_order: photo.sort_order ?? 0,
       })) || [];
 
-    const sortedPhotos = [...photos].sort((a: any, b: any) => {
-      if (a.is_cover) return -1;
-      if (b.is_cover) return 1;
-      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-    });
+    const sortedPhotos = [
+      ...photos.filter((p: any) => p.is_cover),
+      ...photos.filter((p: any) => !p.is_cover),
+    ];
 
     if (sortedPhotos.length > 0) return sortedPhotos;
-
-    if (animal.photo_url) {
-      return [{ type: "photo", url: animal.photo_url, is_cover: true }];
-    }
-
+    if (animal.photo_url) return [{ type: "photo", url: animal.photo_url, is_cover: true }];
     return [];
   }, [animal]);
 
@@ -75,25 +57,9 @@ export default function AnimalSwipeCard({
   const isVaccinated = animal.vaccinated ?? animal.vaccine;
   const isMicrochipped = animal.microchipped ?? animal.identifie;
 
-  function previousPhoto() {
+  function nextMedia() {
     if (mediaItems.length <= 1) return;
-    setMediaIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
-  }
-
-  function nextPhoto() {
-    if (mediaItems.length <= 1) return;
-    setMediaIndex((prev) => (prev === mediaItems.length - 1 ? 0 : prev + 1));
-  }
-
-  function handlePhotoClick(e: React.MouseEvent<HTMLDivElement>) {
-    if (mediaItems.length <= 1) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const middle = rect.width / 2;
-
-    if (clickX < middle) previousPhoto();
-    else nextPhoto();
+    setMediaIndex((prev) => (prev + 1) % mediaItems.length);
   }
 
   function handleStart(clientX: number) {
@@ -103,10 +69,8 @@ export default function AnimalSwipeCard({
 
   function handleMove(clientX: number) {
     if (startX === null) return;
-
     const diff = clientX - startX;
     setTranslateX(diff);
-
     if (diff > 70) setActionLabel("❤️ COUP DE CŒUR");
     else if (diff < -70) setActionLabel("PASSER");
     else setActionLabel("");
@@ -115,7 +79,6 @@ export default function AnimalSwipeCard({
   async function handleEnd() {
     if (translateX > 120) await handleFavorite();
     if (translateX < -120) handlePass();
-
     setStartX(null);
     setTranslateX(0);
     setActionLabel("");
@@ -127,12 +90,16 @@ export default function AnimalSwipeCard({
 
   async function handleFavorite() {
     try {
-      if (animal?.id) await favoriteService.toggle(animal.id);
-    } catch (error) {
-      console.error(error);
+      if (!animal?.id) return;
+      await favoriteService.add(animal.id);
+      onFavorite?.();
+    } catch (error: any) {
+      if (error?.message === "LOGIN_REQUIRED") {
+        router.push(`/login?redirect=/animal/${animal.id}`);
+        return;
+      }
+      alert("Impossible d'enregistrer le coup de cœur.");
     }
-
-    onFavorite?.();
   }
 
   function handleAdopt() {
@@ -158,9 +125,7 @@ export default function AnimalSwipeCard({
         onMouseDown={(e) => handleStart(e.clientX)}
         onMouseMove={(e) => handleMove(e.clientX)}
         onMouseUp={handleEnd}
-        onMouseLeave={() => {
-          if (startX !== null) handleEnd();
-        }}
+        onMouseLeave={() => startX !== null && handleEnd()}
         onTouchStart={(e) => handleStart(e.touches[0].clientX)}
         onTouchMove={(e) => handleMove(e.touches[0].clientX)}
         onTouchEnd={handleEnd}
@@ -170,66 +135,23 @@ export default function AnimalSwipeCard({
           transition: startX === null ? "transform 0.25s ease" : "none",
         }}
       >
-        <div className="absolute left-5 right-5 top-5 z-30 flex gap-2">
-          {Array.from({ length: Math.max(mediaItems.length, 1) }).map(
-            (_, index) => (
-              <div
-                key={index}
-                className={`h-1.5 flex-1 rounded-full ${
-                  index === mediaIndex ? "bg-white" : "bg-white/40"
-                }`}
-              />
-            )
-          )}
+        <div className="absolute left-5 right-5 top-5 z-20 flex gap-2">
+          {Array.from({ length: Math.max(mediaItems.length, 1) }).map((_, index) => (
+            <div key={index} className={`h-1.5 flex-1 rounded-full ${index === mediaIndex ? "bg-white" : "bg-white/40"}`} />
+          ))}
         </div>
 
-        <button
-          type="button"
-          onClick={handleInfo}
-          className="absolute right-4 top-8 z-40 transition-transform hover:scale-110 active:scale-95"
-          aria-label="Voir la fiche animal"
-        >
-          <InfoPawButton />
-        </button>
-
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handlePhotoClick}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowLeft") previousPhoto();
-            if (e.key === "ArrowRight" || e.key === "Enter") nextPhoto();
-          }}
-          className="absolute inset-0 z-0 cursor-pointer"
-        >
+        <div role="button" tabIndex={0} onClick={nextMedia} onKeyDown={(e) => e.key === "Enter" && nextMedia()} className="absolute inset-0 z-0">
           {currentMedia?.url ? (
-            <img
-              src={currentMedia.url}
-              alt={name}
-              className="h-full w-full object-cover"
-            />
+            <img src={currentMedia.url} alt={name} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">
-              Photo
-            </div>
-          )}
-
-          {mediaItems.length > 1 && (
-            <>
-              <div className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-3xl font-black text-white backdrop-blur">
-                ‹
-              </div>
-
-              <div className="absolute right-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-3xl font-black text-white backdrop-blur">
-                ›
-              </div>
-            </>
+            <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">Photo</div>
           )}
         </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
-        <div className="absolute left-5 top-10 z-20 flex max-w-[240px] flex-wrap gap-2">
+        <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
           <Badge>{animal.is_published ? "À adopter" : "Brouillon"}</Badge>
           <Badge light>{sex}</Badge>
         </div>
@@ -240,19 +162,16 @@ export default function AnimalSwipeCard({
           </div>
         )}
 
-        <div className="pointer-events-none absolute bottom-6 left-6 right-28 z-20 text-white">
-          <h2 className="text-5xl font-black leading-none drop-shadow">
-            {name}
-            <span className="ml-2 text-3xl text-[#D8A33A]">🐾</span>
-          </h2>
+        <div className="absolute bottom-6 left-6 right-28 z-20 text-white">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-5xl font-black leading-none drop-shadow">{name}</h2>
+            <button type="button" onClick={handleInfo} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/90 text-xl font-black text-[#064b42] shadow-xl">
+              i
+            </button>
+          </div>
 
-          <p className="mt-3 text-lg font-bold">
-            {age} • {sex}
-          </p>
-
-          <p className="mt-2 text-sm font-black uppercase tracking-wide">
-            📍 {city} · {island}
-          </p>
+          <p className="mt-3 text-lg font-bold">{age} • {sex}</p>
+          <p className="mt-2 text-sm font-black uppercase tracking-wide">📍 {city} · {island}</p>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {isSterilized && <SmallBadge label="Stérilisé" />}
@@ -261,17 +180,11 @@ export default function AnimalSwipeCard({
           </div>
         </div>
 
-        <div className="pointer-events-none absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
+        <div className="absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
           {associationLogo ? (
-            <img
-              src={associationLogo}
-              alt={associationName}
-              className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl"
-            />
+            <img src={associationLogo} alt={associationName} className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl" />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">
-              🐾
-            </div>
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">🐾</div>
           )}
 
           <span className="mt-2 max-w-[96px] truncate rounded-full bg-black/45 px-3 py-1 text-center text-[10px] font-black uppercase text-white backdrop-blur">
@@ -280,98 +193,25 @@ export default function AnimalSwipeCard({
         </div>
       </article>
 
-      <div className="mt-7 flex items-start justify-center gap-6">
+      <div className="mt-8 flex justify-between gap-5">
         <ActionButton label="PASSER" icon="✕" color="cream" onClick={handlePass} />
-        <ActionButton label="LIKE" icon="♥" color="orange" onClick={handleFavorite} />
-        <ActionButton label="ADOPTER" icon="🐾" color="green" onClick={handleAdopt} />
+        <ActionButton label="COUP DE CŒUR" icon="❤" color="orange" onClick={handleFavorite} />
+        <ActionButton label="ADOPTER" icon="" color="green" onClick={handleAdopt} />
       </div>
     </div>
   );
 }
 
-function Badge({
-  children,
-  light = false,
-}: {
-  children: React.ReactNode;
-  light?: boolean;
-}) {
+function Badge({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
   return (
-    <span
-      className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${
-        light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"
-      }`}
-    >
+    <span className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"}`}>
       {children}
     </span>
   );
 }
 
 function SmallBadge({ label }: { label: string }) {
-  return (
-    <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">
-      {label}
-    </span>
-  );
-}
-
-function InfoPawButton() {
-  return (
-    <svg
-      width="54"
-      height="54"
-      viewBox="0 0 120 120"
-      className="drop-shadow-[0_8px_12px_rgba(0,0,0,0.35)]"
-    >
-      <ellipse
-        cx="28"
-        cy="48"
-        rx="14"
-        ry="21"
-        fill="#D8A33A"
-        transform="rotate(-28 28 48)"
-      />
-      <ellipse
-        cx="47"
-        cy="25"
-        rx="14"
-        ry="22"
-        fill="#D8A33A"
-        transform="rotate(-8 47 25)"
-      />
-      <ellipse
-        cx="73"
-        cy="25"
-        rx="14"
-        ry="22"
-        fill="#D8A33A"
-        transform="rotate(8 73 25)"
-      />
-      <ellipse
-        cx="92"
-        cy="48"
-        rx="14"
-        ry="21"
-        fill="#D8A33A"
-        transform="rotate(28 92 48)"
-      />
-      <path
-        d="M34 78 C34 61 45 49 60 49 C75 49 86 61 86 78 C86 97 75 107 60 107 C45 107 34 97 34 78Z"
-        fill="#D8A33A"
-      />
-      <text
-        x="60"
-        y="87"
-        textAnchor="middle"
-        fontSize="38"
-        fontWeight="900"
-        fill="white"
-        fontFamily="Arial"
-      >
-        i
-      </text>
-    </svg>
-  );
+  return <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">{label}</span>;
 }
 
 function ActionButton({
@@ -385,81 +225,20 @@ function ActionButton({
   color: "cream" | "orange" | "green";
   onClick: () => void;
 }) {
-  const styles = {
-    cream: {
-      fill: "#F7F2E8",
-      icon: "#6E7E5D",
-    },
-    orange: {
-      fill: "#D67B52",
-      icon: "#FFFFFF",
-    },
-    green: {
-      fill: "#6E7E5D",
-      icon: "#FFFFFF",
-    },
+  const colors = {
+    cream: "bg-[#F6EEDC]",
+    orange: "bg-[#D67B52]",
+    green: "bg-[#87966F]",
   };
 
-  const current = styles[color];
-
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex flex-col items-center"
-    >
-      <div className="relative h-[86px] w-[86px] transition-all duration-200 group-hover:-translate-y-1 group-active:scale-95">
-        <svg
-          viewBox="0 0 120 120"
-          className="h-full w-full drop-shadow-[0_10px_14px_rgba(0,0,0,0.22)]"
-        >
-          <ellipse
-            cx="28"
-            cy="48"
-            rx="14"
-            ry="21"
-            fill={current.fill}
-            transform="rotate(-28 28 48)"
-          />
-          <ellipse
-            cx="47"
-            cy="25"
-            rx="14"
-            ry="22"
-            fill={current.fill}
-            transform="rotate(-8 47 25)"
-          />
-          <ellipse
-            cx="73"
-            cy="25"
-            rx="14"
-            ry="22"
-            fill={current.fill}
-            transform="rotate(8 73 25)"
-          />
-          <ellipse
-            cx="92"
-            cy="48"
-            rx="14"
-            ry="21"
-            fill={current.fill}
-            transform="rotate(28 92 48)"
-          />
-          <path
-            d="M34 78 C34 61 45 49 60 49 C75 49 86 61 86 78 C86 97 75 107 60 107 C45 107 34 97 34 78Z"
-            fill={current.fill}
-          />
-        </svg>
-
-        <div
-          className="absolute bottom-[18px] left-1/2 flex h-[34px] w-[44px] -translate-x-1/2 items-center justify-center text-[24px] font-black"
-          style={{ color: current.icon }}
-        >
-          {icon}
-        </div>
+    <button type="button" onClick={onClick} className="group flex flex-1 flex-col items-center">
+      <div className={`${colors[color]} relative flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition group-hover:scale-105 group-active:scale-95`}>
+        <span className="select-none text-[58px] leading-none text-white">🐾</span>
+        {icon && <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{icon}</span>}
       </div>
 
-      <span className="mt-1 text-[10px] font-black uppercase tracking-wide text-[#6E7E5D]">
+      <span className="mt-3 text-center text-[11px] font-black uppercase leading-4 tracking-wide text-[#6E7E5D]">
         {label}
       </span>
     </button>

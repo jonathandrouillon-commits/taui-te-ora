@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
 import BottomNavigation from "./components/ui/BottomNavigation";
-import TopBar from "./components/ui/TopBar";
 import { animalService } from "./services/animal.service";
 
 export default function Home() {
@@ -48,13 +47,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F7F2E8] via-[#F3EADB] to-[#EDE0CC] px-4 pb-32 pt-5">
-      <TopBar />
-
-      <div className="mx-auto mb-4 max-w-sm rounded-2xl bg-white/80 p-3 text-center text-xs font-bold text-[#4B5A3D] shadow">
-        Animaux publiés chargés : {animals.length}
-      </div>
-
+    <main className="min-h-screen bg-gradient-to-b from-[#F7F2E8] via-[#F3EADB] to-[#EDE0CC] px-4 pb-32 pt-4">
       <section className="flex justify-center">
         {currentAnimal ? (
           <AnimalSwipeCard

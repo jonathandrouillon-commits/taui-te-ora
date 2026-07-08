@@ -1,112 +1,104 @@
 import { supabase } from "../lib/supabase";
 
-async function toggle(animalId: string) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+async function getCurrentUser() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (userError) throw userError;
-
-  const user = userData.user;
-
-  if (!user) {
-    throw new Error("Utilisateur non connecté.");
-  }
-
-  const { data: existingLike, error: selectError } = await supabase
-    .from("animal_likes")
-    .select("id")
-    .eq("animal_id", animalId)
-    .eq("adoptant_id", user.id)
-    .maybeSingle();
-
-  if (selectError) throw selectError;
-
-  if (existingLike) {
-    const { error: deleteError } = await supabase
-      .from("animal_likes")
-      .delete()
-      .eq("id", existingLike.id);
-
-    if (deleteError) throw deleteError;
-
-    return {
-      liked: false,
-    };
-  }
-
-  const { data, error: insertError } = await supabase
-    .from("animal_likes")
-    .insert({
-      animal_id: animalId,
-      adoptant_id: user.id,
-      profile_id: user.id,
-    })
-    .select()
-    .single();
-
-  if (insertError) throw insertError;
-
-  return {
-    liked: true,
-    data,
-  };
+  return user;
 }
 
-async function getMyLikes() {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-
-  if (userError) throw userError;
-
-  const user = userData.user;
-
-  if (!user) {
-    throw new Error("Utilisateur non connecté.");
-  }
+async function getMine() {
+  const user = await getCurrentUser();
+  if (!user) return [];
 
   const { data, error } = await supabase
-    .from("animal_likes")
+    .from("favorites")
     .select(`
       *,
       animals (
         *,
-        animal_photos (
-          id,
-          photo_url,
-          is_cover,
-          sort_order
-        )
+        animal_photos (*)
       )
     `)
-    .eq("adoptant_id", user.id)
+    .eq("profile_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-
   return data || [];
 }
 
-async function isLiked(animalId: string) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-
-  if (userError) throw userError;
-
-  const user = userData.user;
-
+async function isFavorite(animalId: string) {
+  const user = await getCurrentUser();
   if (!user) return false;
 
   const { data, error } = await supabase
-    .from("animal_likes")
+    .from("favorites")
     .select("id")
+    .eq("profile_id", user.id)
     .eq("animal_id", animalId)
-    .eq("adoptant_id", user.id)
     .maybeSingle();
 
   if (error) throw error;
-
   return !!data;
 }
 
+async function add(animalId: string) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error("LOGIN_REQUIRED");
+  }
+
+  const alreadyFavorite = await isFavorite(animalId);
+  if (alreadyFavorite) return true;
+
+  const { data, error } = await supabase
+    .from("favorites")
+    .insert({
+      profile_id: user.id,
+      animal_id: animalId,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function remove(animalId: string) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error("LOGIN_REQUIRED");
+  }
+
+  const { error } = await supabase
+    .from("favorites")
+    .delete()
+    .eq("profile_id", user.id)
+    .eq("animal_id", animalId);
+
+  if (error) throw error;
+  return true;
+}
+
+async function toggle(animalId: string) {
+  const exists = await isFavorite(animalId);
+
+  if (exists) {
+    await remove(animalId);
+    return false;
+  }
+
+  await add(animalId);
+  return true;
+}
+
 export const favoriteService = {
+  getMine,
+  isFavorite,
+  add,
+  remove,
   toggle,
-  getMyLikes,
-  isLiked,
 };
