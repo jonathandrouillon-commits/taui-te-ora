@@ -183,6 +183,15 @@ export default function AnimalSwipeCard({
           )}
         </div>
 
+        <button
+          type="button"
+          onClick={handleInfo}
+          className="absolute right-4 top-8 z-40 transition-transform hover:scale-110 active:scale-95"
+          aria-label="Voir la fiche animal"
+        >
+          <InfoPawButton />
+        </button>
+
         <div
           role="button"
           tabIndex={0}
@@ -207,9 +216,6 @@ export default function AnimalSwipeCard({
 
           {mediaItems.length > 1 && (
             <>
-              <div className="absolute left-0 top-0 h-full w-1/2" />
-              <div className="absolute right-0 top-0 h-full w-1/2" />
-
               <div className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-3xl font-black text-white backdrop-blur">
                 ‹
               </div>
@@ -223,13 +229,13 @@ export default function AnimalSwipeCard({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
-        <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
+        <div className="absolute left-5 top-10 z-20 flex max-w-[240px] flex-wrap gap-2">
           <Badge>{animal.is_published ? "À adopter" : "Brouillon"}</Badge>
           <Badge light>{sex}</Badge>
         </div>
 
         {mediaItems.length > 1 && (
-          <div className="absolute right-5 top-10 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
+          <div className="absolute right-5 top-24 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
             {mediaIndex + 1}/{mediaItems.length}
           </div>
         )}
@@ -274,11 +280,10 @@ export default function AnimalSwipeCard({
         </div>
       </article>
 
-      <div className="mt-7 flex items-start justify-between gap-3">
+      <div className="mt-7 flex items-start justify-center gap-6">
         <ActionButton label="PASSER" icon="✕" color="cream" onClick={handlePass} />
         <ActionButton label="LIKE" icon="♥" color="orange" onClick={handleFavorite} />
         <ActionButton label="ADOPTER" icon="🐾" color="green" onClick={handleAdopt} />
-        <ActionButton label="INFO" icon="i" color="gold" onClick={handleInfo} />
       </div>
     </div>
   );
@@ -310,6 +315,65 @@ function SmallBadge({ label }: { label: string }) {
   );
 }
 
+function InfoPawButton() {
+  return (
+    <svg
+      width="54"
+      height="54"
+      viewBox="0 0 120 120"
+      className="drop-shadow-[0_8px_12px_rgba(0,0,0,0.35)]"
+    >
+      <ellipse
+        cx="28"
+        cy="48"
+        rx="14"
+        ry="21"
+        fill="#D8A33A"
+        transform="rotate(-28 28 48)"
+      />
+      <ellipse
+        cx="47"
+        cy="25"
+        rx="14"
+        ry="22"
+        fill="#D8A33A"
+        transform="rotate(-8 47 25)"
+      />
+      <ellipse
+        cx="73"
+        cy="25"
+        rx="14"
+        ry="22"
+        fill="#D8A33A"
+        transform="rotate(8 73 25)"
+      />
+      <ellipse
+        cx="92"
+        cy="48"
+        rx="14"
+        ry="21"
+        fill="#D8A33A"
+        transform="rotate(28 92 48)"
+      />
+      <path
+        d="M34 78 C34 61 45 49 60 49 C75 49 86 61 86 78 C86 97 75 107 60 107 C45 107 34 97 34 78Z"
+        fill="#D8A33A"
+      />
+      <text
+        x="60"
+        y="87"
+        textAnchor="middle"
+        fontSize="38"
+        fontWeight="900"
+        fill="white"
+        fontFamily="Arial"
+      >
+        i
+      </text>
+    </svg>
+  );
+}
+
 function ActionButton({
   label,
   icon,
@@ -318,7 +382,7 @@ function ActionButton({
 }: {
   label: string;
   icon: string;
-  color: "cream" | "orange" | "green" | "gold";
+  color: "cream" | "orange" | "green";
   onClick: () => void;
 }) {
   const styles = {
@@ -334,10 +398,6 @@ function ActionButton({
       fill: "#6E7E5D",
       icon: "#FFFFFF",
     },
-    gold: {
-      fill: "#D8A33A",
-      icon: "#FFFFFF",
-    },
   };
 
   const current = styles[color];
@@ -346,7 +406,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-1 flex-col items-center"
+      className="group flex flex-col items-center"
     >
       <div className="relative h-[86px] w-[86px] transition-all duration-200 group-hover:-translate-y-1 group-active:scale-95">
         <svg
@@ -385,13 +445,8 @@ function ActionButton({
             fill={current.fill}
             transform="rotate(28 92 48)"
           />
-
           <path
-            d="M34 78
-               C34 61 45 49 60 49
-               C75 49 86 61 86 78
-               C86 97 75 107 60 107
-               C45 107 34 97 34 78Z"
+            d="M34 78 C34 61 45 49 60 49 C75 49 86 61 86 78 C86 97 75 107 60 107 C45 107 34 97 34 78Z"
             fill={current.fill}
           />
         </svg>
