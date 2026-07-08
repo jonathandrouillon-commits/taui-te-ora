@@ -4,7 +4,8 @@ export type Favorite = {
   id: string;
   created_at?: string;
   animal_id: string;
-  user_id: string;
+  profile_id: string;
+  adoptant_id?: string | null;
 };
 
 async function getMine() {
@@ -23,12 +24,12 @@ async function getMine() {
         animal_photos (*)
       )
     `)
-    .eq("user_id", user.id)
+    .eq("profile_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
 
-  return data;
+  return data || [];
 }
 
 async function isFavorite(animalId: string) {
@@ -41,7 +42,7 @@ async function isFavorite(animalId: string) {
   const { data, error } = await supabase
     .from("favorites")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("profile_id", user.id)
     .eq("animal_id", animalId)
     .maybeSingle();
 
@@ -57,10 +58,15 @@ async function add(animalId: string) {
 
   if (!user) throw new Error("Utilisateur non connecté.");
 
+  const exists = await isFavorite(animalId);
+
+  if (exists) return true;
+
   const { data, error } = await supabase
     .from("favorites")
     .insert({
-      user_id: user.id,
+      profile_id: user.id,
+      adoptant_id: user.id,
       animal_id: animalId,
     })
     .select()
@@ -81,7 +87,7 @@ async function remove(animalId: string) {
   const { error } = await supabase
     .from("favorites")
     .delete()
-    .eq("user_id", user.id)
+    .eq("profile_id", user.id)
     .eq("animal_id", animalId);
 
   if (error) throw error;
