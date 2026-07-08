@@ -51,12 +51,14 @@ export default function AnimalSwipeCard({
         type: "photo",
         url: photo.photo_url,
         is_cover: photo.is_cover,
+        sort_order: photo.sort_order ?? 0,
       })) || [];
 
-    const sortedPhotos = [
-      ...photos.filter((p: any) => p.is_cover),
-      ...photos.filter((p: any) => !p.is_cover),
-    ];
+    const sortedPhotos = [...photos].sort((a: any, b: any) => {
+      if (a.is_cover) return -1;
+      if (b.is_cover) return 1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
 
     if (sortedPhotos.length > 0) return sortedPhotos;
 
@@ -73,9 +75,25 @@ export default function AnimalSwipeCard({
   const isVaccinated = animal.vaccinated ?? animal.vaccine;
   const isMicrochipped = animal.microchipped ?? animal.identifie;
 
-  function nextMedia() {
+  function previousPhoto() {
     if (mediaItems.length <= 1) return;
-    setMediaIndex((prev) => (prev + 1) % mediaItems.length);
+    setMediaIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
+  }
+
+  function nextPhoto() {
+    if (mediaItems.length <= 1) return;
+    setMediaIndex((prev) => (prev === mediaItems.length - 1 ? 0 : prev + 1));
+  }
+
+  function handlePhotoClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (mediaItems.length <= 1) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const middle = rect.width / 2;
+
+    if (clickX < middle) previousPhoto();
+    else nextPhoto();
   }
 
   function handleStart(clientX: number) {
@@ -152,7 +170,7 @@ export default function AnimalSwipeCard({
           transition: startX === null ? "transform 0.25s ease" : "none",
         }}
       >
-        <div className="absolute left-5 right-5 top-5 z-20 flex gap-2">
+        <div className="absolute left-5 right-5 top-5 z-30 flex gap-2">
           {Array.from({ length: Math.max(mediaItems.length, 1) }).map(
             (_, index) => (
               <div
@@ -168,11 +186,12 @@ export default function AnimalSwipeCard({
         <div
           role="button"
           tabIndex={0}
-          onClick={nextMedia}
+          onClick={handlePhotoClick}
           onKeyDown={(e) => {
-            if (e.key === "Enter") nextMedia();
+            if (e.key === "ArrowLeft") previousPhoto();
+            if (e.key === "ArrowRight" || e.key === "Enter") nextPhoto();
           }}
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 cursor-pointer"
         >
           {currentMedia?.url ? (
             <img
@@ -185,17 +204,24 @@ export default function AnimalSwipeCard({
               Photo
             </div>
           )}
+
+          {mediaItems.length > 1 && (
+            <>
+              <div className="absolute left-0 top-0 h-full w-1/2" />
+              <div className="absolute right-0 top-0 h-full w-1/2" />
+
+              <div className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-3xl font-black text-white backdrop-blur">
+                ‹
+              </div>
+
+              <div className="absolute right-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-3xl font-black text-white backdrop-blur">
+                ›
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-
-        <button
-          type="button"
-          onClick={handleInfo}
-          className="absolute right-5 top-10 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-xl font-black text-[#4B5A3D] shadow-xl"
-        >
-          i
-        </button>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
         <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
           <Badge>{animal.is_published ? "À adopter" : "Brouillon"}</Badge>
@@ -203,12 +229,12 @@ export default function AnimalSwipeCard({
         </div>
 
         {mediaItems.length > 1 && (
-          <div className="absolute right-5 top-24 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
+          <div className="absolute right-5 top-10 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
             {mediaIndex + 1}/{mediaItems.length}
           </div>
         )}
 
-        <div className="absolute bottom-6 left-6 right-28 z-20 text-white">
+        <div className="pointer-events-none absolute bottom-6 left-6 right-28 z-20 text-white">
           <h2 className="text-5xl font-black leading-none drop-shadow">
             {name}
             <span className="ml-2 text-3xl text-[#D8A33A]">🐾</span>
@@ -229,7 +255,7 @@ export default function AnimalSwipeCard({
           </div>
         </div>
 
-        <div className="absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
+        <div className="pointer-events-none absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
           {associationLogo ? (
             <img
               src={associationLogo}
@@ -298,19 +324,19 @@ function ActionButton({
   const styles = {
     cream: {
       fill: "#F7F2E8",
-      text: "#6E7E5D",
+      icon: "#6E7E5D",
     },
     orange: {
       fill: "#D67B52",
-      text: "#FFFFFF",
+      icon: "#FFFFFF",
     },
     green: {
       fill: "#6E7E5D",
-      text: "#FFFFFF",
+      icon: "#FFFFFF",
     },
     gold: {
       fill: "#D8A33A",
-      text: "#FFFFFF",
+      icon: "#FFFFFF",
     },
   };
 
@@ -325,23 +351,54 @@ function ActionButton({
       <div className="relative h-[86px] w-[86px] transition-all duration-200 group-hover:-translate-y-1 group-active:scale-95">
         <svg
           viewBox="0 0 120 120"
-          className="h-full w-full drop-shadow-[0_12px_14px_rgba(0,0,0,0.20)]"
+          className="h-full w-full drop-shadow-[0_10px_14px_rgba(0,0,0,0.22)]"
         >
-          <ellipse cx="26" cy="50" rx="15" ry="21" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(-28 26 50)" />
-          <ellipse cx="46" cy="25" rx="15" ry="22" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(-10 46 25)" />
-          <ellipse cx="74" cy="25" rx="15" ry="22" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(10 74 25)" />
-          <ellipse cx="94" cy="50" rx="15" ry="21" fill={current.fill} stroke="#FFF5E8" strokeWidth="6" transform="rotate(28 94 50)" />
-          <path
-            d="M35 78C35 58 48 47 60 47C72 47 85 58 85 78C85 96 74 105 60 105C46 105 35 96 35 78Z"
+          <ellipse
+            cx="28"
+            cy="48"
+            rx="14"
+            ry="21"
             fill={current.fill}
-            stroke="#FFF5E8"
-            strokeWidth="6"
+            transform="rotate(-28 28 48)"
+          />
+          <ellipse
+            cx="47"
+            cy="25"
+            rx="14"
+            ry="22"
+            fill={current.fill}
+            transform="rotate(-8 47 25)"
+          />
+          <ellipse
+            cx="73"
+            cy="25"
+            rx="14"
+            ry="22"
+            fill={current.fill}
+            transform="rotate(8 73 25)"
+          />
+          <ellipse
+            cx="92"
+            cy="48"
+            rx="14"
+            ry="21"
+            fill={current.fill}
+            transform="rotate(28 92 48)"
+          />
+
+          <path
+            d="M34 78
+               C34 61 45 49 60 49
+               C75 49 86 61 86 78
+               C86 97 75 107 60 107
+               C45 107 34 97 34 78Z"
+            fill={current.fill}
           />
         </svg>
 
         <div
-          className="absolute bottom-[16px] left-1/2 flex h-[34px] w-[42px] -translate-x-1/2 items-center justify-center text-[24px] font-black"
-          style={{ color: current.text }}
+          className="absolute bottom-[18px] left-1/2 flex h-[34px] w-[44px] -translate-x-1/2 items-center justify-center text-[24px] font-black"
+          style={{ color: current.icon }}
         >
           {icon}
         </div>
