@@ -14,18 +14,27 @@ type AnimalPhoto = {
 
 type Animal = {
   id: string;
-  name: string | null;
+  animal_name: string | null;
   animal_type: string | null;
-  sex: string | null;
   age_label: string | null;
+  sex: string | null;
   breed: string | null;
-  size: string | null;
-  color: string | null;
+  size_label: string | null;
+  association_name: string | null;
   island: string | null;
   city: string | null;
   status: string | null;
-  description: string | null;
-  photo_url?: string | null;
+  description_character: string | null;
+  health_status: string | null;
+  special_needs: string | null;
+  story: string | null;
+  is_adopted: boolean | null;
+  vaccinated: boolean | null;
+  sterilized: boolean | null;
+  microchipped: boolean | null;
+  compatible_chiens: boolean | null;
+  compatible_chats: boolean | null;
+  compatible_enfants: boolean | null;
   animal_photos?: AnimalPhoto[];
 };
 
@@ -40,6 +49,9 @@ export default function SearchPage() {
   const [status, setStatus] = useState("");
   const [island, setIsland] = useState("");
   const [city, setCity] = useState("");
+  const [vaccinated, setVaccinated] = useState("");
+  const [sterilized, setSterilized] = useState("");
+  const [microchipped, setMicrochipped] = useState("");
 
   useEffect(() => {
     searchAnimals();
@@ -63,20 +75,25 @@ export default function SearchPage() {
           )
         `
         )
+        .eq("is_published", true)
         .order("created_at", { ascending: false });
 
       if (keyword.trim()) {
         query = query.or(
-          `name.ilike.%${keyword}%,breed.ilike.%${keyword}%,color.ilike.%${keyword}%,description.ilike.%${keyword}%`
+          `animal_name.ilike.%${keyword}%,breed.ilike.%${keyword}%,description_character.ilike.%${keyword}%,story.ilike.%${keyword}%,association_name.ilike.%${keyword}%`
         );
       }
 
       if (animalType) query = query.eq("animal_type", animalType);
       if (sex) query = query.eq("sex", sex);
-      if (size) query = query.eq("size", size);
+      if (size) query = query.eq("size_label", size);
       if (status) query = query.eq("status", status);
       if (island) query = query.ilike("island", `%${island}%`);
       if (city) query = query.ilike("city", `%${city}%`);
+
+      if (vaccinated) query = query.eq("vaccinated", vaccinated === "Oui");
+      if (sterilized) query = query.eq("sterilized", sterilized === "Oui");
+      if (microchipped) query = query.eq("microchipped", microchipped === "Oui");
 
       const { data, error } = await query;
 
@@ -91,8 +108,6 @@ export default function SearchPage() {
   }
 
   function getAnimalImage(animal: Animal) {
-    if (animal.photo_url) return animal.photo_url;
-
     const cover = animal.animal_photos?.find((photo) => photo.is_cover);
     if (cover?.photo_url) return cover.photo_url;
 
@@ -111,6 +126,9 @@ export default function SearchPage() {
     setStatus("");
     setIsland("");
     setCity("");
+    setVaccinated("");
+    setSterilized("");
+    setMicrochipped("");
 
     setTimeout(() => {
       searchAnimals();
@@ -132,7 +150,7 @@ export default function SearchPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Input
               label="Recherche"
-              placeholder="Nom, race, couleur, description..."
+              placeholder="Nom, race, description, association..."
               value={keyword}
               onChange={setKeyword}
             />
@@ -178,6 +196,27 @@ export default function SearchPage() {
               value={city}
               onChange={setCity}
             />
+
+            <Select
+              label="Vacciné"
+              value={vaccinated}
+              onChange={setVaccinated}
+              options={["Oui", "Non"]}
+            />
+
+            <Select
+              label="Stérilisé"
+              value={sterilized}
+              onChange={setSterilized}
+              options={["Oui", "Non"]}
+            />
+
+            <Select
+              label="Identifié / pucé"
+              value={microchipped}
+              onChange={setMicrochipped}
+              options={["Oui", "Non"]}
+            />
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -222,7 +261,7 @@ export default function SearchPage() {
                       {imageUrl ? (
                         <img
                           src={imageUrl}
-                          alt={animal.name || "Animal"}
+                          alt={animal.animal_name || "Animal"}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -234,7 +273,7 @@ export default function SearchPage() {
 
                     <div className="p-5">
                       <h3 className="text-2xl font-black text-[#064b42]">
-                        {animal.name || "Sans nom"}
+                        {animal.animal_name || "Sans nom"}
                       </h3>
 
                       <p className="mt-2 text-gray-600">
@@ -245,11 +284,7 @@ export default function SearchPage() {
 
                       <p className="mt-1 text-gray-600">
                         {animal.breed || "Race inconnue"} •{" "}
-                        {animal.size || "Taille inconnue"}
-                      </p>
-
-                      <p className="mt-1 text-gray-600">
-                        Couleur : {animal.color || "Non renseignée"}
+                        {animal.size_label || "Taille inconnue"}
                       </p>
 
                       <p className="mt-3 font-bold text-[#b58b5b]">
@@ -257,9 +292,19 @@ export default function SearchPage() {
                         {animal.island || "Île inconnue"}
                       </p>
 
-                      <p className="mt-3 inline-block rounded-full bg-[#f8f4ec] px-4 py-2 text-sm font-bold text-[#064b42]">
-                        {animal.status || "Statut non renseigné"}
-                      </p>
+                      {animal.association_name && (
+                        <p className="mt-2 text-sm font-semibold text-[#064b42]">
+                          🏠 {animal.association_name}
+                        </p>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Badge label={animal.status || "Statut inconnu"} />
+
+                        {animal.vaccinated && <Badge label="Vacciné" />}
+                        {animal.sterilized && <Badge label="Stérilisé" />}
+                        {animal.microchipped && <Badge label="Identifié" />}
+                      </div>
                     </div>
                   </Link>
                 );
@@ -269,6 +314,14 @@ export default function SearchPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function Badge({ label }: { label: string }) {
+  return (
+    <span className="inline-block rounded-full bg-[#f8f4ec] px-4 py-2 text-xs font-bold text-[#064b42]">
+      {label}
+    </span>
   );
 }
 
@@ -316,6 +369,7 @@ function Select({
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
       >
         <option value="">Tous</option>
+
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
