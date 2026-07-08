@@ -4,20 +4,29 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
+type AnimalPhoto = {
+  id: string;
+  animal_id: string;
+  photo_url: string;
+  is_cover: boolean;
+  sort_order: number;
+};
+
 type Animal = {
   id: string;
-  name: string;
-  animal_type: string;
-  sex: string;
-  age_label: string;
-  breed: string;
-  size: string;
-  color: string;
-  island: string;
-  city: string;
-  status: string;
-  photo_url: string;
-  description: string;
+  name: string | null;
+  animal_type: string | null;
+  sex: string | null;
+  age_label: string | null;
+  breed: string | null;
+  size: string | null;
+  color: string | null;
+  island: string | null;
+  city: string | null;
+  status: string | null;
+  description: string | null;
+  photo_url?: string | null;
+  animal_photos?: AnimalPhoto[];
 };
 
 export default function SearchPage() {
@@ -42,7 +51,18 @@ export default function SearchPage() {
 
       let query = supabase
         .from("animals")
-        .select("*")
+        .select(
+          `
+          *,
+          animal_photos (
+            id,
+            animal_id,
+            photo_url,
+            is_cover,
+            sort_order
+          )
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (keyword.trim()) {
@@ -68,6 +88,19 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getAnimalImage(animal: Animal) {
+    if (animal.photo_url) return animal.photo_url;
+
+    const cover = animal.animal_photos?.find((photo) => photo.is_cover);
+    if (cover?.photo_url) return cover.photo_url;
+
+    const firstPhoto = animal.animal_photos
+      ?.slice()
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
+
+    return firstPhoto?.photo_url || "";
   }
 
   function resetFilters() {
@@ -129,13 +162,7 @@ export default function SearchPage() {
               label="Statut"
               value={status}
               onChange={setStatus}
-              options={[
-                "disponible",
-                "adopté",
-                "perdu",
-                "trouvé",
-                "en soin",
-              ]}
+              options={["available", "adopted", "lost", "found", "care"]}
             />
 
             <Input
@@ -182,57 +209,61 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {animals.map((animal) => (
-                <Link
-                  key={animal.id}
-                  href={`/animal/${animal.id}`}
-                  className="overflow-hidden rounded-[2rem] bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="h-64 bg-[#eadfce]">
-                    {animal.photo_url ? (
-                      <img
-                        src={animal.photo_url}
-                        alt={animal.name || "Animal"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-6xl">
-                        🐾
-                      </div>
-                    )}
-                  </div>
+              {animals.map((animal) => {
+                const imageUrl = getAnimalImage(animal);
 
-                  <div className="p-5">
-                    <h3 className="text-2xl font-black text-[#064b42]">
-                      {animal.name || "Sans nom"}
-                    </h3>
+                return (
+                  <Link
+                    key={animal.id}
+                    href={`/animal/${animal.id}`}
+                    className="overflow-hidden rounded-[2rem] bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="h-64 bg-[#eadfce]">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={animal.name || "Animal"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-6xl">
+                          🐾
+                        </div>
+                      )}
+                    </div>
 
-                    <p className="mt-2 text-gray-600">
-                      {animal.animal_type || "Animal"} •{" "}
-                      {animal.sex || "Sexe inconnu"} •{" "}
-                      {animal.age_label || "Âge inconnu"}
-                    </p>
+                    <div className="p-5">
+                      <h3 className="text-2xl font-black text-[#064b42]">
+                        {animal.name || "Sans nom"}
+                      </h3>
 
-                    <p className="mt-1 text-gray-600">
-                      {animal.breed || "Race inconnue"} •{" "}
-                      {animal.size || "Taille inconnue"}
-                    </p>
+                      <p className="mt-2 text-gray-600">
+                        {animal.animal_type || "Animal"} •{" "}
+                        {animal.sex || "Sexe inconnu"} •{" "}
+                        {animal.age_label || "Âge inconnu"}
+                      </p>
 
-                    <p className="mt-1 text-gray-600">
-                      Couleur : {animal.color || "Non renseignée"}
-                    </p>
+                      <p className="mt-1 text-gray-600">
+                        {animal.breed || "Race inconnue"} •{" "}
+                        {animal.size || "Taille inconnue"}
+                      </p>
 
-                    <p className="mt-3 font-bold text-[#b58b5b]">
-                      📍 {animal.city || "Commune inconnue"} -{" "}
-                      {animal.island || "Île inconnue"}
-                    </p>
+                      <p className="mt-1 text-gray-600">
+                        Couleur : {animal.color || "Non renseignée"}
+                      </p>
 
-                    <p className="mt-3 inline-block rounded-full bg-[#f8f4ec] px-4 py-2 text-sm font-bold text-[#064b42]">
-                      {animal.status || "Statut non renseigné"}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                      <p className="mt-3 font-bold text-[#b58b5b]">
+                        📍 {animal.city || "Commune inconnue"} -{" "}
+                        {animal.island || "Île inconnue"}
+                      </p>
+
+                      <p className="mt-3 inline-block rounded-full bg-[#f8f4ec] px-4 py-2 text-sm font-bold text-[#064b42]">
+                        {animal.status || "Statut non renseigné"}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

@@ -24,9 +24,9 @@ export default function BottomNavigation() {
       special: true,
     },
     {
-      label: "Likes",
-      href: "/likes",
-      icon: "❤️",
+      label: "Search",
+      href: "/search",
+      icon: "🔎",
     },
     {
       label: "Profil",
@@ -70,9 +70,7 @@ export default function BottomNavigation() {
                 active ? "text-[#9c7b54]" : "text-[#6f5a47]"
               }`}
             >
-              <span className="text-[20px] leading-none">
-                {item.icon}
-              </span>
+              <span className="text-[20px] leading-none">{item.icon}</span>
 
               <span className="text-[10px] font-semibold leading-none">
                 {item.label}
