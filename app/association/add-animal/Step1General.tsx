@@ -56,12 +56,12 @@ export default function Step1General({ animal, updateField }: any) {
           onChange={(e) => updateField("animal_type", e.target.value)}
         >
           <option value="">Catégorie de l'animal</option>
-          <option>Chien</option>
-          <option>Chat</option>
-          <option>Cheval</option>
-          <option>Oiseau</option>
-          <option>Lapin</option>
-          <option>Autres</option>
+          <option value="Chien">Chien</option>
+          <option value="Chat">Chat</option>
+          <option value="Cheval">Cheval</option>
+          <option value="Oiseau">Oiseau</option>
+          <option value="Lapin">Lapin</option>
+          <option value="Autres">Autres</option>
         </select>
 
         <input
@@ -77,9 +77,9 @@ export default function Step1General({ animal, updateField }: any) {
           onChange={(e) => updateField("sex", e.target.value)}
         >
           <option value="">Sexe</option>
-          <option>Femelle</option>
-          <option>Mâle</option>
-          <option>Inconnu</option>
+          <option value="Femelle">Femelle</option>
+          <option value="Mâle">Mâle</option>
+          <option value="Inconnu">Inconnu</option>
         </select>
 
         <select
@@ -102,10 +102,10 @@ export default function Step1General({ animal, updateField }: any) {
           onChange={(e) => updateField("size_label", e.target.value)}
         >
           <option value="">Taille de l'animal</option>
-          <option>Petit</option>
-          <option>Moyen</option>
-          <option>Grand</option>
-          <option>Hors catégorie</option>
+          <option value="Petit">Petit</option>
+          <option value="Moyen">Moyen</option>
+          <option value="Grand">Grand</option>
+          <option value="Hors catégorie">Hors catégorie</option>
         </select>
 
         <select
