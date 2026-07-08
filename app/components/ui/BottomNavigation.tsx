@@ -15,7 +15,7 @@ const items = [
     icon: "🔍",
   },
   {
-    href: "/report",
+    href: "/signalement",
     label: "Signaler",
     image: "/icons/sos-paw.png",
     center: true,

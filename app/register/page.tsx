@@ -99,43 +99,28 @@ export default function RegisterPage() {
       const avatarUrl = await uploadLogo();
 
       const { error } = await supabase.auth.signUp({
-  email: email.trim(),
-  password,
-  options: {
-    data: {
-      first_name: firstName,
-      last_name: lastName,
-      organization_name: isOrganization ? organizationName.trim() : "",
-      role,
-      phone: phone.trim(),
-      island: island.trim(),
-      city: city.trim(),
-      avatar_url: avatarUrl,
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            organization_name: isOrganization ? organizationName.trim() : "",
+            role,
+            phone: phone.trim(),
+            island: island.trim(),
+            city: city.trim(),
+            avatar_url: avatarUrl,
 
-      approval_status: "approved",
-      is_active: true,
-      is_verified: true,
-      approved_at: new Date().toISOString(),
-    },
-  },
-});
+            approval_status: "approved",
+            is_active: true,
+            is_verified: true,
+            approved_at: new Date().toISOString(),
+          },
+        },
+      });
 
-if (error) throw error;
-const {
-  data: { user },
-} = await supabase.auth.getUser();
-
-if (user) {
-  await supabase
-    .from("profiles")
-    .update({
-      approval_status: "approved",
-      is_active: true,
-      is_verified: true,
-      approved_at: new Date().toISOString(),
-    })
-    .eq("id", user.id);
-}
+      if (error) throw error;
 
       await notifyAdmin({
         firstName,
@@ -145,12 +130,18 @@ if (user) {
 
       alert("Votre compte a été créé avec succès.");
 
-router.push("/login");
-
       router.push("/login");
     } catch (error: any) {
-      console.error("ERREUR CREATION COMPTE:", error);
-      alert(error?.message || "Erreur inconnue lors de la création du compte.");
+      console.error(
+        "ERREUR CREATION COMPTE COMPLETE:",
+        JSON.stringify(error, null, 2)
+      );
+
+      alert(
+        error?.message ||
+          JSON.stringify(error) ||
+          "Erreur inconnue lors de la création du compte."
+      );
     } finally {
       setLoading(false);
     }
@@ -171,8 +162,8 @@ router.push("/login");
           </h1>
 
           <p className="mt-2 text-gray-600">
-  Créez votre compte pour accéder à toutes les fonctionnalités de TAUI TE ORA.
-</p>
+            Créez votre compte pour accéder à TAUI TE ORA.
+          </p>
         </div>
 
         <div className="mt-8 space-y-5">
