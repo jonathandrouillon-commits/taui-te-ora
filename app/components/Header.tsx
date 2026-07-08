@@ -7,48 +7,80 @@ import NotificationBadge from "./NotificationBadge";
 
 export default function Header() {
   return (
-    <header className="w-full mb-8">
-      <div className="flex items-start justify-between">
-        <Image
-          src="/logo.png"
-          alt="logo"
-          width={300}
-          height={210}
-          priority
-          className="object-contain"
-        />
+    <header className="sticky top-0 z-50 w-full bg-[#f7f2e9]/95 backdrop-blur border-b border-[#eadfce] px-3 py-1">
+      <div className="mx-auto max-w-6xl">
 
-        <div className="w-16 h-16 rounded-full overflow-hidden shadow-lg border-4 border-white">
-          <img
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300"
-            alt="Profil"
-            className="object-cover w-full h-full"
-          />
+        {/* Ligne supérieure */}
+        <div className="flex items-center justify-between">
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="TAUI TE ORA"
+              width={80}
+              height={48}
+              priority
+              className="h-6 w-auto object-contain"
+            />
+          </Link>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5">
+
+            <Link
+              href="/login"
+              className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#0f5d52] shadow hover:bg-gray-100 transition"
+            >
+              Connexion
+            </Link>
+
+            <Link
+              href="/register"
+              className="rounded-full bg-[#0f5d52] px-2.5 py-0.5 text-[10px] font-semibold text-white shadow hover:bg-[#0b4d44] transition"
+            >
+              Créer un compte
+            </Link>
+
+            <Link
+              href="/notifications"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow hover:scale-105 transition"
+            >
+              <NotificationBadge />
+            </Link>
+
+          </div>
         </div>
-      </div>
 
-      <div className="mt-6 flex gap-4">
-        <div className="flex-1 bg-white rounded-full px-6 py-5 shadow-md flex items-center">
-          <Search size={24} className="text-gray-400 mr-4" />
+        {/* Barre de recherche */}
+        <div className="mt-1 flex items-center gap-2">
 
-          <input
-            type="text"
-            placeholder="Rechercher un animal..."
-            className="flex-1 outline-none bg-transparent text-xl"
-          />
+          <div className="flex h-8 flex-1 items-center rounded-full bg-white px-3 shadow">
+
+            <Search
+              size={15}
+              className="mr-2 text-gray-400 flex-shrink-0"
+            />
+
+            <input
+              type="text"
+              placeholder="Rechercher un animal..."
+              className="flex-1 bg-transparent text-xs outline-none placeholder:text-gray-400"
+            />
+          </div>
+
+          <button
+            className="flex h-8 items-center gap-1 rounded-full bg-[#0f5d52] px-3 text-white shadow hover:bg-[#0b4d44] transition"
+          >
+            <SlidersHorizontal size={15} />
+
+            <span className="hidden sm:block text-[11px] font-semibold">
+              Filtres
+            </span>
+          </button>
+
         </div>
 
-        <Link
-          href="/notifications"
-          className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition"
-        >
-          <NotificationBadge />
-        </Link>
-
-        <button className="bg-[#0f5d52] rounded-full px-8 text-white flex items-center gap-3 shadow-md">
-          <SlidersHorizontal size={24} />
-          <span className="text-xl font-semibold">Filtres</span>
-        </button>
       </div>
     </header>
   );
