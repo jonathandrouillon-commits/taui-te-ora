@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, PawPrint, ShieldCheck } from "lucide-react";
+import { Users, PawPrint, ShieldCheck, Siren } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import { profileService } from "../../services/profile.service";
@@ -66,7 +66,7 @@ export default function AdminDashboardPage() {
           </Button>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 grid gap-6 md:grid-cols-4">
           <Card className="text-center">
             <Users className="mx-auto text-blue-600" size={42} />
             <h2 className="mt-3 text-4xl font-black">{users.length}</h2>
@@ -84,12 +84,18 @@ export default function AdminDashboardPage() {
             <h2 className="mt-3 text-4xl font-black">{animals.length}</h2>
             <p className="text-gray-500">Animaux</p>
           </Card>
+
+          <Card className="text-center">
+            <Siren className="mx-auto text-red-600" size={42} />
+            <h2 className="mt-3 text-4xl font-black">🚨</h2>
+            <p className="text-gray-500">Signalements</p>
+          </Card>
         </div>
 
         <Card className="mt-10">
           <h2 className="text-3xl font-black">Actions rapides</h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-4">
             <Button onClick={() => router.push("/admin/users")}>
               Valider les comptes
             </Button>
@@ -99,6 +105,13 @@ export default function AdminDashboardPage() {
               onClick={() => router.push("/association/animals")}
             >
               Voir les animaux
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/admin/signalements")}
+            >
+              Voir les signalements
             </Button>
 
             <Button variant="secondary" onClick={() => router.push("/")}>
