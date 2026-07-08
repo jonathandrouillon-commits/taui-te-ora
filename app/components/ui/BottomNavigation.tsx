@@ -10,6 +10,7 @@ export default function BottomNavigation() {
 
   const menuPages = [
     { href: "/info", label: "Info", icon: "ℹ️" },
+    { href: "/associations", label: "Associations", icon: "❤️" },
     { href: "/toilettage", label: "Toilettage", icon: "✂️" },
     { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
     { href: "/education", label: "Éducation", icon: "🎓" },
