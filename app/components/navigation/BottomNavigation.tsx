@@ -8,61 +8,20 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const items = [
-    {
-      label: "Accueil",
-      href: "/",
-      icon: "🏠",
-    },
-    {
-      label: "Adopter",
-      href: "/adoption",
-      icon: "🐾",
-    },
-    {
-      label: "SOS",
-      href: "/signalement",
-      icon: "🚨",
-      special: true,
-    },
-    {
-      label: "Search",
-      href: "/search",
-      icon: "🔎",
-    },
-    {
-      label: "Menu",
-      icon: "☰",
-      menu: true,
-    },
+  const menuPages = [
+    { label: "Info", href: "/info", icon: "ℹ️" },
+    { label: "Toilettage", href: "/toilettage", icon: "✂️" },
+    { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
+    { label: "Éducation", href: "/education", icon: "🎓" },
+    { label: "Alimentation", href: "/alimentation", icon: "🥣" },
   ];
 
-  const menuPages = [
-    {
-      label: "Info",
-      href: "/info",
-      icon: "ℹ️",
-    },
-    {
-      label: "Toilettage",
-      href: "/toilettage",
-      icon: "✂️",
-    },
-    {
-      label: "Gardiennage",
-      href: "/gardiennage",
-      icon: "🏡",
-    },
-    {
-      label: "Éducation",
-      href: "/education",
-      icon: "🎓",
-    },
-    {
-      label: "Alimentation",
-      href: "/alimentation",
-      icon: "🥣",
-    },
+  const items = [
+    { label: "Accueil", href: "/", icon: "🏠" },
+    { label: "Adopter", href: "/adoption", icon: "🐾" },
+    { label: "SOS", href: "/signalement", icon: "🚨", special: true },
+    { label: "Search", href: "/search", icon: "🔎" },
+    { label: "Menu", href: "", icon: "☰", menu: true },
   ];
 
   return (
@@ -78,7 +37,9 @@ export default function BottomNavigation() {
 
           <div className="absolute bottom-[82px] left-4 right-4 rounded-[28px] bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-[#064b42]">Menu</h2>
+              <h2 className="text-xl font-black text-[#064b42]">
+                Menu
+              </h2>
 
               <button
                 type="button"
@@ -112,15 +73,15 @@ export default function BottomNavigation() {
             const active =
               item.href === "/"
                 ? pathname === "/"
-                : item.href
-                ? pathname.startsWith(item.href.split("?")[0])
-                : menuOpen;
+                : item.menu
+                ? menuOpen
+                : pathname.startsWith(item.href.split("?")[0]);
 
             if (item.special) {
               return (
                 <Link
                   key={item.label}
-                  href={item.href || "/"}
+                  href={item.href}
                   className="flex flex-col items-center justify-center"
                 >
                   <div className="mb-1 flex h-[46px] w-[46px] -translate-y-3 items-center justify-center rounded-full bg-red-500 text-xl text-white shadow-lg shadow-red-300">
@@ -145,7 +106,6 @@ export default function BottomNavigation() {
                   }`}
                 >
                   <span className="text-[20px] leading-none">{item.icon}</span>
-
                   <span className="text-[10px] font-semibold leading-none">
                     {item.label}
                   </span>
@@ -156,13 +116,12 @@ export default function BottomNavigation() {
             return (
               <Link
                 key={item.label}
-                href={item.href || "/"}
+                href={item.href}
                 className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition ${
                   active ? "text-[#9c7b54]" : "text-[#6f5a47]"
                 }`}
               >
                 <span className="text-[20px] leading-none">{item.icon}</span>
-
                 <span className="text-[10px] font-semibold leading-none">
                   {item.label}
                 </span>
