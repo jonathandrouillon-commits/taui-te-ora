@@ -14,6 +14,7 @@ export default function SignalementPage() {
 
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
 
   const [form, setForm] = useState({
     type_signalement: "",
@@ -62,6 +63,11 @@ export default function SignalementPage() {
 
   function updateField(name: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = Array.from(event.target.files || []);
+    setFiles(selectedFiles);
   }
 
   function setPosition(lat: number, lng: number) {
@@ -121,8 +127,15 @@ export default function SignalementPage() {
     try {
       setLoading(true);
 
-      if (!form.type_signalement || !form.animal_type || !form.island || !form.city) {
-        alert("Merci de remplir le type de signalement, l'animal, l'île et la commune.");
+      if (
+        !form.type_signalement ||
+        !form.animal_type ||
+        !form.island ||
+        !form.city
+      ) {
+        alert(
+          "Merci de remplir le type de signalement, l'animal, l'île et la commune."
+        );
         return;
       }
 
@@ -130,31 +143,65 @@ export default function SignalementPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      const { error } = await supabase.from("signalements").insert({
-        user_id: user?.id || null,
-        type_signalement: form.type_signalement,
-        animal_type: form.animal_type,
-        animal_name: form.animal_name,
-        sex: form.sex,
-        age_label: form.age_label,
-        color: form.color,
-        breed: form.breed,
-        island: form.island,
-        city: form.city,
-        address: form.address,
-        latitude: form.latitude ? Number(form.latitude) : null,
-        longitude: form.longitude ? Number(form.longitude) : null,
-        situation: form.situation,
-        description: `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
-        reporter_name: form.anonymous ? "" : form.reporter_name,
-        reporter_phone: form.anonymous ? "" : form.reporter_phone,
-        reporter_email: form.anonymous ? "" : form.reporter_email,
-        anonymous: form.anonymous,
-        wants_contact: form.wants_contact,
-        status: "nouveau",
-      });
+      const { data: signalement, error } = await supabase
+        .from("signalements")
+        .insert({
+          user_id: user?.id || null,
+          type_signalement: form.type_signalement,
+          animal_type: form.animal_type,
+          animal_name: form.animal_name,
+          sex: form.sex,
+          age_label: form.age_label,
+          color: form.color,
+          breed: form.breed,
+          island: form.island,
+          city: form.city,
+          address: form.address,
+          latitude: form.latitude ? Number(form.latitude) : null,
+          longitude: form.longitude ? Number(form.longitude) : null,
+          situation: form.situation,
+          description: `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
+          reporter_name: form.anonymous ? "" : form.reporter_name,
+          reporter_phone: form.anonymous ? "" : form.reporter_phone,
+          reporter_email: form.anonymous ? "" : form.reporter_email,
+          anonymous: form.anonymous,
+          wants_contact: form.wants_contact,
+          status: "nouveau",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      if (files.length > 0 && signalement?.id) {
+        for (const file of files) {
+          const fileExt = file.name.split(".").pop();
+          const filePath = `${signalement.id}/${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("signalements")
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: publicUrlData } = supabase.storage
+            .from("signalements")
+            .getPublicUrl(filePath);
+
+          const { error: mediaError } = await supabase
+            .from("signalement_medias")
+            .insert({
+              signalement_id: signalement.id,
+              file_url: publicUrlData.publicUrl,
+              file_type: file.type,
+              file_name: file.name,
+            });
+
+          if (mediaError) throw mediaError;
+        }
+      }
 
       alert("Signalement envoyé avec succès.");
       router.push("/");
@@ -178,13 +225,58 @@ export default function SignalementPage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Select label="Type de signalement" value={form.type_signalement} onChange={(v: string) => updateField("type_signalement", v)} options={["Animal errant", "Animal perdu", "Animal trouvé", "Animal blessé", "Animal maltraité", "Animal décédé", "Autre"]} />
-            <Select label="Type d'animal" value={form.animal_type} onChange={(v: string) => updateField("animal_type", v)} options={["Chien", "Chat", "Oiseau", "Autre"]} />
-            <Input label="Nom si connu" value={form.animal_name} onChange={(v: string) => updateField("animal_name", v)} />
-            <Select label="Sexe" value={form.sex} onChange={(v: string) => updateField("sex", v)} options={["Inconnu", "Mâle", "Femelle"]} />
-            <Input label="Âge estimé" value={form.age_label} onChange={(v: string) => updateField("age_label", v)} />
-            <Input label="Couleur" value={form.color} onChange={(v: string) => updateField("color", v)} />
-            <Input label="Race" value={form.breed} onChange={(v: string) => updateField("breed", v)} />
+            <Select
+              label="Type de signalement"
+              value={form.type_signalement}
+              onChange={(v) => updateField("type_signalement", v)}
+              options={[
+                "Animal errant",
+                "Animal perdu",
+                "Animal trouvé",
+                "Animal blessé",
+                "Animal maltraité",
+                "Animal décédé",
+                "Autre",
+              ]}
+            />
+
+            <Select
+              label="Type d'animal"
+              value={form.animal_type}
+              onChange={(v) => updateField("animal_type", v)}
+              options={["Chien", "Chat", "Oiseau", "Autre"]}
+            />
+
+            <Input
+              label="Nom si connu"
+              value={form.animal_name}
+              onChange={(v) => updateField("animal_name", v)}
+            />
+
+            <Select
+              label="Sexe"
+              value={form.sex}
+              onChange={(v) => updateField("sex", v)}
+              options={["Inconnu", "Mâle", "Femelle"]}
+            />
+
+            <Input
+              label="Âge estimé"
+              value={form.age_label}
+              onChange={(v) => updateField("age_label", v)}
+            />
+
+            <Input
+              label="Couleur"
+              value={form.color}
+              onChange={(v) => updateField("color", v)}
+            />
+
+            <Input
+              label="Race"
+              value={form.breed}
+              onChange={(v) => updateField("breed", v)}
+            />
           </div>
         </section>
 
@@ -205,14 +297,42 @@ export default function SignalementPage() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
-              <Input label="Île" value={form.island} onChange={(v: string) => updateField("island", v)} />
-              <Input label="Commune" value={form.city} onChange={(v: string) => updateField("city", v)} />
-              <Input label="Adresse ou repère" value={form.address} onChange={(v: string) => updateField("address", v)} />
-              <Textarea label="Informations complémentaires" value={form.address_details} onChange={(v: string) => updateField("address_details", v)} />
+              <Input
+                label="Île"
+                value={form.island}
+                onChange={(v) => updateField("island", v)}
+              />
+
+              <Input
+                label="Commune"
+                value={form.city}
+                onChange={(v) => updateField("city", v)}
+              />
+
+              <Input
+                label="Adresse ou repère"
+                value={form.address}
+                onChange={(v) => updateField("address", v)}
+              />
+
+              <Textarea
+                label="Informations complémentaires"
+                value={form.address_details}
+                onChange={(v) => updateField("address_details", v)}
+              />
 
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Latitude" value={form.latitude} onChange={(v: string) => updateField("latitude", v)} />
-                <Input label="Longitude" value={form.longitude} onChange={(v: string) => updateField("longitude", v)} />
+                <Input
+                  label="Latitude"
+                  value={form.latitude}
+                  onChange={(v) => updateField("latitude", v)}
+                />
+
+                <Input
+                  label="Longitude"
+                  value={form.longitude}
+                  onChange={(v) => updateField("longitude", v)}
+                />
               </div>
             </div>
 
@@ -228,11 +348,57 @@ export default function SignalementPage() {
             État de l'animal
           </h2>
 
-          <Textarea label="Situation" value={form.situation} onChange={(v: string) => updateField("situation", v)} />
+          <Textarea
+            label="Situation"
+            value={form.situation}
+            onChange={(v) => updateField("situation", v)}
+          />
 
           <div className="mt-5">
-            <Textarea label="Description complète" value={form.description} onChange={(v: string) => updateField("description", v)} />
+            <Textarea
+              label="Description complète"
+              value={form.description}
+              onChange={(v) => updateField("description", v)}
+            />
           </div>
+        </section>
+
+        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
+          <h2 className="mb-6 text-2xl font-black text-[#064b42]">
+            📸 Photos / vidéos
+          </h2>
+
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={handleFilesChange}
+            className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
+          />
+
+          <p className="mt-3 text-sm text-gray-500">
+            Vous pouvez ajouter plusieurs photos ou vidéos pour aider les
+            associations à identifier l'animal.
+          </p>
+
+          {files.length > 0 && (
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {files.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] p-4"
+                >
+                  <p className="break-all text-sm font-semibold text-[#064b42]">
+                    {file.name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    {(file.size / 1024 / 1024).toFixed(2)} Mo
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
@@ -241,19 +407,43 @@ export default function SignalementPage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Input label="Nom" value={form.reporter_name} onChange={(v: string) => updateField("reporter_name", v)} />
-            <Input label="Téléphone" value={form.reporter_phone} onChange={(v: string) => updateField("reporter_phone", v)} />
-            <Input label="Email" value={form.reporter_email} onChange={(v: string) => updateField("reporter_email", v)} />
+            <Input
+              label="Nom"
+              value={form.reporter_name}
+              onChange={(v) => updateField("reporter_name", v)}
+            />
+
+            <Input
+              label="Téléphone"
+              value={form.reporter_phone}
+              onChange={(v) => updateField("reporter_phone", v)}
+            />
+
+            <Input
+              label="Email"
+              value={form.reporter_email}
+              onChange={(v) => updateField("reporter_email", v)}
+            />
           </div>
 
           <div className="mt-6 space-y-3">
             <label className="flex gap-3 font-semibold">
-              <input type="checkbox" checked={form.wants_contact} onChange={(e) => updateField("wants_contact", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={form.wants_contact}
+                onChange={(e) =>
+                  updateField("wants_contact", e.target.checked)
+                }
+              />
               Je souhaite être recontacté
             </label>
 
             <label className="flex gap-3 font-semibold">
-              <input type="checkbox" checked={form.anonymous} onChange={(e) => updateField("anonymous", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={form.anonymous}
+                onChange={(e) => updateField("anonymous", e.target.checked)}
+              />
               Je souhaite rester anonyme
             </label>
           </div>
@@ -316,7 +506,7 @@ function Select({ label, value, onChange, options }: SelectProps) {
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
       >
         <option value="">Sélectionner</option>
-        {options.map((option: string) => (
+        {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
