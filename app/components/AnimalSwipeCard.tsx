@@ -10,8 +10,13 @@ type AnimalSwipeCardProps = {
   onFavorite?: () => void;
 };
 
-export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSwipeCardProps) {
+export default function AnimalSwipeCard({
+  animal,
+  onPass,
+  onFavorite,
+}: AnimalSwipeCardProps) {
   const router = useRouter();
+
   const [startX, setStartX] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [actionLabel, setActionLabel] = useState("");
@@ -20,7 +25,9 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
   if (!animal) {
     return (
       <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
-        <p className="text-xl font-black text-[#4B5A3D]">Aucun animal disponible.</p>
+        <p className="text-xl font-black text-[#4B5A3D]">
+          Aucun animal disponible.
+        </p>
       </div>
     );
   }
@@ -30,7 +37,12 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
   const sex = animal.sex || animal.sexe || "Sexe non renseigné";
   const city = animal.city || animal.localisation || "Localisation";
   const island = animal.island || animal.ile || "Île";
-  const associationName = animal.owner_profile?.organization_name || animal.association_name || "Association";
+
+  const associationName =
+    animal.owner_profile?.organization_name ||
+    animal.association_name ||
+    "Association";
+
   const associationLogo = animal.owner_profile?.avatar_url || "";
 
   const mediaItems = useMemo(() => {
@@ -47,7 +59,11 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
     ];
 
     if (sortedPhotos.length > 0) return sortedPhotos;
-    if (animal.photo_url) return [{ type: "photo", url: animal.photo_url, is_cover: true }];
+
+    if (animal.photo_url) {
+      return [{ type: "photo", url: animal.photo_url, is_cover: true }];
+    }
+
     return [];
   }, [animal]);
 
@@ -69,8 +85,10 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
 
   function handleMove(clientX: number) {
     if (startX === null) return;
+
     const diff = clientX - startX;
     setTranslateX(diff);
+
     if (diff > 70) setActionLabel("❤️ COUP DE CŒUR");
     else if (diff < -70) setActionLabel("PASSER");
     else setActionLabel("");
@@ -79,6 +97,7 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
   async function handleEnd() {
     if (translateX > 120) await handleFavorite();
     if (translateX < -120) handlePass();
+
     setStartX(null);
     setTranslateX(0);
     setActionLabel("");
@@ -91,6 +110,7 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
   async function handleFavorite() {
     try {
       if (!animal?.id) return;
+
       await favoriteService.add(animal.id);
       onFavorite?.();
     } catch (error: any) {
@@ -98,6 +118,7 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
         router.push(`/login?redirect=/animal/${animal.id}`);
         return;
       }
+
       alert("Impossible d'enregistrer le coup de cœur.");
     }
   }
@@ -125,7 +146,9 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
         onMouseDown={(e) => handleStart(e.clientX)}
         onMouseMove={(e) => handleMove(e.clientX)}
         onMouseUp={handleEnd}
-        onMouseLeave={() => startX !== null && handleEnd()}
+        onMouseLeave={() => {
+          if (startX !== null) handleEnd();
+        }}
         onTouchStart={(e) => handleStart(e.touches[0].clientX)}
         onTouchMove={(e) => handleMove(e.touches[0].clientX)}
         onTouchEnd={handleEnd}
@@ -136,16 +159,37 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
         }}
       >
         <div className="absolute left-5 right-5 top-5 z-20 flex gap-2">
-          {Array.from({ length: Math.max(mediaItems.length, 1) }).map((_, index) => (
-            <div key={index} className={`h-1.5 flex-1 rounded-full ${index === mediaIndex ? "bg-white" : "bg-white/40"}`} />
-          ))}
+          {Array.from({ length: Math.max(mediaItems.length, 1) }).map(
+            (_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 flex-1 rounded-full ${
+                  index === mediaIndex ? "bg-white" : "bg-white/40"
+                }`}
+              />
+            )
+          )}
         </div>
 
-        <div role="button" tabIndex={0} onClick={nextMedia} onKeyDown={(e) => e.key === "Enter" && nextMedia()} className="absolute inset-0 z-0">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={nextMedia}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") nextMedia();
+          }}
+          className="absolute inset-0 z-0"
+        >
           {currentMedia?.url ? (
-            <img src={currentMedia.url} alt={name} className="h-full w-full object-cover" />
+            <img
+              src={currentMedia.url}
+              alt={name}
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">Photo</div>
+            <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">
+              Photo
+            </div>
           )}
         </div>
 
@@ -164,14 +208,26 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
 
         <div className="absolute bottom-6 left-6 right-28 z-20 text-white">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-5xl font-black leading-none drop-shadow">{name}</h2>
-            <button type="button" onClick={handleInfo} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/90 text-xl font-black text-[#064b42] shadow-xl">
+            <h2 className="text-5xl font-black leading-none drop-shadow">
+              {name}
+            </h2>
+
+            <button
+              type="button"
+              onClick={handleInfo}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/90 text-xl font-black text-[#064b42] shadow-xl"
+            >
               i
             </button>
           </div>
 
-          <p className="mt-3 text-lg font-bold">{age} • {sex}</p>
-          <p className="mt-2 text-sm font-black uppercase tracking-wide">📍 {city} · {island}</p>
+          <p className="mt-3 text-lg font-bold">
+            {age} • {sex}
+          </p>
+
+          <p className="mt-2 text-sm font-black uppercase tracking-wide">
+            📍 {city} · {island}
+          </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {isSterilized && <SmallBadge label="Stérilisé" />}
@@ -182,9 +238,15 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
 
         <div className="absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
           {associationLogo ? (
-            <img src={associationLogo} alt={associationName} className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl" />
+            <img
+              src={associationLogo}
+              alt={associationName}
+              className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl"
+            />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">🐾</div>
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">
+              🐾
+            </div>
           )}
 
           <span className="mt-2 max-w-[96px] truncate rounded-full bg-black/45 px-3 py-1 text-center text-[10px] font-black uppercase text-white backdrop-blur">
@@ -194,48 +256,79 @@ export default function AnimalSwipeCard({ animal, onPass, onFavorite }: AnimalSw
       </article>
 
       <div className="mt-8 flex justify-between gap-5">
-        <ActionButton label="PASSER" icon="✕" color="cream" onClick={handlePass} />
-        <ActionButton label="COUP DE CŒUR" icon="❤" color="orange" onClick={handleFavorite} />
-        <ActionButton label="ADOPTER" icon="" color="green" onClick={handleAdopt} />
+        <ActionButton
+          label="PASSER"
+          color="cream"
+          onClick={handlePass}
+        />
+
+        <ActionButton
+          label="COUP DE CŒUR"
+          color="orange"
+          onClick={handleFavorite}
+        />
+
+        <ActionButton
+          label="ADOPTER"
+          color="green"
+          onClick={handleAdopt}
+        />
       </div>
     </div>
   );
 }
 
-function Badge({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+function Badge({
+  children,
+  light = false,
+}: {
+  children: React.ReactNode;
+  light?: boolean;
+}) {
   return (
-    <span className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"}`}>
+    <span
+      className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${
+        light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"
+      }`}
+    >
       {children}
     </span>
   );
 }
 
 function SmallBadge({ label }: { label: string }) {
-  return <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">{label}</span>;
+  return (
+    <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">
+      {label}
+    </span>
+  );
 }
 
 function ActionButton({
   label,
-  icon,
   color,
   onClick,
 }: {
   label: string;
-  icon: string;
   color: "cream" | "orange" | "green";
   onClick: () => void;
 }) {
   const colors = {
-    cream: "bg-[#F6EEDC]",
-    orange: "bg-[#D67B52]",
-    green: "bg-[#87966F]",
+    cream: "bg-[#F6EEDC] text-[#6E7E5D]",
+    orange: "bg-[#D67B52] text-white",
+    green: "bg-[#87966F] text-white",
   };
 
   return (
-    <button type="button" onClick={onClick} className="group flex flex-1 flex-col items-center">
-      <div className={`${colors[color]} relative flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition group-hover:scale-105 group-active:scale-95`}>
-        <span className="select-none text-[58px] leading-none text-white">🐾</span>
-        {icon && <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{icon}</span>}
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-1 flex-col items-center"
+    >
+      <div
+        className={`flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition group-hover:scale-105 group-active:scale-95 ${colors[color]}`}
+      >
+        <span className="text-[46px] leading-none">🐾</span>
       </div>
 
       <span className="mt-3 text-center text-[11px] font-black uppercase leading-4 tracking-wide text-[#6E7E5D]">
