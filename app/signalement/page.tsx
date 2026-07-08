@@ -178,13 +178,13 @@ export default function SignalementPage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Select label="Type de signalement" value={form.type_signalement} onChange={(v) => updateField("type_signalement", v)} options={["Animal errant", "Animal perdu", "Animal trouvé", "Animal blessé", "Animal maltraité", "Animal décédé", "Autre"]} />
-            <Select label="Type d'animal" value={form.animal_type} onChange={(v) => updateField("animal_type", v)} options={["Chien", "Chat", "Oiseau", "Autre"]} />
-            <Input label="Nom si connu" value={form.animal_name} onChange={(v) => updateField("animal_name", v)} />
-            <Select label="Sexe" value={form.sex} onChange={(v) => updateField("sex", v)} options={["Inconnu", "Mâle", "Femelle"]} />
-            <Input label="Âge estimé" value={form.age_label} onChange={(v) => updateField("age_label", v)} />
-            <Input label="Couleur" value={form.color} onChange={(v) => updateField("color", v)} />
-            <Input label="Race" value={form.breed} onChange={(v) => updateField("breed", v)} />
+            <Select label="Type de signalement" value={form.type_signalement} onChange={(v: string) => updateField("type_signalement", v)} options={["Animal errant", "Animal perdu", "Animal trouvé", "Animal blessé", "Animal maltraité", "Animal décédé", "Autre"]} />
+            <Select label="Type d'animal" value={form.animal_type} onChange={(v: string) => updateField("animal_type", v)} options={["Chien", "Chat", "Oiseau", "Autre"]} />
+            <Input label="Nom si connu" value={form.animal_name} onChange={(v: string) => updateField("animal_name", v)} />
+            <Select label="Sexe" value={form.sex} onChange={(v: string) => updateField("sex", v)} options={["Inconnu", "Mâle", "Femelle"]} />
+            <Input label="Âge estimé" value={form.age_label} onChange={(v: string) => updateField("age_label", v)} />
+            <Input label="Couleur" value={form.color} onChange={(v: string) => updateField("color", v)} />
+            <Input label="Race" value={form.breed} onChange={(v: string) => updateField("breed", v)} />
           </div>
         </section>
 
@@ -205,14 +205,14 @@ export default function SignalementPage() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
-              <Input label="Île" value={form.island} onChange={(v) => updateField("island", v)} />
-              <Input label="Commune" value={form.city} onChange={(v) => updateField("city", v)} />
-              <Input label="Adresse ou repère" value={form.address} onChange={(v) => updateField("address", v)} />
-              <Textarea label="Informations complémentaires" value={form.address_details} onChange={(v) => updateField("address_details", v)} />
+              <Input label="Île" value={form.island} onChange={(v: string) => updateField("island", v)} />
+              <Input label="Commune" value={form.city} onChange={(v: string) => updateField("city", v)} />
+              <Input label="Adresse ou repère" value={form.address} onChange={(v: string) => updateField("address", v)} />
+              <Textarea label="Informations complémentaires" value={form.address_details} onChange={(v: string) => updateField("address_details", v)} />
 
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Latitude" value={form.latitude} onChange={(v) => updateField("latitude", v)} />
-                <Input label="Longitude" value={form.longitude} onChange={(v) => updateField("longitude", v)} />
+                <Input label="Latitude" value={form.latitude} onChange={(v: string) => updateField("latitude", v)} />
+                <Input label="Longitude" value={form.longitude} onChange={(v: string) => updateField("longitude", v)} />
               </div>
             </div>
 
@@ -228,10 +228,10 @@ export default function SignalementPage() {
             État de l'animal
           </h2>
 
-          <Textarea label="Situation" value={form.situation} onChange={(v) => updateField("situation", v)} />
+          <Textarea label="Situation" value={form.situation} onChange={(v: string) => updateField("situation", v)} />
 
           <div className="mt-5">
-            <Textarea label="Description complète" value={form.description} onChange={(v) => updateField("description", v)} />
+            <Textarea label="Description complète" value={form.description} onChange={(v: string) => updateField("description", v)} />
           </div>
         </section>
 
@@ -241,9 +241,9 @@ export default function SignalementPage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Input label="Nom" value={form.reporter_name} onChange={(v) => updateField("reporter_name", v)} />
-            <Input label="Téléphone" value={form.reporter_phone} onChange={(v) => updateField("reporter_phone", v)} />
-            <Input label="Email" value={form.reporter_email} onChange={(v) => updateField("reporter_email", v)} />
+            <Input label="Nom" value={form.reporter_name} onChange={(v: string) => updateField("reporter_name", v)} />
+            <Input label="Téléphone" value={form.reporter_phone} onChange={(v: string) => updateField("reporter_phone", v)} />
+            <Input label="Email" value={form.reporter_email} onChange={(v: string) => updateField("reporter_email", v)} />
           </div>
 
           <div className="mt-6 space-y-3">
@@ -280,7 +280,13 @@ export default function SignalementPage() {
   );
 }
 
-function Input({ label, value, onChange }: any) {
+type InputProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function Input({ label, value, onChange }: InputProps) {
   return (
     <div>
       <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
@@ -293,7 +299,14 @@ function Input({ label, value, onChange }: any) {
   );
 }
 
-function Select({ label, value, onChange, options }: any) {
+type SelectProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+};
+
+function Select({ label, value, onChange, options }: SelectProps) {
   return (
     <div>
       <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
@@ -313,7 +326,13 @@ function Select({ label, value, onChange, options }: any) {
   );
 }
 
-function Textarea({ label, value, onChange }: any) {
+type TextareaProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function Textarea({ label, value, onChange }: TextareaProps) {
   return (
     <div>
       <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
