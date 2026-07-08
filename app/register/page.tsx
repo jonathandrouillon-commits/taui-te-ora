@@ -42,6 +42,38 @@ export default function RegisterPage() {
     return data.publicUrl;
   }
 
+  async function notifyAdmin({
+    firstName,
+    lastName,
+    avatarUrl,
+  }: {
+    firstName: string;
+    lastName: string;
+    avatarUrl: string;
+  }) {
+    try {
+      await fetch("/api/send-new-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          role,
+          organization_name: isOrganization ? organizationName.trim() : "",
+          phone: phone.trim(),
+          island: island.trim(),
+          city: city.trim(),
+          avatar_url: avatarUrl,
+        }),
+      });
+    } catch (error) {
+      console.error("ERREUR EMAIL ADMIN:", error);
+    }
+  }
+
   async function register() {
     try {
       setLoading(true);
@@ -64,35 +96,58 @@ export default function RegisterPage() {
       const nameParts = fullName.trim().split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
-
       const avatarUrl = await uploadLogo();
 
       const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            organization_name: isOrganization ? organizationName.trim() : "",
-            role,
-            phone: phone.trim(),
-            island: island.trim(),
-            city: city.trim(),
-            avatar_url: avatarUrl,
-          },
-        },
+  email: email.trim(),
+  password,
+  options: {
+    data: {
+      first_name: firstName,
+      last_name: lastName,
+      organization_name: isOrganization ? organizationName.trim() : "",
+      role,
+      phone: phone.trim(),
+      island: island.trim(),
+      city: city.trim(),
+      avatar_url: avatarUrl,
+
+      approval_status: "approved",
+      is_active: true,
+      is_verified: true,
+      approved_at: new Date().toISOString(),
+    },
+  },
+});
+
+if (error) throw error;
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (user) {
+  await supabase
+    .from("profiles")
+    .update({
+      approval_status: "approved",
+      is_active: true,
+      is_verified: true,
+      approved_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+}
+
+      await notifyAdmin({
+        firstName,
+        lastName,
+        avatarUrl,
       });
 
-      if (error) throw error;
+      alert("Votre compte a été créé avec succès.");
 
-      alert(
-        isOrganization
-          ? "Votre compte association/refuge a été créé. Il doit maintenant être validé par l’administration."
-          : "Votre compte adoptant a été créé."
-      );
+router.push("/login");
 
-      router.push(isOrganization ? "/pending-approval" : "/login");
+      router.push("/login");
     } catch (error: any) {
       console.error("ERREUR CREATION COMPTE:", error);
       alert(error?.message || "Erreur inconnue lors de la création du compte.");
@@ -116,8 +171,8 @@ export default function RegisterPage() {
           </h1>
 
           <p className="mt-2 text-gray-600">
-            Les associations et refuges doivent être validés par l’administration.
-          </p>
+  Créez votre compte pour accéder à toutes les fonctionnalités de TAUI TE ORA.
+</p>
         </div>
 
         <div className="mt-8 space-y-5">

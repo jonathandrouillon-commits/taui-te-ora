@@ -30,7 +30,7 @@ export default function BottomNavigation() {
     },
     {
       label: "Profil",
-      href: "/dashboard",
+      href: "/login?redirect=/dashboard",
       icon: "👤",
     },
   ];
@@ -42,7 +42,7 @@ export default function BottomNavigation() {
           const active =
             item.href === "/"
               ? pathname === "/"
-              : pathname.startsWith(item.href);
+              : pathname.startsWith(item.href.split("?")[0]);
 
           if (item.special) {
             return (
@@ -70,11 +70,7 @@ export default function BottomNavigation() {
                 active ? "text-[#9c7b54]" : "text-[#6f5a47]"
               }`}
             >
-              <span
-                className={`text-[20px] leading-none transition ${
-                  active ? "scale-110" : "scale-100"
-                }`}
-              >
+              <span className="text-[20px] leading-none">
                 {item.icon}
               </span>
 

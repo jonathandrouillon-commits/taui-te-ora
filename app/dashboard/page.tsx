@@ -11,7 +11,11 @@ import DashboardNotifications from "../components/dashboard/DashboardNotificatio
 import DashboardSettings from "../components/dashboard/DashboardSettings";
 
 import {
-  getDashboardData,
+  getCurrentUser,
+  getProfile,
+  getLikes,
+  getAdoptionRequests,
+  getNotifications,
   getFullName,
   isQuestionnaireFilled,
   logoutUser,
@@ -39,20 +43,47 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const data = await getDashboardData();
+      const user = await getCurrentUser();
 
-      if (!data) {
-        window.location.href = "/login";
+      if (!user) {
+        window.location.href = "/login?redirect=/dashboard";
         return;
       }
 
-      setProfile(data.profile);
-      setLikes(data.likes);
-      setAdoptionRequests(data.adoptionRequests);
-      setNotifications(data.notifications);
-    } catch (err) {
-      console.error(err);
-      setError("Impossible de charger le dashboard.");
+      try {
+        const profileData = await getProfile(user.id, user.email || "");
+        setProfile(profileData);
+      } catch (err: any) {
+        console.error("ERREUR PROFIL:", err);
+        setError("Erreur profil : " + (err?.message || JSON.stringify(err)));
+      }
+
+      try {
+        const likesData = await getLikes(user.id);
+        setLikes(likesData);
+      } catch (err: any) {
+        console.error("ERREUR LIKES:", err);
+        setError("Erreur likes : " + (err?.message || JSON.stringify(err)));
+      }
+
+      try {
+        const adoptionData = await getAdoptionRequests(user.id);
+        setAdoptionRequests(adoptionData);
+      } catch (err: any) {
+        console.error("ERREUR DEMANDES:", err);
+        setError("Erreur demandes : " + (err?.message || JSON.stringify(err)));
+      }
+
+      try {
+        const notificationsData = await getNotifications(user.id);
+        setNotifications(notificationsData);
+      } catch (err: any) {
+        console.error("ERREUR NOTIFICATIONS:", err);
+        setError("Erreur notifications : " + (err?.message || JSON.stringify(err)));
+      }
+    } catch (err: any) {
+      console.error("ERREUR DASHBOARD COMPLETE:", err);
+      setError("Erreur dashboard : " + (err?.message || JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
@@ -109,8 +140,11 @@ export default function DashboardPage() {
         </section>
 
         <DashboardLikes likes={likes} />
+
         <DashboardAdoptions adoptionRequests={adoptionRequests} />
+
         <DashboardNotifications notifications={notifications} />
+
         <DashboardSettings onLogout={handleLogout} />
       </div>
     </main>

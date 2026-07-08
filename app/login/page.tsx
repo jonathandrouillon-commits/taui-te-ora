@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { profileService } from "../services/profile.service";
 import Card from "../components/ui/Card";
@@ -10,6 +10,9 @@ import Button from "../components/ui/Button";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const redirectTo = searchParams.get("redirect");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,16 +31,16 @@ export default function LoginPage() {
 
       const profile = await profileService.getCurrentProfile();
 
-      if (!profile) {
-        router.push("/pending-approval");
-        return;
-      }
-
-      if (
+            if (
         profile.approval_status !== "approved" ||
         profile.is_active === false
       ) {
         router.push("/pending-approval");
+        return;
+      }
+
+      if (redirectTo) {
+        router.push(redirectTo);
         return;
       }
 
@@ -55,11 +58,11 @@ export default function LoginPage() {
           return;
 
         case "adoptant":
-          router.push("/adoptant/dashboard");
+          router.push("/dashboard");
           return;
 
         default:
-          router.push("/");
+          router.push("/dashboard");
       }
     } catch (error: any) {
       alert(error.message);
@@ -71,7 +74,6 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] p-8">
       <Card className="w-full max-w-lg rounded-[32px] p-8">
-
         <div className="mb-8 text-center">
           <img
             src="/logo.png"
@@ -89,7 +91,6 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-5">
-
           <div>
             <label className="mb-2 block font-bold text-[#064b42]">
               📧 Adresse email
@@ -127,15 +128,11 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button
-            onClick={login}
-            className="mt-4 w-full"
-          >
+          <Button onClick={login} className="mt-4 w-full">
             {loading ? "Connexion..." : "Se connecter"}
           </Button>
 
           <div className="border-t pt-6 text-center">
-
             <p className="text-gray-500">
               Vous n'avez pas encore de compte ?
             </p>
@@ -146,11 +143,8 @@ export default function LoginPage() {
             >
               🐾 Créer un compte
             </Link>
-
           </div>
-
         </div>
-
       </Card>
     </main>
   );
