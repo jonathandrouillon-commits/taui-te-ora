@@ -1,6 +1,6 @@
 "use client";
 
-import type { Profile } from "@/lib/dashboard";
+import type { Profile } from "../../lib/dashboard";
 
 type DashboardProfileProps = {
   profile: Profile | null;
