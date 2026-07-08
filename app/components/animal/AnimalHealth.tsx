@@ -13,7 +13,9 @@ export default function AnimalHealth({
 }: AnimalHealthProps) {
   return (
     <div className="rounded-3xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-xl font-black text-[#064b42]">Santé</h2>
+      <h2 className="mb-4 text-xl font-black text-[#064b42]">
+        Santé
+      </h2>
 
       <div className="grid gap-3">
         <Status label="Stérilisé" active={sterilise} />
@@ -22,11 +24,12 @@ export default function AnimalHealth({
       </div>
 
       <div className="mt-5 rounded-2xl bg-[#f4eee3] p-4">
-        <p className="text-xs font-black uppercase text-[#b68b2f]">
+        <p className="font-bold text-[#064b42]">
           Note santé
         </p>
-        <p className="mt-1 text-gray-700">
-          {sante || "Aucune information santé renseignée."}
+
+        <p className="mt-2 text-[#064b42] leading-relaxed">
+          {sante || "font-bold text-[#064b42]"}
         </p>
       </div>
     </div>
@@ -42,8 +45,13 @@ function Status({
 }) {
   return (
     <div className="flex items-center justify-between rounded-2xl bg-[#f4eee3] p-4">
-      <span className="font-bold text-[#064b42]">{label}</span>
-      <span className="font-black text-[#064b42]">{active ? "Oui" : "Non"}</span>
+      <span className="font-bold text-[#064b42]">
+        {label}
+      </span>
+
+      <span className="font-black text-[#064b42]">
+        {active ? "Oui" : "Non"}
+      </span>
     </div>
   );
 }

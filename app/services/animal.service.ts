@@ -1,6 +1,30 @@
 import { supabase } from "../lib/supabase";
 
-async function getPublishedAnimals() {
+async function getAllWithPhotos() {
+  const { data, error } = await supabase
+    .from("animals")
+    .select(`
+      *,
+      animal_photos (
+        id,
+        animal_id,
+        photo_url,
+        sort_order,
+        is_cover
+      ),
+      owner_profile:profiles (
+        id,
+        organization_name,
+        avatar_url
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+async function getPublishedWithPhotos() {
   const { data, error } = await supabase
     .from("animals")
     .select(`
@@ -23,6 +47,10 @@ async function getPublishedAnimals() {
 
   if (error) throw error;
   return data || [];
+}
+
+async function getPublishedAnimals() {
+  return getPublishedWithPhotos();
 }
 
 async function getById(id: string) {
@@ -54,19 +82,14 @@ async function create(animal: any) {
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError) throw userError;
-
-  const user = userData.user;
-
-  if (!user) {
-    throw new Error("Utilisateur non connecté.");
-  }
+  if (!userData.user) throw new Error("Utilisateur non connecté.");
 
   const { data, error } = await supabase
     .from("animals")
     .insert({
       ...animal,
-      owner_id: user.id,
-      profile_id: user.id,
+      owner_id: userData.user.id,
+      profile_id: userData.user.id,
     })
     .select()
     .single();
@@ -98,6 +121,8 @@ async function remove(id: string) {
 }
 
 export const animalService = {
+  getAllWithPhotos,
+  getPublishedWithPhotos,
   getPublishedAnimals,
   getById,
   create,

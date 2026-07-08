@@ -83,11 +83,16 @@ export default function AnimalPublicPage() {
     "";
   const statut = animal.is_published ? "À adopter" : "Brouillon";
 
-  const mainPhoto =
-    animal.animal_photos?.find((photo: any) => photo.is_cover)?.photo_url ||
-    animal.animal_photos?.[0]?.photo_url ||
-    animal.photo_url ||
-    null;
+  const photos =
+    animal.animal_photos && animal.animal_photos.length > 0
+      ? [...animal.animal_photos].sort((a: any, b: any) => {
+          if (a.is_cover) return -1;
+          if (b.is_cover) return 1;
+          return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        })
+      : animal.photo_url
+      ? [{ id: "main", photo_url: animal.photo_url, is_cover: true }]
+      : [];
 
   return (
     <main className="min-h-screen bg-[#f4eee3] px-4 py-6 text-[#064b42]">
@@ -101,7 +106,7 @@ export default function AnimalPublicPage() {
         </button>
 
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <AnimalGallery mainPhoto={mainPhoto} name={name} />
+          <AnimalGallery photos={photos} name={name} />
 
           <div>
             <AnimalHeader
