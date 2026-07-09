@@ -114,7 +114,7 @@ export default function BottomNavigation() {
   <img
     src="/sos-paw.png"
     alt="SOS"
-    className="h-9 w-9 object-contain"
+    className="h-15 w-15 object-contain"
   />
 </span>
 
