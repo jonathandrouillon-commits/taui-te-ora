@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import AnimalActions from "../../components/animal/AnimalActions";
 import AnimalGallery from "../../components/animal/AnimalGallery";
 import AnimalHeader from "../../components/animal/AnimalHeader";
 import AnimalHistory from "../../components/animal/AnimalHistory";
@@ -37,10 +38,6 @@ export default function AnimalPublicPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleAdoptionClick() {
-    router.push("/login");
   }
 
   if (loading) {
@@ -79,10 +76,18 @@ export default function AnimalPublicPage() {
   const poids = animal.weight_kg ? `${animal.weight_kg} kg` : animal.poids || "";
   const ile = animal.island || animal.ile || "";
   const localisation = animal.city || animal.localisation || "";
+
   const association =
     animal.owner_profile?.organization_name ||
     animal.association_name ||
     animal.association_id ||
+    "";
+
+  const ownerProfileId =
+    animal.owner_profile?.id ||
+    animal.profile_id ||
+    animal.created_by ||
+    animal.user_id ||
     "";
 
   const statut = animal.is_published ? "À adopter" : "Brouillon";
@@ -127,15 +132,11 @@ export default function AnimalPublicPage() {
               association={association}
             />
 
-            <div className="mt-6 rounded-[28px] bg-white p-6 shadow-xl">
-              <button
-                type="button"
-                onClick={handleAdoptionClick}
-                className="w-full rounded-2xl bg-[#064b42] px-6 py-5 text-xl font-black text-white shadow-lg transition hover:scale-[1.02]"
-              >
-                ❤️ Je veux adopter
-              </button>
-            </div>
+            <AnimalActions
+              animalId={animal.id}
+              animalName={name}
+              ownerProfileId={ownerProfileId}
+            />
           </div>
         </section>
 
