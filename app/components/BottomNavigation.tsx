@@ -9,14 +9,14 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuPages = [
-    { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
-    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
-    { label: "Toilettage", href: "/toilettage", icon: "✂️" },
-    { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
-    { label: "Éducation", href: "/education", icon: "🎓" },
-    { label: "Alimentation", href: "/alimentation", icon: "🥣" },
-    { label: "Hommage", href: "/hommage", icon: "🕯️" },
-  ];
+  { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
+  { label: "Hommage", href: "/hommage", icon: "🕯️" },
+  { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
+  { label: "Toilettage", href: "/toilettage", icon: "✂️" },
+  { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
+  { label: "Éducation", href: "/education", icon: "🎓" },
+  { label: "Alimentation", href: "/alimentation", icon: "🥣" },
+];
 
   const items = [
     { label: "Accueil", href: "/", icon: "🏠" },
