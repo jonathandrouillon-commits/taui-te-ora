@@ -1,6 +1,5 @@
 const veterinaires = [
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique vétérinaire de Paofai",
     ville: "Papeete",
     adresse: "55 rue des Poilus Tahitiens, Paofai",
@@ -8,7 +7,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Veto Pamatai - Clinique vétérinaire de Pamatai",
     ville: "Papeete / Pamatai",
     adresse: "Pamatai",
@@ -16,7 +14,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Fariipiti",
     ville: "Pirae",
     adresse: "Avenue du chef Vairaatoa, Pirae",
@@ -24,7 +21,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire Hamuta",
     ville: "Pirae",
     adresse: "Hamuta, Pirae",
@@ -32,7 +28,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Mahina Fariipiti Iti",
     ville: "Mahina",
     adresse: "Mahina",
@@ -40,7 +35,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Vétérinaire de Arue",
     ville: "Arue",
     adresse: "Arue",
@@ -48,7 +42,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire d'Auae",
     ville: "Faa'a",
     adresse: "Auae, Faa'a",
@@ -56,7 +49,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique vétérinaire de Faa'a",
     ville: "Faa'a",
     adresse: "Immeuble Air Tahiti, Faa'a",
@@ -64,7 +56,6 @@ const veterinaires = [
     email: "cliniquevetfaaa@yahoo.fr",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire Maeva",
     ville: "Punaauia",
     adresse: "Punaauia",
@@ -72,7 +63,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Tamanu",
     ville: "Punaauia",
     adresse: "Tamanu, Punaauia",
@@ -80,7 +70,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire du Lotus",
     ville: "Punaauia",
     adresse: "Lotus, Punaauia",
@@ -88,7 +77,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Paea",
     ville: "Paea",
     adresse: "Paea",
@@ -96,7 +84,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Veterinary Practice Papara",
     ville: "Papara",
     adresse: "Papara",
@@ -104,7 +91,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Taravao",
     ville: "Taravao",
     adresse: "Taravao",
@@ -112,7 +98,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique vétérinaire de Moorea",
     ville: "Moorea",
     adresse: "Moorea",
@@ -120,7 +105,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "VALVET",
     ville: "Moorea / Temae",
     adresse: "Temae, Moorea",
@@ -128,7 +112,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Cabinet vétérinaire des Îles Sous-le-Vent",
     ville: "Raiatea / Uturoa",
     adresse: "Uturoa, Raiatea",
@@ -136,7 +119,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Cabinet Vétérinaire des Îles Sous-le-Vent",
     ville: "Tahaa",
     adresse: "Tahaa",
@@ -144,7 +126,6 @@ const veterinaires = [
     email: "Non renseigné",
   },
   {
-    photo: "/veterinaires/default-vet.jpg",
     nom: "Clinique Vétérinaire de Bora Bora",
     ville: "Bora Bora / Vaitape",
     adresse: "Vaitape, Bora Bora",
@@ -175,13 +156,14 @@ export default function VeterinairesPage() {
           {veterinaires.map((vet) => (
             <article
               key={`${vet.nom}-${vet.telephone}`}
-              className="overflow-hidden rounded-[28px] bg-white shadow-xl"
+              className="overflow-hidden rounded-[28px] bg-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
             >
-              <div className="h-44 bg-[#eadfce]">
+              {/* Photo identique pour toutes les cartes */}
+              <div className="flex h-56 items-center justify-center bg-white p-6">
                 <img
-                  src={vet.photo}
+                  src="/veterinairelogo.png"
                   alt={vet.nom}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               </div>
 
