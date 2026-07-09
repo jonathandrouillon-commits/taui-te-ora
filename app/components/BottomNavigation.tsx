@@ -19,7 +19,7 @@ export default function BottomNavigation() {
 ];
 
   const items = [
-    { label: "Accueil", href: "/", icon: "🏠" },
+    { label: "Hommage", href: "/hommage", icon: "🕯️" },
     { label: "Adopter", href: "/adoption", icon: "🐾" },
     { label: "SOS", href: "/signalement", icon: "🚨", special: true },
     { label: "Search", href: "/search", icon: "🔎" },
