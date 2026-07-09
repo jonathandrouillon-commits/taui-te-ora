@@ -9,7 +9,7 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuPages = [
-    { label: "Info", href: "/info", icon: "ℹ️" },
+    { label: "Vétérinaires", href: "/veterinaires", icon: "ℹ️" },
     { label: "Toilettage", href: "/toilettage", icon: "✂️" },
     { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
     { label: "Éducation", href: "/education", icon: "🎓" },
