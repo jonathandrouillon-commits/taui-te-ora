@@ -9,6 +9,7 @@ export default function RegisterPage() {
 
   const [role, setRole] = useState("adoptant");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const [fullName, setFullName] = useState("");
@@ -74,8 +75,21 @@ export default function RegisterPage() {
     }
   }
 
+  function isRateLimitError(error: any) {
+    const message = String(error?.message || "").toLowerCase();
+
+    return (
+      message.includes("email rate limit") ||
+      message.includes("rate limit") ||
+      message.includes("too many") ||
+      message.includes("exceeded")
+    );
+  }
+
   async function register() {
     try {
+      if (cooldown) return;
+
       setLoading(true);
 
       if (!email.trim() || !password.trim() || !fullName.trim()) {
@@ -111,7 +125,6 @@ export default function RegisterPage() {
             island: island.trim(),
             city: city.trim(),
             avatar_url: avatarUrl,
-
             approval_status: "approved",
             is_active: true,
             is_verified: true,
@@ -120,7 +133,23 @@ export default function RegisterPage() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (isRateLimitError(error)) {
+          setCooldown(true);
+
+          alert(
+            "Trop de demandes d'inscription ont été envoyées. Merci d'attendre quelques minutes avant de réessayer."
+          );
+
+          setTimeout(() => {
+            setCooldown(false);
+          }, 60000);
+
+          return;
+        }
+
+        throw error;
+      }
 
       await notifyAdmin({
         firstName,
@@ -129,17 +158,12 @@ export default function RegisterPage() {
       });
 
       alert("Votre compte a été créé avec succès.");
-
       router.push("/login");
     } catch (error: any) {
-      console.error(
-        "ERREUR CREATION COMPTE COMPLETE:",
-        JSON.stringify(error, null, 2)
-      );
+      console.error("ERREUR CREATION COMPTE COMPLETE:", error);
 
       alert(
         error?.message ||
-          JSON.stringify(error) ||
           "Erreur inconnue lors de la création du compte."
       );
     } finally {
@@ -256,10 +280,14 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={register}
-            disabled={loading}
+            disabled={loading || cooldown}
             className="w-full rounded-full bg-[#064b42] py-4 text-xl font-black text-white shadow-xl disabled:opacity-60"
           >
-            {loading ? "Création..." : "Créer mon compte"}
+            {loading
+              ? "Création..."
+              : cooldown
+                ? "Merci d'attendre..."
+                : "Créer mon compte"}
           </button>
         </div>
       </section>
