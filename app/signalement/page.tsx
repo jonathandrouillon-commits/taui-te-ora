@@ -213,7 +213,7 @@ export default function SignalementPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] px-5 py-10">
+    <main className="min-h-screen bg-[#f8f4ec] px-5 pt-10 pb-52 md:pb-10">
       <div className="mx-auto max-w-7xl">
         <h1 className="text-4xl font-black text-[#064b42]">
           🚨 Signaler un animal

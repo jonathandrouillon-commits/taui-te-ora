@@ -78,7 +78,7 @@ const menuItems = [
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto flex max-w-md items-end justify-between">
           {mainItems.map((item) => {
             const active = !item.menu && isActive(item.href);
