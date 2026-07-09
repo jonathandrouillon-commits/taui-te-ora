@@ -9,23 +9,22 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const mainItems = [
-  { href: "/", label: "Accueil", icon: "🏠" },
-  { href: "/search", label: "Search", icon: "🔎" },
-  { href: "/signalement", label: "SOS", icon: "🚨", sos: true },
-  { href: "#", label: "Menu", icon: "☰", menu: true },
-  { href: "/profile", label: "Profil", icon: "👤" },
-];
-  
+    { href: "/", label: "Accueil", icon: "🏠" },
+    { href: "/search", label: "Search", icon: "🔎" },
+    { href: "/signalement", label: "SOS", icon: "/sos-paw.png", sos: true },
+    { href: "#", label: "Menu", icon: "☰", menu: true },
+    { href: "/profile", label: "Profil", icon: "👤" },
+  ];
 
-const menuItems = [
-  { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
-  { href: "/association", label: "Les Veilleurs de Kali", icon: "❤️" },
-  { href: "/toilettage", label: "Toilettage", icon: "✂️" },
-  { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
-  { href: "/education", label: "Éducation", icon: "🎓" },
-  { href: "/alimentation", label: "Alimentation", icon: "🥣" },
-  { href: "/hommage", label: "Hommage à Kali", icon: "❤️" },
-];
+  const menuItems = [
+    { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
+    { href: "/association", label: "Les Veilleurs de Kali", icon: "❤️" },
+    { href: "/toilettage", label: "Toilettage", icon: "✂️" },
+    { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
+    { href: "/education", label: "Éducation", icon: "🎓" },
+    { href: "/alimentation", label: "Alimentation", icon: "🥣" },
+    { href: "/hommage", label: "Hommage à Kali", icon: "❤️" },
+  ];
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -43,7 +42,7 @@ const menuItems = [
             aria-label="Fermer le menu"
           />
 
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-[34px] bg-[#f8f4ec] px-6 pb-8 pt-5 shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[75vh] overflow-y-auto rounded-t-[34px] bg-[#f8f4ec] px-6 pb-8 pt-5 shadow-2xl">
             <div className="mx-auto mb-5 h-1.5 w-14 rounded-full bg-[#d6c8b4]" />
 
             <h2 className="mb-5 text-center text-2xl font-black uppercase tracking-wide text-[#064b42]">
@@ -78,7 +77,7 @@ const menuItems = [
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur">
+      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-md items-end justify-between">
           {mainItems.map((item) => {
             const active = !item.menu && isActive(item.href);
@@ -94,6 +93,7 @@ const menuItems = [
                   <span className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-[#6E7E5D]">
                     {item.icon}
                   </span>
+
                   <span className="text-[10px] font-black uppercase text-[#6E7E5D]">
                     {item.label}
                   </span>
@@ -110,13 +110,21 @@ const menuItems = [
                 <span
                   className={`flex items-center justify-center rounded-full transition ${
                     item.sos
-                      ? "h-14 w-14 -translate-y-3 bg-[#D67B52] text-2xl text-white shadow-xl"
+                      ? "h-14 w-14 -translate-y-3 bg-[#D67B52] shadow-xl"
                       : active
                         ? "h-10 w-10 bg-[#064b42] text-xl text-white"
                         : "h-10 w-10 text-xl text-[#6E7E5D]"
                   }`}
                 >
-                  {item.icon}
+                  {item.sos ? (
+                    <img
+                      src="/sos-paw.png"
+                      alt="SOS"
+                      className="h-10 w-10 object-contain"
+                    />
+                  ) : (
+                    item.icon
+                  )}
                 </span>
 
                 <span
