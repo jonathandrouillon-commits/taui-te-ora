@@ -6,21 +6,11 @@ import { usePathname } from "next/navigation";
 
 export default function BottomNavigation() {
   const pathname = usePathname();
-
   const [menuOpen, setMenuOpen] = useState(false);
-  const [associationsOpen, setAssociationsOpen] = useState(false);
-
-  const associations = [
-    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
-    { label: "PLUM", href: "/association/plum", icon: "🪽" },
-    { label: "SPAP", href: "/association/spap", icon: "🐕" },
-    { label: "ARPAP", href: "/association/arpap", icon: "🐱" },
-    { label: "Ia Maitai", href: "/association/iamaitai", icon: "🌺" },
-    { label: "Les 4 Pattes de Papara", href: "/association/les4pattesdepapara", icon: "🐾" },
-  ];
 
   const menuPages = [
     { label: "Info", href: "/info", icon: "ℹ️" },
+    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
     { label: "Toilettage", href: "/toilettage", icon: "✂️" },
     { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
     { label: "Éducation", href: "/education", icon: "🎓" },
@@ -37,7 +27,6 @@ export default function BottomNavigation() {
 
   function closeMenu() {
     setMenuOpen(false);
-    setAssociationsOpen(false);
   }
 
   return (
@@ -65,37 +54,6 @@ export default function BottomNavigation() {
             </div>
 
             <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={() => setAssociationsOpen((prev) => !prev)}
-                className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42]"
-              >
-                <span className="flex items-center gap-4">
-                  <span className="text-2xl">🐾</span>
-                  <span>Associations</span>
-                </span>
-
-                <span className="text-xl">
-                  {associationsOpen ? "▲" : "▼"}
-                </span>
-              </button>
-
-              {associationsOpen && (
-                <div className="grid gap-2 rounded-2xl bg-[#fdfaf4] p-3">
-                  {associations.map((association) => (
-                    <Link
-                      key={association.href}
-                      href={association.href}
-                      onClick={closeMenu}
-                      className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-[#064b42] shadow-sm"
-                    >
-                      <span className="text-xl">{association.icon}</span>
-                      <span>{association.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
               {menuPages.map((page) => (
                 <Link
                   key={page.href}
