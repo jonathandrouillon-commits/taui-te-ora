@@ -110,9 +110,13 @@ export default function BottomNavigation() {
                   href={item.href}
                   className="relative -mt-8 flex flex-col items-center justify-center gap-1"
                 >
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#dc7a4b] text-3xl text-white shadow-xl ring-4 ring-white">
-                    {item.icon}
-                  </span>
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#dc7a4b] shadow-xl ring-4 ring-white">
+  <img
+    src="/sos-paw.png"
+    alt="SOS"
+    className="h-9 w-9 object-contain"
+  />
+</span>
 
                   <span className="text-xs font-black uppercase text-[#dc7a4b]">
                     {item.label}
