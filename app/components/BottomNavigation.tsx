@@ -15,6 +15,7 @@ export default function BottomNavigation() {
     { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
     { label: "Éducation", href: "/education", icon: "🎓" },
     { label: "Alimentation", href: "/alimentation", icon: "🥣" },
+    { label: "Hommage", href: "/hommage", icon: "🕯️" },
   ];
 
   const items = [
