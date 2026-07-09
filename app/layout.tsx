@@ -14,6 +14,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const associations = [
+    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali" },
+    { label: "PLUM", href: "/association/plum" },
+    { label: "SPAP", href: "/association/spap" },
+    { label: "ARPAP", href: "/association/arpap" },
+    { label: "Ia Maitai", href: "/association/iamaitai" },
+    { label: "Les 4 Pattes de Papara", href: "/association/les4pattesdepapara" },
+  ];
+
   return (
     <html lang="fr">
       <body className="bg-[#f8f4ec]">
@@ -35,13 +44,66 @@ export default function RootLayout({
               </div>
             </Link>
 
+            <nav className="hidden items-center gap-4 md:flex">
+              <Link href="/" className="text-xs font-black text-[#064b42]">
+                Accueil
+              </Link>
+
+              <Link href="/adoption" className="text-xs font-black text-[#064b42]">
+                Adoption
+              </Link>
+
+              <div className="group relative">
+                <button
+                  type="button"
+                  className="text-xs font-black text-[#064b42]"
+                >
+                  Associations ▼
+                </button>
+
+                <div className="invisible absolute right-0 top-full z-50 mt-3 w-72 rounded-2xl bg-white p-3 opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+                  {associations.map((association) => (
+                    <Link
+                      key={association.href}
+                      href={association.href}
+                      className="block rounded-xl px-4 py-3 text-sm font-bold text-[#064b42] hover:bg-[#f8f4ec]"
+                    >
+                      {association.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </nav>
+
             <div className="hidden items-center gap-2 md:flex">
-              <Link href="/login" className="rounded-full border border-[#064b42] bg-white px-4 py-1.5 text-xs font-bold text-[#064b42]">
+              <Link
+                href="/login"
+                className="rounded-full border border-[#064b42] bg-white px-4 py-1.5 text-xs font-bold text-[#064b42]"
+              >
                 Connexion
               </Link>
 
-              <Link href="/register" className="rounded-full bg-[#064b42] px-4 py-1.5 text-xs font-bold text-white">
+              <Link
+                href="/register"
+                className="rounded-full bg-[#064b42] px-4 py-1.5 text-xs font-bold text-white"
+              >
                 Créer un compte
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-2 md:hidden">
+              <Link
+                href="/login"
+                className="rounded-full border border-[#064b42] px-3 py-1 text-[10px] font-bold text-[#064b42]"
+              >
+                Connexion
+              </Link>
+
+              <Link
+                href="/register"
+                className="rounded-full bg-[#064b42] px-3 py-1 text-[10px] font-bold text-white"
+              >
+                Créer
               </Link>
             </div>
           </div>
