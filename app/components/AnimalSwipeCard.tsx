@@ -124,7 +124,9 @@ export default function AnimalSwipeCard({
   }
 
   function handleAdopt() {
-    if (animal?.id) router.push(`/adoption/start/${animal.id}`);
+    if (!animal?.id) return;
+
+    router.push(`/login?redirect=/animal/${animal.id}`);
   }
 
   function handleInfo() {
@@ -256,11 +258,7 @@ export default function AnimalSwipeCard({
       </article>
 
       <div className="mt-8 flex justify-between gap-5">
-        <ActionButton
-          label="PASSER"
-          color="cream"
-          onClick={handlePass}
-        />
+        <ActionButton label="PASSER" color="cream" onClick={handlePass} />
 
         <ActionButton
           label="COUP DE CŒUR"
@@ -268,11 +266,7 @@ export default function AnimalSwipeCard({
           onClick={handleFavorite}
         />
 
-        <ActionButton
-          label="ADOPTER"
-          color="green"
-          onClick={handleAdopt}
-        />
+        <ActionButton label="ADOPTER" color="green" onClick={handleAdopt} />
       </div>
     </div>
   );
