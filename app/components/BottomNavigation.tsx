@@ -11,7 +11,7 @@ export default function BottomNavigation() {
   const mainItems = [
     { href: "/", label: "Accueil", icon: "🏠" },
     { href: "/search", label: "Search", icon: "🔎" },
-  { href: "/signalement", label: "SOS", icon: "/sos-paw.png", sos: true },
+  { href: "/signalement", icon: "/sos-paw.png", sos: true },
     { href: "#", label: "Menu", icon: "☰", menu: true },
     { href: "/profile", label: "Profil", icon: "👤" },
   ];
@@ -114,7 +114,7 @@ export default function BottomNavigation() {
   <img
     src="/sos-paw.png"
     alt="SOS"
-    className="h-15 w-15 object-contain"
+    className="h-30 w-30 object-contain"
   />
 </span>
 
