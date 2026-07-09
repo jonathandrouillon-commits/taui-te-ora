@@ -7,6 +7,19 @@ import { usePathname } from "next/navigation";
 export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [associationsOpen, setAssociationsOpen] = useState(false);
+
+  const associations = [
+    { label: "Les Veilleurs de Kali", href: "/association", icon: "🐾" },
+    { label: "PLUM", href: "/association/plum", icon: "🪽" },
+    { label: "SPAP", href: "/association/spap", icon: "🐕" },
+    { label: "ARPAP", href: "/association/arpap", icon: "🐱" },
+    {
+      label: "Les 4 Pattes de Papara",
+      href: "/association/les-4-pattes-de-papara",
+      icon: "🐾",
+    },
+  ];
 
   const menuPages = [
     { label: "Info", href: "/info", icon: "ℹ️" },
@@ -35,11 +48,9 @@ export default function BottomNavigation() {
             aria-label="Fermer le menu"
           />
 
-          <div className="absolute bottom-[82px] left-4 right-4 rounded-[28px] bg-white p-5 shadow-2xl">
+          <div className="absolute bottom-[82px] left-4 right-4 max-h-[70vh] overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-[#064b42]">
-                Menu
-              </h2>
+              <h2 className="text-xl font-black text-[#064b42]">Menu</h2>
 
               <button
                 type="button"
@@ -51,6 +62,40 @@ export default function BottomNavigation() {
             </div>
 
             <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={() => setAssociationsOpen((prev) => !prev)}
+                className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42]"
+              >
+                <span className="flex items-center gap-4">
+                  <span className="text-2xl">🐾</span>
+                  <span>Associations</span>
+                </span>
+
+                <span className="text-xl">
+                  {associationsOpen ? "▲" : "▼"}
+                </span>
+              </button>
+
+              {associationsOpen && (
+                <div className="grid gap-2 rounded-2xl bg-[#fdfaf4] p-3">
+                  {associations.map((association) => (
+                    <Link
+                      key={association.href}
+                      href={association.href}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setAssociationsOpen(false);
+                      }}
+                      className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-[#064b42] shadow-sm"
+                    >
+                      <span className="text-xl">{association.icon}</span>
+                      <span>{association.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {menuPages.map((page) => (
                 <Link
                   key={page.href}
@@ -74,8 +119,8 @@ export default function BottomNavigation() {
               item.href === "/"
                 ? pathname === "/"
                 : item.menu
-                ? menuOpen
-                : pathname.startsWith(item.href.split("?")[0]);
+                  ? menuOpen
+                  : pathname.startsWith(item.href.split("?")[0]);
 
             if (item.special) {
               return (
