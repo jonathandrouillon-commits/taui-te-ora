@@ -10,7 +10,7 @@ export default function BottomNavigation() {
 
   const mainItems = [
   { href: "/", label: "Accueil", icon: "🏠" },
-  { href: "/animal", label: "Adopter", icon: "🐾" },
+  { href: "/search", label: "Search", icon: "🔎" },
   { href: "/signalement", label: "SOS", icon: "🚨", sos: true },
   { href: "#", label: "Menu", icon: "☰", menu: true },
   { href: "/profile", label: "Profil", icon: "👤" },

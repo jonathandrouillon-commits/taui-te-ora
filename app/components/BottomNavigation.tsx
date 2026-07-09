@@ -10,7 +10,7 @@ export default function BottomNavigation() {
 
   const mainItems = [
     { href: "/", label: "Accueil", icon: "🏠" },
-    { href: "/animal", label: "Adopter", icon: "🐾" },
+    { href: "/search", label: "Search", icon: "🔎" },
     { href: "/signalement", label: "SOS", icon: "🚨", sos: true },
     { href: "#", label: "Menu", icon: "☰", menu: true },
     { href: "/profile", label: "Profil", icon: "👤" },
@@ -69,7 +69,7 @@ export default function BottomNavigation() {
         </>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#eadfce] bg-white/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#eadfce] bg-white/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pb-3 pt-2">
           {mainItems.map((item) => {
             const isActive =

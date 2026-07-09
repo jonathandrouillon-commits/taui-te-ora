@@ -16,11 +16,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body className="bg-[#f8f4ec]">
+      <body className="bg-[#f8f4ec] pb-24 md:pb-0">
         <header className="sticky top-0 z-50 border-b border-[#eadfce] bg-white/95 shadow-sm backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
-            <Link href="/" className="flex items-center gap-2 transition hover:opacity-90">
-              <img src="/logo.png" alt="TAUI TE ORA" className="h-10 w-10 object-contain" />
+            <Link
+              href="/"
+              className="flex items-center gap-2 transition hover:opacity-90"
+            >
+              <img
+                src="/logo.png"
+                alt="TAUI TE ORA"
+                className="h-10 w-10 object-contain"
+              />
 
               <div className="leading-tight">
                 <h1 className="text-sm font-black tracking-tight text-[#064b42]">
@@ -77,4 +84,3 @@ export default function RootLayout({
     </html>
   );
 }
-
