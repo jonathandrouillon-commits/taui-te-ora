@@ -17,11 +17,7 @@ export default function Home() {
   async function loadAnimals() {
     try {
       setLoading(true);
-
       const data = await animalService.getPublishedWithPhotos();
-
-      console.log("ANIMAUX PUBLIÉS CHARGÉS :", data);
-
       setAnimals(data || []);
       setCurrentIndex(0);
     } catch (error) {
@@ -40,15 +36,26 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F7F2E8] text-[#304032]">
+      <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] text-[#064b42]">
         <p className="text-xl font-black">Chargement des animaux...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F7F2E8] via-[#F3EADB] to-[#EDE0CC] px-4 pb-32 pt-4">
-      <section className="flex justify-center">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-36 pt-6">
+      {/* IMAGE DE FOND */}
+      <div className="fixed inset-0 -z-10">
+        <img
+          src="/tropical-bg.png"
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-white/10" />
+      </div>
+
+      {/* SWIPECARD + BOUTONS */}
+      <section className="relative z-10 flex justify-center">
         {currentAnimal ? (
           <AnimalSwipeCard
             animal={currentAnimal}
@@ -56,7 +63,7 @@ export default function Home() {
             onFavorite={goNext}
           />
         ) : (
-          <div className="flex h-[520px] w-full max-w-md flex-col items-center justify-center rounded-[2.5rem] bg-white p-8 text-center shadow-2xl">
+          <div className="flex h-[520px] w-full max-w-md flex-col items-center justify-center rounded-[2.5rem] bg-white/90 p-8 text-center shadow-2xl backdrop-blur">
             <div className="text-6xl">🐾</div>
 
             <h2 className="mt-4 text-2xl font-black text-[#4B5A3D]">

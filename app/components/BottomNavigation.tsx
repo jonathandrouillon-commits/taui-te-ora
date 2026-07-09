@@ -36,15 +36,25 @@ export default function BottomNavigation() {
             className="fixed inset-0 z-[80] bg-black/30"
           />
 
-          <div className="fixed inset-x-0 bottom-[82px] z-[90] mx-auto max-h-[70vh] w-full max-w-lg overflow-hidden rounded-t-[2rem] bg-white shadow-2xl">
+          <div className="fixed inset-x-0 bottom-[125px] z-[90] mx-auto max-h-[70vh] w-full max-w-lg overflow-hidden rounded-t-[2rem] bg-white shadow-2xl">
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
 
-            <div className="px-5 pb-5 pt-4">
-              <h2 className="mb-4 text-center text-xl font-black text-[#064b42]">
-                Menu
-              </h2>
+            <div className="relative px-5 pb-5 pt-4">
+
+  <button
+    type="button"
+    onClick={() => setMenuOpen(false)}
+    aria-label="Fermer le menu"
+    className="absolute right-5 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#f8f4ec] text-2xl font-bold text-[#064b42] shadow transition hover:bg-[#ece4d7] active:scale-95"
+  >
+    ✕
+  </button>
+
+  <h2 className="mb-4 text-center text-xl font-black text-[#064b42]">
+    Menu
+  </h2>
 
               <div className="max-h-[55vh] space-y-3 overflow-y-auto pb-3">
                 {menuItems.map((item) => (
