@@ -125,7 +125,6 @@ export default function AnimalSwipeCard({
 
   function handleAdopt() {
     if (!animal?.id) return;
-
     router.push(`/login?redirect=/animal/${animal.id}`);
   }
 
@@ -197,11 +196,6 @@ export default function AnimalSwipeCard({
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
-        <div className="absolute left-5 top-10 z-20 flex flex-wrap gap-2">
-          <Badge>{animal.is_published ? "À adopter" : "Brouillon"}</Badge>
-          <Badge light>{sex}</Badge>
-        </div>
-
         {mediaItems.length > 1 && (
           <div className="absolute right-5 top-24 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
             {mediaIndex + 1}/{mediaItems.length}
@@ -223,9 +217,7 @@ export default function AnimalSwipeCard({
             </button>
           </div>
 
-          <p className="mt-3 text-lg font-bold">
-            {age} • {sex}
-          </p>
+          <p className="mt-3 text-lg font-bold">{age}</p>
 
           <p className="mt-2 text-sm font-black uppercase tracking-wide">
             📍 {city} · {island}
@@ -269,24 +261,6 @@ export default function AnimalSwipeCard({
         <ActionButton label="ADOPTER" color="green" onClick={handleAdopt} />
       </div>
     </div>
-  );
-}
-
-function Badge({
-  children,
-  light = false,
-}: {
-  children: React.ReactNode;
-  light?: boolean;
-}) {
-  return (
-    <span
-      className={`rounded-full px-4 py-2 text-xs font-black uppercase shadow ${
-        light ? "bg-white text-[#4B5A3D]" : "bg-[#6E7E5D] text-white"
-      }`}
-    >
-      {children}
-    </span>
   );
 }
 

@@ -9,20 +9,26 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuPages = [
-    { label: "Vétérinaires", href: "/veterinaires", icon: "ℹ️" },
-    { label: "Toilettage", href: "/toilettage", icon: "✂️" },
-    { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
-    { label: "Éducation", href: "/education", icon: "🎓" },
-    { label: "Alimentation", href: "/alimentation", icon: "🥣" },
-  ];
+  { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
+  { label: "⭐⭐⭐ TEST HOMMAGE ⭐⭐⭐", href: "/hommage", icon: "🕯️" },
+  { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
+  { label: "Toilettage", href: "/toilettage", icon: "✂️" },
+  { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
+  { label: "Éducation", href: "/education", icon: "🎓" },
+  { label: "Alimentation", href: "/alimentation", icon: "🥣" },
+];
 
   const items = [
     { label: "Accueil", href: "/", icon: "🏠" },
     { label: "Adopter", href: "/adoption", icon: "🐾" },
     { label: "SOS", href: "/signalement", icon: "🚨", special: true },
-    { label: "Search", href: "/search", icon: "🔎" },
+    { label: "Recherche", href: "/search", icon: "🔎" },
     { label: "Menu", href: "", icon: "☰", menu: true },
   ];
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
 
   return (
     <>
@@ -30,20 +36,21 @@ export default function BottomNavigation() {
         <div className="fixed inset-0 z-40 bg-black/30 md:hidden">
           <button
             type="button"
-            onClick={() => setMenuOpen(false)}
+            onClick={closeMenu}
             className="absolute inset-0 h-full w-full"
             aria-label="Fermer le menu"
           />
 
-          <div className="absolute bottom-[82px] left-4 right-4 rounded-[28px] bg-white p-5 shadow-2xl">
+          <div className="absolute bottom-[82px] left-4 right-4 max-h-[85vh] overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
+
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black text-[#064b42]">
-                Menu
+                Menu services
               </h2>
 
               <button
                 type="button"
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 className="rounded-full bg-[#f8f4ec] px-4 py-2 font-bold text-[#064b42]"
               >
                 Fermer
@@ -55,14 +62,15 @@ export default function BottomNavigation() {
                 <Link
                   key={page.href}
                   href={page.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-4 rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42]"
+                  onClick={closeMenu}
+                  className="flex items-center gap-4 rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42] transition hover:bg-[#efe7d8]"
                 >
                   <span className="text-2xl">{page.icon}</span>
                   <span>{page.label}</span>
                 </Link>
               ))}
             </div>
+
           </div>
         </div>
       )}
@@ -105,7 +113,10 @@ export default function BottomNavigation() {
                     active ? "text-[#9c7b54]" : "text-[#6f5a47]"
                   }`}
                 >
-                  <span className="text-[20px] leading-none">{item.icon}</span>
+                  <span className="text-[20px] leading-none">
+                    {item.icon}
+                  </span>
+
                   <span className="text-[10px] font-semibold leading-none">
                     {item.label}
                   </span>
@@ -121,7 +132,10 @@ export default function BottomNavigation() {
                   active ? "text-[#9c7b54]" : "text-[#6f5a47]"
                 }`}
               >
-                <span className="text-[20px] leading-none">{item.icon}</span>
+                <span className="text-[20px] leading-none">
+                  {item.icon}
+                </span>
+
                 <span className="text-[10px] font-semibold leading-none">
                   {item.label}
                 </span>

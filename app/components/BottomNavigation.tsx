@@ -8,109 +8,93 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const menuPages = [
-  { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
-  { label: "Hommage", href: "/hommage", icon: "🕯️" },
-  { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
-  { label: "Toilettage", href: "/toilettage", icon: "✂️" },
-  { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
-  { label: "Éducation", href: "/education", icon: "🎓" },
-  { label: "Alimentation", href: "/alimentation", icon: "🥣" },
+  const mainItems = [
+  { href: "/", label: "Accueil", icon: "🏠" },
+  { href: "/animal", label: "Adopter", icon: "🐾" },
+  { href: "/signalement", label: "SOS", icon: "🚨", sos: true },
+  { href: "#", label: "Menu", icon: "☰", menu: true },
+  { href: "/profile", label: "Profil", icon: "👤" },
+];
+  
+
+const menuItems = [
+  { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
+  { href: "/association", label: "Les Veilleurs de Kali", icon: "❤️" },
+  { href: "/toilettage", label: "Toilettage", icon: "✂️" },
+  { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
+  { href: "/education", label: "Éducation", icon: "🎓" },
+  { href: "/alimentation", label: "Alimentation", icon: "🥣" },
+  { href: "/hommage", label: "Hommage à Kali", icon: "❤️" },
 ];
 
-  const items = [
-    { label: "Hommage", href: "/hommage", icon: "🕯️" },
-    { label: "Adopter", href: "/adoption", icon: "🐾" },
-    { label: "SOS", href: "/signalement", icon: "🚨", special: true },
-    { label: "Search", href: "/search", icon: "🔎" },
-    { label: "Menu", href: "", icon: "☰", menu: true },
-  ];
-
-  function closeMenu() {
-    setMenuOpen(false);
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
   }
 
   return (
     <>
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-black/30 md:hidden">
+        <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm md:hidden">
           <button
             type="button"
-            onClick={closeMenu}
             className="absolute inset-0 h-full w-full"
+            onClick={() => setMenuOpen(false)}
             aria-label="Fermer le menu"
           />
 
-          <div className="absolute bottom-[82px] left-4 right-4 max-h-[70vh] overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-[#064b42]">Menu</h2>
+          <div className="absolute bottom-0 left-0 right-0 rounded-t-[34px] bg-[#f8f4ec] px-6 pb-8 pt-5 shadow-2xl">
+            <div className="mx-auto mb-5 h-1.5 w-14 rounded-full bg-[#d6c8b4]" />
 
-              <button
-                type="button"
-                onClick={closeMenu}
-                className="rounded-full bg-[#f8f4ec] px-4 py-2 font-bold text-[#064b42]"
-              >
-                Fermer
-              </button>
-            </div>
+            <h2 className="mb-5 text-center text-2xl font-black uppercase tracking-wide text-[#064b42]">
+              Menu
+            </h2>
 
             <div className="grid gap-3">
-              {menuPages.map((page) => (
+              {menuItems.map((item) => (
                 <Link
-                  key={page.href}
-                  href={page.href}
-                  onClick={closeMenu}
-                  className="flex items-center gap-4 rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42]"
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-4 rounded-2xl bg-white px-5 py-4 text-[#064b42] shadow-md transition active:scale-95"
                 >
-                  <span className="text-2xl">{page.icon}</span>
-                  <span>{page.label}</span>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f1eadf] text-2xl">
+                    {item.icon}
+                  </span>
+
+                  <span className="text-base font-black">{item.label}</span>
                 </Link>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="mt-5 w-full rounded-2xl bg-[#064b42] py-4 text-sm font-black uppercase tracking-wide text-white shadow-lg"
+            >
+              Fermer
+            </button>
           </div>
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#eadfce] bg-white/95 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur-md md:hidden">
-        <div className="mx-auto grid h-[70px] max-w-md grid-cols-5 items-center px-2">
-          {items.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : item.menu
-                ? menuOpen
-                : pathname.startsWith(item.href.split("?")[0]);
-
-            if (item.special) {
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="flex flex-col items-center justify-center"
-                >
-                  <div className="mb-1 flex h-[46px] w-[46px] -translate-y-3 items-center justify-center rounded-full bg-red-500 text-xl text-white shadow-lg shadow-red-300">
-                    {item.icon}
-                  </div>
-
-                  <span className="-mt-3 text-[10px] font-bold text-red-500">
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            }
+      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-md items-end justify-between">
+          {mainItems.map((item) => {
+            const active = !item.menu && isActive(item.href);
 
             if (item.menu) {
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => setMenuOpen((prev) => !prev)}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition ${
-                    active ? "text-[#9c7b54]" : "text-[#6f5a47]"
-                  }`}
+                  onClick={() => setMenuOpen(true)}
+                  className="flex w-16 flex-col items-center justify-center gap-1"
                 >
-                  <span className="text-[20px] leading-none">{item.icon}</span>
-                  <span className="text-[10px] font-semibold leading-none">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-[#6E7E5D]">
+                    {item.icon}
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-[#6E7E5D]">
                     {item.label}
                   </span>
                 </button>
@@ -119,14 +103,31 @@ export default function BottomNavigation() {
 
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition ${
-                  active ? "text-[#9c7b54]" : "text-[#6f5a47]"
-                }`}
+                className="flex w-16 flex-col items-center justify-center gap-1"
               >
-                <span className="text-[20px] leading-none">{item.icon}</span>
-                <span className="text-[10px] font-semibold leading-none">
+                <span
+                  className={`flex items-center justify-center rounded-full transition ${
+                    item.sos
+                      ? "h-14 w-14 -translate-y-3 bg-[#D67B52] text-2xl text-white shadow-xl"
+                      : active
+                        ? "h-10 w-10 bg-[#064b42] text-xl text-white"
+                        : "h-10 w-10 text-xl text-[#6E7E5D]"
+                  }`}
+                >
+                  {item.icon}
+                </span>
+
+                <span
+                  className={`text-[10px] font-black uppercase ${
+                    item.sos
+                      ? "-mt-2 text-[#D67B52]"
+                      : active
+                        ? "text-[#064b42]"
+                        : "text-[#6E7E5D]"
+                  }`}
+                >
                   {item.label}
                 </span>
               </Link>
