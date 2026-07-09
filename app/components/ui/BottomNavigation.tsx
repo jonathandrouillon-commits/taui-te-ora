@@ -8,118 +8,93 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const menuPages = [
-    { href: "/veterinaires", label: "Vétérinaires", icon: "ℹ️" },
-    { href: "/association/lesveilleursdekali", label: "Les Veilleurs De Kali", icon: "❤️" },
-    { href: "/toilettage", label: "Toilettage", icon: "✂️" },
-    { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
-    { href: "/education", label: "Éducation", icon: "🎓" },
-    { href: "/alimentation", label: "Alimentation", icon: "🥣" },
-  ];
+  const mainItems = [
+  { href: "/", label: "Accueil", icon: "🏠" },
+  { href: "/animal", label: "Adopter", icon: "🐾" },
+  { href: "/signalement", label: "SOS", icon: "🚨", sos: true },
+  { href: "#", label: "Menu", icon: "☰", menu: true },
+  { href: "/profile", label: "Profil", icon: "👤" },
+];
+  
 
-  const items = [
-    { href: "/", label: "Accueil", icon: "🏠" },
-    { href: "/search", label: "Recherche", icon: "🔍" },
-    {
-      href: "/signalement",
-      label: "Signaler",
-      image: "/icons/sos-paw.png",
-      center: true,
-    },
-    { href: "", label: "Menu", icon: "☰", menu: true },
-    { href: "/profile", label: "Profil", icon: "👤" },
-  ];
+const menuItems = [
+  { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
+  { href: "/association", label: "Les Veilleurs de Kali", icon: "❤️" },
+  { href: "/toilettage", label: "Toilettage", icon: "✂️" },
+  { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
+  { href: "/education", label: "Éducation", icon: "🎓" },
+  { href: "/alimentation", label: "Alimentation", icon: "🥣" },
+  { href: "/hommage", label: "Hommage à Kali", icon: "❤️" },
+];
+
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  }
 
   return (
     <>
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm md:hidden">
           <button
             type="button"
-            onClick={() => setMenuOpen(false)}
             className="absolute inset-0 h-full w-full"
+            onClick={() => setMenuOpen(false)}
             aria-label="Fermer le menu"
           />
 
-          <div className="absolute bottom-28 left-1/2 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-[28px] bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-[#064b42]">
-                Menu services
-              </h2>
+          <div className="absolute bottom-0 left-0 right-0 rounded-t-[34px] bg-[#f8f4ec] px-6 pb-8 pt-5 shadow-2xl">
+            <div className="mx-auto mb-5 h-1.5 w-14 rounded-full bg-[#d6c8b4]" />
 
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="rounded-full bg-[#F7F2E8] px-4 py-2 text-sm font-black text-[#6E7E5D]"
-              >
-                Fermer
-              </button>
-            </div>
+            <h2 className="mb-5 text-center text-2xl font-black uppercase tracking-wide text-[#064b42]">
+              Menu
+            </h2>
 
             <div className="grid gap-3">
-              {menuPages.map((page) => (
+              {menuItems.map((item) => (
                 <Link
-                  key={page.href}
-                  href={page.href}
+                  key={item.href}
+                  href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-4 rounded-2xl bg-[#F7F2E8] px-5 py-4 font-black text-[#064b42] transition hover:bg-[#eadfce]"
+                  className="flex items-center gap-4 rounded-2xl bg-white px-5 py-4 text-[#064b42] shadow-md transition active:scale-95"
                 >
-                  <span className="text-2xl">{page.icon}</span>
-                  <span>{page.label}</span>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f1eadf] text-2xl">
+                    {item.icon}
+                  </span>
+
+                  <span className="text-base font-black">{item.label}</span>
                 </Link>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="mt-5 w-full rounded-2xl bg-[#064b42] py-4 text-sm font-black uppercase tracking-wide text-white shadow-lg"
+            >
+              Fermer
+            </button>
           </div>
         </div>
       )}
 
-      <nav className="fixed bottom-3 left-1/2 z-50 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-[26px] bg-white/95 px-2 py-2 shadow-2xl backdrop-blur-xl">
-        <div className="grid grid-cols-5 items-end gap-1">
-          {items.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : item.menu
-                ? menuOpen
-                : pathname.startsWith(item.href);
-
-            if (item.center) {
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex flex-col items-center"
-                >
-                  <div className="-mt-8 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-2xl transition hover:scale-105">
-                    <img
-                      src={item.image}
-                      alt={item.label}
-                      className="h-11 w-11 object-contain"
-                    />
-                  </div>
-
-                  <span className="mt-0.5 text-[10px] font-black uppercase text-[#C0392B]">
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            }
+      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-md items-end justify-between">
+          {mainItems.map((item) => {
+            const active = !item.menu && isActive(item.href);
 
             if (item.menu) {
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => setMenuOpen((prev) => !prev)}
-                  className={`flex flex-col items-center justify-center rounded-xl px-2 py-1.5 transition ${
-                    active
-                      ? "bg-[#6E7E5D] text-white"
-                      : "text-[#6E7E5D] hover:bg-[#F7F2E8]"
-                  }`}
+                  onClick={() => setMenuOpen(true)}
+                  className="flex w-16 flex-col items-center justify-center gap-1"
                 >
-                  <span className="text-2xl leading-none">{item.icon}</span>
-
-                  <span className="mt-1 text-[10px] font-black uppercase leading-none">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-[#6E7E5D]">
+                    {item.icon}
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-[#6E7E5D]">
                     {item.label}
                   </span>
                 </button>
@@ -130,15 +105,29 @@ export default function BottomNavigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center rounded-xl px-2 py-1.5 transition ${
-                  active
-                    ? "bg-[#6E7E5D] text-white"
-                    : "text-[#6E7E5D] hover:bg-[#F7F2E8]"
-                }`}
+                className="flex w-16 flex-col items-center justify-center gap-1"
               >
-                <span className="text-2xl leading-none">{item.icon}</span>
+                <span
+                  className={`flex items-center justify-center rounded-full transition ${
+                    item.sos
+                      ? "h-14 w-14 -translate-y-3 bg-[#D67B52] text-2xl text-white shadow-xl"
+                      : active
+                        ? "h-10 w-10 bg-[#064b42] text-xl text-white"
+                        : "h-10 w-10 text-xl text-[#6E7E5D]"
+                  }`}
+                >
+                  {item.icon}
+                </span>
 
-                <span className="mt-1 text-[10px] font-black uppercase leading-none">
+                <span
+                  className={`text-[10px] font-black uppercase ${
+                    item.sos
+                      ? "-mt-2 text-[#D67B52]"
+                      : active
+                        ? "text-[#064b42]"
+                        : "text-[#6E7E5D]"
+                  }`}
+                >
                   {item.label}
                 </span>
               </Link>

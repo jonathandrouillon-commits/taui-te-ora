@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
-
+import BottomNavigation from "./components/ui/BottomNavigation";
 import { animalService } from "./services/animal.service";
 
 export default function Home() {
@@ -78,7 +78,7 @@ export default function Home() {
         )}
       </section>
 
-    
+      <BottomNavigation />
     </main>
   );
 }
