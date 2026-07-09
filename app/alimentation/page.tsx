@@ -4,12 +4,9 @@ export default function AlimentationPage() {
   return (
     <main className="min-h-screen bg-[#f8f4ec] px-5 pb-28 pt-8 text-[#064b42]">
       <section className="mx-auto max-w-4xl">
-
-        {/* Présentation */}
         <div className="rounded-[32px] bg-white p-8 text-center shadow-xl">
-
           <Image
-            src="/hills-polynesie.png"
+            src="/hills-polynesie.jpg"
             alt="Hill's Pet Nutrition Polynésie"
             width={320}
             height={320}
@@ -30,30 +27,22 @@ export default function AlimentationPage() {
           </p>
 
           <p className="mt-6 text-lg leading-8 text-[#6f5a47]">
-            <strong>Hill's Pet Nutrition Polynésie</strong> est le distributeur
-            officiel des aliments Hill's en Polynésie française.
-            Les gammes Hill's sont développées avec des vétérinaires et des
-            nutritionnistes afin d'apporter une alimentation adaptée à chaque
-            étape de la vie des chiens et des chats.
+            <strong>Hill's Pet Nutrition Polynésie</strong> accompagne les
+            propriétaires de chiens et de chats avec des solutions
+            nutritionnelles adaptées aux besoins de chaque animal.
           </p>
 
           <p className="mt-4 text-lg leading-8 text-[#6f5a47]">
             Que votre compagnon soit un chiot, un chaton, un adulte ou un
-            senior, Hill's propose des solutions nutritionnelles de haute
-            qualité pour favoriser sa santé, son bien-être et sa longévité.
+            senior, Hill's propose une alimentation pensée pour soutenir sa
+            santé, son bien-être et sa qualité de vie.
           </p>
-
         </div>
 
-        {/* Produits */}
         <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-
-          <h2 className="text-3xl font-black">
-            🐶 Produits disponibles
-          </h2>
+          <h2 className="text-3xl font-black">🐶 Produits disponibles</h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-
             {[
               "🐕 Science Plan",
               "🩺 Prescription Diet",
@@ -71,36 +60,24 @@ export default function AlimentationPage() {
                 {item}
               </div>
             ))}
-
           </div>
-
         </div>
 
-        {/* Philosophie */}
         <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-
-          <h2 className="text-3xl font-black">
-            ❤️ Pourquoi choisir Hill's ?
-          </h2>
+          <h2 className="text-3xl font-black">❤️ Pourquoi choisir Hill's ?</h2>
 
           <p className="mt-5 text-lg leading-8 text-[#6f5a47]">
-            Les aliments Hill's sont issus de nombreuses années de recherche
-            scientifique et sont formulés afin d'apporter une nutrition
-            équilibrée répondant aux besoins spécifiques des chiens et des chats.
-            Ils sont largement recommandés par les vétérinaires.
+            Les aliments Hill's sont formulés pour répondre aux besoins
+            nutritionnels spécifiques des chiens et des chats. Ils permettent
+            d'accompagner les animaux à chaque étape de leur vie avec une
+            alimentation équilibrée et de qualité.
           </p>
-
         </div>
 
-        {/* Contact */}
         <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-
-          <h2 className="text-3xl font-black">
-            📞 Contact
-          </h2>
+          <h2 className="text-3xl font-black">📞 Contact</h2>
 
           <div className="mt-6 space-y-4">
-
             <a
               href="tel:+68989408000"
               className="block rounded-2xl bg-[#064b42] px-6 py-5 text-center text-xl font-black text-white transition hover:scale-[1.02]"
@@ -123,11 +100,8 @@ export default function AlimentationPage() {
             >
               🌐 Facebook
             </a>
-
           </div>
-
         </div>
-
       </section>
     </main>
   );
