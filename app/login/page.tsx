@@ -18,65 +18,93 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
 
   async function login() {
+    if (loading) return;
+
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      const profile = await profileService.getCurrentProfile();
-
-      if (
-        profile.approval_status !== "approved" ||
-        profile.is_active === false
-      ) {
-        router.push("/pending-approval");
+      if (!email.trim() || !password.trim()) {
+        alert("Merci de renseigner votre adresse email et votre mot de passe.");
         return;
       }
 
-      if (redirectTo) {
-        router.push(redirectTo);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const profile = await profileService.getCurrentProfile();
+
+      if (!profile) {
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      if (redirectTo && redirectTo.startsWith("/")) {
+        router.replace(redirectTo);
+        router.refresh();
         return;
       }
 
       switch (profile.role) {
         case "admin":
-          router.push("/admin/dashboard");
-          return;
+          router.replace("/admin/dashboard");
+          break;
+
         case "association":
-          router.push("/association/dashboard");
-          return;
+          router.replace("/association/dashboard");
+          break;
+
         case "refuge":
-          router.push("/refuge/dashboard");
-          return;
+          router.replace("/refuge/dashboard");
+          break;
+
         case "adoptant":
-          router.push("/dashboard");
-          return;
+          router.replace("/dashboard");
+          break;
+
         default:
-          router.push("/dashboard");
+          router.replace("/dashboard");
+          break;
       }
-    } catch (error: any) {
-      alert(error.message);
+
+      router.refresh();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue pendant la connexion.";
+
+      alert(message);
     } finally {
       setLoading(false);
     }
   }
 
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      login();
+    }
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] p-8">
-      <Card className="w-full max-w-lg rounded-[32px] p-8">
+    <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] p-4 sm:p-8">
+      <Card className="w-full max-w-lg rounded-[32px] p-6 sm:p-8">
         <div className="mb-8 text-center">
           <img
             src="/logo.png"
             alt="TAUI TE ORA"
-            className="mx-auto mb-4 h-24 w-24"
+            className="mx-auto mb-4 h-24 w-24 object-contain"
           />
 
-          <h1 className="text-4xl font-black text-[#064b42]">Connexion</h1>
+          <h1 className="text-4xl font-black text-[#064b42]">
+            Connexion
+          </h1>
 
           <p className="mt-2 text-gray-500">
             Connectez-vous à votre espace TAUI TE ORA
@@ -85,30 +113,44 @@ function LoginContent() {
 
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block font-bold text-[#064b42]">
+            <label
+              htmlFor="email"
+              className="mb-2 block font-bold text-[#064b42]"
+            >
               📧 Adresse email
             </label>
 
             <input
+              id="email"
               className="input"
               type="email"
               placeholder="Votre adresse email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="email"
+              disabled={loading}
             />
           </div>
 
           <div>
-            <label className="mb-2 block font-bold text-[#064b42]">
+            <label
+              htmlFor="password"
+              className="mb-2 block font-bold text-[#064b42]"
+            >
               🔒 Mot de passe
             </label>
 
             <input
+              id="password"
               className="input"
               type="password"
               placeholder="Votre mot de passe"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="current-password"
+              disabled={loading}
             />
 
             <div className="mt-2 text-right">
@@ -121,13 +163,17 @@ function LoginContent() {
             </div>
           </div>
 
-          <Button onClick={login} className="mt-4 w-full">
+          <Button
+            onClick={login}
+            className="mt-4 w-full"
+            disabled={loading}
+          >
             {loading ? "Connexion..." : "Se connecter"}
           </Button>
 
           <div className="border-t pt-6 text-center">
             <p className="text-gray-500">
-              Vous n'avez pas encore de compte ?
+              Vous n&apos;avez pas encore de compte ?
             </p>
 
             <Link
@@ -148,7 +194,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec] p-8">
-          Chargement...
+          <p className="font-bold text-[#064b42]">Chargement...</p>
         </main>
       }
     >
