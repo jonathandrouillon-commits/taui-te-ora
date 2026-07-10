@@ -24,7 +24,7 @@ export default function AnimalSwipeCard({
 
   if (!animal) {
     return (
-      <div className="flex h-[560px] w-full max-w-sm items-center justify-center rounded-[36px] bg-white p-8 text-center shadow-2xl">
+      <div className="mx-auto flex min-h-[720px] w-full max-w-[430px] items-center justify-center rounded-[3rem] border-[10px] border-black bg-[#f8f4ec] p-8 shadow-2xl">
         <p className="text-xl font-black text-[#4B5A3D]">
           Aucun animal disponible.
         </p>
@@ -59,11 +59,7 @@ export default function AnimalSwipeCard({
     ];
 
     if (sortedPhotos.length > 0) return sortedPhotos;
-
-    if (animal.photo_url) {
-      return [{ type: "photo", url: animal.photo_url, is_cover: true }];
-    }
-
+    if (animal.photo_url) return [{ type: "photo", url: animal.photo_url, is_cover: true }];
     return [];
   }, [animal]);
 
@@ -85,7 +81,6 @@ export default function AnimalSwipeCard({
 
   function handleMove(clientX: number) {
     if (startX === null) return;
-
     const diff = clientX - startX;
     setTranslateX(diff);
 
@@ -110,7 +105,6 @@ export default function AnimalSwipeCard({
   async function handleFavorite() {
     try {
       if (!animal?.id) return;
-
       await favoriteService.add(animal.id);
       onFavorite?.();
     } catch (error: any) {
@@ -118,7 +112,6 @@ export default function AnimalSwipeCard({
         router.push(`/login?redirect=/animal/${animal.id}`);
         return;
       }
-
       alert("Impossible d'enregistrer le coup de cœur.");
     }
   }
@@ -133,132 +126,132 @@ export default function AnimalSwipeCard({
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-sm">
+    <div className="relative mx-auto w-full max-w-[430px]">
       {actionLabel && (
-        <div className="absolute left-1/2 top-10 z-40 -translate-x-1/2 rounded-full bg-white px-6 py-3 text-lg font-black text-[#4B5A3D] shadow-2xl">
+        <div className="absolute left-1/2 top-28 z-50 -translate-x-1/2 rounded-full bg-white/95 px-6 py-3 text-lg font-black text-[#064b42] shadow-2xl backdrop-blur">
           {actionLabel}
         </div>
       )}
 
-      <div className="absolute left-5 top-6 h-[520px] w-[92%] rotate-[-5deg] rounded-[36px] bg-[#D67B52] opacity-80 shadow-xl" />
-      <div className="absolute left-2 top-3 h-[530px] w-[96%] rotate-[-2deg] rounded-[36px] bg-[#6E7E5D] opacity-90 shadow-xl" />
+      <div className="relative overflow-hidden rounded-[3.2rem] border-[10px] border-black bg-[#f8f4ec] px-5 pb-7 pt-5 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+        <div className="absolute left-1/2 top-3 z-30 h-7 w-28 -translate-x-1/2 rounded-full bg-black" />
 
-      <article
-        onMouseDown={(e) => handleStart(e.clientX)}
-        onMouseMove={(e) => handleMove(e.clientX)}
-        onMouseUp={handleEnd}
-        onMouseLeave={() => {
-          if (startX !== null) handleEnd();
-        }}
-        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
-        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
-        onTouchEnd={handleEnd}
-        className="relative z-10 h-[560px] cursor-grab overflow-hidden rounded-[36px] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.22)] active:cursor-grabbing"
-        style={{
-          transform: `translateX(${translateX}px) rotate(${translateX / 18}deg)`,
-          transition: startX === null ? "transform 0.25s ease" : "none",
-        }}
-      >
-        <div className="absolute left-5 right-5 top-5 z-20 flex gap-2">
-          {Array.from({ length: Math.max(mediaItems.length, 1) }).map(
-            (_, index) => (
-              <div
-                key={index}
-                className={`h-1.5 flex-1 rounded-full ${
-                  index === mediaIndex ? "bg-white" : "bg-white/40"
-                }`}
-              />
-            )
-          )}
+        <div className="relative mt-8 flex items-center justify-between">
+          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-2xl shadow-lg">
+            ☰
+          </button>
+
+          <img
+            src="/logo.png"
+            alt="TAUI TE ORA"
+            className="h-20 w-20 object-contain"
+          />
+
+          <button className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-2xl shadow-lg">
+            🔔
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#dc4f3f] text-xs font-black text-white">
+              3
+            </span>
+          </button>
         </div>
 
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={nextMedia}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") nextMedia();
+        <article
+          onMouseDown={(e) => handleStart(e.clientX)}
+          onMouseMove={(e) => handleMove(e.clientX)}
+          onMouseUp={handleEnd}
+          onMouseLeave={() => {
+            if (startX !== null) handleEnd();
           }}
-          className="absolute inset-0 z-0"
+          onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+          onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+          onTouchEnd={handleEnd}
+          className="relative mt-4 h-[540px] cursor-grab overflow-hidden rounded-[2rem] bg-white shadow-2xl active:cursor-grabbing"
+          style={{
+            transform: `translateX(${translateX}px) rotate(${translateX / 18}deg)`,
+            transition: startX === null ? "transform 0.25s ease" : "none",
+          }}
         >
-          {currentMedia?.url ? (
-            <img
-              src={currentMedia.url}
-              alt={name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">
-              Photo
-            </div>
-          )}
-        </div>
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-
-        {mediaItems.length > 1 && (
-          <div className="absolute right-5 top-24 z-20 rounded-full bg-black/40 px-3 py-1 text-xs font-black text-white backdrop-blur">
-            {mediaIndex + 1}/{mediaItems.length}
+          <div className="absolute left-5 top-5 z-20 rounded-full bg-[#e55745] px-5 py-2 text-sm font-black uppercase text-white shadow-xl">
+            ♥ Urgent
           </div>
-        )}
 
-        <div className="absolute bottom-6 left-6 right-28 z-20 text-white">
-          <div className="flex items-center justify-between gap-3">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={nextMedia}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") nextMedia();
+            }}
+            className="absolute inset-0"
+          >
+            {currentMedia?.url ? (
+              <img
+                src={currentMedia.url}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#E6DDCF] text-2xl font-black text-[#4B5A3D]">
+                Photo
+              </div>
+            )}
+          </div>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+
+          <div className="absolute bottom-6 right-5 z-30 flex flex-col items-center">
+            {associationLogo ? (
+              <img
+                src={associationLogo}
+                alt={associationName}
+                className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">
+                🐾
+              </div>
+            )}
+          </div>
+
+          <button
+  type="button"
+  onClick={handleInfo}
+  className="absolute top-4 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-2xl font-black text-[#064b42] shadow-2xl backdrop-blur"
+>
+  i
+</button>
+
+          <div className="absolute bottom-3 left-3 right-3 z-20 text-white">
             <h2 className="text-5xl font-black leading-none drop-shadow">
               {name}
             </h2>
 
-            <button
-              type="button"
-              onClick={handleInfo}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/90 text-xl font-black text-[#064b42] shadow-xl"
-            >
-              i
-            </button>
-          </div>
-
-          <p className="mt-3 text-lg font-bold">{age}</p>
-
-          <p className="mt-2 text-sm font-black uppercase tracking-wide">
-            📍 {city} · {island}
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {isSterilized && <SmallBadge label="Stérilisé" />}
-            {isVaccinated && <SmallBadge label="Vacciné" />}
-            {isMicrochipped && <SmallBadge label="Identifié" />}
-          </div>
-        </div>
-
-        <div className="absolute bottom-6 right-5 z-30 flex max-w-[96px] flex-col items-center">
-          {associationLogo ? (
-            <img
-              src={associationLogo}
-              alt={associationName}
-              className="h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-2xl"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#064b42] text-3xl shadow-2xl">
-              🐾
+            <div className="mt-4 space-y-2 text-lg font-bold">
+              <p>♀ {sex} · 🎂 {age}</p>
+              <p>📍 {city}, {island}</p>
+              <p>🏠 {associationName}</p>
             </div>
-          )}
 
-          <span className="mt-2 max-w-[96px] truncate rounded-full bg-black/45 px-3 py-1 text-center text-[10px] font-black uppercase text-white backdrop-blur">
-            {associationName}
-          </span>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {isVaccinated && <SmallBadge label="Vacciné" />}
+              {isMicrochipped && <SmallBadge label="Identifié" />}
+              {isSterilized && <SmallBadge label="Stérilisé" />}
+            </div>
+          </div>
+        </article>
+
+        <div className="mt-5 flex justify-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#4B5A3D]" />
+          <span className="h-2 w-2 rounded-full bg-[#4B5A3D]/30" />
+          <span className="h-2 w-2 rounded-full bg-[#4B5A3D]/30" />
+          <span className="h-2 w-2 rounded-full bg-[#4B5A3D]/30" />
         </div>
-      </article>
 
-      <div className="mt-8 flex justify-between gap-5">
-        <ActionButton label="PASSER" color="cream" onClick={handlePass} />
-
-        <ActionButton
-          label="COUP DE CŒUR"
-          color="orange"
-          onClick={handleFavorite}
-        />
-
-        <ActionButton label="ADOPTER" color="green" onClick={handleAdopt} />
+        <div className="mt-5 flex justify-between gap-4">
+          <ActionButton label="NEXT TIME" icon="🐾" color="cream" onClick={handlePass} />
+          <ActionButton label="LIKE" icon="♥" color="green" onClick={handleFavorite} />
+          <ActionButton label="ADOPTER" icon="🐶❤️" color="cream" onClick={handleAdopt} />
+        </div>
       </div>
     </div>
   );
@@ -266,25 +259,26 @@ export default function AnimalSwipeCard({
 
 function SmallBadge({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">
-      {label}
+    <span className="rounded-full bg-[#d8d09a]/90 px-3 py-2 text-xs font-black text-[#1f2b20] shadow backdrop-blur">
+      ✓ {label}
     </span>
   );
 }
 
 function ActionButton({
   label,
+  icon,
   color,
   onClick,
 }: {
   label: string;
-  color: "cream" | "orange" | "green";
+  icon: string;
+  color: "cream" | "green";
   onClick: () => void;
 }) {
   const colors = {
-    cream: "bg-[#F6EEDC] text-[#6E7E5D]",
-    orange: "bg-[#D67B52] text-white",
-    green: "bg-[#87966F] text-white",
+    cream: "bg-[#fff8e8] text-[#dc6f3d]",
+    green: "bg-[#47743f] text-white",
   };
 
   return (
@@ -294,12 +288,12 @@ function ActionButton({
       className="group flex flex-1 flex-col items-center"
     >
       <div
-        className={`flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition group-hover:scale-105 group-active:scale-95 ${colors[color]}`}
+        className={`flex h-20 w-20 items-center justify-center rounded-full shadow-xl ring-4 ring-white/60 transition group-hover:scale-105 group-active:scale-95 ${colors[color]}`}
       >
-        <span className="text-[46px] leading-none">🐾</span>
+        <span className="text-4xl font-black leading-none">{icon}</span>
       </div>
 
-      <span className="mt-3 text-center text-[11px] font-black uppercase leading-4 tracking-wide text-[#6E7E5D]">
+      <span className="mt-3 text-center text-[11px] font-black uppercase leading-4 text-[#064b42]">
         {label}
       </span>
     </button>
