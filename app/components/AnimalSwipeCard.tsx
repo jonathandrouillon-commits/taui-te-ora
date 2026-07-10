@@ -250,7 +250,7 @@ export default function AnimalSwipeCard({
         <div className="mt-5 flex justify-between gap-4">
           <ActionButton label="NEXT TIME" icon="🐾" color="cream" onClick={handlePass} />
           <ActionButton label="LIKE" icon="♥" color="green" onClick={handleFavorite} />
-          <ActionButton label="ADOPTER" icon="🐶❤️" color="cream" onClick={handleAdopt} />
+          <ActionButton label="ADOPTER" icon="🐶" color="cream" onClick={handleAdopt} />
         </div>
       </div>
     </div>

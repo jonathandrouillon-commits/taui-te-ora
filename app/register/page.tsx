@@ -112,53 +112,62 @@ export default function RegisterPage() {
       const lastName = nameParts.slice(1).join(" ") || "";
       const avatarUrl = await uploadLogo();
 
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            organization_name: isOrganization ? organizationName.trim() : "",
-            role,
-            phone: phone.trim(),
-            island: island.trim(),
-            city: city.trim(),
-            avatar_url: avatarUrl,
-            approval_status: "approved",
-            is_active: true,
-            is_verified: true,
-            approved_at: new Date().toISOString(),
-          },
-        },
-      });
+const { data, error } = await supabase.auth.signUp({
+  email: email.trim(),
+  password,
+  options: {
+    data: {
+      first_name: firstName,
+      last_name: lastName,
+      organization_name: isOrganization
+        ? organizationName.trim()
+        : "",
+      role,
+      phone: phone.trim(),
+      island: island.trim(),
+      city: city.trim(),
+      avatar_url: avatarUrl,
+      approval_status: "approved",
+      is_active: true,
+      is_verified: true,
+      approved_at: new Date().toISOString(),
+    },
+  },
+});
 
-      if (error) {
-        if (isRateLimitError(error)) {
-          setCooldown(true);
+if (error) {
+  if (isRateLimitError(error)) {
+    setCooldown(true);
 
-          alert(
-            "Trop de demandes d'inscription ont été envoyées. Merci d'attendre quelques minutes avant de réessayer."
-          );
+    alert(
+      "Trop de demandes d'inscription ont été envoyées. Merci d'attendre quelques minutes avant de réessayer."
+    );
 
-          setTimeout(() => {
-            setCooldown(false);
-          }, 60000);
+    setTimeout(() => {
+      setCooldown(false);
+    }, 60000);
 
-          return;
-        }
+    return;
+  }
 
-        throw error;
-      }
+  throw error;
+}
 
-      await notifyAdmin({
-        firstName,
-        lastName,
-        avatarUrl,
-      });
+await notifyAdmin({
+  firstName,
+  lastName,
+  avatarUrl,
+});
 
-      alert("Votre compte a été créé avec succès.");
-      router.push("/login");
+if (data.session) {
+  alert("Votre compte a été créé. Vous êtes maintenant connecté.");
+  router.push("/profile");
+  router.refresh();
+  return;
+}
+
+alert("Votre compte a été créé avec succès.");
+router.push("/login");
     } catch (error: any) {
       console.error("ERREUR CREATION COMPTE COMPLETE:", error);
 
