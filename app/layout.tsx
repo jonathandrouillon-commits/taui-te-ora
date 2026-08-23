@@ -1,11 +1,17 @@
-import "leaflet/dist/leaflet.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import BottomNavigation from "./components/ui/BottomNavigation";
 
 export const metadata: Metadata = {
-  title: "TAUI TE ORA",
-  description: "On ne changera pas le monde, mais on peut changer le leur.",
+  title: "Taui Te Ora",
+  description:
+    "Plateforme d'adoption animale en Polynésie française.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#fffaf7",
 };
 
 export default function RootLayout({
@@ -15,11 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="bg-[#f8f4ec]">
-        {children}
-
-        <BottomNavigation />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

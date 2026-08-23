@@ -39,10 +39,12 @@ export default function HomePage() {
 
   return (
     <TauiPageBackground>
-      <div className="relative min-h-[100dvh] w-full">
-        <section className="flex min-h-[calc(100dvh-74px)] w-full items-start justify-center p-0 md:px-6 md:py-8">
+      <div className="flex h-[100dvh] w-full flex-col overflow-hidden">
+
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+
           {loading && (
-            <div className="flex min-h-[calc(100dvh-74px)] w-full items-center justify-center">
+            <div className="flex min-h-0 flex-1 items-center justify-center px-5">
               <div className="rounded-3xl bg-white/90 px-8 py-6 text-center shadow-xl backdrop-blur-md">
                 <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
 
@@ -62,7 +64,7 @@ export default function HomePage() {
           )}
 
           {!loading && !currentAnimal && (
-            <div className="flex min-h-[calc(100dvh-74px)] w-full items-center justify-center px-5">
+            <div className="flex min-h-0 flex-1 items-center justify-center px-5">
               <div className="max-w-md rounded-[32px] bg-white/90 p-8 text-center shadow-xl backdrop-blur-md">
                 <div className="text-6xl">🐾</div>
 
@@ -78,14 +80,14 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={loadAnimals}
-                  className="mt-6 rounded-full bg-[#ef919b] px-6 py-3 font-black text-white shadow-lg transition hover:scale-105"
+                  className="mt-6 rounded-full bg-[#ef919b] px-6 py-3 font-black text-white shadow-lg"
                 >
                   Recommencer
                 </button>
               </div>
             </div>
           )}
-        </section>
+        </main>
 
         <BottomMenu />
       </div>
@@ -95,11 +97,12 @@ export default function HomePage() {
 
 function BottomMenu() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-[470px] border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(50,40,35,0.10)] backdrop-blur-xl md:bottom-4 md:rounded-[28px] md:border md:shadow-xl">
-      <div className="grid grid-cols-4 items-end">
+    <nav className="relative z-[100] w-full shrink-0 border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-5px_20px_rgba(50,40,35,0.08)] backdrop-blur-xl">
+      <div className="mx-auto grid h-[62px] w-full max-w-[470px] grid-cols-4 items-center">
+
         <Link
           href="/"
-          className="flex flex-col items-center justify-center gap-1 text-[#ee8f9b]"
+          className="flex h-full flex-col items-center justify-center gap-1 text-[#ee8f9b]"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde7e9]">
             <HomeIcon />
@@ -112,9 +115,9 @@ function BottomMenu() {
 
         <Link
           href="/search"
-          className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          className="flex h-full flex-col items-center justify-center gap-1 text-[#626762]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-[#f2ece7]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full">
             <SearchIcon />
           </div>
 
@@ -125,22 +128,22 @@ function BottomMenu() {
 
         <Link
           href="/signalement"
-          className="flex flex-col items-center justify-center gap-1"
+          className="relative flex h-full flex-col items-center justify-center"
         >
-          <div className="flex h-12 w-12 -translate-y-2 items-center justify-center rounded-full border-4 border-[#fffaf7] bg-[#ef919b] text-white shadow-lg">
+          <div className="absolute -top-5 flex h-[58px] w-[58px] items-center justify-center rounded-full border-[5px] border-[#fffaf7] bg-[#ef919b] text-white shadow-[0_5px_16px_rgba(0,0,0,.18)]">
             <PawIcon />
           </div>
 
-          <span className="-mt-2 text-[10px] font-bold text-[#ef7f8d]">
-            Signaler
+          <span className="mt-[38px] text-[10px] font-bold text-[#ef7f8d]">
+            SOS
           </span>
         </Link>
 
         <Link
           href="/profile"
-          className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          className="flex h-full flex-col items-center justify-center gap-1 text-[#626762]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-[#f2ece7]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full">
             <ProfileIcon />
           </div>
 
@@ -148,6 +151,7 @@ function BottomMenu() {
             Profil
           </span>
         </Link>
+
       </div>
     </nav>
   );

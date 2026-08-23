@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { favoriteService } from "../services/favorite.service";
 
 type AnimalSwipeCardProps = {
@@ -19,15 +19,51 @@ export default function AnimalSwipeCard({
 
   const [startX, setStartX] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
-  const [actionLabel, setActionLabel] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
 
-  const mediaItems = useMemo(() => {
-    if (!animal) return [];
+  if (!animal) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center">
+        <p className="text-lg font-bold text-[#625f5a]">
+          Aucun animal disponible.
+        </p>
+      </div>
+    );
+  }
 
+  const name =
+    animal.animal_name ||
+    animal.nom ||
+    "Animal";
+
+  const age =
+    animal.age_label ||
+    animal.age ||
+    "Âge non renseigné";
+
+  const sex =
+    animal.sex ||
+    animal.sexe ||
+    "";
+
+  const city =
+    animal.city ||
+    animal.localisation ||
+    "";
+
+  const island =
+    animal.island ||
+    animal.ile ||
+    "";
+
+  const associationName =
+    animal.owner_profile?.organization_name ||
+    animal.association_name ||
+    "Association";
+
+  const mediaItems = useMemo(() => {
     const photos =
       animal.animal_photos?.map((photo: any) => ({
-        type: "photo",
         url: photo.photo_url,
         is_cover: photo.is_cover,
       })) || [];
@@ -44,7 +80,6 @@ export default function AnimalSwipeCard({
     if (animal.photo_url) {
       return [
         {
-          type: "photo",
           url: animal.photo_url,
           is_cover: true,
         },
@@ -54,48 +89,31 @@ export default function AnimalSwipeCard({
     return [];
   }, [animal]);
 
-  if (!animal) {
-    return null;
-  }
-
-  const name = animal.animal_name || animal.nom || "Animal";
-  const age = animal.age_label || animal.age || "Âge non renseigné";
-  const sex = animal.sex || animal.sexe || "Sexe non renseigné";
-  const city = animal.city || animal.localisation || "Localisation";
-  const island = animal.island || animal.ile || "";
-
-  const associationName =
-    animal.owner_profile?.organization_name ||
-    animal.association_name ||
-    "Association";
-
   const currentMedia = mediaItems[mediaIndex];
 
-  const isSterilized = animal.sterilized ?? animal.sterilise;
+  const isSterilized =
+    animal.sterilized ??
+    animal.sterilise;
+
+  const isVaccinated =
+    animal.vaccinated ??
+    animal.vaccine;
+
+  const isMicrochipped =
+    animal.microchipped ??
+    animal.identifie;
 
   function nextMedia() {
     if (mediaItems.length <= 1) return;
 
-    setMediaIndex((previousIndex) => {
-      return (previousIndex + 1) % mediaItems.length;
-    });
-  }
-
-  function previousMedia() {
-    if (mediaItems.length <= 1) return;
-
-    setMediaIndex((previousIndex) => {
-      if (previousIndex === 0) {
-        return mediaItems.length - 1;
-      }
-
-      return previousIndex - 1;
-    });
+    setMediaIndex(
+      (previousIndex) =>
+        (previousIndex + 1) % mediaItems.length
+    );
   }
 
   function handleStart(clientX: number) {
     setStartX(clientX);
-    setActionLabel("");
   }
 
   function handleMove(clientX: number) {
@@ -104,28 +122,17 @@ export default function AnimalSwipeCard({
     const difference = clientX - startX;
 
     setTranslateX(difference);
-
-    if (difference > 70) {
-      setActionLabel("COUP DE CŒUR");
-    } else if (difference < -70) {
-      setActionLabel("PASSER");
-    } else {
-      setActionLabel("");
-    }
   }
 
   async function handleEnd() {
     if (translateX > 120) {
       await handleFavorite();
-    }
-
-    if (translateX < -120) {
+    } else if (translateX < -120) {
       handlePass();
     }
 
     setStartX(null);
     setTranslateX(0);
-    setActionLabel("");
   }
 
   function handlePass() {
@@ -140,241 +147,248 @@ export default function AnimalSwipeCard({
 
       onFavorite?.();
     } catch (error: any) {
+      console.error(error);
+
       if (error?.message === "LOGIN_REQUIRED") {
-        router.push(`/login?redirect=/animal/${animal.id}`);
+        router.push(
+          `/login?redirect=/animal/${animal.id}`
+        );
+
         return;
       }
 
-      alert("Impossible d'enregistrer le coup de cœur.");
+      alert(
+        "Impossible d'enregistrer le coup de cœur."
+      );
     }
   }
 
   function handleAdopt() {
     if (!animal?.id) return;
 
-    router.push(`/login?redirect=/animal/${animal.id}`);
+    router.push(
+      `/adoption/start/${animal.id}`
+    );
   }
 
-  function handleInfo() {
+  function handleInfo(
+    event?: React.MouseEvent<HTMLButtonElement>
+  ) {
+    event?.stopPropagation();
+
     if (!animal?.id) return;
 
-    router.push(`/animal/${animal.id}`);
+    router.push(
+      `/animal/${animal.id}`
+    );
   }
 
   return (
-    <div className="relative mx-auto h-[calc(100dvh-78px)] w-full max-w-[470px] md:h-[850px] md:overflow-hidden md:rounded-[44px] md:border-[7px] md:border-white/70 md:shadow-[0_30px_90px_rgba(60,45,35,0.35)]">
+    <div className="mx-auto flex min-h-0 w-full max-w-[470px] flex-1 flex-col px-3 pb-2 pt-2">
+
       <article
-        onMouseDown={(event) => handleStart(event.clientX)}
-        onMouseMove={(event) => handleMove(event.clientX)}
+        onMouseDown={(event) =>
+          handleStart(event.clientX)
+        }
+        onMouseMove={(event) =>
+          handleMove(event.clientX)
+        }
         onMouseUp={handleEnd}
         onMouseLeave={() => {
           if (startX !== null) {
             handleEnd();
           }
         }}
-        onTouchStart={(event) => handleStart(event.touches[0].clientX)}
-        onTouchMove={(event) => handleMove(event.touches[0].clientX)}
+        onTouchStart={(event) =>
+          handleStart(
+            event.touches[0].clientX
+          )
+        }
+        onTouchMove={(event) =>
+          handleMove(
+            event.touches[0].clientX
+          )
+        }
         onTouchEnd={handleEnd}
-        className="absolute inset-0 cursor-grab overflow-hidden bg-[#eadfd5] active:cursor-grabbing md:rounded-[37px]"
+        className="relative min-h-0 flex-1 touch-pan-y overflow-hidden rounded-[28px] bg-[#ddd6cd] shadow-[0_12px_35px_rgba(0,0,0,0.16)]"
         style={{
-          transform: `translateX(${translateX}px) rotate(${translateX / 25}deg)`,
-          transition: startX === null ? "transform 0.25s ease" : "none",
+          transform:
+            `translateX(${translateX}px) rotate(${translateX / 25}deg)`,
+
+          transition:
+            startX === null
+              ? "transform 0.22s ease"
+              : "none",
         }}
       >
-        {currentMedia?.url ? (
-          <img
-            src={currentMedia.url}
-            alt={name}
-            draggable={false}
-            className="absolute inset-0 h-full w-full select-none object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#eadfd5]">
-            <span className="text-8xl">🐾</span>
-          </div>
-        )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/25" />
-
-        {mediaItems.length > 1 && (
-          <div className="absolute left-4 right-4 top-3 z-40 flex gap-1">
-            {mediaItems.map((_: any, index: number) => (
-              <span
-                key={index}
-                className={`h-1 flex-1 rounded-full ${
-                  index === mediaIndex ? "bg-white" : "bg-white/40"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-
-        {mediaItems.length > 1 && (
-          <>
-            <button
-              type="button"
-              aria-label="Photo précédente"
-              onClick={(event) => {
-                event.stopPropagation();
-                previousMedia();
-              }}
-              className="absolute bottom-32 left-0 top-12 z-20 w-[28%]"
+        <button
+          type="button"
+          onClick={nextMedia}
+          className="absolute inset-0 h-full w-full"
+          aria-label="Photo suivante"
+        >
+          {currentMedia?.url ? (
+            <img
+              src={currentMedia.url}
+              alt={name}
+              draggable={false}
+              className="h-full w-full select-none object-cover"
             />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[#ded8d0] text-lg font-bold text-[#777]">
+              Photo
+            </div>
+          )}
+        </button>
 
-            <button
-              type="button"
-              aria-label="Photo suivante"
-              onClick={(event) => {
-                event.stopPropagation();
-                nextMedia();
-              }}
-              className="absolute bottom-32 right-0 top-12 z-20 w-[28%]"
-            />
-          </>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/5" />
+
+        {mediaItems.length > 0 && (
+          <div className="absolute left-4 top-4 z-20 rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md">
+            {mediaIndex + 1} / {mediaItems.length}
+          </div>
         )}
 
-        <div className="absolute left-0 right-0 top-5 z-40 flex items-start justify-between px-5">
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/10 text-3xl text-white backdrop-blur-sm"
-          >
-            ☰
-          </button>
-
-          <div className="text-center text-white">
-            <div className="text-2xl font-semibold tracking-wide drop-shadow">
-              Taui Te Ora 🌺
-            </div>
-
-            <div className="mt-1 text-[10px] font-medium leading-tight drop-shadow">
-              On ne sauvera pas le monde,
-              <br />
-              mais on sauvera le leur.
-            </div>
-          </div>
-
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/10 text-2xl text-white backdrop-blur-sm">
-            ♡
-          </div>
-        </div>
-
-        <div className="absolute left-4 top-[28%] z-40 flex flex-col gap-2">
-          <InfoBox icon="🐾" value={age} />
+        <div className="absolute left-3 top-[25%] z-20 flex flex-col gap-2">
 
           <InfoBox
-            icon={String(sex).toLowerCase().includes("fem") ? "♀" : "♂"}
-            value={sex}
+            icon="🐾"
+            text={String(age)}
           />
 
-          <InfoBox icon="⌖" value={city} />
+          {sex && (
+            <InfoBox
+              icon={
+                String(sex)
+                  .toLowerCase()
+                  .includes("fem")
+                  ? "♀"
+                  : "♂"
+              }
+              text={String(sex)}
+            />
+          )}
 
-          {isSterilized && <InfoBox icon="♡" value="Stérilisé" />}
+          {isSterilized && (
+            <InfoBox
+              icon="♡"
+              text="Stérilisé"
+            />
+          )}
+
         </div>
 
-        {actionLabel && (
-          <div
-            className={`absolute left-1/2 top-28 z-50 -translate-x-1/2 -rotate-6 rounded-xl border-4 px-5 py-2 text-xl font-black ${
-              actionLabel === "COUP DE CŒUR"
-                ? "border-[#7cc9b0] bg-white/90 text-[#58a98f]"
-                : "border-[#c9b3d8] bg-white/90 text-[#9d82b2]"
-            }`}
-          >
-            {actionLabel}
-          </div>
-        )}
+        <div className="absolute bottom-5 left-5 right-5 z-20 text-white">
 
-        {/* Informations animal */}
-        <div className="absolute bottom-[118px] left-5 right-5 z-40 text-white">
-          <div className="flex items-center gap-3">
-            <h2 className="text-5xl font-medium leading-none drop-shadow-lg">
-              {name}
-            </h2>
+          <div className="flex items-end justify-between gap-3">
 
-            {/* Bouton fiche à côté du prénom */}
+            <div className="min-w-0 flex-1">
+
+              <h2 className="truncate text-[clamp(38px,11vw,54px)] font-semibold leading-[0.95] tracking-tight drop-shadow-md">
+                {name}
+              </h2>
+
+              <p className="mt-3 truncate text-[15px] font-semibold drop-shadow">
+                {associationName}
+              </p>
+
+              {(city || island) && (
+                <p className="mt-1 truncate text-[14px] font-medium drop-shadow">
+                  📍{" "}
+                  {[city, island]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+
+                {isVaccinated && (
+                  <SmallBadge>
+                    Vacciné
+                  </SmallBadge>
+                )}
+
+                {isMicrochipped && (
+                  <SmallBadge>
+                    Identifié
+                  </SmallBadge>
+                )}
+
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleInfo();
-              }}
+              onClick={handleInfo}
               aria-label="Voir la fiche"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-white/90 text-lg font-black text-[#555f59] shadow-lg backdrop-blur transition active:scale-95"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f8f5ef] text-2xl font-bold text-[#67645f] shadow-lg"
             >
               i
             </button>
 
-            <span className="text-4xl text-[#f58c9b]">♡</span>
-          </div>
-
-          <p className="mt-3 text-sm font-semibold drop-shadow">
-            {associationName}
-          </p>
-
-          <p className="mt-1 text-xs font-medium text-white/90">
-            📍 {city}
-            {island ? ` · ${island}` : ""}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <CharacterBadge label="Joueur" />
-            <CharacterBadge label="Sociable" />
-            <CharacterBadge label="Affectueux" />
-          </div>
-        </div>
-
-        {/* Actions directement sur la photo, sans fond blanc */}
-        <div className="absolute bottom-3 left-0 right-0 z-50 px-4">
-          <div className="flex items-end justify-around">
-            <ActionButton
-              icon="×"
-              label="Passer"
-              styleName="bg-[#d9c9e5] text-white"
-              onClick={handlePass}
-            />
-
-            <ActionButton
-              icon="🐾"
-              label="Je veux adopter"
-              styleName="bg-[#f2919d] text-white"
-              large
-              onClick={handleAdopt}
-            />
-
-            <ActionButton
-              icon="♥"
-              label="Coup de cœur"
-              styleName="bg-[#76c7b3] text-white"
-              onClick={handleFavorite}
-            />
           </div>
         </div>
       </article>
+
+      <div className="grid shrink-0 grid-cols-3 items-start gap-2 pb-1 pt-3">
+
+        <ActionButton
+          icon="×"
+          label="Passer"
+          buttonClass="bg-[#d9c9e7]"
+          onClick={handlePass}
+        />
+
+        <ActionButton
+          icon="🐾"
+          label="Je veux adopter"
+          buttonClass="bg-[#ed8298]"
+          large
+          onClick={handleAdopt}
+        />
+
+        <ActionButton
+          icon="♡"
+          label="Coup de cœur"
+          buttonClass="bg-[#72cdbd]"
+          onClick={handleFavorite}
+        />
+
+      </div>
     </div>
   );
 }
 
 function InfoBox({
   icon,
-  value,
+  text,
 }: {
   icon: string;
-  value: string;
+  text: string;
 }) {
   return (
-    <div className="flex min-h-[58px] w-[60px] flex-col items-center justify-center rounded-xl bg-[#fffaf2]/90 px-1 py-2 text-center shadow-md backdrop-blur">
-      <div className="text-xl text-[#e89aa3]">{icon}</div>
+    <div className="flex h-[64px] w-[60px] flex-col items-center justify-center rounded-[17px] bg-[#fffaf4]/95 px-1 text-center shadow-md backdrop-blur-md">
+      <span className="text-[19px] leading-none text-[#dc8fa5]">
+        {icon}
+      </span>
 
-      <div className="mt-1 max-w-full truncate text-[9px] font-semibold text-[#4e514d]">
-        {value}
-      </div>
+      <span className="mt-1.5 line-clamp-2 text-[10px] font-semibold leading-tight text-[#55514e]">
+        {text}
+      </span>
     </div>
   );
 }
 
-function CharacterBadge({ label }: { label: string }) {
+function SmallBadge({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <span className="rounded-full bg-[#d4b9dd]/90 px-3 py-1.5 text-[11px] font-semibold text-white shadow">
-      {label}
+    <span className="rounded-full bg-[#d8b4df]/90 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+      {children}
     </span>
   );
 }
@@ -382,34 +396,54 @@ function CharacterBadge({ label }: { label: string }) {
 function ActionButton({
   icon,
   label,
-  styleName,
-  large = false,
+  buttonClass,
   onClick,
+  large = false,
 }: {
   icon: string;
   label: string;
-  styleName: string;
-  large?: boolean;
+  buttonClass: string;
   onClick: () => void;
+  large?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-      className="flex w-[105px] flex-col items-center"
+      onClick={onClick}
+      className="flex min-w-0 flex-col items-center"
     >
       <div
-        className={`flex items-center justify-center rounded-full border-2 border-white/80 shadow-xl transition active:scale-95 ${
-          large ? "h-[68px] w-[68px] text-3xl" : "h-14 w-14 text-3xl"
-        } ${styleName}`}
+        className={`
+          flex items-center justify-center
+          rounded-full
+          border-2 border-white
+          text-white
+          shadow-[0_5px_14px_rgba(0,0,0,.18)]
+          ${buttonClass}
+          ${
+            large
+              ? "h-[72px] w-[72px] text-[25px]"
+              : "h-[62px] w-[62px] text-[34px]"
+          }
+        `}
       >
         {icon}
       </div>
 
-      <span className="mt-1.5 rounded-full bg-black/25 px-2 py-1 text-center text-[10px] font-semibold leading-tight text-white backdrop-blur-sm">
+      <span
+        className={`
+          mt-1.5
+          text-center
+          font-semibold
+          leading-tight
+          text-[#292725]
+          ${
+            large
+              ? "text-[11px]"
+              : "text-[10px]"
+          }
+        `}
+      >
         {label}
       </span>
     </button>
