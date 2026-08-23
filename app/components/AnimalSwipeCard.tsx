@@ -251,7 +251,7 @@ export default function AnimalSwipeCard({
             flex h-12 w-12
             items-center justify-center
             rounded-full
-            bg-black/18
+            bg-black/20
             text-white
             backdrop-blur-md
           "
@@ -273,7 +273,7 @@ export default function AnimalSwipeCard({
             flex h-12 w-12
             items-center justify-center
             rounded-full
-            bg-black/18
+            bg-black/20
             text-white
             backdrop-blur-md
           "
@@ -283,42 +283,37 @@ export default function AnimalSwipeCard({
           </span>
         </button>
 
-        {/* NOUVEAU LOGO */}
+        {/* LOGO TAUI TE ORA PNG TRANSPARENT */}
         <div
           className="
             pointer-events-none
             absolute
-            left-1/2 top-3
+            left-1/2
+            top-3
             z-30
             -translate-x-1/2
           "
         >
-          <div
+          <img
+            src="/logo-taui-te-ora.png"
+            alt="Taui Te Ora"
             className="
-              flex h-[102px] w-[102px]
-              items-center justify-center
-              rounded-full
-              bg-white/78
-              p-1
-              shadow-[0_5px_20px_rgba(0,0,0,.16)]
-              backdrop-blur-[3px]
-
-              min-[390px]:h-[112px]
-              min-[390px]:w-[112px]
+              h-auto
+              w-[105px]
+              object-contain
+              drop-shadow-[0_3px_5px_rgba(0,0,0,0.22)]
+              min-[390px]:w-[115px]
             "
-          >
-            <img
-              src="/logo-taui-te-ora.png"
-              alt="Taui Te Ora"
-              className="h-full w-full object-contain"
-            />
-          </div>
+          />
         </div>
 
         {/* INFOS GAUCHE */}
         <div className="absolute left-3 top-[27%] z-30 flex flex-col gap-2">
 
-          <InfoBox icon="🐾" text={String(age)} />
+          <InfoBox
+            icon="🐾"
+            text={String(age)}
+          />
 
           {sex && (
             <InfoBox
@@ -342,7 +337,7 @@ export default function AnimalSwipeCard({
 
         </div>
 
-        {/* INFOS ANIMAL */}
+        {/* INFOS BAS */}
         <div className="absolute bottom-5 left-5 right-5 z-30 text-white">
 
           <div className="flex items-end gap-3">
