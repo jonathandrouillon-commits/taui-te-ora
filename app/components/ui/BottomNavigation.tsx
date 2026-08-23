@@ -9,95 +9,168 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const mainItems = [
-  { href: "/", label: "Accueil", icon: "🏠" },
-  { href: "/search", label: "Search", icon: "🔎" },
-  { href: "/signalement", icon: "/sos-paw.png", sos: true },
-  { href: "#", label: "Menu", icon: "☰", menu: true },
-  { href: "/profile", label: "Profil", icon: "👤" },
-];
-  
+    { href: "/", label: "Accueil", icon: "🏠" },
+    { href: "/search", label: "Search", icon: "🔎" },
+    {
+      href: "/signalement",
+      label: "SOS",
+      icon: "/sos-paw.png",
+      sos: true,
+    },
+    {
+      href: "#",
+      label: "Menu",
+      icon: "☰",
+      menu: true,
+    },
+    {
+      href: "/profile",
+      label: "Profil",
+      icon: "👤",
+    },
+  ];
 
-const menuItems = [
-  { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
-  { href: "/association", label: "Les Veilleurs de Kali", icon: "❤️" },
-  { href: "/toilettage", label: "Toilettage", icon: "✂️" },
-  { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
-  { href: "/education", label: "Éducation", icon: "🎓" },
-  { href: "/alimentation", label: "Alimentation", icon: "🥣" },
-  { href: "/hommage", label: "Hommage à Kali", icon: "❤️" },
-];
+  const menuItems = [
+    { href: "/info", label: "Info", icon: "ℹ️" },
+    { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
+    {
+      href: "/association",
+      label: "Les Veilleurs de Kali",
+      icon: "❤️",
+    },
+    { href: "/toilettage", label: "Toilettage", icon: "✂️" },
+    { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
+    { href: "/education", label: "Éducation", icon: "🎓" },
+    { href: "/alimentation", label: "Alimentation", icon: "🥣" },
+    { href: "/hommage", label: "Hommage à Kali", icon: "🐾" },
+  ];
 
-  function isActive(href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+  function toggleMenu() {
+    setMenuOpen((previousValue) => !previousValue);
+  }
+
+  function closeMenu() {
+    setMenuOpen(false);
   }
 
   return (
     <>
       {menuOpen && (
-        <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm md:hidden">
+        <>
+          {/* Fond sombre */}
           <button
             type="button"
-            className="absolute inset-0 h-full w-full"
-            onClick={() => setMenuOpen(false)}
             aria-label="Fermer le menu"
+            onClick={closeMenu}
+            className="fixed inset-0 z-[200] cursor-default bg-black/40"
           />
 
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-[50px] bg-[#f8f4ec] px-6 pb-8 pt-5 shadow-2xl">
-            <div className="mx-auto mb-5 h-1.5 w-14 rounded-full bg-[#d6c8b4]" />
-
-            <h2 className="mb-5 text-center text-2xl font-black uppercase tracking-wide text-[#064b42]">
-              Menu
-            </h2>
-
-            <div className="grid gap-3">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-4 rounded-2xl bg-white px-5 py-4 text-[#064b42] shadow-md transition active:scale-95"
-                >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f1eadf] text-2xl">
-                    {item.icon}
-                  </span>
-
-                  <span className="text-base font-black">{item.label}</span>
-                </Link>
-              ))}
+          {/* Menu déroulant */}
+          <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
+            <div className="flex justify-center pt-3">
+              <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              className="mt-5 w-full rounded-2xl bg-[#064b42] py-4 text-sm font-black uppercase tracking-wide text-white shadow-lg"
-            >
-              Fermer
-            </button>
+            <div className="relative px-5 pb-5 pt-4">
+              <button
+                type="button"
+                onClick={closeMenu}
+                aria-label="Fermer le menu"
+                className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f4ec] text-lg font-black text-[#064b42] shadow-sm"
+              >
+                ✕
+              </button>
+
+              <h2 className="mb-5 text-center text-xl font-black text-[#064b42]">
+                Menu
+              </h2>
+
+              <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 rounded-2xl bg-[#f8f4ec] px-4 py-3 shadow-sm transition active:scale-[0.98]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
+                      {item.icon}
+                    </span>
+
+                    <span className="text-base font-black text-[#064b42]">
+                      {item.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur">
-        <div className="mx-auto flex max-w-md items-end justify-between">
+      {/* Barre de navigation */}
+      <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
+        <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
           {mainItems.map((item) => {
-            const active = !item.menu && isActive(item.href);
+            const isActive =
+              item.href !== "#" &&
+              (pathname === item.href ||
+                (item.href !== "/" &&
+                  pathname.startsWith(`${item.href}/`)));
 
             if (item.menu) {
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => setMenuOpen(true)}
-                  className="flex w-16 flex-col items-center justify-center gap-1"
+                  onClick={toggleMenu}
+                  aria-expanded={menuOpen}
+                  aria-label={
+                    menuOpen
+                      ? "Fermer le menu"
+                      : "Ouvrir le menu"
+                  }
+                  className="flex flex-col items-center justify-center gap-0.5"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-[#6E7E5D]">
-                    {item.icon}
+                  <span
+                    className={`text-[24px] leading-none ${
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
+                    }`}
+                  >
+                    {menuOpen ? "✕" : item.icon}
                   </span>
-                  <span className="text-[10px] font-black uppercase text-[#6E7E5D]">
+
+                  <span
+                    className={`text-[9px] font-black uppercase leading-none ${
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
+                    }`}
+                  >
                     {item.label}
                   </span>
                 </button>
+              );
+            }
+
+            if (item.sos) {
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-label="Signaler un animal"
+                  className="relative -mt-5 flex items-center justify-center"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#dc7a4b] shadow-xl ring-[3px] ring-white">
+                    <img
+                      src="/sos-paw.png"
+                      alt="SOS"
+                      className="h-11 w-11 object-contain"
+                    />
+                  </span>
+                </Link>
               );
             }
 
@@ -105,27 +178,17 @@ const menuItems = [
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex w-16 flex-col items-center justify-center gap-1"
+                className="flex flex-col items-center justify-center gap-0.5"
               >
-                <span
-                  className={`flex items-center justify-center rounded-full transition ${
-                    item.sos
-                      ? "h-14 w-14 -translate-y-3 bg-[#D67B52] text-2xl text-white shadow-xl"
-                      : active
-                        ? "h-10 w-10 bg-[#064b42] text-xl text-white"
-                        : "h-10 w-10 text-xl text-[#6E7E5D]"
-                  }`}
-                >
+                <span className="text-[24px] leading-none">
                   {item.icon}
                 </span>
 
                 <span
-                  className={`text-[10px] font-black uppercase ${
-                    item.sos
-                      ? "-mt-2 text-[#D67B52]"
-                      : active
-                        ? "text-[#064b42]"
-                        : "text-[#6E7E5D]"
+                  className={`text-[9px] font-black uppercase leading-none ${
+                    isActive
+                      ? "text-[#064b42]"
+                      : "text-[#6f7b63]"
                   }`}
                 >
                   {item.label}

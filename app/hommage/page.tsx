@@ -1,138 +1,106 @@
-import Image from "next/image";
+import TauiPageBackground from "../components/ui/TauiPageBackground";
+
+function calculateDaysWithoutKali() {
+  const disappearanceDate = new Date("2025-03-19T00:00:00");
+  const currentDate = new Date();
+
+  disappearanceDate.setHours(0, 0, 0, 0);
+  currentDate.setHours(0, 0, 0, 0);
+
+  const difference = currentDate.getTime() - disappearanceDate.getTime();
+
+  return Math.max(0, Math.floor(difference / (1000 * 60 * 60 * 24)));
+}
 
 export default function HommagePage() {
-  return (
-    <main className="min-h-screen bg-[#f8f4ec] px-4 pb-28 pt-6 text-[#064b42]">
-      <section className="mx-auto max-w-5xl rounded-[32px] bg-white p-8 shadow-xl">
+  const daysWithoutKali = calculateDaysWithoutKali();
 
-        {/* Photo de Kali */}
-        <div className="flex justify-center">
-          <div className="relative h-72 w-72 overflow-hidden rounded-full border-8 border-white shadow-2xl ring-4 ring-[#b58b5b]/40">
-            <Image
-              src="/kali-hommage.jpg"
-              alt="Kali"
-              fill
-              priority
-              className="object-cover"
-            />
+  return (
+    <TauiPageBackground showKali={false}>
+      <section className="mx-auto max-w-5xl px-4 py-10">
+        <div className="overflow-hidden rounded-[40px] border border-white/80 bg-white/85 shadow-2xl backdrop-blur-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#064b42] via-[#09675a] to-[#0a796b] px-6 py-12 text-center text-white">
+            <div className="pointer-events-none absolute -left-20 top-4 h-64 w-64 rounded-full bg-white/5" />
+            <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-white/5" />
+
+            <div className="relative">
+              <div className="mx-auto h-72 w-72 overflow-hidden rounded-full border-8 border-white shadow-2xl ring-4 ring-[#d6b382]/50 md:h-80 md:w-80">
+                <img
+                  src="/kali-hommage.jpg"
+                  alt="Kali"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <p className="mt-8 text-sm font-black uppercase tracking-[0.3em] text-[#f1d8b4]">
+                TAUI TE ORA
+              </p>
+
+              <h1 className="mt-3 text-5xl font-black md:text-7xl">
+                Hommage à Kali
+              </h1>
+
+              <p className="mt-5 text-2xl font-black text-[#f1d8b4] md:text-4xl">
+                {daysWithoutKali} jours sans toi
+              </p>
+
+              <p className="mt-3 text-sm font-semibold text-white/70">
+                Disparue le 19 mars 2025
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 py-10 text-center md:px-14 md:py-14">
+            <p className="text-3xl font-black leading-tight text-[#064b42] md:text-5xl">
+              Oui, je te choisis encore.
+            </p>
+
+            <div className="mx-auto my-8 h-px max-w-md bg-gradient-to-r from-transparent via-[#b58b5b] to-transparent" />
+
+            <div className="mx-auto max-w-3xl space-y-6 text-lg leading-9 text-gray-700">
+              <p>
+                Hey toi, oui toi. Change rien. On recommence tout.
+              </p>
+
+              <p>
+                Je reprendrais les promenades, les silences, les regards et
+                chaque instant passé à tes côtés.
+              </p>
+
+              <p>
+                Je reprendrais même les jours difficiles, parce qu’ils seraient
+                encore des jours avec toi.
+              </p>
+
+              <p className="text-2xl font-black italic text-[#8d673d]">
+                Allez viens, on recommence tout.
+              </p>
+            </div>
+
+            <div className="mx-auto mt-12 max-w-3xl rounded-[30px] bg-[#f8f4ec] p-7 shadow-inner md:p-10">
+              <div className="text-5xl">🐾</div>
+
+              <h2 className="mt-5 text-3xl font-black text-[#064b42]">
+                De ton absence est née une mission
+              </h2>
+
+              <p className="mt-5 text-lg leading-8 text-gray-700">
+                TAUI TE ORA et Les Veilleurs de Kali portent ton souvenir.
+                Chaque animal retrouvé, protégé ou adopté est une manière de
+                continuer à te chercher autrement.
+              </p>
+
+              <p className="mt-6 font-black text-[#b58b5b]">
+                On ne sauvera pas le monde, mais on sauvera le leur.
+              </p>
+            </div>
+
+            <p className="mt-10 text-xl font-black text-[#064b42]">
+              Pour toujours, Kali.
+            </p>
           </div>
         </div>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm font-black uppercase tracking-[0.25em] text-[#b58b5b]">
-            TAUI TE ORA
-          </p>
-
-          <h1 className="mt-3 text-5xl font-black text-[#064b42] md:text-7xl">
-            🐾 Hommage à Kali
-          </h1>
-
-          <p className="mt-4 text-3xl font-black text-[#b58b5b] md:text-5xl">
-            477 jours sans toi
-          </p>
-
-          <p className="mt-2 text-xl font-bold text-[#6f5a47]">
-            Disparue le 19 mars 2025
-          </p>
-        </div>
-
-        <div className="mx-auto mt-10 max-w-3xl space-y-5 text-left text-xl leading-9 text-[#4f4438] md:text-2xl">
-
-          <p>
-            Le 19 mars 2025, sans le savoir, c'était le dernier jour où je te voyais.
-          </p>
-
-          <p>
-            Depuis ce jour, le temps a continué d'avancer. Les saisons ont changé.
-            Les anniversaires sont passés. La vie des autres a repris son cours.
-            Mais la mienne s'est figée.
-          </p>
-
-          <p>
-            Il y a des blessures qui ne cicatrisent pas. Il y a des absences qui
-            ne s'apprennent jamais. Et il y a toi.
-          </p>
-
-          <p>
-            Pendant onze ans, tu n'as jamais été juste un chien. Tu étais ma
-            présence, ma joie, ma petite peste, mon repère, une partie de ma vie.
-          </p>
-
-          <p>
-            À l'époque où je m'étais perdu, tu étais là. Et sans le savoir,
-            tu m'as reconstruit.
-          </p>
-
-          <p>
-            Pendant onze ans tu as été ma raison de vivre. Aujourd'hui, même
-            dans ton absence, ton souvenir est devenu la force qui me pousse à
-            continuer.
-          </p>
-
-          <p>
-            Pendant des mois, je t'ai cherchée. Chaque message me donnait
-            l'espoir de te retrouver avant de me briser un peu plus.
-          </p>
-
-          <p>
-            Toute la Polynésie s'est mobilisée pour toi. Des milliers de personnes
-            ont partagé ton histoire. Des inconnus sont devenus une famille.
-            Grâce à vous, j'ai tenu debout.
-          </p>
-
-          <p>
-            Aujourd'hui, malgré le temps, je t'attends encore. Parce que
-            l'amour ne connaît pas le calendrier.
-          </p>
-
-          <p>
-            Chaque animal que nous aidons, chaque famille que nous soutenons,
-            chaque adoption, chaque vie sauvée porte un peu de toi.
-          </p>
-
-          <p>
-            Je continuerai à me battre pour toi, pour ceux qui attendent encore
-            leur compagnon disparu, pour ceux qui n'ont plus personne.
-          </p>
-
-          <p>
-            Parce que ton histoire ne doit jamais être oubliée.
-          </p>
-
-          <p>
-            Kali, si l'amour avait eu le pouvoir de te ramener, tu serais encore
-            là aujourd'hui.
-          </p>
-
-          <p>
-            Tu me manques aujourd'hui autant qu'au premier jour. Tu me manqueras
-            demain, dans dix ans et toute ma vie.
-          </p>
-
-          <p>
-            Et le jour où mon cœur cessera de battre, j'aime croire que tu seras là.
-          </p>
-
-          <p>
-            Je t'imagine courir vers moi une dernière fois.
-            Je poserai mon front contre le tien.
-            Et cette fois...
-          </p>
-
-          <p className="pt-4 text-center text-4xl font-black text-[#064b42]">
-            Je ne te laisserai plus jamais partir.
-          </p>
-
-          <p className="text-center text-5xl font-black text-[#b58b5b]">
-            ❤️ Je t'aime, ma princesse ❤️
-          </p>
-
-          <p className="pb-6 text-center text-2xl font-bold text-[#6f5a47]">
-            19 mars 2025 • À jamais dans mon cœur
-          </p>
-
-        </div>
       </section>
-    </main>
+    </TauiPageBackground>
   );
 }

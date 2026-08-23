@@ -1,3 +1,5 @@
+import TauiPageBackground from "../components/ui/TauiPageBackground";
+
 export default function ToilettagePage() {
   return (
     <main className="min-h-screen bg-[#f8f4ec] px-5 pb-28 pt-8 text-[#064b42]">

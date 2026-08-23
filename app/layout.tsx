@@ -1,7 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import type { Metadata } from "next";
 import "./globals.css";
-import BottomNavigation from "./components/BottomNavigation";
+import BottomNavigation from "./components/ui/BottomNavigation";
 
 export const metadata: Metadata = {
   title: "TAUI TE ORA",
@@ -10,13 +10,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="fr">
-      <body className="min-h-screen bg-[#f8f4ec] pb-28">
-        <main>{children}</main>
+      <body className="bg-[#f8f4ec]">
+        {children}
 
         <BottomNavigation />
       </body>

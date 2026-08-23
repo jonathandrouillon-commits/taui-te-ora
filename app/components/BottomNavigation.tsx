@@ -17,11 +17,21 @@ export default function BottomNavigation() {
       icon: "/sos-paw.png",
       sos: true,
     },
-    { href: "#", label: "Menu", icon: "☰", menu: true },
-    { href: "/profile", label: "Profil", icon: "👤" },
+    {
+      href: "#",
+      label: "Menu",
+      icon: "☰",
+      menu: true,
+    },
+    {
+      href: "/profile",
+      label: "Profil",
+      icon: "👤",
+    },
   ];
 
   const menuItems = [
+    { href: "/info", label: "Info", icon: "ℹ️" },
     { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
     {
       href: "/association",
@@ -32,21 +42,31 @@ export default function BottomNavigation() {
     { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
     { href: "/education", label: "Éducation", icon: "🎓" },
     { href: "/alimentation", label: "Alimentation", icon: "🥣" },
-    { href: "/hommage-kali", label: "Hommage à Kali", icon: "❤️" },
+    { href: "/hommage", label: "Hommage à Kali", icon: "🐾" },
   ];
+
+  function toggleMenu() {
+    setMenuOpen((previousValue) => !previousValue);
+  }
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
 
   return (
     <>
       {menuOpen && (
         <>
+          {/* Fond sombre */}
           <button
             type="button"
             aria-label="Fermer le menu"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-[80] bg-black/30"
+            onClick={closeMenu}
+            className="fixed inset-0 z-[200] cursor-default bg-black/40"
           />
 
-          <div className="fixed inset-x-0 bottom-[105px] z-[90] mx-auto max-h-[65vh] w-[calc(100%-24px)] max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+          {/* Menu déroulant */}
+          <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
@@ -54,26 +74,26 @@ export default function BottomNavigation() {
             <div className="relative px-5 pb-5 pt-4">
               <button
                 type="button"
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 aria-label="Fermer le menu"
-                className="absolute right-5 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f4ec] text-xl font-black text-[#064b42] shadow-sm transition active:scale-95"
+                className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f4ec] text-lg font-black text-[#064b42] shadow-sm"
               >
                 ✕
               </button>
 
-              <h2 className="mb-4 text-center text-lg font-black text-[#064b42]">
+              <h2 className="mb-5 text-center text-xl font-black text-[#064b42]">
                 Menu
               </h2>
 
-              <div className="max-h-[50vh] space-y-2 overflow-y-auto pb-2">
+              <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
                 {menuItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl bg-[#f8f4ec] px-4 py-3 shadow-sm transition active:scale-95"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 rounded-2xl bg-[#f8f4ec] px-4 py-3 shadow-sm transition active:scale-[0.98]"
                   >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-sm">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
                       {item.icon}
                     </span>
 
@@ -88,33 +108,45 @@ export default function BottomNavigation() {
         </>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[80] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
+      {/* Barre de navigation */}
+      <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
           {mainItems.map((item) => {
             const isActive =
               item.href !== "#" &&
               (pathname === item.href ||
-                pathname.startsWith(`${item.href}/`));
+                (item.href !== "/" &&
+                  pathname.startsWith(`${item.href}/`)));
 
             if (item.menu) {
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => setMenuOpen((prev) => !prev)}
+                  onClick={toggleMenu}
+                  aria-expanded={menuOpen}
+                  aria-label={
+                    menuOpen
+                      ? "Fermer le menu"
+                      : "Ouvrir le menu"
+                  }
                   className="flex flex-col items-center justify-center gap-0.5"
                 >
                   <span
                     className={`text-[24px] leading-none ${
-                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
                     }`}
                   >
-                    {item.icon}
+                    {menuOpen ? "✕" : item.icon}
                   </span>
 
                   <span
                     className={`text-[9px] font-black uppercase leading-none ${
-                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
                     }`}
                   >
                     {item.label}
@@ -128,13 +160,14 @@ export default function BottomNavigation() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label="Signaler un animal"
                   className="relative -mt-5 flex items-center justify-center"
                 >
                   <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#dc7a4b] shadow-xl ring-[3px] ring-white">
                     <img
-                      src={item.icon}
-                      alt={item.label}
-                      className="h-full w-full object-contain"
+                      src="/sos-paw.png"
+                      alt="SOS"
+                      className="h-11 w-11 object-contain"
                     />
                   </span>
                 </Link>
@@ -147,11 +180,15 @@ export default function BottomNavigation() {
                 href={item.href}
                 className="flex flex-col items-center justify-center gap-0.5"
               >
-                <span className="text-[24px] leading-none">{item.icon}</span>
+                <span className="text-[24px] leading-none">
+                  {item.icon}
+                </span>
 
                 <span
                   className={`text-[9px] font-black uppercase leading-none ${
-                    isActive ? "text-[#064b42]" : "text-[#6f7b63]"
+                    isActive
+                      ? "text-[#064b42]"
+                      : "text-[#6f7b63]"
                   }`}
                 >
                   {item.label}

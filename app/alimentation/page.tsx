@@ -1,108 +1,146 @@
-import Image from "next/image";
+import TauiPageBackground from "../components/ui/TauiPageBackground";
+
+const produits = [
+  {
+    titre: "Alimentation pour chiots",
+    description:
+      "Des recettes adaptées à la croissance et au développement des jeunes chiens.",
+    icon: "🐶",
+  },
+  {
+    titre: "Alimentation pour chiens adultes",
+    description:
+      "Une alimentation équilibrée adaptée à l’activité et à la taille du chien.",
+    icon: "🐕",
+  },
+  {
+    titre: "Alimentation pour chiens seniors",
+    description:
+      "Des recettes adaptées aux besoins spécifiques des chiens plus âgés.",
+    icon: "🐾",
+  },
+  {
+    titre: "Alimentation vétérinaire",
+    description:
+      "Des gammes spécifiques pouvant accompagner certaines sensibilités.",
+    icon: "🩺",
+  },
+];
 
 export default function AlimentationPage() {
   return (
-    <main className="min-h-screen bg-[#f8f4ec] px-5 pb-28 pt-8 text-[#064b42]">
-      <section className="mx-auto max-w-4xl">
-        <div className="rounded-[32px] bg-white p-8 text-center shadow-xl">
-          <Image
-            src="/hills-polynesie.jpg"
-            alt="Hill's Pet Nutrition Polynésie"
-            width={320}
-            height={320}
-            priority
-            className="mx-auto mb-8 h-44 w-auto object-contain"
-          />
+    <TauiPageBackground>
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        <div className="overflow-hidden rounded-[36px] border border-white/80 bg-white/85 shadow-2xl backdrop-blur-md">
+          <div className="bg-gradient-to-br from-[#cf202e] to-[#ef4b55] px-6 py-10 text-center text-white">
+            <img
+              src="/hills-polynesie.png"
+              alt="Hill's Polynésie"
+              className="mx-auto h-36 w-64 rounded-[24px] border-4 border-white bg-white object-contain p-4 shadow-2xl"
+            />
 
-          <p className="text-sm font-black uppercase tracking-[0.25em] text-[#b58b5b]">
-            PARTENAIRE NUTRITION ANIMALE
-          </p>
+            <p className="mt-6 text-sm font-black uppercase tracking-[0.3em] text-white/80">
+              Partenaire alimentation
+            </p>
 
-          <h1 className="mt-3 text-5xl font-black text-[#064b42]">
-            🥣 Hill's Pet Nutrition Polynésie
-          </h1>
-
-          <p className="mt-8 text-2xl font-bold text-[#6f5a47]">
-            Une alimentation de qualité pour la santé de votre compagnon.
-          </p>
-
-          <p className="mt-6 text-lg leading-8 text-[#6f5a47]">
-            <strong>Hill's Pet Nutrition Polynésie</strong> accompagne les
-            propriétaires de chiens et de chats avec des solutions
-            nutritionnelles adaptées aux besoins de chaque animal.
-          </p>
-
-          <p className="mt-4 text-lg leading-8 text-[#6f5a47]">
-            Que votre compagnon soit un chiot, un chaton, un adulte ou un
-            senior, Hill's propose une alimentation pensée pour soutenir sa
-            santé, son bien-être et sa qualité de vie.
-          </p>
-        </div>
-
-        <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-          <h2 className="text-3xl font-black">🐶 Produits disponibles</h2>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              "🐕 Science Plan",
-              "🩺 Prescription Diet",
-              "⭐ Vet Essentials",
-              "🐶 Alimentation pour chiots",
-              "🐱 Alimentation pour chatons",
-              "❤️ Gestion du poids",
-              "🦴 Santé articulaire",
-              "🩺 Nutrition thérapeutique",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-2xl bg-[#F7F2E8] p-5 text-lg font-bold shadow-sm transition hover:scale-[1.02]"
-              >
-                {item}
-              </div>
-            ))}
+            <h1 className="mt-3 text-4xl font-black md:text-6xl">
+              Hill&apos;s Polynésie
+            </h1>
           </div>
-        </div>
 
-        <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-          <h2 className="text-3xl font-black">❤️ Pourquoi choisir Hill's ?</h2>
+          <div className="p-6 md:p-10">
+            <section>
+              <h2 className="text-center text-3xl font-black text-[#064b42] md:text-4xl">
+                Produits disponibles
+              </h2>
 
-          <p className="mt-5 text-lg leading-8 text-[#6f5a47]">
-            Les aliments Hill's sont formulés pour répondre aux besoins
-            nutritionnels spécifiques des chiens et des chats. Ils permettent
-            d'accompagner les animaux à chaque étape de leur vie avec une
-            alimentation équilibrée et de qualité.
-          </p>
-        </div>
+              <div className="mt-8 grid gap-5 md:grid-cols-2">
+                {produits.map((produit) => (
+                  <article
+                    key={produit.titre}
+                    className="rounded-[26px] bg-[#f8f4ec] p-6 shadow-sm"
+                  >
+                    <div className="text-4xl">{produit.icon}</div>
 
-        <div className="mt-6 rounded-[32px] bg-white p-8 shadow-xl">
-          <h2 className="text-3xl font-black">📞 Contact</h2>
+                    <h3 className="mt-4 text-xl font-black text-[#064b42]">
+                      {produit.titre}
+                    </h3>
 
-          <div className="mt-6 space-y-4">
-            <a
-              href="tel:+68989408000"
-              className="block rounded-2xl bg-[#064b42] px-6 py-5 text-center text-xl font-black text-white transition hover:scale-[1.02]"
-            >
-              📞 89 40 80 00
-            </a>
+                    <p className="mt-3 leading-7 text-gray-600">
+                      {produit.description}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-            <a
-              href="mailto:hillspetnutritionpolynesie@gmail.com"
-              className="block rounded-2xl bg-[#0b8f79] px-6 py-5 text-center text-xl font-black text-white transition hover:scale-[1.02]"
-            >
-              ✉️ hillspetnutritionpolynesie@gmail.com
-            </a>
+            <section className="mt-12 rounded-[30px] bg-[#fff3f3] p-6 md:p-8">
+              <h2 className="text-3xl font-black text-[#064b42]">
+                Pourquoi choisir Hill&apos;s ?
+              </h2>
 
-            <a
-              href="https://www.facebook.com/profile.php?id=61574249457633"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-2xl bg-[#1877F2] px-6 py-5 text-center text-xl font-black text-white transition hover:scale-[1.02]"
-            >
-              🌐 Facebook
-            </a>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="text-3xl">🔬</div>
+
+                  <h3 className="mt-3 font-black text-[#064b42]">
+                    Expertise nutritionnelle
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Des recettes élaborées pour répondre aux besoins
+                    nutritionnels des animaux.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="text-3xl">🥣</div>
+
+                  <h3 className="mt-3 font-black text-[#064b42]">
+                    Gammes adaptées
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Des solutions selon l’âge, la taille et les besoins de
+                    l’animal.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="text-3xl">❤️</div>
+
+                  <h3 className="mt-3 font-black text-[#064b42]">
+                    Bien-être animal
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Une alimentation pensée pour accompagner la santé et la
+                    vitalité.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-12 text-center">
+              <h2 className="text-3xl font-black text-[#064b42]">Contact</h2>
+
+              <p className="mx-auto mt-3 max-w-2xl text-gray-600">
+                Contactez Hill&apos;s Polynésie pour connaître les produits et
+                les points de vente disponibles.
+              </p>
+
+              <a
+                href="https://www.facebook.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex rounded-full bg-[#cf202e] px-8 py-4 font-black text-white shadow-lg transition hover:scale-105 hover:bg-[#ae1824]"
+              >
+                Contacter Hill&apos;s Polynésie
+              </a>
+            </section>
           </div>
         </div>
       </section>
-    </main>
+    </TauiPageBackground>
   );
 }
