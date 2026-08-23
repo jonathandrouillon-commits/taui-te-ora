@@ -22,30 +22,9 @@ export default function AnimalSwipeCard({
   const [actionLabel, setActionLabel] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
 
-  if (!animal) {
-    return (
-      <div className="mx-auto flex min-h-[620px] w-full max-w-[430px] items-center justify-center rounded-[38px] bg-[#fffaf5]/90 p-8 shadow-xl backdrop-blur">
-        <p className="text-xl font-black text-[#50614f]">
-          Aucun animal disponible.
-        </p>
-      </div>
-    );
-  }
-
-  const name = animal.animal_name || animal.nom || "Animal";
-  const age = animal.age_label || animal.age || "Âge non renseigné";
-  const sex = animal.sex || animal.sexe || "Sexe non renseigné";
-  const city = animal.city || animal.localisation || "Localisation";
-  const island = animal.island || animal.ile || "Île";
-
-  const associationName =
-    animal.owner_profile?.organization_name ||
-    animal.association_name ||
-    "Association";
-
-  const associationLogo = animal.owner_profile?.avatar_url || "";
-
   const mediaItems = useMemo(() => {
+    if (!animal) return [];
+
     const photos =
       animal.animal_photos?.map((photo: any) => ({
         type: "photo",
@@ -75,11 +54,24 @@ export default function AnimalSwipeCard({
     return [];
   }, [animal]);
 
+  if (!animal) {
+    return null;
+  }
+
+  const name = animal.animal_name || animal.nom || "Animal";
+  const age = animal.age_label || animal.age || "Âge non renseigné";
+  const sex = animal.sex || animal.sexe || "Sexe non renseigné";
+  const city = animal.city || animal.localisation || "Localisation";
+  const island = animal.island || animal.ile || "";
+
+  const associationName =
+    animal.owner_profile?.organization_name ||
+    animal.association_name ||
+    "Association";
+
   const currentMedia = mediaItems[mediaIndex];
 
   const isSterilized = animal.sterilized ?? animal.sterilise;
-  const isVaccinated = animal.vaccinated ?? animal.vaccine;
-  const isMicrochipped = animal.microchipped ?? animal.identifie;
 
   function nextMedia() {
     if (mediaItems.length <= 1) return;
@@ -170,257 +162,254 @@ export default function AnimalSwipeCard({
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-[430px]">
-      {actionLabel && (
-        <div
-          className={`absolute left-1/2 top-24 z-[60] -translate-x-1/2 rotate-[-4deg] rounded-2xl border-4 px-5 py-3 text-xl font-black uppercase shadow-xl ${
-            actionLabel === "COUP DE CŒUR"
-              ? "border-[#ef8fa8] bg-[#fff5f8] text-[#d96887]"
-              : "border-[#8bb7a5] bg-[#f3fff9] text-[#527a69]"
-          }`}
-        >
-          {actionLabel}
-        </div>
-      )}
+    <div className="relative mx-auto h-[calc(100dvh-78px)] w-full max-w-[470px] md:h-[850px] md:overflow-hidden md:rounded-[44px] md:border-[7px] md:border-white/70 md:shadow-[0_30px_90px_rgba(60,45,35,0.35)]">
+      <article
+        onMouseDown={(event) => handleStart(event.clientX)}
+        onMouseMove={(event) => handleMove(event.clientX)}
+        onMouseUp={handleEnd}
+        onMouseLeave={() => {
+          if (startX !== null) {
+            handleEnd();
+          }
+        }}
+        onTouchStart={(event) => handleStart(event.touches[0].clientX)}
+        onTouchMove={(event) => handleMove(event.touches[0].clientX)}
+        onTouchEnd={handleEnd}
+        className="absolute inset-0 cursor-grab overflow-hidden bg-[#eadfd5] active:cursor-grabbing md:rounded-[37px]"
+        style={{
+          transform: `translateX(${translateX}px) rotate(${translateX / 25}deg)`,
+          transition: startX === null ? "transform 0.25s ease" : "none",
+        }}
+      >
+        {currentMedia?.url ? (
+          <img
+            src={currentMedia.url}
+            alt={name}
+            draggable={false}
+            className="absolute inset-0 h-full w-full select-none object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#eadfd5]">
+            <span className="text-8xl">🐾</span>
+          </div>
+        )}
 
-      <div className="rounded-[42px] border border-white/80 bg-[#fffaf5]/90 p-3 shadow-[0_25px_70px_rgba(88,66,50,0.22)] backdrop-blur-xl">
-        <article
-          onMouseDown={(event) => handleStart(event.clientX)}
-          onMouseMove={(event) => handleMove(event.clientX)}
-          onMouseUp={handleEnd}
-          onMouseLeave={() => {
-            if (startX !== null) {
-              handleEnd();
-            }
-          }}
-          onTouchStart={(event) => handleStart(event.touches[0].clientX)}
-          onTouchMove={(event) => handleMove(event.touches[0].clientX)}
-          onTouchEnd={handleEnd}
-          className="relative h-[590px] cursor-grab overflow-hidden rounded-[34px] bg-[#eadfd5] shadow-lg active:cursor-grabbing sm:h-[620px]"
-          style={{
-            transform: `translateX(${translateX}px) rotate(${
-              translateX / 20
-            }deg)`,
-            transition:
-              startX === null ? "transform 0.25s ease" : "none",
-          }}
-        >
-          {currentMedia?.url ? (
-            <img
-              src={currentMedia.url}
-              alt={name}
-              draggable={false}
-              className="absolute inset-0 h-full w-full select-none object-cover"
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/25" />
+
+        {mediaItems.length > 1 && (
+          <div className="absolute left-4 right-4 top-3 z-40 flex gap-1">
+            {mediaItems.map((_: any, index: number) => (
+              <span
+                key={index}
+                className={`h-1 flex-1 rounded-full ${
+                  index === mediaIndex ? "bg-white" : "bg-white/40"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {mediaItems.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Photo précédente"
+              onClick={(event) => {
+                event.stopPropagation();
+                previousMedia();
+              }}
+              className="absolute bottom-32 left-0 top-12 z-20 w-[28%]"
             />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#eadfd5]">
-              <div className="text-center">
-                <div className="text-7xl">🐾</div>
 
-                <p className="mt-3 font-bold text-[#5f695a]">
-                  Photo à venir
-                </p>
-              </div>
-            </div>
-          )}
+            <button
+              type="button"
+              aria-label="Photo suivante"
+              onClick={(event) => {
+                event.stopPropagation();
+                nextMedia();
+              }}
+              className="absolute bottom-32 right-0 top-12 z-20 w-[28%]"
+            />
+          </>
+        )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/10" />
-
-          {mediaItems.length > 1 && (
-            <>
-              <button
-                type="button"
-                aria-label="Photo précédente"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  previousMedia();
-                }}
-                className="absolute bottom-0 left-0 top-0 z-20 w-[30%]"
-              />
-
-              <button
-                type="button"
-                aria-label="Photo suivante"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  nextMedia();
-                }}
-                className="absolute bottom-0 right-0 top-0 z-20 w-[30%]"
-              />
-            </>
-          )}
-
-          {mediaItems.length > 1 && (
-            <div className="absolute left-4 right-4 top-4 z-30 flex gap-1.5">
-              {mediaItems.map((_: any, index: number) => (
-                <span
-                  key={index}
-                  className={`h-1.5 flex-1 rounded-full shadow ${
-                    index === mediaIndex
-                      ? "bg-white"
-                      : "bg-white/40"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-
+        <div className="absolute left-0 right-0 top-5 z-40 flex items-start justify-between px-5">
           <button
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleInfo();
-            }}
-            className="absolute right-5 top-8 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/70 bg-white/90 text-xl font-black text-[#657462] shadow-lg backdrop-blur"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/10 text-3xl text-white backdrop-blur-sm"
           >
-            i
+            ☰
           </button>
 
-          <div className="absolute left-5 top-8 z-30">
-            <span className="rounded-full bg-[#f4a3ad]/90 px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-lg backdrop-blur">
-              À adopter
-            </span>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 z-30 p-6 pb-7">
-            <div className="flex items-end justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-5xl font-black leading-none text-white drop-shadow-lg">
-                  {name}
-                </h2>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold text-white">
-                  <span className="rounded-full bg-white/20 px-3 py-1.5 backdrop-blur">
-                    {sex}
-                  </span>
-
-                  <span className="rounded-full bg-white/20 px-3 py-1.5 backdrop-blur">
-                    {age}
-                  </span>
-                </div>
-              </div>
-
-              {associationLogo ? (
-                <img
-                  src={associationLogo}
-                  alt={associationName}
-                  className="h-16 w-16 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-xl"
-                />
-              ) : (
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-white bg-[#8db5a2] text-3xl shadow-xl">
-                  🐾
-                </div>
-              )}
+          <div className="text-center text-white">
+            <div className="text-2xl font-semibold tracking-wide drop-shadow">
+              Taui Te Ora 🌺
             </div>
 
-            <div className="mt-4 space-y-1 text-sm font-semibold text-white/95">
-              <p>
-                📍 {city}
-                {island ? ` · ${island}` : ""}
-              </p>
-
-              <p>Association : {associationName}</p>
+            <div className="mt-1 text-[10px] font-medium leading-tight drop-shadow">
+              On ne sauvera pas le monde,
+              <br />
+              mais on sauvera le leur.
             </div>
-
-            {(isVaccinated || isMicrochipped || isSterilized) && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {isVaccinated && <SmallBadge label="Vacciné" />}
-
-                {isMicrochipped && <SmallBadge label="Identifié" />}
-
-                {isSterilized && <SmallBadge label="Stérilisé" />}
-              </div>
-            )}
           </div>
-        </article>
 
-        <div className="px-3 pb-3 pt-5">
-          <div className="flex items-start justify-center gap-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/10 text-2xl text-white backdrop-blur-sm">
+            ♡
+          </div>
+        </div>
+
+        <div className="absolute left-4 top-[28%] z-40 flex flex-col gap-2">
+          <InfoBox icon="🐾" value={age} />
+
+          <InfoBox
+            icon={String(sex).toLowerCase().includes("fem") ? "♀" : "♂"}
+            value={sex}
+          />
+
+          <InfoBox icon="⌖" value={city} />
+
+          {isSterilized && <InfoBox icon="♡" value="Stérilisé" />}
+        </div>
+
+        {actionLabel && (
+          <div
+            className={`absolute left-1/2 top-28 z-50 -translate-x-1/2 -rotate-6 rounded-xl border-4 px-5 py-2 text-xl font-black ${
+              actionLabel === "COUP DE CŒUR"
+                ? "border-[#7cc9b0] bg-white/90 text-[#58a98f]"
+                : "border-[#c9b3d8] bg-white/90 text-[#9d82b2]"
+            }`}
+          >
+            {actionLabel}
+          </div>
+        )}
+
+        {/* Informations animal */}
+        <div className="absolute bottom-[118px] left-5 right-5 z-40 text-white">
+          <div className="flex items-center gap-3">
+            <h2 className="text-5xl font-medium leading-none drop-shadow-lg">
+              {name}
+            </h2>
+
+            {/* Bouton fiche à côté du prénom */}
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleInfo();
+              }}
+              aria-label="Voir la fiche"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-white/90 text-lg font-black text-[#555f59] shadow-lg backdrop-blur transition active:scale-95"
+            >
+              i
+            </button>
+
+            <span className="text-4xl text-[#f58c9b]">♡</span>
+          </div>
+
+          <p className="mt-3 text-sm font-semibold drop-shadow">
+            {associationName}
+          </p>
+
+          <p className="mt-1 text-xs font-medium text-white/90">
+            📍 {city}
+            {island ? ` · ${island}` : ""}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <CharacterBadge label="Joueur" />
+            <CharacterBadge label="Sociable" />
+            <CharacterBadge label="Affectueux" />
+          </div>
+        </div>
+
+        {/* Actions directement sur la photo, sans fond blanc */}
+        <div className="absolute bottom-3 left-0 right-0 z-50 px-4">
+          <div className="flex items-end justify-around">
             <ActionButton
-              label="Passer"
               icon="×"
-              variant="pass"
+              label="Passer"
+              styleName="bg-[#d9c9e5] text-white"
               onClick={handlePass}
             />
 
             <ActionButton
-              label="Coup de cœur"
-              icon="♥"
-              variant="favorite"
-              onClick={handleFavorite}
+              icon="🐾"
+              label="Je veux adopter"
+              styleName="bg-[#f2919d] text-white"
+              large
+              onClick={handleAdopt}
             />
 
             <ActionButton
-              label="Je veux adopter"
-              icon="🐾"
-              variant="adopt"
-              onClick={handleAdopt}
+              icon="♥"
+              label="Coup de cœur"
+              styleName="bg-[#76c7b3] text-white"
+              onClick={handleFavorite}
             />
           </div>
-
-          <p className="mt-5 text-center text-xs font-semibold text-[#8a8178]">
-            Glisse à gauche pour passer · à droite pour un coup de cœur
-          </p>
         </div>
+      </article>
+    </div>
+  );
+}
+
+function InfoBox({
+  icon,
+  value,
+}: {
+  icon: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-h-[58px] w-[60px] flex-col items-center justify-center rounded-xl bg-[#fffaf2]/90 px-1 py-2 text-center shadow-md backdrop-blur">
+      <div className="text-xl text-[#e89aa3]">{icon}</div>
+
+      <div className="mt-1 max-w-full truncate text-[9px] font-semibold text-[#4e514d]">
+        {value}
       </div>
     </div>
   );
 }
 
-function SmallBadge({ label }: { label: string }) {
+function CharacterBadge({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-bold text-white shadow-sm backdrop-blur">
-      ✓ {label}
+    <span className="rounded-full bg-[#d4b9dd]/90 px-3 py-1.5 text-[11px] font-semibold text-white shadow">
+      {label}
     </span>
   );
 }
 
 function ActionButton({
-  label,
   icon,
-  variant,
+  label,
+  styleName,
+  large = false,
   onClick,
 }: {
-  label: string;
   icon: string;
-  variant: "pass" | "favorite" | "adopt";
+  label: string;
+  styleName: string;
+  large?: boolean;
   onClick: () => void;
 }) {
-  const styles = {
-    pass: {
-      circle:
-        "bg-[#f6d6d9] text-[#c76f78] border-[#fff4f5]",
-      size: "h-16 w-16",
-    },
-
-    favorite: {
-      circle:
-        "bg-[#d8c7e8] text-[#875fa7] border-[#f6effc]",
-      size: "h-[72px] w-[72px]",
-    },
-
-    adopt: {
-      circle:
-        "bg-[#cce4d7] text-[#4d7967] border-[#f0faf5]",
-      size: "h-16 w-16",
-    },
-  };
-
-  const style = styles[variant];
-
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="group flex w-[105px] flex-col items-center"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      className="flex w-[105px] flex-col items-center"
     >
       <div
-        className={`flex ${style.size} items-center justify-center rounded-full border-4 text-3xl font-black shadow-lg transition duration-200 group-hover:-translate-y-1 group-hover:scale-105 group-active:scale-95 ${style.circle}`}
+        className={`flex items-center justify-center rounded-full border-2 border-white/80 shadow-xl transition active:scale-95 ${
+          large ? "h-[68px] w-[68px] text-3xl" : "h-14 w-14 text-3xl"
+        } ${styleName}`}
       >
         {icon}
       </div>
 
-      <span className="mt-2 text-center text-[11px] font-black uppercase leading-4 text-[#657462]">
+      <span className="mt-1.5 rounded-full bg-black/25 px-2 py-1 text-center text-[10px] font-semibold leading-tight text-white backdrop-blur-sm">
         {label}
       </span>
     </button>
