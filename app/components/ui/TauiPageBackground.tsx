@@ -10,8 +10,8 @@ export default function TauiPageBackground({
   showKali = true,
 }: TauiPageBackgroundProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f8f4ec] pb-28">
-      {/* Image principale du fond */}
+    <main className="relative min-h-screen overflow-hidden bg-[#f8f0e6] pb-28">
+      {/* Fond principal Taui Te Ora avec Kali */}
       <div
         className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -19,42 +19,29 @@ export default function TauiPageBackground({
         }}
       />
 
-      {/* Voile clair pour rendre les textes lisibles */}
-      <div className="pointer-events-none fixed inset-0 z-[1] bg-[#f8f4ec]/80 backdrop-blur-[1px]" />
+      {/* Voile pastel très léger pour garder le fond visible */}
+      <div className="pointer-events-none fixed inset-0 z-[1] bg-[#fff8f1]/38" />
 
-      {/* Logo fondu au centre */}
-      <div className="pointer-events-none fixed inset-0 z-[2] flex items-center justify-center">
-        <img
-          src="/logo.png"
-          alt=""
-          className="w-[280px] max-w-[65vw] opacity-[0.05] md:w-[500px]"
-        />
-      </div>
+      {/* Lumière douce centrale derrière le contenu */}
+      <div
+        className="pointer-events-none fixed inset-0 z-[2]"
+        style={{
+          background:
+            "radial-gradient(circle at center, rgba(255,250,244,0.32) 0%, rgba(255,250,244,0.10) 38%, rgba(255,250,244,0) 72%)",
+        }}
+      />
 
-      {/* Images décoratives de Kali */}
+      {/* Kali reste visible dans le fond principal.
+          On évite ici les anciennes copies rondes qui surchargeaient le design. */}
       {showKali && (
-        <>
-          <img
-            src="/kali-hommage.jpg"
-            alt=""
-            className="pointer-events-none fixed -left-16 top-24 z-[2] h-52 w-52 rotate-[-12deg] rounded-full object-cover opacity-[0.07] md:h-72 md:w-72"
-          />
+        <div className="pointer-events-none fixed inset-0 z-[3]">
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#fff8f1]/20 to-transparent" />
 
-          <img
-            src="/kali-hommage.jpg"
-            alt=""
-            className="pointer-events-none fixed -right-16 top-[34%] z-[2] h-60 w-60 rotate-[10deg] rounded-full object-cover opacity-[0.08] md:h-80 md:w-80"
-          />
-
-          <img
-            src="/kali-hommage.jpg"
-            alt=""
-            className="pointer-events-none fixed bottom-10 left-[22%] z-[2] h-40 w-40 rotate-[6deg] rounded-full object-cover opacity-[0.05] md:h-56 md:w-56"
-          />
-        </>
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#fff8f1]/35 to-transparent" />
+        </div>
       )}
 
-      {/* Contenu de la page */}
+      {/* Contenu */}
       <div className="relative z-10">{children}</div>
     </main>
   );
