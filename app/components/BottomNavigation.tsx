@@ -8,6 +8,12 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Sur l'accueil, on masque cette ancienne navigation
+  // car la nouvelle barre est directement intégrée dans app/page.tsx
+  if (pathname === "/") {
+    return null;
+  }
+
   const mainItems = [
     { href: "/", label: "Accueil", icon: "🏠" },
     { href: "/search", label: "Search", icon: "🔎" },
@@ -57,7 +63,6 @@ export default function BottomNavigation() {
     <>
       {menuOpen && (
         <>
-          {/* Fond sombre */}
           <button
             type="button"
             aria-label="Fermer le menu"
@@ -65,7 +70,6 @@ export default function BottomNavigation() {
             className="fixed inset-0 z-[200] cursor-default bg-black/40"
           />
 
-          {/* Menu déroulant */}
           <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
@@ -108,7 +112,6 @@ export default function BottomNavigation() {
         </>
       )}
 
-      {/* Barre de navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
           {mainItems.map((item) => {
@@ -125,18 +128,12 @@ export default function BottomNavigation() {
                   type="button"
                   onClick={toggleMenu}
                   aria-expanded={menuOpen}
-                  aria-label={
-                    menuOpen
-                      ? "Fermer le menu"
-                      : "Ouvrir le menu"
-                  }
+                  aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
                   className="flex flex-col items-center justify-center gap-0.5"
                 >
                   <span
                     className={`text-[24px] leading-none ${
-                      menuOpen
-                        ? "text-[#064b42]"
-                        : "text-[#6f7b63]"
+                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
                     }`}
                   >
                     {menuOpen ? "✕" : item.icon}
@@ -144,9 +141,7 @@ export default function BottomNavigation() {
 
                   <span
                     className={`text-[9px] font-black uppercase leading-none ${
-                      menuOpen
-                        ? "text-[#064b42]"
-                        : "text-[#6f7b63]"
+                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
                     }`}
                   >
                     {item.label}
@@ -186,9 +181,7 @@ export default function BottomNavigation() {
 
                 <span
                   className={`text-[9px] font-black uppercase leading-none ${
-                    isActive
-                      ? "text-[#064b42]"
-                      : "text-[#6f7b63]"
+                    isActive ? "text-[#064b42]" : "text-[#6f7b63]"
                   }`}
                 >
                   {item.label}
