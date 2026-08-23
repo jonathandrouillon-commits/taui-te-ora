@@ -69,8 +69,8 @@ export default function HomePage() {
           <div className="w-full max-w-md">
             <AnimalSwipeCard
               animal={currentAnimal}
-              onNext={goNext}
               onPass={goNext}
+              onFavorite={goNext}
             />
           </div>
         )}
@@ -84,8 +84,7 @@ export default function HomePage() {
             </h2>
 
             <p className="mt-3 text-gray-600">
-              Revenez prochainement pour découvrir de nouveaux animaux à
-              adopter.
+              Revenez prochainement pour découvrir de nouveaux animaux à adopter.
             </p>
 
             <button
