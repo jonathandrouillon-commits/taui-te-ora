@@ -10,6 +10,7 @@ export default function HomePage() {
   const [animals, setAnimals] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     loadAnimals();
@@ -42,10 +43,9 @@ export default function HomePage() {
       <div className="flex h-[100dvh] w-full flex-col overflow-hidden">
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-
           {loading && (
-            <div className="flex min-h-0 flex-1 items-center justify-center px-5">
-              <div className="rounded-3xl bg-white/90 px-8 py-6 text-center shadow-xl backdrop-blur-md">
+            <div className="flex flex-1 items-center justify-center">
+              <div className="rounded-3xl bg-white/90 px-8 py-6 text-center shadow-xl backdrop-blur">
                 <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
 
                 <p className="mt-4 font-bold text-[#667568]">
@@ -60,12 +60,13 @@ export default function HomePage() {
               animal={currentAnimal}
               onPass={goNext}
               onFavorite={goNext}
+              onMenu={() => setMenuOpen(true)}
             />
           )}
 
           {!loading && !currentAnimal && (
-            <div className="flex min-h-0 flex-1 items-center justify-center px-5">
-              <div className="max-w-md rounded-[32px] bg-white/90 p-8 text-center shadow-xl backdrop-blur-md">
+            <div className="flex flex-1 items-center justify-center px-5">
+              <div className="max-w-md rounded-[32px] bg-white/90 p-8 text-center shadow-xl backdrop-blur">
                 <div className="text-6xl">🐾</div>
 
                 <h2 className="mt-4 text-2xl font-black text-[#667568]">
@@ -73,8 +74,7 @@ export default function HomePage() {
                 </h2>
 
                 <p className="mt-3 text-gray-600">
-                  Revenez prochainement pour découvrir de nouveaux animaux à
-                  adopter.
+                  Revenez prochainement pour découvrir de nouveaux animaux.
                 </p>
 
                 <button
@@ -89,71 +89,238 @@ export default function HomePage() {
           )}
         </main>
 
-        <BottomMenu />
+        <BottomMenu onMenu={() => setMenuOpen(true)} />
+
+        {menuOpen && (
+          <InformationMenu onClose={() => setMenuOpen(false)} />
+        )}
       </div>
     </TauiPageBackground>
   );
 }
 
-function BottomMenu() {
+function BottomMenu({
+  onMenu,
+}: {
+  onMenu: () => void;
+}) {
   return (
-    <nav className="relative z-[100] w-full shrink-0 border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-5px_20px_rgba(50,40,35,0.08)] backdrop-blur-xl">
-      <div className="mx-auto grid h-[62px] w-full max-w-[470px] grid-cols-4 items-center">
+    <nav
+      className="
+        relative z-[100]
+        w-full shrink-0
+        border-t border-[#eadfd8]
+        bg-[#fffaf7]/97
+        px-1
+        pb-[max(7px,env(safe-area-inset-bottom))]
+        pt-2
+        shadow-[0_-5px_20px_rgba(50,40,35,.10)]
+        backdrop-blur-xl
+      "
+    >
+      <div className="mx-auto grid h-[64px] w-full max-w-[470px] grid-cols-5 items-center">
 
-        <Link
-          href="/"
-          className="flex h-full flex-col items-center justify-center gap-1 text-[#ee8f9b]"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde7e9]">
-            <HomeIcon />
-          </div>
+        <NavLink href="/" label="Accueil">
+          <HomeIcon />
+        </NavLink>
 
-          <span className="text-[10px] font-bold">
-            Accueil
-          </span>
-        </Link>
-
-        <Link
-          href="/search"
-          className="flex h-full flex-col items-center justify-center gap-1 text-[#626762]"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full">
-            <SearchIcon />
-          </div>
-
-          <span className="text-[10px] font-semibold">
-            Search
-          </span>
-        </Link>
+        <NavLink href="/search" label="Search">
+          <SearchIcon />
+        </NavLink>
 
         <Link
           href="/signalement"
           className="relative flex h-full flex-col items-center justify-center"
         >
-          <div className="absolute -top-5 flex h-[58px] w-[58px] items-center justify-center rounded-full border-[5px] border-[#fffaf7] bg-[#ef919b] text-white shadow-[0_5px_16px_rgba(0,0,0,.18)]">
-            <PawIcon />
+          <div
+            className="
+              absolute -top-[25px]
+              flex h-[64px] w-[64px]
+              items-center justify-center
+              rounded-full
+              border-[5px] border-[#fffaf7]
+              bg-[#ef5c63]
+              text-white
+              shadow-[0_6px_16px_rgba(0,0,0,.22)]
+            "
+          >
+            <div className="flex flex-col items-center leading-none">
+              <PawIcon />
+              <span className="-mt-1 text-[9px] font-black">
+                SOS
+              </span>
+            </div>
           </div>
 
-          <span className="mt-[38px] text-[10px] font-bold text-[#ef7f8d]">
+          <span className="mt-[42px] text-[9px] font-bold text-[#706e67]">
             SOS
           </span>
         </Link>
 
-        <Link
-          href="/profile"
-          className="flex h-full flex-col items-center justify-center gap-1 text-[#626762]"
+        <button
+          type="button"
+          onClick={onMenu}
+          className="flex h-full flex-col items-center justify-center gap-1 text-[#74766d]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full">
-            <ProfileIcon />
+          <div className="flex h-9 w-9 items-center justify-center">
+            <InfoIcon />
           </div>
 
-          <span className="text-[10px] font-semibold">
-            Profil
+          <span className="text-[9px] font-semibold uppercase">
+            Menu
           </span>
-        </Link>
+        </button>
+
+        <NavLink href="/profile" label="Profil">
+          <ProfileIcon />
+        </NavLink>
 
       </div>
     </nav>
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex h-full flex-col items-center justify-center gap-1 text-[#74766d]"
+    >
+      <div className="flex h-9 w-9 items-center justify-center">
+        {children}
+      </div>
+
+      <span className="text-[9px] font-semibold uppercase">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function InformationMenu({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="
+        fixed inset-0 z-[300]
+        flex items-end
+        bg-black/30
+        backdrop-blur-[2px]
+      "
+      onClick={onClose}
+    >
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="
+          mx-auto w-full max-w-[470px]
+          rounded-t-[30px]
+          bg-[#fffaf7]
+          px-5 pb-[max(25px,env(safe-area-inset-bottom))]
+          pt-4
+          shadow-2xl
+        "
+      >
+        <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-[#d8d0c8]" />
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-black text-[#514d48]">
+              Informations
+            </h2>
+
+            <p className="mt-1 text-xs text-[#817a73]">
+              Taui Te Ora
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f1e9e3] text-xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+
+          <MenuItem href="/veterinaires" icon="🩺">
+            Vétérinaires
+          </MenuItem>
+
+          <MenuItem href="/association/lesveilleursdekali" icon="🐾">
+            Les Veilleurs de Kali
+          </MenuItem>
+
+          <MenuItem href="/toilettage" icon="✂️">
+            Toilettage
+          </MenuItem>
+
+          <MenuItem href="/gardiennage" icon="🏠">
+            Gardiennage
+          </MenuItem>
+
+          <MenuItem href="/education" icon="🎓">
+            Éducation
+          </MenuItem>
+
+          <MenuItem href="/alimentation" icon="🥣">
+            Alimentation
+          </MenuItem>
+
+          <MenuItem href="/hommage" icon="♡">
+            Hommage
+          </MenuItem>
+
+          <MenuItem href="/associations" icon="🤝">
+            Associations
+          </MenuItem>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuItem({
+  href,
+  icon,
+  children,
+}: {
+  href: string;
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="
+        flex min-h-[78px]
+        items-center gap-3
+        rounded-[20px]
+        bg-white
+        p-4
+        shadow-sm
+        transition active:scale-[.98]
+      "
+    >
+      <span className="text-2xl">{icon}</span>
+
+      <span className="text-sm font-bold leading-tight text-[#625d58]">
+        {children}
+      </span>
+    </Link>
   );
 }
 
@@ -161,7 +328,7 @@ function HomeIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -179,12 +346,10 @@ function SearchIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-4-4" />
@@ -208,16 +373,30 @@ function PawIcon() {
   );
 }
 
+function InfoIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v6" />
+      <path d="M12 7h.01" />
+    </svg>
+  );
+}
+
 function ProfileIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <circle cx="12" cy="8" r="4" />
       <path d="M4.5 21c.8-4.1 3.5-6.5 7.5-6.5s6.7 2.4 7.5 6.5" />

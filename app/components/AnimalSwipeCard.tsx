@@ -8,12 +8,14 @@ type AnimalSwipeCardProps = {
   animal: any;
   onPass?: () => void;
   onFavorite?: () => void;
+  onMenu?: () => void;
 };
 
 export default function AnimalSwipeCard({
   animal,
   onPass,
   onFavorite,
+  onMenu,
 }: AnimalSwipeCardProps) {
   const router = useRouter();
 
@@ -22,13 +24,7 @@ export default function AnimalSwipeCard({
   const [mediaIndex, setMediaIndex] = useState(0);
 
   if (!animal) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center">
-        <p className="text-lg font-bold text-[#625f5a]">
-          Aucun animal disponible.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   const name =
@@ -39,7 +35,7 @@ export default function AnimalSwipeCard({
   const age =
     animal.age_label ||
     animal.age ||
-    "Âge non renseigné";
+    "Âge inconnu";
 
   const sex =
     animal.sex ||
@@ -60,6 +56,18 @@ export default function AnimalSwipeCard({
     animal.owner_profile?.organization_name ||
     animal.association_name ||
     "Association";
+
+  const isSterilized =
+    animal.sterilized ??
+    animal.sterilise;
+
+  const isVaccinated =
+    animal.vaccinated ??
+    animal.vaccine;
+
+  const isMicrochipped =
+    animal.microchipped ??
+    animal.identifie;
 
   const mediaItems = useMemo(() => {
     const photos =
@@ -91,18 +99,6 @@ export default function AnimalSwipeCard({
 
   const currentMedia = mediaItems[mediaIndex];
 
-  const isSterilized =
-    animal.sterilized ??
-    animal.sterilise;
-
-  const isVaccinated =
-    animal.vaccinated ??
-    animal.vaccine;
-
-  const isMicrochipped =
-    animal.microchipped ??
-    animal.identifie;
-
   function nextMedia() {
     if (mediaItems.length <= 1) return;
 
@@ -119,9 +115,7 @@ export default function AnimalSwipeCard({
   function handleMove(clientX: number) {
     if (startX === null) return;
 
-    const difference = clientX - startX;
-
-    setTranslateX(difference);
+    setTranslateX(clientX - startX);
   }
 
   async function handleEnd() {
@@ -171,20 +165,14 @@ export default function AnimalSwipeCard({
     );
   }
 
-  function handleInfo(
-    event?: React.MouseEvent<HTMLButtonElement>
-  ) {
-    event?.stopPropagation();
-
+  function handleInfo() {
     if (!animal?.id) return;
 
-    router.push(
-      `/animal/${animal.id}`
-    );
+    router.push(`/animal/${animal.id}`);
   }
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[470px] flex-1 flex-col px-3 pb-2 pt-2">
+    <div className="mx-auto flex min-h-0 w-full max-w-[470px] flex-1 flex-col px-2 pb-2 pt-2">
 
       <article
         onMouseDown={(event) =>
@@ -200,33 +188,39 @@ export default function AnimalSwipeCard({
           }
         }}
         onTouchStart={(event) =>
-          handleStart(
-            event.touches[0].clientX
-          )
+          handleStart(event.touches[0].clientX)
         }
         onTouchMove={(event) =>
-          handleMove(
-            event.touches[0].clientX
-          )
+          handleMove(event.touches[0].clientX)
         }
         onTouchEnd={handleEnd}
-        className="relative min-h-0 flex-1 touch-pan-y overflow-hidden rounded-[28px] bg-[#ddd6cd] shadow-[0_12px_35px_rgba(0,0,0,0.16)]"
+        className="
+          relative
+          min-h-0
+          flex-1
+          touch-pan-y
+          overflow-hidden
+          rounded-[30px]
+          bg-[#ddd6cd]
+          shadow-[0_12px_35px_rgba(0,0,0,.17)]
+        "
         style={{
           transform:
             `translateX(${translateX}px) rotate(${translateX / 25}deg)`,
 
           transition:
             startX === null
-              ? "transform 0.22s ease"
+              ? "transform .22s ease"
               : "none",
         }}
       >
 
+        {/* PHOTO */}
         <button
           type="button"
           onClick={nextMedia}
-          className="absolute inset-0 h-full w-full"
           aria-label="Photo suivante"
+          className="absolute inset-0 h-full w-full"
         >
           {currentMedia?.url ? (
             <img
@@ -236,26 +230,95 @@ export default function AnimalSwipeCard({
               className="h-full w-full select-none object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#ded8d0] text-lg font-bold text-[#777]">
+            <div className="flex h-full w-full items-center justify-center bg-[#ded8d0]">
               Photo
             </div>
           )}
         </button>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/5" />
+        {/* DEGRADE */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-black/10" />
 
-        {mediaItems.length > 0 && (
-          <div className="absolute left-4 top-4 z-20 rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md">
-            {mediaIndex + 1} / {mediaItems.length}
+        {/* MENU HAUT GAUCHE */}
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onMenu?.();
+          }}
+          className="
+            absolute left-4 top-4 z-40
+            flex h-12 w-12
+            items-center justify-center
+            rounded-full
+            bg-black/18
+            text-white
+            backdrop-blur-md
+          "
+        >
+          <span className="text-3xl leading-none">
+            ≡
+          </span>
+        </button>
+
+        {/* FAVORI HAUT DROITE */}
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleFavorite();
+          }}
+          className="
+            absolute right-4 top-4 z-40
+            flex h-12 w-12
+            items-center justify-center
+            rounded-full
+            bg-black/18
+            text-white
+            backdrop-blur-md
+          "
+        >
+          <span className="text-[34px] font-light leading-none">
+            ♡
+          </span>
+        </button>
+
+        {/* NOUVEAU LOGO */}
+        <div
+          className="
+            pointer-events-none
+            absolute
+            left-1/2 top-3
+            z-30
+            -translate-x-1/2
+          "
+        >
+          <div
+            className="
+              flex h-[102px] w-[102px]
+              items-center justify-center
+              rounded-full
+              bg-white/78
+              p-1
+              shadow-[0_5px_20px_rgba(0,0,0,.16)]
+              backdrop-blur-[3px]
+
+              min-[390px]:h-[112px]
+              min-[390px]:w-[112px]
+            "
+          >
+            <img
+              src="/logo-taui-te-ora.png"
+              alt="Taui Te Ora"
+              className="h-full w-full object-contain"
+            />
           </div>
-        )}
+        </div>
 
-        <div className="absolute left-3 top-[25%] z-20 flex flex-col gap-2">
+        {/* INFOS GAUCHE */}
+        <div className="absolute left-3 top-[27%] z-30 flex flex-col gap-2">
 
-          <InfoBox
-            icon="🐾"
-            text={String(age)}
-          />
+          <InfoBox icon="🐾" text={String(age)} />
 
           {sex && (
             <InfoBox
@@ -272,29 +335,39 @@ export default function AnimalSwipeCard({
 
           {isSterilized && (
             <InfoBox
-              icon="♡"
+              icon="✣"
               text="Stérilisé"
             />
           )}
 
         </div>
 
-        <div className="absolute bottom-5 left-5 right-5 z-20 text-white">
+        {/* INFOS ANIMAL */}
+        <div className="absolute bottom-5 left-5 right-5 z-30 text-white">
 
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex items-end gap-3">
 
             <div className="min-w-0 flex-1">
 
-              <h2 className="truncate text-[clamp(38px,11vw,54px)] font-semibold leading-[0.95] tracking-tight drop-shadow-md">
+              <h1
+                className="
+                  truncate
+                  text-[clamp(42px,12vw,58px)]
+                  font-medium
+                  leading-none
+                  tracking-tight
+                  drop-shadow
+                "
+              >
                 {name}
-              </h2>
+              </h1>
 
-              <p className="mt-3 truncate text-[15px] font-semibold drop-shadow">
+              <p className="mt-3 truncate text-[15px] font-semibold">
                 {associationName}
               </p>
 
               {(city || island) && (
-                <p className="mt-1 truncate text-[14px] font-medium drop-shadow">
+                <p className="mt-1 truncate text-[14px]">
                   📍{" "}
                   {[city, island]
                     .filter(Boolean)
@@ -302,57 +375,102 @@ export default function AnimalSwipeCard({
                 </p>
               )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
-
-                {isVaccinated && (
-                  <SmallBadge>
-                    Vacciné
-                  </SmallBadge>
-                )}
-
-                {isMicrochipped && (
-                  <SmallBadge>
-                    Identifié
-                  </SmallBadge>
-                )}
-
-              </div>
             </div>
 
             <button
               type="button"
-              onClick={handleInfo}
-              aria-label="Voir la fiche"
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f8f5ef] text-2xl font-bold text-[#67645f] shadow-lg"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleInfo();
+              }}
+              className="
+                flex h-[52px] w-[52px]
+                shrink-0
+                items-center justify-center
+                rounded-full
+                bg-[#fffaf4]
+                text-[26px]
+                font-bold
+                text-[#706d66]
+                shadow-lg
+              "
             >
               i
             </button>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleFavorite();
+              }}
+              className="
+                flex h-[52px] w-[52px]
+                shrink-0
+                items-center justify-center
+                text-[44px]
+                font-light
+                leading-none
+                text-[#f17f98]
+              "
+            >
+              ♡
+            </button>
+
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+
+            {animal.character_1 && (
+              <Tag>{animal.character_1}</Tag>
+            )}
+
+            {animal.character_2 && (
+              <Tag>{animal.character_2}</Tag>
+            )}
+
+            {animal.character_3 && (
+              <Tag>{animal.character_3}</Tag>
+            )}
+
+            {!animal.character_1 && (
+              <>
+                {isVaccinated && (
+                  <Tag>Vacciné</Tag>
+                )}
+
+                {isMicrochipped && (
+                  <Tag>Identifié</Tag>
+                )}
+              </>
+            )}
 
           </div>
         </div>
       </article>
 
-      <div className="grid shrink-0 grid-cols-3 items-start gap-2 pb-1 pt-3">
+      {/* ACTIONS */}
+      <div className="grid shrink-0 grid-cols-3 gap-2 pb-1 pt-3">
 
         <ActionButton
           icon="×"
           label="Passer"
-          buttonClass="bg-[#d9c9e7]"
+          color="bg-[#cfc0e1]"
           onClick={handlePass}
         />
 
         <ActionButton
           icon="🐾"
           label="Je veux adopter"
-          buttonClass="bg-[#ed8298]"
+          color="bg-[#ef8196]"
           large
           onClick={handleAdopt}
         />
 
         <ActionButton
-          icon="♡"
+          icon="♥"
           label="Coup de cœur"
-          buttonClass="bg-[#72cdbd]"
+          color="bg-[#6dd5ca]"
           onClick={handleFavorite}
         />
 
@@ -369,25 +487,46 @@ function InfoBox({
   text: string;
 }) {
   return (
-    <div className="flex h-[64px] w-[60px] flex-col items-center justify-center rounded-[17px] bg-[#fffaf4]/95 px-1 text-center shadow-md backdrop-blur-md">
-      <span className="text-[19px] leading-none text-[#dc8fa5]">
+    <div
+      className="
+        flex h-[67px] w-[62px]
+        flex-col items-center justify-center
+        rounded-[18px]
+        bg-[#fffaf5]/94
+        px-1
+        text-center
+        shadow-md
+        backdrop-blur
+      "
+    >
+      <span className="text-[19px] text-[#e58fa5]">
         {icon}
       </span>
 
-      <span className="mt-1.5 line-clamp-2 text-[10px] font-semibold leading-tight text-[#55514e]">
+      <span className="mt-1 text-[10px] font-semibold leading-tight text-[#54504c]">
         {text}
       </span>
     </div>
   );
 }
 
-function SmallBadge({
+function Tag({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <span className="rounded-full bg-[#d8b4df]/90 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+    <span
+      className="
+        rounded-full
+        bg-[#cdb4df]/95
+        px-4 py-2
+        text-[11px]
+        font-semibold
+        text-white
+        backdrop-blur
+      "
+    >
       {children}
     </span>
   );
@@ -396,13 +535,13 @@ function SmallBadge({
 function ActionButton({
   icon,
   label,
-  buttonClass,
+  color,
   onClick,
   large = false,
 }: {
   icon: string;
   label: string;
-  buttonClass: string;
+  color: string;
   onClick: () => void;
   large?: boolean;
 }) {
@@ -416,14 +555,14 @@ function ActionButton({
         className={`
           flex items-center justify-center
           rounded-full
-          border-2 border-white
+          border-[3px] border-white
           text-white
-          shadow-[0_5px_14px_rgba(0,0,0,.18)]
-          ${buttonClass}
+          shadow-[0_5px_15px_rgba(0,0,0,.17)]
+          ${color}
           ${
             large
-              ? "h-[72px] w-[72px] text-[25px]"
-              : "h-[62px] w-[62px] text-[34px]"
+              ? "h-[78px] w-[78px] text-[27px]"
+              : "h-[66px] w-[66px] text-[38px]"
           }
         `}
       >
