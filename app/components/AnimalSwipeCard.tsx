@@ -7,27 +7,14 @@ import {
   useState,
 } from "react";
 
-import {
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
-import {
-  supabase,
-} from "../lib/supabase";
-
-import {
-  favoriteService,
-} from "../services/favorite.service";
-
-/* =========================================================
-   TYPES
-========================================================= */
+import { supabase } from "../lib/supabase";
+import { favoriteService } from "../services/favorite.service";
 
 type AnimalSwipeCardProps = {
   animal: any;
-
   onPass?: () => void;
-
   onFavorite?: () => void;
 };
 
@@ -36,110 +23,79 @@ type SwipeFeedback =
   | "pass"
   | null;
 
-/* =========================================================
-   COMPONENT
-========================================================= */
-
 export default function AnimalSwipeCard({
   animal,
   onPass,
   onFavorite,
 }: AnimalSwipeCardProps) {
-  const router =
-    useRouter();
+  const router = useRouter();
 
-  const [
-    startX,
-    setStartX,
-  ] = useState<number | null>(
-    null
-  );
+  const [startX, setStartX] =
+    useState<number | null>(null);
 
-  const [
-    translateX,
-    setTranslateX,
-  ] = useState(0);
+  const [translateX, setTranslateX] =
+    useState(0);
 
-  const [
-    dragging,
-    setDragging,
-  ] = useState(false);
+  const [dragging, setDragging] =
+    useState(false);
 
-  const [
-    actionLoading,
-    setActionLoading,
-  ] = useState(false);
+  const [actionLoading, setActionLoading] =
+    useState(false);
 
-  const [
-    swipeFeedback,
-    setSwipeFeedback,
-  ] =
-    useState<SwipeFeedback>(
-      null
-    );
+  const [swipeFeedback, setSwipeFeedback] =
+    useState<SwipeFeedback>(null);
 
-  /* =======================================================
-     RESET AU CHANGEMENT D'ANIMAL
-  ======================================================= */
+  /* =========================================================
+     RESET À CHAQUE NOUVEL ANIMAL
+  ========================================================= */
 
   useEffect(() => {
     setStartX(null);
     setTranslateX(0);
     setDragging(false);
-    setSwipeFeedback(null);
     setActionLoading(false);
+    setSwipeFeedback(null);
   }, [animal?.id]);
 
-  /* =======================================================
-     NORMALISATION DES DONNEES
-  ======================================================= */
+  /* =========================================================
+     DONNÉES ANIMAL
+  ========================================================= */
 
   const animalName =
     animal?.animal_name ||
     animal?.nom ||
     "Animal";
 
-  const animalType =
-    String(
-      animal?.animal_type ||
-        animal?.type ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
+  const animalType = String(
+    animal?.animal_type ||
+      animal?.type ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
 
-  const sex =
-    String(
-      animal?.sex ||
-        animal?.sexe ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-
-  const breed =
-    animal?.breed ||
-    animal?.race ||
+  const sexRaw =
+    animal?.sex ||
+    animal?.sexe ||
     "";
+
+  const sex = String(sexRaw)
+    .trim()
+    .toLowerCase();
 
   const age =
     animal?.age_label ||
     animal?.age ||
     "";
 
-  const size =
-    animal?.size_label ||
-    animal?.taille ||
+  const city =
+    animal?.city ||
+    animal?.localisation ||
     "";
 
   const island =
     animal?.island ||
     animal?.ile ||
-    "";
-
-  const city =
-    animal?.city ||
-    animal?.localisation ||
     "";
 
   const character =
@@ -162,69 +118,68 @@ export default function AnimalSwipeCard({
     animal?.sterilise ??
     false;
 
-  /* =======================================================
-     ASSOCIATION / CREATEUR
-  ======================================================= */
+  /* =========================================================
+     CRÉATEUR / ASSOCIATION
+  ========================================================= */
 
-  const associationName =
+  const creatorName =
     animal?.owner_profile
       ?.organization_name ||
     animal?.association_name ||
     "";
 
-  const associationLogo =
+  const creatorLogo =
     animal?.owner_profile
       ?.avatar_url ||
     "";
 
-  /* =======================================================
+  /* =========================================================
      PHOTO
-  ======================================================= */
+  ========================================================= */
 
-  const photoUrl =
-    useMemo(() => {
-      const photos =
-        Array.isArray(
-          animal?.animal_photos
-        )
-          ? animal.animal_photos
-          : [];
+  const photoUrl = useMemo(() => {
+    const photos = Array.isArray(
+      animal?.animal_photos
+    )
+      ? animal.animal_photos
+      : [];
 
-      const cover =
-        photos.find(
-          (photo: any) =>
-            photo?.is_cover
-        );
+    const cover = photos.find(
+      (photo: any) =>
+        photo?.is_cover
+    );
 
-      return (
-        cover?.photo_url ||
-        photos[0]?.photo_url ||
-        animal?.photo_url ||
-        ""
-      );
-    }, [animal]);
+    return (
+      cover?.photo_url ||
+      photos[0]?.photo_url ||
+      animal?.photo_url ||
+      ""
+    );
+  }, [animal]);
 
-  /* =======================================================
-     COULEUR SELON SEXE
-  ======================================================= */
+  /* =========================================================
+     COULEUR SEXE
+  ========================================================= */
 
-  const genderColor =
+  const isMale =
     sex.includes("mâle") ||
-    sex.includes("male")
-      ? "#69a9df"
-      : sex.includes(
-            "femelle"
-          )
-        ? "#ef8196"
-        : "#e6a85c";
+    sex.includes("male");
 
-  /* =======================================================
-     PETITE PAUSE ANIMATION
-  ======================================================= */
+  const isFemale =
+    sex.includes("femelle") ||
+    sex.includes("female");
 
-  function wait(
-    milliseconds: number
-  ) {
+  const genderColor = isMale
+    ? "#4d9eea"
+    : isFemale
+      ? "#ef8196"
+      : "#e6a85c";
+
+  /* =========================================================
+     ATTENTE ANIMATION
+  ========================================================= */
+
+  function wait(milliseconds: number) {
     return new Promise<void>(
       (resolve) => {
         window.setTimeout(
@@ -235,30 +190,20 @@ export default function AnimalSwipeCard({
     );
   }
 
-  /* =======================================================
+  /* =========================================================
      PASSER
-     SWIPE DROITE -> GAUCHE
-  ======================================================= */
+     DROITE → GAUCHE
+  ========================================================= */
 
   async function handlePass() {
-    if (actionLoading) {
-      return;
-    }
+    if (actionLoading) return;
 
     try {
       setActionLoading(true);
 
-      /*
-       * Afficher la croix avant
-       * de changer d'animal.
-       */
-      setSwipeFeedback(
-        "pass"
-      );
+      setSwipeFeedback("pass");
 
-      setTranslateX(-80);
-
-      await wait(500);
+      await wait(480);
 
       setSwipeFeedback(null);
       setTranslateX(0);
@@ -269,10 +214,10 @@ export default function AnimalSwipeCard({
     }
   }
 
-  /* =======================================================
+  /* =========================================================
      COUP DE COEUR
-     SWIPE GAUCHE -> DROITE
-  ======================================================= */
+     GAUCHE → DROITE
+  ========================================================= */
 
   async function handleFavorite() {
     if (
@@ -285,21 +230,13 @@ export default function AnimalSwipeCard({
     try {
       setActionLoading(true);
 
-      /*
-       * Vérifier la connexion.
-       */
       const {
         data: { user },
       } =
         await supabase.auth.getUser();
 
-      /*
-       * Non connecté :
-       * direction connexion.
-       *
-       * On garde l'ID de l'animal
-       * dans le redirect.
-       */
+      /* PAS CONNECTÉ */
+
       if (!user) {
         const destination =
           `/?favorite=${encodeURIComponent(
@@ -316,33 +253,23 @@ export default function AnimalSwipeCard({
         return;
       }
 
-      /*
-       * Enregistrer dans favorites.
-       *
-       * favoriteService.add()
-       * évite déjà les doublons.
-       */
+      /* ENREGISTRER FAVORI */
+
       await favoriteService.add(
         animal.id
       );
 
-      /*
-       * Animation cœur.
-       */
-      setSwipeFeedback(
-        "favorite"
-      );
+      /* FEEDBACK VISUEL */
 
-      setTranslateX(80);
+      setSwipeFeedback("favorite");
 
-      await wait(500);
+      await wait(480);
 
       setSwipeFeedback(null);
       setTranslateX(0);
 
-      /*
-       * Passer à l'animal suivant.
-       */
+      /* ANIMAL SUIVANT */
+
       onFavorite?.();
     } catch (error: any) {
       console.error(
@@ -377,57 +304,46 @@ export default function AnimalSwipeCard({
     }
   }
 
-  /* =======================================================
-     ADOPTION
-  ======================================================= */
+  /* =========================================================
+     ADOPTER
+  ========================================================= */
 
-  async function handleAdopt() {
-    if (!animal?.id) {
-      return;
-    }
+  function handleAdopt() {
+    if (!animal?.id) return;
 
-    /*
-     * /adoption/start vérifie
-     * ensuite si l'utilisateur
-     * est connecté.
-     */
     router.push(
       `/adoption/start/${animal.id}`
     );
   }
 
-  /* =======================================================
-     INFORMATIONS
-  ======================================================= */
+  /* =========================================================
+     FICHE ANIMAL
+  ========================================================= */
 
   function handleInformation() {
-    if (!animal?.id) {
-      return;
-    }
+    if (!animal?.id) return;
 
     router.push(
       `/animal/${animal.id}`
     );
   }
 
-  /* =======================================================
-     POINTER DOWN
-  ======================================================= */
+  /* =========================================================
+     SWIPE
+  ========================================================= */
 
   function handlePointerDown(
     event: PointerEvent<HTMLElement>
   ) {
-    if (actionLoading) {
-      return;
-    }
+    if (actionLoading) return;
 
-    /*
-     * Évite de démarrer un swipe
-     * quand on touche un bouton.
-     */
     const target =
       event.target as HTMLElement;
 
+    /*
+     * Pas de swipe quand on touche
+     * un bouton ou un lien.
+     */
     if (
       target.closest(
         "button, a"
@@ -436,25 +352,17 @@ export default function AnimalSwipeCard({
       return;
     }
 
-    setStartX(
-      event.clientX
-    );
-
+    setStartX(event.clientX);
     setDragging(true);
 
     try {
-      event.currentTarget
-        .setPointerCapture(
-          event.pointerId
-        );
+      event.currentTarget.setPointerCapture(
+        event.pointerId
+      );
     } catch {
-      // Rien
+      // rien
     }
   }
-
-  /* =======================================================
-     POINTER MOVE
-  ======================================================= */
 
   function handlePointerMove(
     event: PointerEvent<HTMLElement>
@@ -471,35 +379,24 @@ export default function AnimalSwipeCard({
       event.clientX -
       startX;
 
-    /*
-     * Limiter le déplacement
-     * visuel de la carte.
-     */
     const limited =
       Math.max(
-        -180,
+        -160,
         Math.min(
-          180,
+          160,
           difference
         )
       );
 
-    setTranslateX(
-      limited
-    );
+    setTranslateX(limited);
   }
-
-  /* =======================================================
-     FIN DU SWIPE
-  ======================================================= */
 
   async function handlePointerEnd(
     event: PointerEvent<HTMLElement>
   ) {
     if (
       startX === null ||
-      !dragging ||
-      actionLoading
+      !dragging
     ) {
       return;
     }
@@ -513,12 +410,11 @@ export default function AnimalSwipeCard({
           event.pointerId
         );
     } catch {
-      // Rien
+      // rien
     }
 
     /*
-     * GAUCHE -> DROITE
-     *
+     * GAUCHE → DROITE
      * COUP DE COEUR
      */
     if (translateX >= 90) {
@@ -527,8 +423,7 @@ export default function AnimalSwipeCard({
     }
 
     /*
-     * DROITE -> GAUCHE
-     *
+     * DROITE → GAUCHE
      * NEXT TIME
      */
     if (translateX <= -90) {
@@ -536,28 +431,16 @@ export default function AnimalSwipeCard({
       return;
     }
 
-    /*
-     * Pas assez loin :
-     * retour au centre.
-     */
     setTranslateX(0);
   }
 
-  /* =======================================================
-     ROTATION CARTE
-  ======================================================= */
-
   const rotation =
-    translateX / 28;
-
-  /* =======================================================
-     INDICATEUR PENDANT LE DRAG
-  ======================================================= */
+    translateX / 32;
 
   const dragFavoriteOpacity =
     Math.min(
       Math.max(
-        translateX / 110,
+        translateX / 100,
         0
       ),
       1
@@ -566,27 +449,33 @@ export default function AnimalSwipeCard({
   const dragPassOpacity =
     Math.min(
       Math.max(
-        -translateX / 110,
+        -translateX / 100,
         0
       ),
       1
     );
 
-  /* =======================================================
+  /* =========================================================
      RENDER
-  ======================================================= */
+  ========================================================= */
 
   return (
     <div
       className="
         flex
         w-full
-        justify-center
-        px-0
-        pb-28
-        sm:px-3
+        flex-col
+        items-center
+        px-3
+        pb-[118px]
+        pt-2
+        sm:px-4
       "
     >
+      {/* =====================================================
+          SWIPE CARD
+      ====================================================== */}
+
       <article
         onPointerDown={
           handlePointerDown
@@ -615,676 +504,756 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
+          h-[calc(100dvh-310px)]
+          min-h-[540px]
+          max-h-[720px]
           w-full
-          max-w-[470px]
+          max-w-[455px]
           select-none
           overflow-hidden
           rounded-[30px]
-          bg-[#ddd]
-          shadow-[0_18px_50px_rgba(0,0,0,.22)]
+          bg-[#d9d4cf]
+          shadow-[0_18px_45px_rgba(40,30,25,.22)]
         "
       >
-        {/* =================================================
-            PHOTO
-        ================================================= */}
+        {/* PHOTO */}
+
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={animalName}
+            draggable={false}
+            className="
+              pointer-events-none
+              absolute
+              inset-0
+              h-full
+              w-full
+              object-cover
+            "
+          />
+        ) : (
+          <div
+            className="
+              absolute
+              inset-0
+              flex
+              items-center
+              justify-center
+              bg-[#ddd7d0]
+              text-7xl
+            "
+          >
+            🐾
+          </div>
+        )}
+
+        {/* DÉGRADÉ BAS */}
 
         <div
           className="
-            relative
-            h-[calc(100dvh-155px)]
-            min-h-[590px]
-            max-h-[820px]
-            w-full
-            overflow-hidden
-            bg-[#d8d1c9]
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            h-[48%]
+            bg-gradient-to-t
+            from-black/80
+            via-black/30
+            to-transparent
+          "
+        />
+
+        {/* ===================================================
+            LOGO TAUI TE ORA
+        ==================================================== */}
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            left-1/2
+            top-4
+            z-20
+            -translate-x-1/2
           "
         >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={animalName}
-              draggable={false}
-              className="
-                h-full
-                w-full
-                object-cover
-                pointer-events-none
-              "
+          <img
+            src="/logo-taui-te-ora.png"
+            alt=""
+            draggable={false}
+            className="
+              h-[86px]
+              w-[86px]
+              object-contain
+              drop-shadow-[0_3px_8px_rgba(0,0,0,.20)]
+            "
+          />
+        </div>
+
+        {/* ===================================================
+            INFOS GAUCHE
+        ==================================================== */}
+
+        <div
+          className="
+            absolute
+            left-3
+            top-[190px]
+            z-30
+            flex
+            max-h-[300px]
+            flex-col
+            gap-2
+          "
+        >
+          {/* AGE */}
+
+          {age && (
+            <InfoBox
+              icon="🐾"
+              value={age}
+              iconColor="#3988d1"
             />
-          ) : (
+          )}
+
+          {/* SEXE */}
+
+          {sexRaw && (
+            <InfoBox
+              icon={
+                isMale
+                  ? "♂"
+                  : isFemale
+                    ? "♀"
+                    : "⚥"
+              }
+              value={sexRaw}
+              iconColor={
+                genderColor
+              }
+            />
+          )}
+
+          {/* VACCINÉ */}
+
+          {vaccinated && (
+            <InfoBox
+              icon="✓"
+              value="Vacciné"
+              iconColor="#df8995"
+            />
+          )}
+
+          {/* IDENTIFIÉ */}
+
+          {microchipped && (
+            <InfoBox
+              icon="✓"
+              value="Identifié"
+              iconColor="#df8995"
+            />
+          )}
+
+          {/* STÉRILISÉ */}
+
+          {sterilized && (
+            <InfoBox
+              icon="✿"
+              value="Stérilisé"
+              iconColor="#df8995"
+            />
+          )}
+        </div>
+
+        {/* ===================================================
+            FEEDBACK PENDANT SWIPE DROITE
+        ==================================================== */}
+
+        {dragFavoriteOpacity >
+          0 &&
+          !swipeFeedback && (
             <div
+              style={{
+                opacity:
+                  dragFavoriteOpacity,
+              }}
               className="
-                flex
-                h-full
-                items-center
-                justify-center
-                bg-[#eee7df]
-                text-8xl
+                pointer-events-none
+                absolute
+                left-5
+                top-32
+                z-[60]
+                -rotate-12
+                rounded-xl
+                border-4
+                border-red-500
+                px-4
+                py-2
+                text-xl
+                font-black
+                uppercase
+                text-red-500
+                drop-shadow-lg
               "
             >
-              🐾
+              ♥ COUP DE CŒUR
             </div>
           )}
 
-          {/* ===============================================
-              DEGRADE BAS
-          =============================================== */}
+        {/* ===================================================
+            FEEDBACK PENDANT SWIPE GAUCHE
+        ==================================================== */}
 
-          <div
-            className="
-              pointer-events-none
-              absolute
-              inset-x-0
-              bottom-0
-              h-[58%]
-              bg-gradient-to-t
-              from-black/85
-              via-black/30
-              to-transparent
-            "
-          />
-
-          {/* ===============================================
-              LOGO TAUI TE ORA
-          =============================================== */}
-
-          <div
-            className="
-              pointer-events-none
-              absolute
-              left-1/2
-              top-4
-              z-20
-              -translate-x-1/2
-            "
-          >
-            <img
-              src="/logo-taui-te-ora.png"
-              alt=""
-              draggable={false}
-              className="
-                h-16
-                w-16
-                object-contain
-                drop-shadow-[0_3px_8px_rgba(0,0,0,.35)]
-                sm:h-[72px]
-                sm:w-[72px]
-              "
-            />
-          </div>
-
-          {/* ===============================================
-              FEEDBACK PENDANT LE DRAG DROITE
-          =============================================== */}
-
-          {dragFavoriteOpacity >
-            0 &&
-            !swipeFeedback && (
-              <div
-                style={{
-                  opacity:
-                    dragFavoriteOpacity,
-                }}
-                className="
-                  pointer-events-none
-                  absolute
-                  left-5
-                  top-28
-                  z-30
-                  -rotate-12
-                  rounded-2xl
-                  border-4
-                  border-red-500
-                  px-4
-                  py-2
-                  text-xl
-                  font-black
-                  uppercase
-                  tracking-wider
-                  text-red-500
-                  drop-shadow-lg
-                "
-              >
-                ❤️ Coup de cœur
-              </div>
-            )}
-
-          {/* ===============================================
-              FEEDBACK PENDANT LE DRAG GAUCHE
-          =============================================== */}
-
-          {dragPassOpacity >
-            0 &&
-            !swipeFeedback && (
-              <div
-                style={{
-                  opacity:
-                    dragPassOpacity,
-                }}
-                className="
-                  pointer-events-none
-                  absolute
-                  right-5
-                  top-28
-                  z-30
-                  rotate-12
-                  rounded-2xl
-                  border-4
-                  border-red-500
-                  px-4
-                  py-2
-                  text-xl
-                  font-black
-                  uppercase
-                  tracking-wider
-                  text-red-500
-                  drop-shadow-lg
-                "
-              >
-                ✕ NEXT TIME
-              </div>
-            )}
-
-          {/* ===============================================
-              ANIMATION COUP DE COEUR
-          =============================================== */}
-
-          {swipeFeedback ===
-            "favorite" && (
-              <div
-                className="
-                  pointer-events-none
-                  absolute
-                  inset-0
-                  z-[80]
-                  flex
-                  items-center
-                  justify-center
-                  bg-black/10
-                "
-              >
-                <div
-                  className="
-                    -rotate-12
-                    text-center
-                    drop-shadow-[0_6px_15px_rgba(0,0,0,.45)]
-                  "
-                >
-                  <div
-                    className="
-                      animate-[ping_.45s_ease-out_1]
-                      text-[120px]
-                      leading-none
-                      text-red-500
-                    "
-                  >
-                    ♥
-                  </div>
-
-                  <div
-                    className="
-                      mt-2
-                      rounded-full
-                      bg-black/30
-                      px-5
-                      py-2
-                      text-2xl
-                      font-black
-                      uppercase
-                      tracking-[0.12em]
-                      text-white
-                      backdrop-blur-sm
-                    "
-                  >
-                    Coup de cœur
-                  </div>
-                </div>
-              </div>
-            )}
-
-          {/* ===============================================
-              ANIMATION NEXT TIME
-          =============================================== */}
-
-          {swipeFeedback ===
-            "pass" && (
-              <div
-                className="
-                  pointer-events-none
-                  absolute
-                  inset-0
-                  z-[80]
-                  flex
-                  items-center
-                  justify-center
-                  bg-black/10
-                "
-              >
-                <div
-                  className="
-                    rotate-[-10deg]
-                    text-center
-                    drop-shadow-[0_6px_15px_rgba(0,0,0,.45)]
-                  "
-                >
-                  <div
-                    className="
-                      text-[135px]
-                      font-black
-                      leading-[0.7]
-                      text-red-500
-                    "
-                  >
-                    ×
-                  </div>
-
-                  <div
-                    className="
-                      mt-5
-                      rounded-full
-                      bg-black/30
-                      px-6
-                      py-2
-                      text-2xl
-                      font-black
-                      uppercase
-                      tracking-[0.16em]
-                      text-white
-                      backdrop-blur-sm
-                    "
-                  >
-                    NEXT TIME
-                  </div>
-                </div>
-              </div>
-            )}
-
-          {/* ===============================================
-              INFORMATIONS ANIMAL
-          =============================================== */}
-
-          <div
-            className="
-              absolute
-              inset-x-0
-              bottom-0
-              z-20
-              p-5
-              pb-6
-              text-white
-            "
-          >
-            {/* BADGES SANTE */}
-
+        {dragPassOpacity >
+          0 &&
+          !swipeFeedback && (
             <div
+              style={{
+                opacity:
+                  dragPassOpacity,
+              }}
               className="
-                mb-3
-                flex
-                flex-wrap
-                gap-2
+                pointer-events-none
+                absolute
+                right-5
+                top-32
+                z-[60]
+                rotate-12
+                rounded-xl
+                border-4
+                border-red-500
+                px-4
+                py-2
+                text-xl
+                font-black
+                uppercase
+                text-red-500
+                drop-shadow-lg
               "
             >
-              {vaccinated && (
-                <span
-                  className="
-                    rounded-full
-                    bg-black/45
-                    px-3
-                    py-1.5
-                    text-[11px]
-                    font-bold
-                    backdrop-blur-md
-                  "
-                >
-                  ✓ Vacciné
-                </span>
-              )}
-
-              {microchipped && (
-                <span
-                  className="
-                    rounded-full
-                    bg-black/45
-                    px-3
-                    py-1.5
-                    text-[11px]
-                    font-bold
-                    backdrop-blur-md
-                  "
-                >
-                  ✓ Identifié
-                </span>
-              )}
-
-              {sterilized && (
-                <span
-                  className="
-                    rounded-full
-                    bg-black/45
-                    px-3
-                    py-1.5
-                    text-[11px]
-                    font-bold
-                    backdrop-blur-md
-                  "
-                >
-                  ✓ Stérilisé
-                </span>
-              )}
+              ✕ NEXT TIME
             </div>
+          )}
 
-            {/* NOM + INFO */}
+        {/* ===================================================
+            GROS COEUR APRÈS COUP DE COEUR
+        ==================================================== */}
 
+        {swipeFeedback ===
+          "favorite" && (
             <div
               className="
-                flex
-                min-w-0
-                items-center
-                gap-3
-              "
-            >
-              <h2
-                className="
-                  min-w-0
-                  truncate
-                  text-[34px]
-                  font-black
-                  leading-none
-                  drop-shadow-lg
-                "
-              >
-                {animalName}
-              </h2>
-
-              <button
-                type="button"
-                onClick={
-                  handleInformation
-                }
-                aria-label="Voir la fiche de l'animal"
-                className="
-                  flex
-                  h-8
-                  w-8
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-2
-                  border-white
-                  bg-black/25
-                  text-sm
-                  font-black
-                  text-white
-                  backdrop-blur-md
-                "
-              >
-                i
-              </button>
-            </div>
-
-            {/* ASSOCIATION */}
-
-            {associationName && (
-              <p
-                className="
-                  mt-2
-                  truncate
-                  text-sm
-                  font-bold
-                  text-white/95
-                  drop-shadow
-                "
-              >
-                {associationName}
-              </p>
-            )}
-
-            {/* LOCALISATION */}
-
-            {(city ||
-              island) && (
-                <p
-                  className="
-                    mt-1
-                    truncate
-                    text-sm
-                    text-white/85
-                  "
-                >
-                  📍{" "}
-                  {[
-                    city,
-                    island,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              )}
-
-            {/* INFOS */}
-
-            {(breed ||
-              age ||
-              size) && (
-                <div
-                  className="
-                    mt-3
-                    flex
-                    flex-wrap
-                    gap-2
-                  "
-                >
-                  {breed && (
-                    <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md">
-                      {breed}
-                    </span>
-                  )}
-
-                  {age && (
-                    <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md">
-                      {age}
-                    </span>
-                  )}
-
-                  {size && (
-                    <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md">
-                      {size}
-                    </span>
-                  )}
-                </div>
-              )}
-
-            {/* CARACTERE */}
-
-            {character && (
-              <p
-                className="
-                  mt-3
-                  line-clamp-2
-                  max-w-[88%]
-                  text-sm
-                  leading-relaxed
-                  text-white/90
-                "
-              >
-                {character}
-              </p>
-            )}
-
-            {/* =============================================
-                ACTIONS
-            ============================================= */}
-
-            <div
-              className="
-                mt-5
+                pointer-events-none
+                absolute
+                inset-0
+                z-[90]
                 flex
                 items-center
                 justify-center
-                gap-4
+                bg-black/5
               "
             >
-              {/* PASSER */}
+              <div className="text-center">
+                <div
+                  className="
+                    animate-[ping_.45s_ease-out_1]
+                    text-[130px]
+                    leading-none
+                    text-red-500
+                    drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
+                  "
+                >
+                  ♥
+                </div>
 
-              <button
-                type="button"
-                disabled={
-                  actionLoading
-                }
-                onClick={
-                  handlePass
-                }
-                aria-label="Passer cet animal"
-                className="
-                  flex
-                  h-14
-                  w-14
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white
-                  text-3xl
-                  font-light
-                  text-red-500
-                  shadow-xl
-                  transition
-                  hover:scale-105
-                  active:scale-95
-                  disabled:opacity-60
-                "
-              >
-                ×
-              </button>
-
-              {/* COUP DE COEUR */}
-
-              <button
-                type="button"
-                disabled={
-                  actionLoading
-                }
-                onClick={
-                  handleFavorite
-                }
-                aria-label="Ajouter aux coups de cœur"
-                className="
-                  flex
-                  h-14
-                  w-14
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white
-                  text-[28px]
-                  text-red-500
-                  shadow-xl
-                  transition
-                  hover:scale-105
-                  active:scale-95
-                  disabled:opacity-60
-                "
-              >
-                ♥
-              </button>
-
-              {/* ADOPTER */}
-
-              <button
-                type="button"
-                disabled={
-                  actionLoading
-                }
-                onClick={
-                  handleAdopt
-                }
-                aria-label="Je veux adopter"
-                className="
-                  flex
-                  h-[62px]
-                  w-[62px]
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-[3px]
-                  border-white
-                  shadow-xl
-                  transition
-                  hover:scale-105
-                  active:scale-95
-                  disabled:opacity-60
-                "
-                style={{
-                  backgroundColor:
-                    genderColor,
-                }}
-              >
-                <AnimalActionIcon
-                  animalType={
-                    animalType
-                  }
-                />
-              </button>
+                <div
+                  className="
+                    mt-2
+                    rounded-full
+                    bg-black/35
+                    px-5
+                    py-2
+                    text-xl
+                    font-black
+                    uppercase
+                    tracking-widest
+                    text-white
+                    backdrop-blur
+                  "
+                >
+                  Coup de cœur
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ===============================================
-              LOGO ASSOCIATION BAS DROITE
-          =============================================== */}
+        {/* ===================================================
+            NEXT TIME
+        ==================================================== */}
 
-          {associationLogo && (
+        {swipeFeedback ===
+          "pass" && (
             <div
               className="
+                pointer-events-none
                 absolute
-                bottom-5
-                right-4
-                z-30
+                inset-0
+                z-[90]
+                flex
+                items-center
+                justify-center
+                bg-black/5
+              "
+            >
+              <div className="text-center">
+                <div
+                  className="
+                    text-[140px]
+                    font-black
+                    leading-none
+                    text-red-500
+                    drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
+                  "
+                >
+                  ×
+                </div>
+
+                <div
+                  className="
+                    -mt-2
+                    rounded-full
+                    bg-black/35
+                    px-6
+                    py-2
+                    text-xl
+                    font-black
+                    uppercase
+                    tracking-widest
+                    text-white
+                    backdrop-blur
+                  "
+                >
+                  NEXT TIME
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* ===================================================
+            INFORMATIONS BASSES
+        ==================================================== */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            z-40
+            px-5
+            pb-6
+            text-white
+          "
+        >
+          {/* NOM + I */}
+
+          <div
+            className="
+              flex
+              min-w-0
+              items-center
+              gap-3
+              pr-[58px]
+            "
+          >
+            <h2
+              className="
+                min-w-0
+                truncate
+                text-[38px]
+                font-black
+                leading-none
+                tracking-tight
+                drop-shadow-lg
+                sm:text-[42px]
+              "
+            >
+              {animalName}
+            </h2>
+
+            <button
+              type="button"
+              onClick={
+                handleInformation
+              }
+              className="
+                flex
+                h-10
+                w-10
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                bg-[#fffaf7]
+                text-lg
+                font-black
+                text-[#60605d]
+                shadow-lg
+              "
+              aria-label="Informations"
+            >
+              i
+            </button>
+          </div>
+
+          {/* NOM ASSOCIATION */}
+
+          {creatorName && (
+            <p
+              className="
+                mt-3
+                max-w-[80%]
+                truncate
+                text-[15px]
+                font-bold
+                drop-shadow
+              "
+            >
+              {creatorName}
+            </p>
+          )}
+
+          {/* LOCALISATION */}
+
+          {(city || island) && (
+            <p
+              className="
+                mt-1
+                max-w-[80%]
+                truncate
+                text-[14px]
+                text-white/95
+              "
+            >
+              📍{" "}
+              {[city, island]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
+
+          {/* CARACTERE */}
+
+          {character && (
+            <div
+              className="
+                mt-3
+                max-w-[76%]
               "
             >
               <div
                 className="
-                  flex
-                  h-12
-                  w-12
-                  items-center
-                  justify-center
-                  overflow-hidden
+                  inline-flex
+                  max-w-full
                   rounded-full
-                  border-[3px]
-                  border-white
-                  bg-white
-                  shadow-xl
+                  bg-[#d8b8df]/95
+                  px-4
+                  py-2
+                  text-[13px]
+                  font-bold
+                  text-white
+                  shadow
+                  backdrop-blur
                 "
               >
-                <img
-                  src={
-                    associationLogo
-                  }
-                  alt={
-                    associationName ||
-                    "Créateur de la fiche"
-                  }
-                  draggable={false}
-                  className="
-                    h-full
-                    w-full
-                    object-cover
-                  "
-                />
+                <span className="truncate">
+                  {character}
+                </span>
               </div>
             </div>
           )}
         </div>
+
+        {/* ===================================================
+            LOGO CRÉATEUR / ASSOCIATION
+        ==================================================== */}
+
+        {creatorLogo && (
+          <div
+            className="
+              absolute
+              bottom-5
+              right-4
+              z-50
+            "
+          >
+            <div
+              className="
+                flex
+                h-[58px]
+                w-[58px]
+                items-center
+                justify-center
+                overflow-hidden
+                rounded-full
+                border-[3px]
+                border-white
+                bg-white
+                shadow-xl
+              "
+            >
+              <img
+                src={creatorLogo}
+                alt={
+                  creatorName ||
+                  "Créateur"
+                }
+                draggable={false}
+                className="
+                  h-full
+                  w-full
+                  object-cover
+                "
+              />
+            </div>
+          </div>
+        )}
       </article>
+
+      {/* =====================================================
+          BOUTONS SOUS LA CARTE
+      ====================================================== */}
+
+      <div
+        className="
+          mt-3
+          grid
+          w-full
+          max-w-[455px]
+          grid-cols-3
+          items-start
+          gap-3
+          px-4
+        "
+      >
+        {/* PASSER */}
+
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={handlePass}
+            aria-label="Passer"
+            className="
+              flex
+              h-[66px]
+              w-[66px]
+              items-center
+              justify-center
+              rounded-full
+              border-[3px]
+              border-white
+              bg-[#d9c9ec]
+              text-[38px]
+              font-light
+              text-white
+              shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
+            "
+          >
+            ×
+          </button>
+
+          <span
+            className="
+              mt-1.5
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
+            Passer
+          </span>
+        </div>
+
+        {/* JE VEUX ADOPTER */}
+
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={handleAdopt}
+            aria-label="Je veux adopter"
+            style={{
+              backgroundColor:
+                genderColor,
+            }}
+            className="
+              flex
+              h-[78px]
+              w-[78px]
+              -translate-y-1
+              items-center
+              justify-center
+              rounded-full
+              border-[4px]
+              border-white
+              shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
+            "
+          >
+            <AnimalActionIcon
+              animalType={
+                animalType
+              }
+            />
+          </button>
+
+          <span
+            className="
+              mt-0.5
+              whitespace-nowrap
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
+            Je veux adopter
+          </span>
+        </div>
+
+        {/* COUP DE COEUR */}
+
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={
+              handleFavorite
+            }
+            aria-label="Coup de cœur"
+            className="
+              flex
+              h-[66px]
+              w-[66px]
+              items-center
+              justify-center
+              rounded-full
+              border-[3px]
+              border-white
+              bg-[#6bd1cc]
+              text-[32px]
+              text-white
+              shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
+            "
+          >
+            ♥
+          </button>
+
+          <span
+            className="
+              mt-1.5
+              whitespace-nowrap
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
+            Coup de cœur
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
 
 /* =========================================================
-   ICONE ADOPTION SELON ANIMAL
+   PETITE CASE INFO À GAUCHE
+========================================================= */
+
+function InfoBox({
+  icon,
+  value,
+  iconColor,
+}: {
+  icon: string;
+  value: string;
+  iconColor: string;
+}) {
+  return (
+    <div
+      className="
+        flex
+        min-h-[58px]
+        w-[72px]
+        flex-col
+        items-center
+        justify-center
+        rounded-[18px]
+        bg-[#fffaf7]/95
+        px-1
+        py-2
+        text-center
+        shadow-lg
+        backdrop-blur
+      "
+    >
+      <span
+        style={{
+          color: iconColor,
+        }}
+        className="
+          text-[18px]
+          font-black
+          leading-none
+        "
+      >
+        {icon}
+      </span>
+
+      <span
+        className="
+          mt-1
+          max-w-full
+          truncate
+          text-[10px]
+          font-semibold
+          text-[#52504d]
+        "
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* =========================================================
+   ICÔNE BOUTON ADOPTION
 ========================================================= */
 
 function AnimalActionIcon({
@@ -1292,9 +1261,8 @@ function AnimalActionIcon({
 }: {
   animalType: string;
 }) {
-  /*
-   * CHEVAL
-   */
+  /* CHEVAL */
+
   if (
     animalType.includes(
       "cheval"
@@ -1304,21 +1272,12 @@ function AnimalActionIcon({
     )
   ) {
     return (
-      <span
-        className="
-          text-[34px]
-          leading-none
-          text-white
-        "
-      >
-        ♧
-      </span>
+      <HorseShoeIcon />
     );
   }
 
-  /*
-   * CHAT
-   */
+  /* CHAT */
+
   if (
     animalType.includes(
       "chat"
@@ -1332,10 +1291,11 @@ function AnimalActionIcon({
     );
   }
 
-  /*
-   * CHIEN PAR DEFAUT
-   */
-  return <DogPawIcon />;
+  /* CHIEN PAR DÉFAUT */
+
+  return (
+    <DogPawIcon />
+  );
 }
 
 /* =========================================================
@@ -1346,7 +1306,7 @@ function DogPawIcon() {
   return (
     <svg
       viewBox="0 0 64 64"
-      className="h-10 w-10"
+      className="h-11 w-11"
       fill="white"
       aria-hidden="true"
     >
@@ -1413,7 +1373,7 @@ function CatPawIcon() {
   return (
     <svg
       viewBox="0 0 64 64"
-      className="h-10 w-10"
+      className="h-11 w-11"
       fill="white"
       aria-hidden="true"
     >
@@ -1466,6 +1426,42 @@ function CatPawIcon() {
           C40 54 45 51 46 44
           C47 36 40 27 31 27
           Z
+        "
+      />
+    </svg>
+  );
+}
+
+/* =========================================================
+   FER À CHEVAL
+========================================================= */
+
+function HorseShoeIcon() {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className="h-11 w-11"
+      fill="none"
+      stroke="white"
+      strokeWidth="8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path
+        d="
+          M14 13
+          C9 25 10 40 18 49
+          C25 57 39 57 46 49
+          C54 40 55 25 50 13
+        "
+      />
+
+      <path
+        d="
+          M20 17
+          C17 27 18 38 23 44
+          C28 50 36 50 41 44
+          C46 38 47 27 44 17
         "
       />
     </svg>
