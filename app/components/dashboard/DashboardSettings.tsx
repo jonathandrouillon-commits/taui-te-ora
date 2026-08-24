@@ -6,7 +6,9 @@ type DashboardSettingsProps = {
   onLogout: () => void;
 };
 
-export default function DashboardSettings({ onLogout }: DashboardSettingsProps) {
+export default function DashboardSettings({
+  onLogout,
+}: DashboardSettingsProps) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-md">
       <h2 className="mb-5 text-2xl font-bold text-[#2f241c]">
@@ -16,7 +18,7 @@ export default function DashboardSettings({ onLogout }: DashboardSettingsProps) 
       <div className="space-y-3">
         <Link
           href="/adoptant/profile"
-          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
+          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c] transition hover:bg-[#efe7dc]"
         >
           <span>Modifier mon profil</span>
           <span>›</span>
@@ -24,7 +26,7 @@ export default function DashboardSettings({ onLogout }: DashboardSettingsProps) 
 
         <Link
           href="/adoption/questionnaire"
-          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
+          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c] transition hover:bg-[#efe7dc]"
         >
           <span>Modifier mon questionnaire</span>
           <span>›</span>
@@ -32,15 +34,16 @@ export default function DashboardSettings({ onLogout }: DashboardSettingsProps) 
 
         <Link
           href="/adoption"
-          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
+          className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c] transition hover:bg-[#efe7dc]"
         >
           <span>Voir les animaux à adopter</span>
           <span>›</span>
         </Link>
 
         <button
+          type="button"
           onClick={onLogout}
-          className="flex w-full items-center justify-between rounded-2xl bg-red-50 px-5 py-4 text-left font-semibold text-red-600"
+          className="flex w-full items-center justify-between rounded-2xl bg-red-50 px-5 py-4 text-left font-semibold text-red-600 transition hover:bg-red-100"
         >
           <span>Déconnexion</span>
           <span>›</span>
