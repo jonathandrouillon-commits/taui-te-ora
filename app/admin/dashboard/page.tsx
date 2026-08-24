@@ -1,77 +1,151 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
 import {
   Users,
   PawPrint,
   ShieldCheck,
   Siren,
   LogOut,
+  Stethoscope,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import { profileService } from "../../services/profile.service";
-import { animalService } from "../../services/animal.service";
-import { supabase } from "../../lib/supabase";
+
+import {
+  profileService,
+} from "../../services/profile.service";
+
+import {
+  animalService,
+} from "../../services/animal.service";
+
+import {
+  supabase,
+} from "../../lib/supabase";
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [animals, setAnimals] = useState<any[]>([]);
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    loggingOut,
+    setLoggingOut,
+  ] =
+    useState(false);
+
+  const [
+    profile,
+    setProfile,
+  ] =
+    useState<any>(
+      null
+    );
+
+  const [
+    users,
+    setUsers,
+  ] =
+    useState<any[]>(
+      []
+    );
+
+  const [
+    animals,
+    setAnimals,
+  ] =
+    useState<any[]>(
+      []
+    );
 
   useEffect(() => {
-    loadDashboard();
+    void loadDashboard();
   }, []);
 
   async function loadDashboard() {
     try {
       const currentProfile =
-        await profileService.getCurrentProfile();
+        await profileService
+          .getCurrentProfile();
 
       if (
         !currentProfile ||
-        currentProfile.role !== "admin"
+        currentProfile.role !==
+          "admin"
       ) {
-        router.replace("/");
+        router.replace(
+          "/"
+        );
+
         return;
       }
 
-      setProfile(currentProfile);
+      setProfile(
+        currentProfile
+      );
 
       setUsers(
-        await profileService.getAllProfiles()
+        await profileService
+          .getAllProfiles()
       );
 
       setAnimals(
-        await animalService.getAllWithPhotos()
+        await animalService
+          .getAllWithPhotos()
       );
-    } catch (error: any) {
-      alert(error.message);
+    } catch (
+      error: any
+    ) {
+      alert(
+        error?.message ||
+          "Erreur chargement administration."
+      );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
   async function handleLogout() {
     try {
-      setLoggingOut(true);
+      setLoggingOut(
+        true
+      );
 
-      const { error } =
-        await supabase.auth.signOut();
+      const {
+        error,
+      } =
+        await supabase.auth
+          .signOut();
 
       if (error) {
         throw error;
       }
 
-      router.replace("/login");
+      router.replace(
+        "/login"
+      );
+
       router.refresh();
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "Erreur déconnexion admin :",
         error
@@ -82,7 +156,9 @@ export default function AdminDashboardPage() {
           "Impossible de vous déconnecter."
       );
 
-      setLoggingOut(false);
+      setLoggingOut(
+        false
+      );
     }
   }
 
@@ -94,18 +170,24 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const pendingUsers = users.filter(
-    (user) =>
-      (user.approval_status || "pending") ===
-      "pending"
-  );
+  const pendingUsers =
+    users.filter(
+      (
+        user
+      ) =>
+        (
+          user.approval_status ||
+          "pending"
+        ) ===
+        "pending"
+    );
 
   return (
-    <main className="min-h-screen bg-[#fbf7ef] p-8 text-[#064b42]">
+    <main className="min-h-screen bg-[#fbf7ef] p-5 text-[#064b42] sm:p-8">
       <section className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-5xl font-black">
+            <h1 className="text-4xl font-black sm:text-5xl">
               Administration
             </h1>
 
@@ -119,7 +201,9 @@ export default function AdminDashboardPage() {
 
           <Button
             onClick={() =>
-              router.push("/admin/users")
+              router.push(
+                "/admin/users"
+              )
             }
           >
             Gérer les utilisateurs
@@ -149,7 +233,9 @@ export default function AdminDashboardPage() {
             />
 
             <h2 className="mt-3 text-4xl font-black">
-              {pendingUsers.length}
+              {
+                pendingUsers.length
+              }
             </h2>
 
             <p className="text-gray-500">
@@ -193,10 +279,12 @@ export default function AdminDashboardPage() {
             Actions rapides
           </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Button
               onClick={() =>
-                router.push("/admin/users")
+                router.push(
+                  "/admin/users"
+                )
               }
             >
               Valider les comptes
@@ -224,11 +312,29 @@ export default function AdminDashboardPage() {
               Voir les signalements
             </Button>
 
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/admin/veterinaires"
+                )
+              }
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#e7f3ef] px-4 py-3 font-black text-[#064b42] transition hover:bg-[#d7eae4]"
+            >
+              <Stethoscope
+                size={19}
+              />
+
+              Vétérinaires
+            </button>
+
             <div className="flex flex-col gap-3">
               <Button
                 variant="secondary"
                 onClick={() =>
-                  router.push("/")
+                  router.push(
+                    "/"
+                  )
                 }
               >
                 Retour au site
@@ -236,29 +342,17 @@ export default function AdminDashboardPage() {
 
               <button
                 type="button"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="
-                  flex
-                  w-full
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-xl
-                  border
-                  border-red-200
-                  bg-red-50
-                  px-4
-                  py-3
-                  font-bold
-                  text-red-600
-                  transition
-                  hover:bg-red-100
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                onClick={
+                  handleLogout
+                }
+                disabled={
+                  loggingOut
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <LogOut size={19} />
+                <LogOut
+                  size={19}
+                />
 
                 {loggingOut
                   ? "Déconnexion..."
