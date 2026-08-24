@@ -419,7 +419,7 @@ export default function AnimalSwipeCard({
         pb-0
         pt-0
         sm:px-4
-        sm:pb-0
+        sm:pb-[122px]
         sm:pt-2
         md:px-6
         lg:px-8
@@ -453,17 +453,17 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-310px)]
-          min-h-[520px]
+          h-[calc(100dvh-82px)]
+          min-h-[620px]
           max-h-none
           w-full
           max-w-[455px]
           select-none
           overflow-hidden
           rounded-none
-          sm:h-[calc(100dvh-330px)]
+          sm:h-[calc(100dvh-285px)]
           sm:min-h-[560px]
-          sm:max-h-none
+          sm:max-h-[700px]
           sm:max-w-[520px]
           sm:rounded-[28px]
           md:h-[680px]
@@ -619,9 +619,9 @@ export default function AnimalSwipeCard({
           className="
             absolute
             left-2
-            top-[105px]
+            top-[94px]
             sm:left-3
-            sm:top-[116px]
+            sm:top-[112px]
             z-30
             flex
             flex-col
@@ -839,72 +839,106 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-0
+            bottom-[138px]
             z-40
             px-4
-            pb-4
             text-white
+            sm:bottom-0
             sm:px-5
             sm:pb-6
           "
         >
-          <div
-            className="
-              flex
-              min-w-0
-              items-center
-              gap-3
-              pr-[58px]
-            "
-          >
-            <h2
-              className="
-                min-w-0
-                truncate
-                text-[30px]
-                font-black
-                leading-none
-                tracking-tight
-                drop-shadow-lg
-                sm:text-[38px]
-                md:text-[42px]
-                lg:text-[46px]
-              "
-            >
-              {animalName}
-            </h2>
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <h2
+                className="
+                  min-w-0
+                  truncate
+                  text-[30px]
+                  font-black
+                  leading-none
+                  tracking-tight
+                  drop-shadow-lg
+                  sm:text-[38px]
+                  md:text-[42px]
+                  lg:text-[46px]
+                "
+              >
+                {animalName}
+              </h2>
 
-            <button
-              type="button"
-              onClick={
-                handleInformation
-              }
-              className="
-                flex
-                h-10
-                w-10
-                shrink-0
-                items-center
-                justify-center
-                rounded-full
-                bg-[#fffaf7]
-                text-lg
-                font-black
-                text-[#60605d]
-                shadow-lg
-              "
-              aria-label="Informations"
-            >
-              i
-            </button>
+              <button
+                type="button"
+                onClick={handleInformation}
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#fffaf7]
+                  text-lg
+                  font-black
+                  text-[#60605d]
+                  shadow-lg
+                "
+                aria-label="Informations"
+              >
+                i
+              </button>
+            </div>
+
+            {creatorLogo && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleStructure();
+                }}
+                aria-label={
+                  creatorName
+                    ? `Voir ${creatorName}`
+                    : "Voir la structure"
+                }
+                className="
+                  flex
+                  h-[52px]
+                  w-[52px]
+                  shrink-0
+                  items-center
+                  justify-center
+                  overflow-hidden
+                  rounded-full
+                  border-[3px]
+                  border-white
+                  bg-white
+                  shadow-xl
+                  transition
+                  active:scale-95
+                  sm:h-[58px]
+                  sm:w-[58px]
+                  md:h-[62px]
+                  md:w-[62px]
+                "
+              >
+                <img
+                  src={creatorLogo}
+                  alt={creatorName || "Structure"}
+                  draggable={false}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            )}
           </div>
 
           {creatorName && (
             <p
               className="
-                mt-3
-                max-w-[calc(100%-64px)]
-                break-words
+                mt-2
+                max-w-[82%]
+                truncate
                 text-[15px]
                 font-bold
                 drop-shadow
@@ -918,8 +952,8 @@ export default function AnimalSwipeCard({
             <p
               className="
                 mt-1
-                max-w-[calc(100%-64px)]
-                break-words
+                max-w-[82%]
+                truncate
                 text-[14px]
                 text-white/95
               "
@@ -932,17 +966,11 @@ export default function AnimalSwipeCard({
           )}
 
           {character && (
-            <div
-              className="
-                mt-3
-                max-w-[calc(100%-64px)]
-              "
-            >
+            <div className="mt-2 max-w-[78%]">
               <div
                 className="
                   inline-flex
                   max-w-full
-                  break-words
                   rounded-full
                   bg-[#d8b8df]/95
                   px-4
@@ -954,7 +982,7 @@ export default function AnimalSwipeCard({
                   backdrop-blur
                 "
               >
-                <span className="break-words">
+                <span className="truncate">
                   {character}
                 </span>
               </div>
@@ -962,63 +990,15 @@ export default function AnimalSwipeCard({
           )}
         </div>
 
-        {creatorLogo && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleStructure();
-            }}
-            aria-label={
-              creatorName
-                ? `Voir ${creatorName}`
-                : "Voir la structure"
-            }
-            className="
-              absolute
-              bottom-4
-              right-3
-              z-50
-              flex
-              h-[52px]
-              w-[52px]
-              items-center
-              justify-center
-              overflow-hidden
-              rounded-full
-              border-[3px]
-              border-white
-              bg-white
-              shadow-xl
-              transition
-              active:scale-95
-              sm:bottom-5
-              sm:right-4
-              sm:h-[58px]
-              sm:w-[58px]
-              md:h-[62px]
-              md:w-[62px]
-            "
-          >
-            <img
-              src={creatorLogo}
-              alt={creatorName || "Structure"}
-              draggable={false}
-              className="
-                h-full
-                w-full
-                object-cover
-              "
-            />
-          </button>
-        )}
       </article>
 
       {/* BOUTONS SOUS LA CARTE */}
 
       <div
         className="
-          mt-5
+          relative
+          z-[70]
+          -mt-[116px]
           grid
           w-full
           max-w-[455px]
@@ -1026,7 +1006,7 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
-          sm:mt-5
+          sm:mt-3
           sm:max-w-[520px]
           sm:gap-3
           sm:px-4
