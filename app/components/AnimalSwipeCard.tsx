@@ -416,10 +416,10 @@ export default function AnimalSwipeCard({
         flex-col
         items-center
         px-0
-        pb-[112px]
+        pb-0
         pt-0
         sm:px-4
-        sm:pb-[122px]
+        sm:pb-0
         sm:pt-2
         md:px-6
         lg:px-8
@@ -453,17 +453,17 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-250px)]
-          min-h-[480px]
-          max-h-[660px]
+          h-[calc(100dvh-310px)]
+          min-h-[520px]
+          max-h-none
           w-full
           max-w-[455px]
           select-none
           overflow-hidden
           rounded-none
-          sm:h-[calc(100dvh-285px)]
+          sm:h-[calc(100dvh-330px)]
           sm:min-h-[560px]
-          sm:max-h-[700px]
+          sm:max-h-none
           sm:max-w-[520px]
           sm:rounded-[28px]
           md:h-[680px]
@@ -903,8 +903,8 @@ export default function AnimalSwipeCard({
             <p
               className="
                 mt-3
-                max-w-[80%]
-                truncate
+                max-w-[calc(100%-64px)]
+                break-words
                 text-[15px]
                 font-bold
                 drop-shadow
@@ -918,8 +918,8 @@ export default function AnimalSwipeCard({
             <p
               className="
                 mt-1
-                max-w-[80%]
-                truncate
+                max-w-[calc(100%-64px)]
+                break-words
                 text-[14px]
                 text-white/95
               "
@@ -935,13 +935,14 @@ export default function AnimalSwipeCard({
             <div
               className="
                 mt-3
-                max-w-[76%]
+                max-w-[calc(100%-64px)]
               "
             >
               <div
                 className="
                   inline-flex
                   max-w-full
+                  break-words
                   rounded-full
                   bg-[#d8b8df]/95
                   px-4
@@ -953,7 +954,7 @@ export default function AnimalSwipeCard({
                   backdrop-blur
                 "
               >
-                <span className="truncate">
+                <span className="break-words">
                   {character}
                 </span>
               </div>
@@ -1017,7 +1018,7 @@ export default function AnimalSwipeCard({
 
       <div
         className="
-          mt-2
+          mt-5
           grid
           w-full
           max-w-[455px]
@@ -1025,7 +1026,7 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
-          sm:mt-3
+          sm:mt-5
           sm:max-w-[520px]
           sm:gap-3
           sm:px-4
