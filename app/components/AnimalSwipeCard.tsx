@@ -29,8 +29,6 @@ export default function AnimalSwipeCard({
   animal,
   onPass,
   onFavorite,
-  onOpenFilter,
-  filterCount = 0,
 }: AnimalSwipeCardProps) {
   const router = useRouter();
 
@@ -49,12 +47,87 @@ export default function AnimalSwipeCard({
   const [swipeFeedback, setSwipeFeedback] =
     useState<SwipeFeedback>(null);
 
+  const [likesCount, setLikesCount] =
+    useState(0);
+
+  const [
+    currentPhotoIndex,
+    setCurrentPhotoIndex,
+  ] = useState(0);
+
   useEffect(() => {
     setStartX(null);
     setTranslateX(0);
     setDragging(false);
     setActionLoading(false);
     setSwipeFeedback(null);
+    setCurrentPhotoIndex(0);
+  }, [animal?.id]);
+
+  useEffect(() => {
+    if (!animal?.id) {
+      setLikesCount(0);
+      return;
+    }
+
+    let active = true;
+
+    async function loadLikesCount() {
+      const { count, error } =
+        await supabase
+          .from("likes")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "animal_id",
+            animal.id
+          );
+
+      if (error) {
+        console.error(
+          "Erreur compteur coups de coeur :",
+          error
+        );
+        return;
+      }
+
+      if (active) {
+        setLikesCount(
+          count || 0
+        );
+      }
+    }
+
+    void loadLikesCount();
+
+    const channel =
+      supabase
+        .channel(
+          `animal-likes-${animal.id}`
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "likes",
+            filter:
+              `animal_id=eq.${animal.id}`,
+          },
+          () => {
+            void loadLikesCount();
+          }
+        )
+        .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(
+        channel
+      );
+    };
   }, [animal?.id]);
 
   const animalName =
@@ -132,25 +205,95 @@ export default function AnimalSwipeCard({
     animal?.association_id ||
     "";
 
-  const photoUrl = useMemo(() => {
-    const photos = Array.isArray(
+  const photoUrls = useMemo(() => {
+    const rows = Array.isArray(
       animal?.animal_photos
     )
-      ? animal.animal_photos
+      ? [...animal.animal_photos]
       : [];
 
-    const cover = photos.find(
-      (photo: any) =>
-        photo?.is_cover
+    rows.sort(
+      (a: any, b: any) => {
+        if (
+          Boolean(a?.is_cover) !==
+          Boolean(b?.is_cover)
+        ) {
+          return a?.is_cover
+            ? -1
+            : 1;
+        }
+
+        return (
+          Number(
+            a?.sort_order || 0
+          ) -
+          Number(
+            b?.sort_order || 0
+          )
+        );
+      }
     );
 
-    return (
-      cover?.photo_url ||
-      photos[0]?.photo_url ||
-      animal?.photo_url ||
-      ""
+    const urls = rows
+      .map(
+        (photo: any) =>
+          photo?.photo_url
+      )
+      .filter(
+        (url: any): url is string =>
+          Boolean(url)
+      );
+
+    if (
+      animal?.photo_url
+    ) {
+      urls.push(
+        animal.photo_url
+      );
+    }
+
+    return Array.from(
+      new Set(urls)
     );
   }, [animal]);
+
+  const photoUrl =
+    photoUrls[
+      currentPhotoIndex
+    ] ||
+    photoUrls[0] ||
+    "";
+
+  function showPreviousPhoto() {
+    if (
+      photoUrls.length <= 1
+    ) {
+      return;
+    }
+
+    setCurrentPhotoIndex(
+      (previous) =>
+        previous <= 0
+          ? photoUrls.length - 1
+          : previous - 1
+    );
+  }
+
+  function showNextPhoto() {
+    if (
+      photoUrls.length <= 1
+    ) {
+      return;
+    }
+
+    setCurrentPhotoIndex(
+      (previous) =>
+        previous >=
+        photoUrls.length - 1
+          ? 0
+          : previous + 1
+    );
+  }
 
   const isMale =
     sex.includes("mâle") ||
@@ -230,6 +373,11 @@ export default function AnimalSwipeCard({
 
       await favoriteService.add(
         animal.id
+      );
+
+      setLikesCount(
+        (previous) =>
+          previous + 1
       );
 
       setSwipeFeedback("favorite");
@@ -362,6 +510,10 @@ export default function AnimalSwipeCard({
       return;
     }
 
+    const movement =
+      event.clientX -
+      startX;
+
     setDragging(false);
     setStartX(null);
 
@@ -374,14 +526,52 @@ export default function AnimalSwipeCard({
       // rien
     }
 
-    if (translateX >= 90) {
+    if (
+      event.type ===
+      "pointercancel"
+    ) {
+      setTranslateX(0);
+      return;
+    }
+
+    if (movement >= 90) {
       await handleFavorite();
       return;
     }
 
-    if (translateX <= -90) {
+    if (movement <= -90) {
       await handlePass();
       return;
+    }
+
+    /*
+     * TAP TYPE TINDER :
+     * - moitié gauche = photo précédente
+     * - moitié droite = photo suivante
+     *
+     * Un petit déplacement est toléré pour
+     * ne pas déclencher une photo pendant un swipe.
+     */
+    if (
+      Math.abs(movement) <= 12 &&
+      photoUrls.length > 1
+    ) {
+      const rect =
+        event.currentTarget
+          .getBoundingClientRect();
+
+      const relativeX =
+        event.clientX -
+        rect.left;
+
+      if (
+        relativeX <
+        rect.width / 2
+      ) {
+        showPreviousPhoto();
+      } else {
+        showNextPhoto();
+      }
     }
 
     setTranslateX(0);
@@ -453,7 +643,7 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-82px)]
+          h-[calc(100dvh-64px)]
           min-h-[620px]
           max-h-none
           w-full
@@ -551,67 +741,95 @@ export default function AnimalSwipeCard({
           />
         </div>
 
-        {/* FILTRE RAPIDE */}
+        {photoUrls.length > 1 && (
+          <div
+            className="
+              pointer-events-none
+              absolute
+              left-1/2
+              top-[90px]
+              z-40
+              flex
+              max-w-[170px]
+              -translate-x-1/2
+              gap-1
+              sm:top-[104px]
+            "
+            aria-hidden="true"
+          >
+            {photoUrls.map(
+              (_, index) => (
+                <span
+                  key={index}
+                  className={`
+                    h-1
+                    w-5
+                    rounded-full
+                    shadow-sm
+                    ${
+                      index ===
+                      currentPhotoIndex
+                        ? "bg-white"
+                        : "bg-white/45"
+                    }
+                  `}
+                />
+              )
+            )}
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenFilter?.();
-          }}
-          aria-label="Filtrer les animaux"
-          title="Filtrer"
+        {/* COMPTEUR COUPS DE COEUR */}
+
+        <div
           className="
             absolute
             right-3
             top-3
             z-50
             flex
-            h-10
-            w-10
+            min-w-[48px]
             items-center
             justify-center
+            gap-1.5
             rounded-full
             border
-            border-white/70
-            bg-white/85
-            text-[#5d655f]
+            border-white/80
+            bg-white/90
+            px-3
+            py-2
+            text-[#ef8196]
             shadow-lg
             backdrop-blur-xl
-            transition
-            active:scale-95
             sm:right-4
             sm:top-4
-            sm:h-11
-            sm:w-11
           "
+          title={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
+          aria-label={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
         >
-          <FilterIcon />
+          <span
+            className="
+              text-[16px]
+              leading-none
+              sm:text-[18px]
+            "
+            aria-hidden="true"
+          >
+            ♥
+          </span>
 
-          {filterCount > 0 && (
-            <span
-              className="
-                absolute
-                -right-1
-                -top-1
-                flex
-                h-5
-                min-w-5
-                items-center
-                justify-center
-                rounded-full
-                bg-[#ef8196]
-                px-1
-                text-[9px]
-                font-black
-                text-white
-                shadow
-              "
-            >
-              {filterCount}
-            </span>
-          )}
-        </button>
+          <span
+            className="
+              text-[12px]
+              font-black
+              leading-none
+              text-[#5d655f]
+              sm:text-[13px]
+            "
+          >
+            {likesCount}
+          </span>
+        </div>
 
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
@@ -1169,24 +1387,6 @@ export default function AnimalSwipeCard({
         </div>
       </div>
     </div>
-  );
-}
-
-function FilterIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5 sm:h-6 sm:w-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M5 7h14" />
-      <path d="M7 12h10" />
-      <path d="M9 17h6" />
-    </svg>
   );
 }
 
