@@ -38,6 +38,11 @@ export default function BottomNavigation() {
       label: "Les Veilleurs de Kali",
       icon: "❤️",
     },
+    {
+      href: "/boutique",
+      label: "Boutique",
+      icon: "🛍️",
+    },
     { href: "/toilettage", label: "Toilettage", icon: "✂️" },
     { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
     { href: "/education", label: "Éducation", icon: "🎓" },
@@ -86,22 +91,32 @@ export default function BottomNavigation() {
               </h2>
 
               <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 rounded-2xl bg-[#f8f4ec] px-4 py-3 shadow-sm transition active:scale-[0.98]"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
-                      {item.icon}
-                    </span>
+                {menuItems.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
 
-                    <span className="text-base font-black text-[#064b42]">
-                      {item.label}
-                    </span>
-                  </Link>
-                ))}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMenu}
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 shadow-sm transition active:scale-[0.98] ${
+                        isActive
+                          ? "bg-[#e8f5f1]"
+                          : "bg-[#f8f4ec]"
+                      }`}
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
+                        {item.icon}
+                      </span>
+
+                      <span className="text-base font-black text-[#064b42]">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
