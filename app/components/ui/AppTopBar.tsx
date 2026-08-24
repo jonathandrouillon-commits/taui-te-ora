@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
 import {
   ArrowLeft,
-  Bell,
   Heart,
   Home,
   PawPrint,
@@ -13,6 +13,8 @@ import {
   Users,
   Building2,
 } from "lucide-react";
+
+import NotificationBell from "./NotificationBell";
 
 type Props = {
   mode?: "public" | "association" | "admin" | "adoptant" | "refuge";
@@ -26,36 +28,49 @@ export default function AppTopBar({
   return (
     <header className="sticky top-0 z-50 bg-[#f4eee3]/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between bg-white px-4 py-3 shadow-lg">
+        {/* =====================================================
+            RETOUR
+        ====================================================== */}
 
-        {/* Retour */}
         <button
+          type="button"
           onClick={() => router.back()}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5ead8] hover:bg-[#ead9bb]"
+          aria-label="Retour"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:bg-[#ead9bb] active:scale-95"
         >
           <ArrowLeft size={22} />
         </button>
 
-        {/* Logo */}
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-3"
-        >
-          <PawPrint size={28} className="text-[#064b42]" />
+        {/* =====================================================
+            LOGO
+        ====================================================== */}
 
-          <div className="text-left">
-            <div className="font-black text-[#064b42]">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="flex min-w-0 items-center gap-3"
+        >
+          <PawPrint
+            size={28}
+            className="shrink-0 text-[#064b42]"
+          />
+
+          <div className="min-w-0 text-left">
+            <div className="truncate font-black text-[#064b42]">
               TAUI TE ORA
             </div>
 
-            <div className="text-xs text-gray-500">
+            <div className="truncate text-xs text-gray-500">
               Changer une vie
             </div>
           </div>
         </button>
 
-        {/* Menu */}
-        <div className="flex items-center gap-2">
+        {/* =====================================================
+            MENU
+        ====================================================== */}
 
+        <div className="flex items-center gap-2">
           <IconButton
             onClick={() => router.push("/")}
             icon={<Home size={20} />}
@@ -74,11 +89,11 @@ export default function AppTopBar({
             tooltip="Favoris"
           />
 
-          <IconButton
-            onClick={() => router.push("/notifications")}
-            icon={<Bell size={20} />}
-            tooltip="Notifications"
-          />
+          {/* =================================================
+              NOTIFICATIONS TEMPS RÉEL
+          ================================================== */}
+
+          <NotificationBell />
 
           <IconButton
             onClick={() => router.push("/profile")}
@@ -86,25 +101,43 @@ export default function AppTopBar({
             tooltip="Mon profil"
           />
 
+          {/* =================================================
+              ASSOCIATION
+          ================================================== */}
+
           {mode === "association" && (
             <IconButton
-              onClick={() => router.push("/association/dashboard")}
+              onClick={() =>
+                router.push("/association/dashboard")
+              }
               icon={<Users size={20} />}
               tooltip="Association"
             />
           )}
 
+          {/* =================================================
+              REFUGE
+          ================================================== */}
+
           {mode === "refuge" && (
             <IconButton
-              onClick={() => router.push("/refuge/dashboard")}
+              onClick={() =>
+                router.push("/refuge/dashboard")
+              }
               icon={<Building2 size={20} />}
               tooltip="Refuge"
             />
           )}
 
+          {/* =================================================
+              ADMIN
+          ================================================== */}
+
           {mode === "admin" && (
             <IconButton
-              onClick={() => router.push("/admin/dashboard")}
+              onClick={() =>
+                router.push("/admin/dashboard")
+              }
               icon={<Shield size={20} />}
               tooltip="Administration"
             />
@@ -114,6 +147,10 @@ export default function AppTopBar({
     </header>
   );
 }
+
+/* =========================================================
+   BOUTON ICÔNE
+========================================================= */
 
 function IconButton({
   icon,
@@ -128,8 +165,9 @@ function IconButton({
     <button
       type="button"
       title={tooltip}
+      aria-label={tooltip}
       onClick={onClick}
-      className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:scale-105 hover:bg-[#ead9bb]"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:scale-105 hover:bg-[#ead9bb] active:scale-95"
     >
       {icon}
     </button>
