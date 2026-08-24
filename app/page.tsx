@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
@@ -11,6 +15,26 @@ import { animalService } from "./services/animal.service";
 import { favoriteService } from "./services/favorite.service";
 
 import { supabase } from "./lib/supabase";
+
+/* =========================================================
+   TYPES FILTRE
+========================================================= */
+
+type AnimalFilter =
+  | "chien"
+  | "chat"
+  | "cheval"
+  | "autre";
+
+const FILTER_STORAGE_KEY =
+  "taui-selected-animal-types";
+
+const WELCOME_STORAGE_KEY =
+  "taui-welcome-seen";
+
+/* =========================================================
+   PAGE
+========================================================= */
 
 export default function HomePage() {
   const router = useRouter();
@@ -31,29 +55,202 @@ export default function HomePage() {
     setFavoriteRestored,
   ] = useState(false);
 
+  const [
+    welcomeOpen,
+    setWelcomeOpen,
+  ] = useState(false);
+
+  const [
+    welcomeReady,
+    setWelcomeReady,
+  ] = useState(false);
+
+  const [
+    selectedTypes,
+    setSelectedTypes,
+  ] = useState<AnimalFilter[]>([]);
+
   /* =========================================================
      CHARGEMENT INITIAL
   ========================================================= */
 
   useEffect(() => {
     loadAnimals();
+    loadWelcomePreferences();
   }, []);
 
   /* =========================================================
-     RETOUR APRÈS LOGIN POUR UN COUP DE COEUR
+     RETOUR APRÈS LOGIN FAVORI
   ========================================================= */
 
   useEffect(() => {
     restoreFavoriteAfterLogin();
   }, []);
 
+  /* =========================================================
+     PREFERENCES ACCUEIL
+  ========================================================= */
+
+  async function loadWelcomePreferences() {
+    try {
+      const alreadySeen =
+        sessionStorage.getItem(
+          WELCOME_STORAGE_KEY
+        );
+
+      const savedFilters =
+        sessionStorage.getItem(
+          FILTER_STORAGE_KEY
+        );
+
+      if (savedFilters) {
+        const parsed =
+          JSON.parse(
+            savedFilters
+          );
+
+        if (
+          Array.isArray(parsed)
+        ) {
+          setSelectedTypes(
+            parsed.filter(
+              (
+                value
+              ): value is AnimalFilter =>
+                [
+                  "chien",
+                  "chat",
+                  "cheval",
+                  "autre",
+                ].includes(value)
+            )
+          );
+        }
+      }
+
+      /*
+       * Si l'utilisateur est déjà
+       * connecté, on ne montre PAS
+       * automatiquement la fenêtre.
+       */
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (user) {
+        setWelcomeOpen(false);
+
+        sessionStorage.setItem(
+          WELCOME_STORAGE_KEY,
+          "yes"
+        );
+
+        return;
+      }
+
+      /*
+       * Visiteur non connecté :
+       * fenêtre uniquement à la
+       * première arrivée de la session.
+       */
+      setWelcomeOpen(
+        alreadySeen !== "yes"
+      );
+    } catch (error) {
+      console.error(
+        "Erreur préférence accueil :",
+        error
+      );
+
+      setWelcomeOpen(true);
+    } finally {
+      setWelcomeReady(true);
+    }
+  }
+
+  /* =========================================================
+     FILTRES
+  ========================================================= */
+
+  function toggleAnimalType(
+    type: AnimalFilter
+  ) {
+    setSelectedTypes(
+      (previous) => {
+        if (
+          previous.includes(type)
+        ) {
+          return previous.filter(
+            (item) =>
+              item !== type
+          );
+        }
+
+        return [
+          ...previous,
+          type,
+        ];
+      }
+    );
+  }
+
+  /* =========================================================
+     COMMENCER LA DECOUVERTE
+  ========================================================= */
+
+  function startDiscovery() {
+    try {
+      sessionStorage.setItem(
+        WELCOME_STORAGE_KEY,
+        "yes"
+      );
+
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify(
+          selectedTypes
+        )
+      );
+    } catch {
+      // rien
+    }
+
+    setCurrentIndex(0);
+    setWelcomeOpen(false);
+  }
+
+  /* =========================================================
+     VOIR TOUS LES ANIMAUX
+  ========================================================= */
+
+  function showAllAnimals() {
+    setSelectedTypes([]);
+
+    try {
+      sessionStorage.setItem(
+        WELCOME_STORAGE_KEY,
+        "yes"
+      );
+
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify([])
+      );
+    } catch {
+      // rien
+    }
+
+    setCurrentIndex(0);
+    setWelcomeOpen(false);
+  }
+
+  /* =========================================================
+     RESTAURER FAVORI APRES LOGIN
+  ========================================================= */
+
   async function restoreFavoriteAfterLogin() {
     try {
-      /*
-       * Exemple :
-       *
-       * /?favorite=UUID_ANIMAL
-       */
       const params =
         new URLSearchParams(
           window.location.search
@@ -66,52 +263,23 @@ export default function HomePage() {
         return;
       }
 
-      /*
-       * Vérifier que l'utilisateur
-       * est maintenant connecté.
-       */
       const {
         data: { user },
       } =
         await supabase.auth.getUser();
 
-      /*
-       * Si l'utilisateur n'est toujours
-       * pas connecté, on ne fait rien.
-       */
       if (!user) {
         return;
       }
 
-      /*
-       * Enregistrement automatique.
-       *
-       * favoriteService.add() vérifie
-       * déjà si le favori existe.
-       */
       await favoriteService.add(
         favoriteAnimalId
       );
 
-      /*
-       * Petit feedback visuel.
-       */
       setFavoriteRestored(true);
 
-      /*
-       * Nettoyer l'URL :
-       *
-       * /?favorite=XXXX
-       *
-       * devient :
-       *
-       * /
-       */
       router.replace("/");
 
-      /*
-       * Faire disparaître le message.
-       */
       window.setTimeout(() => {
         setFavoriteRestored(false);
       }, 2500);
@@ -124,7 +292,7 @@ export default function HomePage() {
   }
 
   /* =========================================================
-     CHARGER LES ANIMAUX
+     CHARGER ANIMAUX
   ========================================================= */
 
   async function loadAnimals() {
@@ -152,6 +320,97 @@ export default function HomePage() {
   }
 
   /* =========================================================
+     FILTRAGE ANIMAUX
+  ========================================================= */
+
+  const filteredAnimals =
+    useMemo(() => {
+      if (
+        selectedTypes.length === 0
+      ) {
+        return animals;
+      }
+
+      return animals.filter(
+        (animal) => {
+          const type =
+            String(
+              animal?.animal_type ||
+                animal?.type ||
+                ""
+            )
+              .trim()
+              .toLowerCase();
+
+          const isDog =
+            type.includes(
+              "chien"
+            ) ||
+            type.includes(
+              "dog"
+            );
+
+          const isCat =
+            type.includes(
+              "chat"
+            ) ||
+            type.includes(
+              "cat"
+            );
+
+          const isHorse =
+            type.includes(
+              "cheval"
+            ) ||
+            type.includes(
+              "horse"
+            );
+
+          return selectedTypes.some(
+            (selected) => {
+              if (
+                selected ===
+                "chien"
+              ) {
+                return isDog;
+              }
+
+              if (
+                selected ===
+                "chat"
+              ) {
+                return isCat;
+              }
+
+              if (
+                selected ===
+                "cheval"
+              ) {
+                return isHorse;
+              }
+
+              if (
+                selected ===
+                "autre"
+              ) {
+                return (
+                  !isDog &&
+                  !isCat &&
+                  !isHorse
+                );
+              }
+
+              return false;
+            }
+          );
+        }
+      );
+    }, [
+      animals,
+      selectedTypes,
+    ]);
+
+  /* =========================================================
      ANIMAL SUIVANT
   ========================================================= */
 
@@ -163,14 +422,23 @@ export default function HomePage() {
   }
 
   const currentAnimal =
-    animals[currentIndex];
+    filteredAnimals[
+      currentIndex
+    ];
+
+  const filterCount =
+    selectedTypes.length;
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <TauiPageBackground>
       <div className="relative min-h-[100dvh] w-full">
 
         {/* ===================================================
-            MESSAGE FAVORI RESTAURÉ APRÈS LOGIN
+            FAVORI RESTAURE
         ==================================================== */}
 
         {favoriteRestored && (
@@ -179,8 +447,9 @@ export default function HomePage() {
               fixed
               left-1/2
               top-5
-              z-[200]
+              z-[300]
               -translate-x-1/2
+              whitespace-nowrap
               rounded-full
               bg-white/95
               px-5
@@ -194,6 +463,68 @@ export default function HomePage() {
             ❤️ Coup de cœur enregistré
           </div>
         )}
+
+        {/* ===================================================
+            BOUTON FILTRER
+        ==================================================== */}
+
+        {welcomeReady &&
+          !welcomeOpen &&
+          !loading && (
+            <button
+              type="button"
+              onClick={() =>
+                setWelcomeOpen(
+                  true
+                )
+              }
+              className="
+                fixed
+                right-3
+                top-3
+                z-[120]
+                flex
+                items-center
+                gap-2
+                rounded-full
+                border
+                border-white/80
+                bg-[#fffaf7]/95
+                px-3
+                py-2
+                text-xs
+                font-black
+                text-[#58544f]
+                shadow-lg
+                backdrop-blur-xl
+              "
+            >
+              <FilterIcon />
+
+              <span>
+                Filtrer
+              </span>
+
+              {filterCount > 0 && (
+                <span
+                  className="
+                    flex
+                    h-5
+                    min-w-5
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#ef8196]
+                    px-1
+                    text-[10px]
+                    text-white
+                  "
+                >
+                  {filterCount}
+                </span>
+              )}
+            </button>
+          )}
 
         {/* ===================================================
             SWIPE
@@ -211,8 +542,6 @@ export default function HomePage() {
             md:py-8
           "
         >
-          {/* CHARGEMENT */}
-
           {loading && (
             <div
               className="
@@ -260,38 +589,20 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* ANIMAL */}
-
           {!loading &&
             currentAnimal && (
               <AnimalSwipeCard
                 animal={
                   currentAnimal
                 }
-
-                /*
-                 * Swipe gauche
-                 * = NEXT TIME
-                 */
                 onPass={
                   goNext
                 }
-
-                /*
-                 * Swipe droite
-                 * = COUP DE COEUR
-                 *
-                 * AnimalSwipeCard
-                 * enregistre d'abord le favori,
-                 * puis appelle goNext().
-                 */
                 onFavorite={
                   goNext
                 }
               />
             )}
-
-          {/* PLUS D'ANIMAUX */}
 
           {!loading &&
             !currentAnimal && (
@@ -328,7 +639,9 @@ export default function HomePage() {
                       text-[#667568]
                     "
                   >
-                    Aucun autre animal à afficher
+                    {filterCount > 0
+                      ? "Pas d'autre rencontre pour ce filtre"
+                      : "Aucun autre animal à afficher"}
                   </h2>
 
                   <p
@@ -337,37 +650,604 @@ export default function HomePage() {
                       text-gray-600
                     "
                   >
-                    Vous avez parcouru tous les animaux disponibles pour le moment.
+                    {filterCount > 0
+                      ? "Essayez d'élargir votre sélection pour découvrir d'autres animaux."
+                      : "Vous avez parcouru tous les animaux disponibles pour le moment."}
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={
-                      loadAnimals
-                    }
-                    className="
-                      mt-6
-                      rounded-full
-                      bg-[#ef919b]
-                      px-6
-                      py-3
-                      font-black
-                      text-white
-                      shadow-lg
-                      transition
-                      hover:scale-105
-                    "
-                  >
-                    Recommencer
-                  </button>
+                  {filterCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWelcomeOpen(
+                          true
+                        )
+                      }
+                      className="
+                        mt-6
+                        rounded-full
+                        bg-[#ef919b]
+                        px-6
+                        py-3
+                        font-black
+                        text-white
+                        shadow-lg
+                      "
+                    >
+                      Modifier mes choix
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={
+                        loadAnimals
+                      }
+                      className="
+                        mt-6
+                        rounded-full
+                        bg-[#ef919b]
+                        px-6
+                        py-3
+                        font-black
+                        text-white
+                        shadow-lg
+                      "
+                    >
+                      Recommencer
+                    </button>
+                  )}
                 </div>
               </div>
             )}
         </section>
 
         <BottomMenu />
+
+        {/* ===================================================
+            FENETRE D'ACCUEIL
+        ==================================================== */}
+
+        {welcomeReady &&
+          welcomeOpen && (
+            <WelcomeModal
+              selectedTypes={
+                selectedTypes
+              }
+              toggleAnimalType={
+                toggleAnimalType
+              }
+              onStart={
+                startDiscovery
+              }
+              onShowAll={
+                showAllAnimals
+              }
+              onClose={() => {
+                const alreadySeen =
+                  sessionStorage.getItem(
+                    WELCOME_STORAGE_KEY
+                  );
+
+                if (
+                  alreadySeen ===
+                  "yes"
+                ) {
+                  setWelcomeOpen(
+                    false
+                  );
+                }
+              }}
+              router={router}
+            />
+          )}
       </div>
     </TauiPageBackground>
+  );
+}
+
+/* =========================================================
+   MODAL ACCUEIL
+========================================================= */
+
+function WelcomeModal({
+  selectedTypes,
+  toggleAnimalType,
+  onStart,
+  onShowAll,
+  onClose,
+  router,
+}: {
+  selectedTypes: AnimalFilter[];
+
+  toggleAnimalType: (
+    type: AnimalFilter
+  ) => void;
+
+  onStart: () => void;
+
+  onShowAll: () => void;
+
+  onClose: () => void;
+
+  router: ReturnType<
+    typeof useRouter
+  >;
+}) {
+  const options: {
+    type: AnimalFilter;
+    icon: string;
+    title: string;
+  }[] = [
+    {
+      type: "chien",
+      icon: "🐶",
+      title: "Chien",
+    },
+    {
+      type: "chat",
+      icon: "🐱",
+      title: "Chat",
+    },
+    {
+      type: "cheval",
+      icon: "🐴",
+      title: "Cheval",
+    },
+    {
+      type: "autre",
+      icon: "🐾",
+      title: "Autre",
+    },
+  ];
+
+  return (
+    <div
+      className="
+        fixed
+        inset-0
+        z-[500]
+        flex
+        items-center
+        justify-center
+        overflow-y-auto
+        bg-[#332c29]/40
+        px-4
+        py-6
+        backdrop-blur-[7px]
+      "
+    >
+      <div
+        className="
+          relative
+          w-full
+          max-w-[430px]
+          overflow-hidden
+          rounded-[36px]
+          border
+          border-white/70
+          bg-[#fffaf7]/95
+          shadow-[0_30px_100px_rgba(38,30,27,.30)]
+          backdrop-blur-2xl
+        "
+      >
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -right-16
+            -top-16
+            h-44
+            w-44
+            rounded-full
+            bg-[#f8ccd3]/45
+            blur-3xl
+          "
+        />
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -bottom-20
+            -left-12
+            h-52
+            w-52
+            rounded-full
+            bg-[#bfe4da]/40
+            blur-3xl
+          "
+        />
+
+        <button
+          type="button"
+          onClick={
+            onClose
+          }
+          aria-label="Fermer"
+          className="
+            absolute
+            right-4
+            top-4
+            z-20
+            flex
+            h-9
+            w-9
+            items-center
+            justify-center
+            rounded-full
+            bg-white/75
+            text-lg
+            text-[#716963]
+            shadow-sm
+          "
+        >
+          ×
+        </button>
+
+        <div
+          className="
+            relative
+            z-10
+            px-5
+            pb-6
+            pt-6
+            sm:px-7
+          "
+        >
+          <div className="text-center">
+            <img
+              src="/logo-taui-te-ora.png"
+              alt="Taui Te Ora"
+              className="
+                mx-auto
+                h-24
+                w-24
+                object-contain
+                drop-shadow-sm
+              "
+            />
+
+            <p
+              className="
+                mt-1
+                text-[11px]
+                font-black
+                uppercase
+                tracking-[0.27em]
+                text-[#df8995]
+              "
+            >
+              Une rencontre peut tout changer
+            </p>
+
+            <h1
+              className="
+                mx-auto
+                mt-4
+                max-w-[340px]
+                text-[29px]
+                font-black
+                leading-[1.08]
+                tracking-tight
+                text-[#064b42]
+              "
+            >
+              Et si quelqu&apos;un
+              vous attendait déjà ?
+            </h1>
+
+            <p
+              className="
+                mx-auto
+                mt-3
+                max-w-[330px]
+                text-sm
+                leading-relaxed
+                text-[#746c66]
+              "
+            >
+              Dites-nous simplement qui
+              vous aimeriez rencontrer.
+            </p>
+          </div>
+
+          <div className="mt-7">
+            <p
+              className="
+                text-center
+                text-sm
+                font-black
+                text-[#064b42]
+              "
+            >
+              Je veux adopter…
+            </p>
+
+            <div
+              className="
+                mt-4
+                grid
+                grid-cols-2
+                gap-3
+              "
+            >
+              {options.map(
+                (option) => {
+                  const selected =
+                    selectedTypes.includes(
+                      option.type
+                    );
+
+                  return (
+                    <button
+                      key={
+                        option.type
+                      }
+                      type="button"
+                      onClick={() =>
+                        toggleAnimalType(
+                          option.type
+                        )
+                      }
+                      className={`
+                        relative
+                        flex
+                        min-h-[92px]
+                        flex-col
+                        items-center
+                        justify-center
+                        rounded-[24px]
+                        border-2
+                        px-3
+                        py-3
+                        transition
+                        active:scale-[.98]
+                        ${
+                          selected
+                            ? "border-[#ef8196] bg-[#fff0f2] shadow-[0_8px_24px_rgba(239,129,150,.17)]"
+                            : "border-[#eee3dd] bg-white/80 shadow-sm"
+                        }
+                      `}
+                    >
+                      {selected && (
+                        <span
+                          className="
+                            absolute
+                            right-2.5
+                            top-2.5
+                            flex
+                            h-5
+                            w-5
+                            items-center
+                            justify-center
+                            rounded-full
+                            bg-[#ef8196]
+                            text-[10px]
+                            font-black
+                            text-white
+                          "
+                        >
+                          ✓
+                        </span>
+                      )}
+
+                      <span
+                        className="
+                          text-[35px]
+                          leading-none
+                        "
+                      >
+                        {option.icon}
+                      </span>
+
+                      <span
+                        className={`
+                          mt-2
+                          text-[13px]
+                          font-black
+                          ${
+                            selected
+                              ? "text-[#d96f81]"
+                              : "text-[#5d5955]"
+                          }
+                        `}
+                      >
+                        {option.title}
+                      </span>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+
+            <p
+              className="
+                mt-3
+                text-center
+                text-[11px]
+                text-[#978e87]
+              "
+            >
+              Vous pouvez en choisir plusieurs.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onStart
+            }
+            className="
+              mt-6
+              w-full
+              rounded-full
+              bg-[#ef8196]
+              px-6
+              py-4
+              text-[16px]
+              font-black
+              text-white
+              shadow-[0_12px_28px_rgba(239,129,150,.32)]
+              transition
+              active:scale-[.99]
+            "
+          >
+            {selectedTypes.length > 0
+              ? "Voir qui m’attend"
+              : "Découvrir tous les animaux"}
+          </button>
+
+          {selectedTypes.length > 0 && (
+            <button
+              type="button"
+              onClick={
+                onShowAll
+              }
+              className="
+                mt-2
+                w-full
+                py-2
+                text-xs
+                font-bold
+                text-[#8b817a]
+                underline
+                underline-offset-4
+              "
+            >
+              Voir tous les animaux
+            </button>
+          )}
+
+          <div
+            className="
+              mt-5
+              flex
+              items-center
+              justify-center
+              gap-4
+              rounded-[20px]
+              bg-[#f7f1ec]
+              px-4
+              py-3
+            "
+          >
+            <span
+              className="
+                text-[11px]
+                font-bold
+                text-[#df687c]
+              "
+            >
+              → ❤️ Coup de cœur
+            </span>
+
+            <span
+              className="
+                h-4
+                w-px
+                bg-[#dcd1ca]
+              "
+            />
+
+            <span
+              className="
+                text-[11px]
+                font-bold
+                text-[#746c66]
+              "
+            >
+              ← Next time
+            </span>
+          </div>
+
+          <div
+            className="
+              mt-6
+              border-t
+              border-[#eadfd8]
+              pt-5
+              text-center
+            "
+          >
+            <p
+              className="
+                text-xs
+                font-bold
+                text-[#756d67]
+              "
+            >
+              Association, refuge,
+              SIGFA, bénévole ou
+              fourrière ?
+            </p>
+
+            <p
+              className="
+                mt-1
+                text-[11px]
+                text-[#9a918a]
+              "
+            >
+              Accédez directement à
+              votre espace.
+            </p>
+
+            <div
+              className="
+                mt-4
+                grid
+                grid-cols-2
+                gap-3
+              "
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    "/login"
+                  )
+                }
+                className="
+                  rounded-full
+                  border
+                  border-[#d9cec7]
+                  bg-white
+                  px-4
+                  py-3
+                  text-xs
+                  font-black
+                  text-[#064b42]
+                  shadow-sm
+                "
+              >
+                Se connecter
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    "/choose-role"
+                  )
+                }
+                className="
+                  rounded-full
+                  bg-[#064b42]
+                  px-4
+                  py-3
+                  text-xs
+                  font-black
+                  text-white
+                  shadow-sm
+                "
+              >
+                Créer un compte
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -403,8 +1283,6 @@ function BottomMenu() {
     >
       <div className="grid grid-cols-5 items-end">
 
-        {/* ACCUEIL */}
-
         <Link
           href="/"
           className="
@@ -435,8 +1313,6 @@ function BottomMenu() {
           </span>
         </Link>
 
-        {/* RECHERCHE */}
-
         <Link
           href="/search"
           className="
@@ -456,8 +1332,6 @@ function BottomMenu() {
               items-center
               justify-center
               rounded-full
-              transition
-              hover:bg-[#f2ece7]
             "
           >
             <SearchIcon />
@@ -467,8 +1341,6 @@ function BottomMenu() {
             Recherche
           </span>
         </Link>
-
-        {/* SOS */}
 
         <Link
           href="/signalement"
@@ -500,8 +1372,6 @@ function BottomMenu() {
           </div>
         </Link>
 
-        {/* INFORMATIONS */}
-
         <Link
           href="/informations"
           className="
@@ -521,8 +1391,6 @@ function BottomMenu() {
               items-center
               justify-center
               rounded-full
-              transition
-              hover:bg-[#f2ece7]
             "
           >
             <InfoIcon />
@@ -532,8 +1400,6 @@ function BottomMenu() {
             Infos
           </span>
         </Link>
-
-        {/* PROFIL */}
 
         <Link
           href="/profile"
@@ -554,8 +1420,6 @@ function BottomMenu() {
               items-center
               justify-center
               rounded-full
-              transition
-              hover:bg-[#f2ece7]
             "
           >
             <ProfileIcon />
@@ -574,6 +1438,24 @@ function BottomMenu() {
 /* =========================================================
    ICONES
 ========================================================= */
+
+function FilterIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
+    </svg>
+  );
+}
 
 function HomeIcon() {
   return (
@@ -673,7 +1555,6 @@ function InfoIcon() {
       />
 
       <path d="M12 11v6" />
-
       <path d="M12 7h.01" />
     </svg>
   );

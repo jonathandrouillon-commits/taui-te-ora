@@ -45,10 +45,6 @@ export default function AnimalSwipeCard({
   const [swipeFeedback, setSwipeFeedback] =
     useState<SwipeFeedback>(null);
 
-  /* =========================================================
-     RESET À CHAQUE NOUVEL ANIMAL
-  ========================================================= */
-
   useEffect(() => {
     setStartX(null);
     setTranslateX(0);
@@ -56,10 +52,6 @@ export default function AnimalSwipeCard({
     setActionLoading(false);
     setSwipeFeedback(null);
   }, [animal?.id]);
-
-  /* =========================================================
-     DONNÉES ANIMAL
-  ========================================================= */
 
   const animalName =
     animal?.animal_name ||
@@ -118,10 +110,6 @@ export default function AnimalSwipeCard({
     animal?.sterilise ??
     false;
 
-  /* =========================================================
-     CRÉATEUR / ASSOCIATION
-  ========================================================= */
-
   const creatorName =
     animal?.owner_profile
       ?.organization_name ||
@@ -132,10 +120,6 @@ export default function AnimalSwipeCard({
     animal?.owner_profile
       ?.avatar_url ||
     "";
-
-  /* =========================================================
-     PHOTO
-  ========================================================= */
 
   const photoUrl = useMemo(() => {
     const photos = Array.isArray(
@@ -157,10 +141,6 @@ export default function AnimalSwipeCard({
     );
   }, [animal]);
 
-  /* =========================================================
-     COULEUR SEXE
-  ========================================================= */
-
   const isMale =
     sex.includes("mâle") ||
     sex.includes("male");
@@ -175,10 +155,6 @@ export default function AnimalSwipeCard({
       ? "#ef8196"
       : "#e6a85c";
 
-  /* =========================================================
-     ATTENTE ANIMATION
-  ========================================================= */
-
   function wait(milliseconds: number) {
     return new Promise<void>(
       (resolve) => {
@@ -189,11 +165,6 @@ export default function AnimalSwipeCard({
       }
     );
   }
-
-  /* =========================================================
-     PASSER
-     DROITE → GAUCHE
-  ========================================================= */
 
   async function handlePass() {
     if (actionLoading) return;
@@ -214,11 +185,6 @@ export default function AnimalSwipeCard({
     }
   }
 
-  /* =========================================================
-     COUP DE COEUR
-     GAUCHE → DROITE
-  ========================================================= */
-
   async function handleFavorite() {
     if (
       actionLoading ||
@@ -234,8 +200,6 @@ export default function AnimalSwipeCard({
         data: { user },
       } =
         await supabase.auth.getUser();
-
-      /* PAS CONNECTÉ */
 
       if (!user) {
         const destination =
@@ -253,13 +217,9 @@ export default function AnimalSwipeCard({
         return;
       }
 
-      /* ENREGISTRER FAVORI */
-
       await favoriteService.add(
         animal.id
       );
-
-      /* FEEDBACK VISUEL */
 
       setSwipeFeedback("favorite");
 
@@ -267,8 +227,6 @@ export default function AnimalSwipeCard({
 
       setSwipeFeedback(null);
       setTranslateX(0);
-
-      /* ANIMAL SUIVANT */
 
       onFavorite?.();
     } catch (error: any) {
@@ -304,10 +262,6 @@ export default function AnimalSwipeCard({
     }
   }
 
-  /* =========================================================
-     ADOPTER
-  ========================================================= */
-
   function handleAdopt() {
     if (!animal?.id) return;
 
@@ -315,10 +269,6 @@ export default function AnimalSwipeCard({
       `/adoption/start/${animal.id}`
     );
   }
-
-  /* =========================================================
-     FICHE ANIMAL
-  ========================================================= */
 
   function handleInformation() {
     if (!animal?.id) return;
@@ -328,10 +278,6 @@ export default function AnimalSwipeCard({
     );
   }
 
-  /* =========================================================
-     SWIPE
-  ========================================================= */
-
   function handlePointerDown(
     event: PointerEvent<HTMLElement>
   ) {
@@ -340,10 +286,6 @@ export default function AnimalSwipeCard({
     const target =
       event.target as HTMLElement;
 
-    /*
-     * Pas de swipe quand on touche
-     * un bouton ou un lien.
-     */
     if (
       target.closest(
         "button, a"
@@ -413,19 +355,11 @@ export default function AnimalSwipeCard({
       // rien
     }
 
-    /*
-     * GAUCHE → DROITE
-     * COUP DE COEUR
-     */
     if (translateX >= 90) {
       await handleFavorite();
       return;
     }
 
-    /*
-     * DROITE → GAUCHE
-     * NEXT TIME
-     */
     if (translateX <= -90) {
       await handlePass();
       return;
@@ -455,10 +389,6 @@ export default function AnimalSwipeCard({
       1
     );
 
-  /* =========================================================
-     RENDER
-  ========================================================= */
-
   return (
     <div
       className="
@@ -472,10 +402,6 @@ export default function AnimalSwipeCard({
         sm:px-4
       "
     >
-      {/* =====================================================
-          SWIPE CARD
-      ====================================================== */}
-
       <article
         onPointerDown={
           handlePointerDown
@@ -516,8 +442,6 @@ export default function AnimalSwipeCard({
           shadow-[0_18px_45px_rgba(40,30,25,.22)]
         "
       >
-        {/* PHOTO */}
-
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -548,8 +472,6 @@ export default function AnimalSwipeCard({
           </div>
         )}
 
-        {/* DÉGRADÉ BAS */}
-
         <div
           className="
             pointer-events-none
@@ -563,10 +485,6 @@ export default function AnimalSwipeCard({
             to-transparent
           "
         />
-
-        {/* ===================================================
-            LOGO TAUI TE ORA
-        ==================================================== */}
 
         <div
           className="
@@ -591,24 +509,21 @@ export default function AnimalSwipeCard({
           />
         </div>
 
-        {/* ===================================================
-            INFOS GAUCHE
-        ==================================================== */}
+        {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
           className="
             absolute
             left-3
-            top-[190px]
+            top-[30%]
+            bottom-[190px]
             z-30
             flex
-            max-h-[300px]
             flex-col
-            gap-2
+            justify-center
+            gap-1.5
           "
         >
-          {/* AGE */}
-
           {age && (
             <InfoBox
               icon="🐾"
@@ -616,8 +531,6 @@ export default function AnimalSwipeCard({
               iconColor="#3988d1"
             />
           )}
-
-          {/* SEXE */}
 
           {sexRaw && (
             <InfoBox
@@ -635,8 +548,6 @@ export default function AnimalSwipeCard({
             />
           )}
 
-          {/* VACCINÉ */}
-
           {vaccinated && (
             <InfoBox
               icon="✓"
@@ -644,8 +555,6 @@ export default function AnimalSwipeCard({
               iconColor="#df8995"
             />
           )}
-
-          {/* IDENTIFIÉ */}
 
           {microchipped && (
             <InfoBox
@@ -655,8 +564,6 @@ export default function AnimalSwipeCard({
             />
           )}
 
-          {/* STÉRILISÉ */}
-
           {sterilized && (
             <InfoBox
               icon="✿"
@@ -665,10 +572,6 @@ export default function AnimalSwipeCard({
             />
           )}
         </div>
-
-        {/* ===================================================
-            FEEDBACK PENDANT SWIPE DROITE
-        ==================================================== */}
 
         {dragFavoriteOpacity >
           0 &&
@@ -701,10 +604,6 @@ export default function AnimalSwipeCard({
             </div>
           )}
 
-        {/* ===================================================
-            FEEDBACK PENDANT SWIPE GAUCHE
-        ==================================================== */}
-
         {dragPassOpacity >
           0 &&
           !swipeFeedback && (
@@ -735,10 +634,6 @@ export default function AnimalSwipeCard({
               ✕ NEXT TIME
             </div>
           )}
-
-        {/* ===================================================
-            GROS COEUR APRÈS COUP DE COEUR
-        ==================================================== */}
 
         {swipeFeedback ===
           "favorite" && (
@@ -788,10 +683,6 @@ export default function AnimalSwipeCard({
             </div>
           )}
 
-        {/* ===================================================
-            NEXT TIME
-        ==================================================== */}
-
         {swipeFeedback ===
           "pass" && (
             <div
@@ -840,10 +731,6 @@ export default function AnimalSwipeCard({
             </div>
           )}
 
-        {/* ===================================================
-            INFORMATIONS BASSES
-        ==================================================== */}
-
         <div
           className="
             absolute
@@ -855,8 +742,6 @@ export default function AnimalSwipeCard({
             text-white
           "
         >
-          {/* NOM + I */}
-
           <div
             className="
               flex
@@ -906,8 +791,6 @@ export default function AnimalSwipeCard({
             </button>
           </div>
 
-          {/* NOM ASSOCIATION */}
-
           {creatorName && (
             <p
               className="
@@ -922,8 +805,6 @@ export default function AnimalSwipeCard({
               {creatorName}
             </p>
           )}
-
-          {/* LOCALISATION */}
 
           {(city || island) && (
             <p
@@ -941,8 +822,6 @@ export default function AnimalSwipeCard({
                 .join(" · ")}
             </p>
           )}
-
-          {/* CARACTERE */}
 
           {character && (
             <div
@@ -973,10 +852,6 @@ export default function AnimalSwipeCard({
             </div>
           )}
         </div>
-
-        {/* ===================================================
-            LOGO CRÉATEUR / ASSOCIATION
-        ==================================================== */}
 
         {creatorLogo && (
           <div
@@ -1020,9 +895,7 @@ export default function AnimalSwipeCard({
         )}
       </article>
 
-      {/* =====================================================
-          BOUTONS SOUS LA CARTE
-      ====================================================== */}
+      {/* BOUTONS SOUS LA CARTE */}
 
       <div
         className="
@@ -1036,8 +909,6 @@ export default function AnimalSwipeCard({
           px-4
         "
       >
-        {/* PASSER */}
-
         <div
           className="
             flex
@@ -1083,8 +954,6 @@ export default function AnimalSwipeCard({
             Passer
           </span>
         </div>
-
-        {/* JE VEUX ADOPTER */}
 
         <div
           className="
@@ -1138,8 +1007,6 @@ export default function AnimalSwipeCard({
           </span>
         </div>
 
-        {/* COUP DE COEUR */}
-
         <div
           className="
             flex
@@ -1192,10 +1059,6 @@ export default function AnimalSwipeCard({
   );
 }
 
-/* =========================================================
-   PETITE CASE INFO À GAUCHE
-========================================================= */
-
 function InfoBox({
   icon,
   value,
@@ -1209,15 +1072,16 @@ function InfoBox({
     <div
       className="
         flex
-        min-h-[58px]
-        w-[72px]
+        h-[50px]
+        w-[64px]
+        shrink-0
         flex-col
         items-center
         justify-center
-        rounded-[18px]
+        rounded-[15px]
         bg-[#fffaf7]/95
         px-1
-        py-2
+        py-1
         text-center
         shadow-lg
         backdrop-blur
@@ -1228,7 +1092,7 @@ function InfoBox({
           color: iconColor,
         }}
         className="
-          text-[18px]
+          text-[16px]
           font-black
           leading-none
         "
@@ -1241,8 +1105,9 @@ function InfoBox({
           mt-1
           max-w-full
           truncate
-          text-[10px]
+          text-[9px]
           font-semibold
+          leading-none
           text-[#52504d]
         "
       >
@@ -1252,17 +1117,11 @@ function InfoBox({
   );
 }
 
-/* =========================================================
-   ICÔNE BOUTON ADOPTION
-========================================================= */
-
 function AnimalActionIcon({
   animalType,
 }: {
   animalType: string;
 }) {
-  /* CHEVAL */
-
   if (
     animalType.includes(
       "cheval"
@@ -1275,8 +1134,6 @@ function AnimalActionIcon({
       <HorseShoeIcon />
     );
   }
-
-  /* CHAT */
 
   if (
     animalType.includes(
@@ -1291,16 +1148,10 @@ function AnimalActionIcon({
     );
   }
 
-  /* CHIEN PAR DÉFAUT */
-
   return (
     <DogPawIcon />
   );
 }
-
-/* =========================================================
-   PATTE CHIEN
-========================================================= */
 
 function DogPawIcon() {
   return (
@@ -1365,10 +1216,6 @@ function DogPawIcon() {
   );
 }
 
-/* =========================================================
-   PATTE CHAT
-========================================================= */
-
 function CatPawIcon() {
   return (
     <svg
@@ -1431,10 +1278,6 @@ function CatPawIcon() {
     </svg>
   );
 }
-
-/* =========================================================
-   FER À CHEVAL
-========================================================= */
 
 function HorseShoeIcon() {
   return (
