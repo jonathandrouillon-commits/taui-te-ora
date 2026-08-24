@@ -1,24 +1,78 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import TauiPageBackground from "../components/ui/TauiPageBackground";
 
+const KALI_DISAPPEARANCE_DATE = "2025-03-19";
+
 function calculateDaysWithoutKali() {
-  const disappearanceDate = new Date("2025-03-19T00:00:00");
-  const currentDate = new Date();
+  // Récupère la date actuelle en heure de Tahiti
+  const tahitiDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Pacific/Tahiti",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
-  disappearanceDate.setHours(0, 0, 0, 0);
-  currentDate.setHours(0, 0, 0, 0);
+  const [currentYear, currentMonth, currentDay] = tahitiDate
+    .split("-")
+    .map(Number);
 
-  const difference = currentDate.getTime() - disappearanceDate.getTime();
+  const [kaliYear, kaliMonth, kaliDay] = KALI_DISAPPEARANCE_DATE
+    .split("-")
+    .map(Number);
 
-  return Math.max(0, Math.floor(difference / (1000 * 60 * 60 * 24)));
+  // On travaille en UTC uniquement pour calculer le nombre
+  // de jours calendaires et éviter les problèmes de fuseau horaire.
+  const currentUTC = Date.UTC(
+    currentYear,
+    currentMonth - 1,
+    currentDay
+  );
+
+  const kaliUTC = Date.UTC(
+    kaliYear,
+    kaliMonth - 1,
+    kaliDay
+  );
+
+  const difference = currentUTC - kaliUTC;
+
+  return Math.max(
+    0,
+    Math.floor(difference / (1000 * 60 * 60 * 24))
+  );
 }
 
 export default function HommagePage() {
-  const daysWithoutKali = calculateDaysWithoutKali();
+  const [daysWithoutKali, setDaysWithoutKali] = useState<number | null>(null);
+
+  useEffect(() => {
+    function updateCounter() {
+      setDaysWithoutKali(calculateDaysWithoutKali());
+    }
+
+    // Calcul immédiat
+    updateCounter();
+
+    // Vérification régulière afin que le compteur change
+    // automatiquement après minuit à Tahiti.
+    const interval = window.setInterval(updateCounter, 60 * 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <TauiPageBackground showKali={false}>
       <section className="mx-auto max-w-5xl px-4 py-10">
         <div className="overflow-hidden rounded-[40px] border border-white/80 bg-white/85 shadow-2xl backdrop-blur-md">
+
+          {/* =====================================================
+              HOMMAGE
+          ====================================================== */}
+
           <div className="relative overflow-hidden bg-gradient-to-br from-[#064b42] via-[#09675a] to-[#0a796b] px-6 py-12 text-center text-white">
             <div className="pointer-events-none absolute -left-20 top-4 h-64 w-64 rounded-full bg-white/5" />
             <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-white/5" />
@@ -40,8 +94,13 @@ export default function HommagePage() {
                 Hommage à Kali
               </h1>
 
+              {/* COMPTEUR AUTOMATIQUE */}
+
               <p className="mt-5 text-2xl font-black text-[#f1d8b4] md:text-4xl">
-                {daysWithoutKali} jours sans toi
+                {daysWithoutKali === null
+                  ? "..."
+                  : daysWithoutKali}{" "}
+                jours sans toi
               </p>
 
               <p className="mt-3 text-sm font-semibold text-white/70">
@@ -49,6 +108,10 @@ export default function HommagePage() {
               </p>
             </div>
           </div>
+
+          {/* =====================================================
+              TEXTE
+          ====================================================== */}
 
           <div className="px-6 py-10 text-center md:px-14 md:py-14">
             <p className="text-3xl font-black leading-tight text-[#064b42] md:text-5xl">
@@ -68,8 +131,8 @@ export default function HommagePage() {
               </p>
 
               <p>
-                Je reprendrais même les jours difficiles, parce qu’ils seraient
-                encore des jours avec toi.
+                Je reprendrais même les jours difficiles, parce qu&apos;ils
+                seraient encore des jours avec toi.
               </p>
 
               <p className="text-2xl font-black italic text-[#8d673d]">
@@ -77,8 +140,14 @@ export default function HommagePage() {
               </p>
             </div>
 
+            {/* =====================================================
+                MISSION
+            ====================================================== */}
+
             <div className="mx-auto mt-12 max-w-3xl rounded-[30px] bg-[#f8f4ec] p-7 shadow-inner md:p-10">
-              <div className="text-5xl">🐾</div>
+              <div className="text-5xl">
+                🐾
+              </div>
 
               <h2 className="mt-5 text-3xl font-black text-[#064b42]">
                 De ton absence est née une mission
