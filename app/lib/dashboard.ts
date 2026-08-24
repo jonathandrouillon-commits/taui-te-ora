@@ -1,5 +1,9 @@
 import { supabase } from "./supabase";
 
+/* =========================================================
+   TYPES
+========================================================= */
+
 export type Profile = {
   id: string;
   created_at?: string;
@@ -17,6 +21,7 @@ export type Profile = {
   is_verified?: boolean;
   is_active?: boolean;
   organization_name?: string;
+
   adopter_experience?: string;
   current_animals?: string;
   adoption_for?: string;
@@ -30,6 +35,7 @@ export type Profile = {
   hypoallergenic?: string;
   cleanliness?: string;
   special_needs?: string;
+
   approval_status?: string;
   approved_at?: string;
   approved_by?: string;
@@ -47,36 +53,52 @@ export type Animal = {
   id: string;
   created_at?: string;
   updated_at?: string;
+
   reference_number?: string;
+
   animal_name?: string;
   animal_type?: string;
+
   age_label?: string;
   sex?: string;
   breed?: string;
   size_label?: string;
+
   association_name?: string;
+
   street_duration?: string;
   capture_location?: string;
+
   island?: string;
+  city?: string;
+
   description_character?: string;
   health_status?: string;
   special_needs?: string;
+
   is_published?: boolean;
+
   latitude?: number;
   longitude?: number;
+
   map_address?: string;
   map_visibility?: string;
-  city?: string;
+
   weight_kg?: number;
+
   story?: string;
+
   vaccinated?: boolean;
   sterilized?: boolean;
   microchipped?: boolean;
+
   owner_id?: string;
   association_id?: string;
   refuge_id?: string;
+
   is_adopted?: boolean;
   status?: string;
+
   compatible_chiens?: string;
   compatible_chats?: string;
   compatible_enfants?: string;
@@ -84,17 +106,16 @@ export type Animal = {
   animal_photos?: AnimalPhoto[];
 };
 
+/*
+  On garde le nom Like pour ne pas casser
+  les composants existants du dashboard.
+
+  MAIS les données sont maintenant lues
+  depuis la table "favorites".
+*/
+
 export type Like = {
   id: string;
-
-  /*
-   * On conserve le nom "Like"
-   * pour ne pas casser les composants
-   * existants du dashboard.
-   *
-   * Mais les données viennent maintenant
-   * de la table favorites.
-   */
   user_id: string;
   animal_id: string;
   created_at?: string;
@@ -105,9 +126,11 @@ export type Like = {
 export type AdoptionRequest = {
   id: string;
   created_at?: string;
+
   animal_id?: string;
   requester_id?: string;
   owner_id?: string;
+
   status?: string;
   message?: string;
 
@@ -122,19 +145,30 @@ export type AdoptionRequest = {
 export type Notification = {
   id: string;
   created_at?: string;
+
   user_id?: string;
+
   title?: string;
   message?: string;
+
   type?: string;
+
   animal_id?: string;
   adoption_request_id?: string;
+
   is_read?: boolean;
 };
+
+/* =========================================================
+   PROFIL
+========================================================= */
 
 export function getFullName(
   profile: Profile | null
 ) {
-  if (!profile) return "";
+  if (!profile) {
+    return "";
+  }
 
   return `${profile.first_name || ""} ${
     profile.last_name || ""
@@ -144,7 +178,9 @@ export function getFullName(
 export function isQuestionnaireFilled(
   profile: Profile | null
 ) {
-  if (!profile) return false;
+  if (!profile) {
+    return false;
+  }
 
   return Boolean(
     profile.adopter_experience ||
@@ -163,6 +199,10 @@ export function isQuestionnaireFilled(
   );
 }
 
+/* =========================================================
+   UTILISATEUR CONNECTÉ
+========================================================= */
+
 export async function getCurrentUser() {
   const result =
     await supabase.auth.getUser();
@@ -173,6 +213,10 @@ export async function getCurrentUser() {
 
   return result.data.user;
 }
+
+/* =========================================================
+   RÉCUPÉRER LE PROFIL
+========================================================= */
 
 export async function getProfile(
   userId: string,
@@ -191,6 +235,7 @@ export async function getProfile(
 
   return {
     id: userId,
+
     created_at:
       data?.created_at || "",
 
@@ -236,16 +281,13 @@ export async function getProfile(
       data?.is_active !== false,
 
     organization_name:
-      data?.organization_name ||
-      "",
+      data?.organization_name || "",
 
     adopter_experience:
-      data?.adopter_experience ||
-      "",
+      data?.adopter_experience || "",
 
     current_animals:
-      data?.current_animals ||
-      "",
+      data?.current_animals || "",
 
     adoption_for:
       data?.adoption_for || "",
@@ -293,10 +335,22 @@ export async function getProfile(
 
 /* =========================================================
    COUPS DE CŒUR
-   IMPORTANT :
-   ancienne table = likes
-   table actuelle = favorites
 ========================================================= */
+
+/*
+  IMPORTANT
+
+  Ancien fonctionnement :
+  table "likes"
+  colonne user_id
+
+  Nouveau fonctionnement :
+  table "favorites"
+  colonne profile_id
+
+  C'est donc la même table que celle utilisée
+  par favorite.service.ts.
+*/
 
 export async function getLikes(
   userId: string
@@ -333,27 +387,29 @@ export async function getLikes(
 
   return (
     data || []
-  ).map((favorite: any) => ({
-    id:
-      favorite.id,
+  ).map(
+    (favorite: any) => ({
+      id:
+        favorite.id,
 
-    user_id:
-      favorite.profile_id,
+      user_id:
+        favorite.profile_id,
 
-    animal_id:
-      favorite.animal_id,
+      animal_id:
+        favorite.animal_id,
 
-    created_at:
-      favorite.created_at,
+      created_at:
+        favorite.created_at,
 
-    animals:
-      favorite.animals ||
-      null,
-  })) as Like[];
+      animals:
+        favorite.animals ||
+        null,
+    })
+  ) as Like[];
 }
 
 /* =========================================================
-   DEMANDES ADOPTION
+   DEMANDES D'ADOPTION
 ========================================================= */
 
 export async function getAdoptionRequests(
@@ -401,7 +457,9 @@ export async function getAdoptionRequests(
         (request) =>
           request.animal_id
       )
-      .filter(Boolean);
+      .filter(
+        Boolean
+      );
 
   if (
     animalIds.length === 0
@@ -451,18 +509,36 @@ export async function getAdoptionRequests(
 }
 
 /* =========================================================
-   ANNULER UNE DEMANDE
-
-   On ne supprime PAS la demande.
-   On garde l'historique et la conversation.
+   ANNULER UNE DEMANDE D'ADOPTION
 ========================================================= */
+
+/*
+  IMPORTANT :
+
+  On ne supprime PAS la demande.
+
+  On passe simplement :
+  status = "cancelled"
+
+  Cela permet de conserver :
+  - l'historique
+  - la conversation
+  - les informations de la demande
+  - le score de compatibilité
+
+  Et surtout :
+
+  PAS de .single()
+
+  Cela corrige l'erreur :
+  "Cannot coerce the result to a single JSON object"
+*/
 
 export async function cancelAdoptionRequest(
   requestId: string,
   userId: string
 ) {
   const {
-    data,
     error,
   } = await supabase
     .from("adoption_requests")
@@ -476,15 +552,13 @@ export async function cancelAdoptionRequest(
     .eq(
       "requester_id",
       userId
-    )
-    .select()
-    .single();
+    );
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return true;
 }
 
 /* =========================================================
@@ -521,6 +595,10 @@ export async function getNotifications(
   ) as Notification[];
 }
 
+/* =========================================================
+   DÉCONNEXION
+========================================================= */
+
 export async function logoutUser() {
   const {
     error,
@@ -533,6 +611,10 @@ export async function logoutUser() {
 
   return true;
 }
+
+/* =========================================================
+   CHARGEMENT COMPLET DU DASHBOARD
+========================================================= */
 
 export async function getDashboardData() {
   const user =
