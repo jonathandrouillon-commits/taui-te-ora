@@ -378,6 +378,117 @@ export default function PublisherDashboard({
     }
   }
 
+
+  async function updateAdoptionStatus(
+    request: AdoptionRequest,
+    nextStatus:
+      | "rejected"
+      | "meeting"
+      | "accepted"
+  ) {
+    if (!request?.id) return;
+
+    const labels = {
+      rejected:
+        "refuser cette demande d'adoption",
+      meeting:
+        "passer cette demande à l'étape Rencontre",
+      accepted:
+        "valider définitivement cette adoption",
+    };
+
+    const confirmed =
+      window.confirm(
+        `Confirmer : ${labels[nextStatus]} ?`
+      );
+
+    if (!confirmed) return;
+
+    try {
+      setActionId(request.id);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user) {
+        throw new Error(
+          "Utilisateur non connecté."
+        );
+      }
+
+      const {
+        error: requestError,
+      } = await supabase
+        .from("adoption_requests")
+        .update({
+          status: nextStatus,
+        })
+        .eq(
+          "id",
+          request.id
+        )
+        .eq(
+          "owner_id",
+          user.id
+        );
+
+      if (requestError) {
+        throw requestError;
+      }
+
+      /*
+       * Lorsqu'une adoption est validée,
+       * on marque aussi l'animal comme adopté.
+       */
+      if (
+        nextStatus === "accepted" &&
+        request.animal_id
+      ) {
+        const {
+          error: animalError,
+        } = await supabase
+          .from("animals")
+          .update({
+            is_adopted: true,
+            is_published: false,
+            status: "adopted",
+          })
+          .eq(
+            "id",
+            request.animal_id
+          )
+          .eq(
+            "owner_id",
+            user.id
+          );
+
+        if (animalError) {
+          throw animalError;
+        }
+      }
+
+      await loadDashboard();
+    } catch (error: any) {
+      console.error(
+        "Erreur changement statut adoption :",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Impossible de modifier le statut de cette demande."
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
+
   const favoriteCounts = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -629,14 +740,14 @@ export default function PublisherDashboard({
 
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <h2 className="text-2xl font-black">
-            Demandes d'adoption
+            Demandes d&apos;adoption
           </h2>
 
           <p className="mt-1 text-sm text-[#6f5a47]">
-            Uniquement les demandes concernant vos animaux.
+            Retrouvez l&apos;adoptant, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
           </p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-4">
             {data.adoptionRequests.length === 0 ? (
               <div className="rounded-3xl bg-[#f8f4ec] p-6 text-center">
                 Aucune demande pour le moment.
@@ -646,7 +757,8 @@ export default function PublisherDashboard({
                 const conversation =
                   data.conversations.find(
                     (item) =>
-                      item.adoption_request_id === request.id
+                      item.adoption_request_id ===
+                      request.id
                   );
 
                 const requesterName =
@@ -655,62 +767,457 @@ export default function PublisherDashboard({
                   }`.trim() ||
                   "Adoptant";
 
+                const animalPhoto =
+                  request.animals
+                    ? getCoverPhoto(
+                        request.animals
+                      )
+                    : "";
+
+                const currentStatus =
+                  String(
+                    request.status ||
+                      "pending"
+                  )
+                    .trim()
+                    .toLowerCase();
+
+                const isClosed =
+                  currentStatus ===
+                    "accepted" ||
+                  currentStatus ===
+                    "rejected" ||
+                  currentStatus ===
+                    "refused" ||
+                  currentStatus ===
+                    "cancelled";
+
                 return (
-                  <div
+                  <article
                     key={request.id}
-                    className="flex flex-col gap-4 rounded-3xl border border-[#eadfce] bg-[#f8f4ec] p-4 sm:flex-row sm:items-center"
+                    className="
+                      rounded-[28px]
+                      border
+                      border-[#eadfce]
+                      bg-[#f8f4ec]
+                      p-4
+                      sm:p-5
+                    "
                   >
-                    {request.requester?.avatar_url ? (
-                      <img
-                        src={request.requester.avatar_url}
-                        alt={requesterName}
-                        className="h-16 w-16 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white text-2xl">
-                        👤
+                    <div
+                      className="
+                        grid
+                        gap-5
+                        lg:grid-cols-[1fr_auto]
+                        lg:items-center
+                      "
+                    >
+                      <div
+                        className="
+                          grid
+                          gap-5
+                          sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]
+                        "
+                      >
+                        {/* ADOPTANT */}
+
+                        <div className="flex items-center gap-4">
+                          {request.requester
+                            ?.avatar_url ? (
+                            <img
+                              src={
+                                request
+                                  .requester
+                                  .avatar_url
+                              }
+                              alt={
+                                requesterName
+                              }
+                              className="
+                                h-20
+                                w-20
+                                shrink-0
+                                rounded-full
+                                border-4
+                                border-white
+                                object-cover
+                                shadow
+                              "
+                            />
+                          ) : (
+                            <div
+                              className="
+                                flex
+                                h-20
+                                w-20
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-white
+                                text-3xl
+                                shadow
+                              "
+                            >
+                              👤
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <p
+                              className="
+                                text-[11px]
+                                font-black
+                                uppercase
+                                tracking-[0.14em]
+                                text-[#9c7b54]
+                              "
+                            >
+                              Adoptant
+                            </p>
+
+                            <h3
+                              className="
+                                mt-1
+                                truncate
+                                text-xl
+                                font-black
+                                text-[#2f241c]
+                              "
+                            >
+                              {requesterName}
+                            </h3>
+
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {typeof request.match_score ===
+                                "number" && (
+                                <span
+                                  className="
+                                    rounded-full
+                                    bg-[#e8f5f1]
+                                    px-3
+                                    py-1.5
+                                    text-xs
+                                    font-black
+                                    text-[#064b42]
+                                  "
+                                >
+                                  ❤️ Match{" "}
+                                  {
+                                    request.match_score
+                                  }
+                                  %
+                                </span>
+                              )}
+
+                              <span
+                                className={`
+                                  rounded-full
+                                  px-3
+                                  py-1.5
+                                  text-xs
+                                  font-black
+                                  ${getRequestStatusStyle(
+                                    currentStatus
+                                  )}
+                                `}
+                              >
+                                {getRequestStatusLabel(
+                                  currentStatus
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ANIMAL */}
+
+                        <div
+                          className="
+                            flex
+                            items-center
+                            gap-4
+                            rounded-[22px]
+                            bg-white
+                            p-3
+                          "
+                        >
+                          {animalPhoto ? (
+                            <img
+                              src={
+                                animalPhoto
+                              }
+                              alt={
+                                request
+                                  .animals
+                                  ?.animal_name ||
+                                "Animal"
+                              }
+                              className="
+                                h-20
+                                w-20
+                                shrink-0
+                                rounded-[18px]
+                                object-cover
+                              "
+                            />
+                          ) : (
+                            <div
+                              className="
+                                flex
+                                h-20
+                                w-20
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-[18px]
+                                bg-[#eadfce]
+                                text-3xl
+                              "
+                            >
+                              🐾
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <p
+                              className="
+                                text-[11px]
+                                font-black
+                                uppercase
+                                tracking-[0.14em]
+                                text-[#9c7b54]
+                              "
+                            >
+                              Animal souhaité
+                            </p>
+
+                            <h4
+                              className="
+                                mt-1
+                                truncate
+                                text-lg
+                                font-black
+                                text-[#2f241c]
+                              "
+                            >
+                              {request.animals
+                                ?.animal_name ||
+                                "Animal"}
+                            </h4>
+
+                            <p
+                              className="
+                                mt-1
+                                text-sm
+                                text-[#6f5a47]
+                              "
+                            >
+                              {[
+                                request
+                                  .animals
+                                  ?.animal_type,
+                                request
+                                  .animals
+                                  ?.age_label,
+                              ]
+                                .filter(
+                                  Boolean
+                                )
+                                .join(
+                                  " · "
+                                )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ACTIONS RAPIDES */}
+
+                      <div
+                        className="
+                          flex
+                          flex-wrap
+                          gap-2
+                          lg:max-w-[240px]
+                          lg:justify-end
+                        "
+                      >
+                        {request.animal_id && (
+                          <Link
+                            href={`/animal/${request.animal_id}`}
+                            className="
+                              rounded-full
+                              bg-[#9c7b54]
+                              px-4
+                              py-2.5
+                              text-sm
+                              font-black
+                              text-white
+                            "
+                          >
+                            Voir l&apos;animal
+                          </Link>
+                        )}
+
+                        {conversation?.id ? (
+                          <Link
+                            href={`/messages/${conversation.id}`}
+                            className="
+                              rounded-full
+                              bg-[#064b42]
+                              px-4
+                              py-2.5
+                              text-sm
+                              font-black
+                              text-white
+                            "
+                          >
+                            💬 Messages
+                          </Link>
+                        ) : (
+                          <span
+                            className="
+                              rounded-full
+                              bg-white
+                              px-4
+                              py-2.5
+                              text-sm
+                              font-bold
+                              text-[#8a837b]
+                            "
+                          >
+                            Aucun message
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* WORKFLOW ADOPTION */}
+
+                    {!isClosed && (
+                      <div
+                        className="
+                          mt-5
+                          border-t
+                          border-[#eadfce]
+                          pt-4
+                        "
+                      >
+                        <p
+                          className="
+                            mb-3
+                            text-xs
+                            font-black
+                            uppercase
+                            tracking-[0.12em]
+                            text-[#6f5a47]
+                          "
+                        >
+                          Suivi de la demande
+                        </p>
+
+                        <div
+                          className="
+                            grid
+                            gap-2
+                            sm:grid-cols-3
+                          "
+                        >
+                          <button
+                            type="button"
+                            disabled={
+                              actionId ===
+                              request.id
+                            }
+                            onClick={() =>
+                              updateAdoptionStatus(
+                                request,
+                                "rejected"
+                              )
+                            }
+                            className="
+                              rounded-full
+                              border
+                              border-[#df8995]
+                              bg-white
+                              px-4
+                              py-3
+                              text-sm
+                              font-black
+                              text-[#d96f81]
+                              transition
+                              hover:bg-[#fff0f2]
+                              disabled:opacity-50
+                            "
+                          >
+                            Refuser l&apos;adoption
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              actionId ===
+                                request.id ||
+                              currentStatus ===
+                                "meeting"
+                            }
+                            onClick={() =>
+                              updateAdoptionStatus(
+                                request,
+                                "meeting"
+                              )
+                            }
+                            className="
+                              rounded-full
+                              bg-[#e6a85c]
+                              px-4
+                              py-3
+                              text-sm
+                              font-black
+                              text-white
+                              transition
+                              hover:opacity-90
+                              disabled:opacity-50
+                            "
+                          >
+                            {currentStatus ===
+                            "meeting"
+                              ? "✓ Rencontre prévue"
+                              : "Passer à la rencontre"}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              actionId ===
+                              request.id
+                            }
+                            onClick={() =>
+                              updateAdoptionStatus(
+                                request,
+                                "accepted"
+                              )
+                            }
+                            className="
+                              rounded-full
+                              bg-[#2f8f6b]
+                              px-4
+                              py-3
+                              text-sm
+                              font-black
+                              text-white
+                              transition
+                              hover:opacity-90
+                              disabled:opacity-50
+                            "
+                          >
+                            Valider l&apos;adoption
+                          </button>
+                        </div>
                       </div>
                     )}
-
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-black text-[#2f241c]">
-                        {requesterName}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-[#6f5a47]">
-                        Pour{" "}
-                        <strong>
-                          {request.animals?.animal_name || "cet animal"}
-                        </strong>
-                      </p>
-
-                      {typeof request.match_score === "number" && (
-                        <span className="mt-2 inline-flex rounded-full bg-[#e8f5f1] px-3 py-1 text-xs font-black">
-                          ❤️ Match {request.match_score} %
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {request.animal_id && (
-                        <Link
-                          href={`/animal/${request.animal_id}`}
-                          className="rounded-full bg-[#9c7b54] px-4 py-2 text-sm font-black text-white"
-                        >
-                          Animal
-                        </Link>
-                      )}
-
-                      {conversation?.id && (
-                        <Link
-                          href={`/messages/${conversation.id}`}
-                          className="rounded-full bg-[#064b42] px-4 py-2 text-sm font-black text-white"
-                        >
-                          Messages
-                        </Link>
-                      )}
-                    </div>
-                  </div>
+                  </article>
                 );
               })
             )}
@@ -767,6 +1274,45 @@ export default function PublisherDashboard({
       </section>
     </main>
   );
+}
+
+
+function getRequestStatusLabel(
+  status: string
+) {
+  switch (status) {
+    case "meeting":
+      return "Rencontre";
+    case "accepted":
+      return "Adoption validée";
+    case "rejected":
+    case "refused":
+      return "Refusée";
+    case "cancelled":
+      return "Annulée";
+    case "pending":
+    default:
+      return "En attente";
+  }
+}
+
+function getRequestStatusStyle(
+  status: string
+) {
+  switch (status) {
+    case "meeting":
+      return "bg-[#fff1d9] text-[#9b641e]";
+    case "accepted":
+      return "bg-green-100 text-green-700";
+    case "rejected":
+    case "refused":
+      return "bg-red-100 text-red-700";
+    case "cancelled":
+      return "bg-gray-200 text-gray-600";
+    case "pending":
+    default:
+      return "bg-orange-100 text-orange-700";
+  }
 }
 
 function getCoverPhoto(animal: Animal) {
