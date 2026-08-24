@@ -49,12 +49,55 @@ export default function AnimalSwipeCard({
   const [swipeFeedback, setSwipeFeedback] =
     useState<SwipeFeedback>(null);
 
+  const [isFavorite, setIsFavorite] =
+    useState(false);
+
   useEffect(() => {
     setStartX(null);
     setTranslateX(0);
     setDragging(false);
     setActionLoading(false);
     setSwipeFeedback(null);
+    setIsFavorite(false);
+
+    let active = true;
+
+    async function loadFavoriteStatus() {
+      if (!animal?.id) return;
+
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (active) {
+            setIsFavorite(false);
+          }
+          return;
+        }
+
+        const favorite =
+          await favoriteService.isFavorite(
+            animal.id
+          );
+
+        if (active) {
+          setIsFavorite(favorite);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lecture coup de cœur :",
+          error
+        );
+      }
+    }
+
+    loadFavoriteStatus();
+
+    return () => {
+      active = false;
+    };
   }, [animal?.id]);
 
   const animalName =
@@ -232,6 +275,7 @@ export default function AnimalSwipeCard({
         animal.id
       );
 
+      setIsFavorite(true);
       setSwipeFeedback("favorite");
 
       await wait(480);
@@ -416,7 +460,7 @@ export default function AnimalSwipeCard({
         flex-col
         items-center
         px-0
-        pb-[82px]
+        pb-0
         pt-0
         sm:px-4
         sm:pb-[122px]
@@ -453,8 +497,8 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-86px)]
-          min-h-[640px]
+          h-[calc(100dvh-78px)]
+          min-h-[620px]
           max-h-none
           w-full
           max-w-[455px]
@@ -490,6 +534,7 @@ export default function AnimalSwipeCard({
               h-full
               w-full
               object-cover
+              object-center
             "
           />
         ) : (
@@ -613,21 +658,52 @@ export default function AnimalSwipeCard({
           )}
         </button>
 
+        {isFavorite && (
+          <div
+            className="
+              absolute
+              left-3
+              top-3
+              z-50
+              flex
+              items-center
+              gap-2
+              rounded-full
+              border
+              border-white/80
+              bg-white/92
+              px-3
+              py-2
+              text-[11px]
+              font-black
+              text-[#df687c]
+              shadow-lg
+              backdrop-blur-xl
+
+              sm:left-4
+              sm:top-4
+              sm:text-xs
+            "
+          >
+            <span className="text-base leading-none">
+              ❤️
+            </span>
+            <span>Coup de cœur</span>
+          </div>
+        )}
+
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
           className="
             absolute
             left-2
-            top-[27%]
-            bottom-[165px]
+            top-[31%]
             sm:left-3
             sm:top-[30%]
-            sm:bottom-[190px]
             z-30
             flex
             flex-col
-            justify-center
             gap-1.5
           "
         >
@@ -842,7 +918,7 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-[112px]
+            bottom-[118px]
             z-40
             px-4
             pb-3
@@ -979,7 +1055,7 @@ export default function AnimalSwipeCard({
             }
             className="
               absolute
-              bottom-[122px]
+              bottom-[126px]
               right-3
               z-50
               flex
@@ -1023,7 +1099,7 @@ export default function AnimalSwipeCard({
         className="
           relative
           z-[70]
-          -mt-[104px]
+          -mt-[112px]
           grid
           w-full
           max-w-[455px]
@@ -1031,7 +1107,7 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
-          pb-3
+          pb-0
 
           sm:mt-3
           sm:max-w-[520px]
@@ -1166,7 +1242,12 @@ export default function AnimalSwipeCard({
             onClick={
               handleFavorite
             }
-            aria-label="Coup de cœur"
+            data-favorite={isFavorite}
+            aria-label={
+              isFavorite
+                ? "Déjà dans vos coups de cœur"
+                : "Coup de cœur"
+            }
             className="
               flex
               h-[58px]
@@ -1181,6 +1262,7 @@ export default function AnimalSwipeCard({
               bg-[#6bd1cc]
               text-[32px]
               text-white
+              data-[favorite=true]:bg-[#ef8196]
               shadow-xl
               transition
               active:scale-95
@@ -1202,7 +1284,9 @@ export default function AnimalSwipeCard({
               sm:drop-shadow-none
             "
           >
-            Coup de cœur
+            {isFavorite
+              ? "Déjà aimé"
+              : "Coup de cœur"}
           </span>
         </div>
       </div>
@@ -1241,7 +1325,7 @@ function InfoBox({
     <div
       className="
         flex
-        h-[44px]
+        h-[42px]
         w-[56px]
         sm:h-[50px]
         sm:w-[64px]
