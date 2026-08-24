@@ -448,6 +448,84 @@ export default function AdoptantQuestionnairePage() {
           new Date().toISOString(),
       };
 
+      /*
+       * 1) Sauvegarde immédiate dans le profil utilisateur.
+       */
+      const profileData = {
+        id: user.id,
+        email: user.email || null,
+
+        adopter_experience:
+          form.experience_animaux,
+
+        current_animals:
+          getAnimalCurrentLabel(),
+
+        adoption_for:
+          "Moi / Ma famille",
+
+        children_age:
+          getChildrenLabel(),
+
+        garden_type:
+          getGardenLabel(),
+
+        ideal_age:
+          form.age_recherche,
+
+        ideal_sex:
+          form.sexe_recherche,
+
+        ideal_size:
+          form.taille_recherche,
+
+        ideal_activity:
+          form.rythme_vie,
+
+        ideal_breed:
+          form.preference_libre.trim(),
+
+        hypoallergenic:
+          "Pas de préférence",
+
+        cleanliness:
+          "Pas de préférence",
+
+        special_needs:
+          getSpecialNeedsLabel(),
+
+        approval_status:
+          "approved",
+
+        is_verified:
+          true,
+
+        is_active:
+          true,
+      };
+
+      const {
+        error: profileSaveError,
+      } =
+        await supabase
+          .from("profiles")
+          .upsert(
+            profileData,
+            {
+              onConflict: "id",
+            }
+          );
+
+      if (profileSaveError) {
+        throw profileSaveError;
+      }
+
+      /*
+       * 2) Compatibilité avec le questionnaire historique :
+       * si une ligne existe déjà, on la met à jour.
+       * On ne crée pas de ligne générique ici si animal_id
+       * reste obligatoire dans le schéma actuel.
+       */
       const {
         data: existing,
         error: existingError,
@@ -463,47 +541,48 @@ export default function AdoptantQuestionnairePage() {
           .maybeSingle();
 
       if (existingError) {
-        throw existingError;
+        console.error(
+          "Erreur recherche questionnaire historique :",
+          existingError
+        );
       }
 
       if (existing?.id) {
-        const { error } =
+        const {
+          error: questionnaireUpdateError,
+        } =
           await supabase
             .from(
               "questionnaires_adoption"
             )
             .update(dataToSave)
-            .eq("id", existing.id)
-            .eq("user_id", user.id);
+            .eq(
+              "id",
+              existing.id
+            )
+            .eq(
+              "user_id",
+              user.id
+            );
 
-        if (error) {
-          throw error;
+        if (
+          questionnaireUpdateError
+        ) {
+          console.error(
+            "Erreur mise à jour questionnaire historique :",
+            questionnaireUpdateError
+          );
         }
-      } else {
-        /*
-         * Ce questionnaire de profil n'est
-         * pas lié à un animal particulier.
-         *
-         * Ton schéma actuel possède toutefois
-         * animal_id dans la table historique.
-         *
-         * On n'insère donc pas de ligne
-         * générique si aucune ligne n'existe.
-         * Le profil sera enregistré lors de
-         * la première demande d'adoption.
-         */
-        alert(
-          "Votre profil sera enregistré définitivement lors de votre première demande d'adoption."
-        );
-
-        return;
       }
 
       alert(
-        "Votre profil adoptant a été enregistré."
+        "Votre profil adoptant a bien été enregistré."
       );
 
-      router.push("/");
+      router.push(
+        "/dashboard"
+      );
+
       router.refresh();
     } catch (error: any) {
       console.error(
