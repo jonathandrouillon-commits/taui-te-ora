@@ -122,11 +122,6 @@ export default function HomePage() {
         }
       }
 
-      /*
-       * UTILISATEUR DEJA CONNECTE
-       * => pas de fenêtre automatique.
-       */
-
       const {
         data: { user },
       } =
@@ -142,12 +137,6 @@ export default function HomePage() {
 
         return;
       }
-
-      /*
-       * VISITEUR NON CONNECTE
-       * => fenêtre à la première arrivée
-       * de la session.
-       */
 
       setWelcomeOpen(
         alreadySeen !== "yes"
@@ -320,11 +309,6 @@ export default function HomePage() {
 
   const filteredAnimals =
     useMemo(() => {
-      /*
-       * Aucun filtre sélectionné
-       * => afficher tous les animaux.
-       */
-
       if (
         selectedTypes.length === 0
       ) {
@@ -421,9 +405,7 @@ export default function HomePage() {
     <TauiPageBackground>
       <div className="relative min-h-[100dvh] w-full">
 
-        {/* ===================================================
-            FAVORI RESTAURE
-        ==================================================== */}
+        {/* FAVORI RESTAURE */}
 
         {favoriteRestored && (
           <div
@@ -449,8 +431,7 @@ export default function HomePage() {
         )}
 
         {/* ===================================================
-            PETIT BOUTON FILTRE
-            3 TRAITS UNIQUEMENT
+            BOUTON FILTRE
         ==================================================== */}
 
         {welcomeReady &&
@@ -505,8 +486,6 @@ export default function HomePage() {
             md:py-8
           "
         >
-          {/* CHARGEMENT */}
-
           {loading && (
             <div
               className="
@@ -554,8 +533,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* CARTE ANIMAL */}
-
           {!loading &&
             currentAnimal && (
               <AnimalSwipeCard
@@ -570,8 +547,6 @@ export default function HomePage() {
                 }
               />
             )}
-
-          {/* FIN DES ANIMAUX */}
 
           {!loading &&
             !currentAnimal && (
@@ -677,7 +652,7 @@ export default function HomePage() {
         <BottomMenu />
 
         {/* ===================================================
-            FENETRE D'ACCUEIL / FILTRE
+            FENETRE ACCUEIL / FILTRE
         ==================================================== */}
 
         {welcomeReady &&
@@ -803,8 +778,6 @@ function WelcomeModal({
         "
       >
 
-        {/* DECORATION ROSE */}
-
         <div
           className="
             pointer-events-none
@@ -819,8 +792,6 @@ function WelcomeModal({
           "
         />
 
-        {/* DECORATION VERTE */}
-
         <div
           className="
             pointer-events-none
@@ -834,8 +805,6 @@ function WelcomeModal({
             blur-3xl
           "
         />
-
-        {/* FERMER */}
 
         <button
           type="button"
@@ -871,8 +840,6 @@ function WelcomeModal({
             sm:px-7
           "
         >
-
-          {/* LOGO + TITRE */}
 
           <div className="text-center">
 
@@ -932,8 +899,6 @@ function WelcomeModal({
             </p>
 
           </div>
-
-          {/* CHOIX ANIMAUX */}
 
           <div className="mt-7">
 
@@ -1062,8 +1027,6 @@ function WelcomeModal({
 
           </div>
 
-          {/* BOUTON PRINCIPAL */}
-
           <button
             type="button"
             onClick={onStart}
@@ -1087,8 +1050,6 @@ function WelcomeModal({
               : "Découvrir tous les animaux"}
           </button>
 
-          {/* VOIR TOUS */}
-
           {selectedTypes.length > 0 && (
             <button
               type="button"
@@ -1107,8 +1068,6 @@ function WelcomeModal({
               Voir tous les animaux
             </button>
           )}
-
-          {/* INFO SWIPE */}
 
           <div
             className="
@@ -1151,8 +1110,6 @@ function WelcomeModal({
               ← Next time
             </span>
           </div>
-
-          {/* STRUCTURES */}
 
           <div
             className="
@@ -1282,6 +1239,8 @@ function BottomMenu() {
     >
       <div className="grid grid-cols-5 items-end">
 
+        {/* ACCUEIL */}
+
         <Link
           href="/"
           className="
@@ -1312,6 +1271,8 @@ function BottomMenu() {
           </span>
         </Link>
 
+        {/* RECHERCHE */}
+
         <Link
           href="/search"
           className="
@@ -1341,8 +1302,14 @@ function BottomMenu() {
           </span>
         </Link>
 
+        {/* =================================================
+            S.O.S ANIMAL
+            LOGO : /public/sos-paw.png
+        ================================================== */}
+
         <Link
           href="/signalement"
+          aria-label="S.O.S Animal"
           className="
             flex
             flex-col
@@ -1354,22 +1321,36 @@ function BottomMenu() {
           <div
             className="
               flex
-              h-12
-              w-12
+              h-[60px]
+              w-[60px]
               -translate-y-2
               items-center
               justify-center
+              overflow-hidden
               rounded-full
-              border-4
+              border-[3px]
               border-[#fffaf7]
-              bg-[#ef919b]
-              text-white
-              shadow-lg
+              bg-white
+              shadow-xl
+              transition
+              active:scale-95
             "
           >
-            <PawIcon />
+            <img
+              src="/sos-paw.png"
+              alt="S.O.S Animal"
+              draggable={false}
+              className="
+                h-full
+                w-full
+                rounded-full
+                object-cover
+              "
+            />
           </div>
         </Link>
+
+        {/* INFOS */}
 
         <Link
           href="/informations"
@@ -1399,6 +1380,8 @@ function BottomMenu() {
             Infos
           </span>
         </Link>
+
+        {/* PROFIL */}
 
         <Link
           href="/profile"
@@ -1491,46 +1474,6 @@ function SearchIcon() {
       />
 
       <path d="m20 20-4-4" />
-    </svg>
-  );
-}
-
-function PawIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-7 w-7"
-      fill="currentColor"
-    >
-      <ellipse
-        cx="7"
-        cy="7"
-        rx="2.2"
-        ry="3"
-      />
-
-      <ellipse
-        cx="17"
-        cy="7"
-        rx="2.2"
-        ry="3"
-      />
-
-      <ellipse
-        cx="4.5"
-        cy="12"
-        rx="2"
-        ry="2.7"
-      />
-
-      <ellipse
-        cx="19.5"
-        cy="12"
-        rx="2"
-        ry="2.7"
-      />
-
-      <path d="M12 10.5c-3.4 0-6 3.1-6 6 0 2.1 1.5 3.5 3.3 3.5 1 0 1.8-.5 2.7-.5s1.7.5 2.7.5c1.8 0 3.3-1.4 3.3-3.5 0-2.9-2.6-6-6-6Z" />
     </svg>
   );
 }
