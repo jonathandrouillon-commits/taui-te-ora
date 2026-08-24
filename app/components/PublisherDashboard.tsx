@@ -1043,6 +1043,23 @@ export default function PublisherDashboard({
                           lg:justify-end
                         "
                       >
+                        {request.requester_id && (
+                          <Link
+                            href={`/adoptant/${request.requester_id}?request=${request.id}`}
+                            className="
+                              rounded-full
+                              bg-[#ef8196]
+                              px-4
+                              py-2.5
+                              text-sm
+                              font-black
+                              text-white
+                            "
+                          >
+                            👤 Voir le profil
+                          </Link>
+                        )}
+
                         {request.animal_id && (
                           <Link
                             href={`/animal/${request.animal_id}`}
