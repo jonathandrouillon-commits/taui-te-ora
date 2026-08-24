@@ -42,10 +42,8 @@ export default function HomePage() {
   const [animals, setAnimals] =
     useState<any[]>([]);
 
-  const [
-    currentIndex,
-    setCurrentIndex,
-  ] = useState(0);
+  const [currentIndex, setCurrentIndex] =
+    useState(0);
 
   const [loading, setLoading] =
     useState(true);
@@ -80,7 +78,7 @@ export default function HomePage() {
   }, []);
 
   /* =========================================================
-     RETOUR APRÈS LOGIN FAVORI
+     RETOUR APRES LOGIN FAVORI
   ========================================================= */
 
   useEffect(() => {
@@ -105,13 +103,9 @@ export default function HomePage() {
 
       if (savedFilters) {
         const parsed =
-          JSON.parse(
-            savedFilters
-          );
+          JSON.parse(savedFilters);
 
-        if (
-          Array.isArray(parsed)
-        ) {
+        if (Array.isArray(parsed)) {
           setSelectedTypes(
             parsed.filter(
               (
@@ -129,10 +123,10 @@ export default function HomePage() {
       }
 
       /*
-       * Si l'utilisateur est déjà
-       * connecté, on ne montre PAS
-       * automatiquement la fenêtre.
+       * UTILISATEUR DEJA CONNECTE
+       * => pas de fenêtre automatique.
        */
+
       const {
         data: { user },
       } =
@@ -150,10 +144,11 @@ export default function HomePage() {
       }
 
       /*
-       * Visiteur non connecté :
-       * fenêtre uniquement à la
-       * première arrivée de la session.
+       * VISITEUR NON CONNECTE
+       * => fenêtre à la première arrivée
+       * de la session.
        */
+
       setWelcomeOpen(
         alreadySeen !== "yes"
       );
@@ -196,7 +191,7 @@ export default function HomePage() {
   }
 
   /* =========================================================
-     COMMENCER LA DECOUVERTE
+     COMMENCER DECOUVERTE
   ========================================================= */
 
   function startDiscovery() {
@@ -292,7 +287,7 @@ export default function HomePage() {
   }
 
   /* =========================================================
-     CHARGER ANIMAUX
+     CHARGER LES ANIMAUX
   ========================================================= */
 
   async function loadAnimals() {
@@ -320,11 +315,16 @@ export default function HomePage() {
   }
 
   /* =========================================================
-     FILTRAGE ANIMAUX
+     FILTRAGE DES ANIMAUX
   ========================================================= */
 
   const filteredAnimals =
     useMemo(() => {
+      /*
+       * Aucun filtre sélectionné
+       * => afficher tous les animaux.
+       */
+
       if (
         selectedTypes.length === 0
       ) {
@@ -343,55 +343,39 @@ export default function HomePage() {
               .toLowerCase();
 
           const isDog =
-            type.includes(
-              "chien"
-            ) ||
-            type.includes(
-              "dog"
-            );
+            type.includes("chien") ||
+            type.includes("dog");
 
           const isCat =
-            type.includes(
-              "chat"
-            ) ||
-            type.includes(
-              "cat"
-            );
+            type.includes("chat") ||
+            type.includes("cat");
 
           const isHorse =
-            type.includes(
-              "cheval"
-            ) ||
-            type.includes(
-              "horse"
-            );
+            type.includes("cheval") ||
+            type.includes("horse");
 
           return selectedTypes.some(
             (selected) => {
               if (
-                selected ===
-                "chien"
+                selected === "chien"
               ) {
                 return isDog;
               }
 
               if (
-                selected ===
-                "chat"
+                selected === "chat"
               ) {
                 return isCat;
               }
 
               if (
-                selected ===
-                "cheval"
+                selected === "cheval"
               ) {
                 return isHorse;
               }
 
               if (
-                selected ===
-                "autre"
+                selected === "autre"
               ) {
                 return (
                   !isDog &&
@@ -465,7 +449,8 @@ export default function HomePage() {
         )}
 
         {/* ===================================================
-            BOUTON FILTRER
+            PETIT BOUTON FILTRE
+            3 TRAITS UNIQUEMENT
         ==================================================== */}
 
         {welcomeReady &&
@@ -474,55 +459,33 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() =>
-                setWelcomeOpen(
-                  true
-                )
+                setWelcomeOpen(true)
               }
+              aria-label="Filtrer les animaux"
+              title="Filtrer"
               className="
                 fixed
-                right-3
-                top-3
+                right-4
+                top-4
                 z-[120]
                 flex
+                h-11
+                w-11
                 items-center
-                gap-2
+                justify-center
                 rounded-full
                 border
-                border-white/80
-                bg-[#fffaf7]/95
-                px-3
-                py-2
-                text-xs
-                font-black
-                text-[#58544f]
+                border-white/70
+                bg-white/80
+                text-[#5d655f]
                 shadow-lg
                 backdrop-blur-xl
+                transition
+                hover:bg-white
+                active:scale-95
               "
             >
               <FilterIcon />
-
-              <span>
-                Filtrer
-              </span>
-
-              {filterCount > 0 && (
-                <span
-                  className="
-                    flex
-                    h-5
-                    min-w-5
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#ef8196]
-                    px-1
-                    text-[10px]
-                    text-white
-                  "
-                >
-                  {filterCount}
-                </span>
-              )}
             </button>
           )}
 
@@ -542,6 +505,8 @@ export default function HomePage() {
             md:py-8
           "
         >
+          {/* CHARGEMENT */}
+
           {loading && (
             <div
               className="
@@ -589,6 +554,8 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* CARTE ANIMAL */}
+
           {!loading &&
             currentAnimal && (
               <AnimalSwipeCard
@@ -603,6 +570,8 @@ export default function HomePage() {
                 }
               />
             )}
+
+          {/* FIN DES ANIMAUX */}
 
           {!loading &&
             !currentAnimal && (
@@ -701,10 +670,14 @@ export default function HomePage() {
             )}
         </section>
 
+        {/* ===================================================
+            MENU BAS
+        ==================================================== */}
+
         <BottomMenu />
 
         {/* ===================================================
-            FENETRE D'ACCUEIL
+            FENETRE D'ACCUEIL / FILTRE
         ==================================================== */}
 
         {welcomeReady &&
@@ -729,8 +702,7 @@ export default function HomePage() {
                   );
 
                 if (
-                  alreadySeen ===
-                  "yes"
+                  alreadySeen === "yes"
                 ) {
                   setWelcomeOpen(
                     false
@@ -746,7 +718,7 @@ export default function HomePage() {
 }
 
 /* =========================================================
-   MODAL ACCUEIL
+   FENETRE ACCUEIL / FILTRE
 ========================================================= */
 
 function WelcomeModal({
@@ -830,6 +802,9 @@ function WelcomeModal({
           backdrop-blur-2xl
         "
       >
+
+        {/* DECORATION ROSE */}
+
         <div
           className="
             pointer-events-none
@@ -843,6 +818,8 @@ function WelcomeModal({
             blur-3xl
           "
         />
+
+        {/* DECORATION VERTE */}
 
         <div
           className="
@@ -858,11 +835,11 @@ function WelcomeModal({
           "
         />
 
+        {/* FERMER */}
+
         <button
           type="button"
-          onClick={
-            onClose
-          }
+          onClick={onClose}
           aria-label="Fermer"
           className="
             absolute
@@ -894,7 +871,11 @@ function WelcomeModal({
             sm:px-7
           "
         >
+
+          {/* LOGO + TITRE */}
+
           <div className="text-center">
+
             <img
               src="/logo-taui-te-ora.png"
               alt="Taui Te Ora"
@@ -949,9 +930,13 @@ function WelcomeModal({
               Dites-nous simplement qui
               vous aimeriez rencontrer.
             </p>
+
           </div>
 
+          {/* CHOIX ANIMAUX */}
+
           <div className="mt-7">
+
             <p
               className="
                 text-center
@@ -971,6 +956,7 @@ function WelcomeModal({
                 gap-3
               "
             >
+
               {options.map(
                 (option) => {
                   const selected =
@@ -1009,6 +995,7 @@ function WelcomeModal({
                         }
                       `}
                     >
+
                       {selected && (
                         <span
                           className="
@@ -1054,10 +1041,12 @@ function WelcomeModal({
                       >
                         {option.title}
                       </span>
+
                     </button>
                   );
                 }
               )}
+
             </div>
 
             <p
@@ -1070,13 +1059,14 @@ function WelcomeModal({
             >
               Vous pouvez en choisir plusieurs.
             </p>
+
           </div>
+
+          {/* BOUTON PRINCIPAL */}
 
           <button
             type="button"
-            onClick={
-              onStart
-            }
+            onClick={onStart}
             className="
               mt-6
               w-full
@@ -1097,12 +1087,12 @@ function WelcomeModal({
               : "Découvrir tous les animaux"}
           </button>
 
+          {/* VOIR TOUS */}
+
           {selectedTypes.length > 0 && (
             <button
               type="button"
-              onClick={
-                onShowAll
-              }
+              onClick={onShowAll}
               className="
                 mt-2
                 w-full
@@ -1117,6 +1107,8 @@ function WelcomeModal({
               Voir tous les animaux
             </button>
           )}
+
+          {/* INFO SWIPE */}
 
           <div
             className="
@@ -1160,6 +1152,8 @@ function WelcomeModal({
             </span>
           </div>
 
+          {/* STRUCTURES */}
+
           <div
             className="
               mt-6
@@ -1169,6 +1163,7 @@ function WelcomeModal({
               text-center
             "
           >
+
             <p
               className="
                 text-xs
@@ -1200,6 +1195,7 @@ function WelcomeModal({
                 gap-3
               "
             >
+
               <button
                 type="button"
                 onClick={() =>
@@ -1243,8 +1239,11 @@ function WelcomeModal({
               >
                 Créer un compte
               </button>
+
             </div>
+
           </div>
+
         </div>
       </div>
     </div>
@@ -1443,16 +1442,15 @@ function FilterIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-4 w-4"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.2"
       strokeLinecap="round"
-      strokeLinejoin="round"
     >
-      <path d="M4 6h16" />
+      <path d="M5 7h14" />
       <path d="M7 12h10" />
-      <path d="M10 18h4" />
+      <path d="M9 17h6" />
     </svg>
   );
 }
@@ -1555,6 +1553,7 @@ function InfoIcon() {
       />
 
       <path d="M12 11v6" />
+
       <path d="M12 7h.01" />
     </svg>
   );
