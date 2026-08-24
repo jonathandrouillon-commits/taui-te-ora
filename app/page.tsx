@@ -645,14 +645,10 @@ export default function HomePage() {
             )}
         </section>
 
-        {/* ===================================================
-            MENU BAS
-        ==================================================== */}
-
         <BottomMenu />
 
         {/* ===================================================
-            FENETRE ACCUEIL / FILTRE
+            FENETRE ACCUEIL
         ==================================================== */}
 
         {welcomeReady &&
@@ -693,7 +689,7 @@ export default function HomePage() {
 }
 
 /* =========================================================
-   FENETRE ACCUEIL / FILTRE
+   FENETRE ACCUEIL RESPONSIVE
 ========================================================= */
 
 function WelcomeModal({
@@ -754,29 +750,36 @@ function WelcomeModal({
         inset-0
         z-[500]
         flex
+        min-h-[100dvh]
         items-center
         justify-center
         overflow-y-auto
         bg-[#332c29]/40
-        px-4
-        py-6
+        px-3
+        py-3
         backdrop-blur-[7px]
+        sm:px-4
+        sm:py-5
       "
     >
       <div
         className="
           relative
+          my-auto
           w-full
           max-w-[430px]
-          overflow-hidden
-          rounded-[36px]
+          max-h-[calc(100dvh-24px)]
+          overflow-y-auto
+          rounded-[30px]
           border
           border-white/70
           bg-[#fffaf7]/95
           shadow-[0_30px_100px_rgba(38,30,27,.30)]
           backdrop-blur-2xl
+          sm:rounded-[36px]
         "
       >
+        {/* DECORATIONS */}
 
         <div
           className="
@@ -784,8 +787,8 @@ function WelcomeModal({
             absolute
             -right-16
             -top-16
-            h-44
-            w-44
+            h-40
+            w-40
             rounded-full
             bg-[#f8ccd3]/45
             blur-3xl
@@ -798,13 +801,15 @@ function WelcomeModal({
             absolute
             -bottom-20
             -left-12
-            h-52
-            w-52
+            h-48
+            w-48
             rounded-full
             bg-[#bfe4da]/40
             blur-3xl
           "
         />
+
+        {/* FERMER */}
 
         <button
           type="button"
@@ -812,19 +817,23 @@ function WelcomeModal({
           aria-label="Fermer"
           className="
             absolute
-            right-4
-            top-4
+            right-3
+            top-3
             z-20
             flex
-            h-9
-            w-9
+            h-8
+            w-8
             items-center
             justify-center
             rounded-full
-            bg-white/75
-            text-lg
+            bg-white/80
+            text-base
             text-[#716963]
             shadow-sm
+            sm:right-4
+            sm:top-4
+            sm:h-9
+            sm:w-9
           "
         >
           ×
@@ -834,35 +843,44 @@ function WelcomeModal({
           className="
             relative
             z-10
-            px-5
-            pb-6
-            pt-6
-            sm:px-7
+            px-4
+            pb-4
+            pt-3
+            sm:px-6
+            sm:pb-6
+            sm:pt-5
           "
         >
+          {/* LOGO */}
 
           <div className="text-center">
-
             <img
               src="/logo-taui-te-ora.png"
               alt="Taui Te Ora"
               className="
                 mx-auto
-                h-24
-                w-24
+                h-[66px]
+                w-[66px]
                 object-contain
                 drop-shadow-sm
+                sm:h-20
+                sm:w-20
+                md:h-24
+                md:w-24
               "
             />
 
             <p
               className="
-                mt-1
-                text-[11px]
+                mt-0.5
+                text-[8px]
                 font-black
                 uppercase
-                tracking-[0.27em]
+                tracking-[0.22em]
                 text-[#df8995]
+                sm:mt-1
+                sm:text-[10px]
+                md:text-[11px]
               "
             >
               Une rencontre peut tout changer
@@ -871,13 +889,16 @@ function WelcomeModal({
             <h1
               className="
                 mx-auto
-                mt-4
-                max-w-[340px]
-                text-[29px]
+                mt-2
+                max-w-[330px]
+                text-[22px]
                 font-black
                 leading-[1.08]
                 tracking-tight
                 text-[#064b42]
+                sm:mt-3
+                sm:text-[26px]
+                md:text-[29px]
               "
             >
               Et si quelqu&apos;un
@@ -887,27 +908,31 @@ function WelcomeModal({
             <p
               className="
                 mx-auto
-                mt-3
-                max-w-[330px]
-                text-sm
-                leading-relaxed
+                mt-1.5
+                max-w-[320px]
+                text-[12px]
+                leading-snug
                 text-[#746c66]
+                sm:mt-2
+                sm:text-[13px]
+                md:text-sm
               "
             >
               Dites-nous simplement qui
               vous aimeriez rencontrer.
             </p>
-
           </div>
 
-          <div className="mt-7">
+          {/* CHOIX */}
 
+          <div className="mt-4 sm:mt-5">
             <p
               className="
                 text-center
-                text-sm
+                text-[13px]
                 font-black
                 text-[#064b42]
+                sm:text-sm
               "
             >
               Je veux adopter…
@@ -915,13 +940,14 @@ function WelcomeModal({
 
             <div
               className="
-                mt-4
+                mt-2.5
                 grid
                 grid-cols-2
-                gap-3
+                gap-2
+                sm:mt-3
+                sm:gap-3
               "
             >
-
               {options.map(
                 (option) => {
                   const selected =
@@ -943,16 +969,20 @@ function WelcomeModal({
                       className={`
                         relative
                         flex
-                        min-h-[92px]
+                        min-h-[66px]
                         flex-col
                         items-center
                         justify-center
-                        rounded-[24px]
+                        rounded-[19px]
                         border-2
-                        px-3
-                        py-3
+                        px-2
+                        py-2
                         transition
                         active:scale-[.98]
+                        sm:min-h-[78px]
+                        sm:rounded-[22px]
+                        md:min-h-[92px]
+                        md:rounded-[24px]
                         ${
                           selected
                             ? "border-[#ef8196] bg-[#fff0f2] shadow-[0_8px_24px_rgba(239,129,150,.17)]"
@@ -960,23 +990,25 @@ function WelcomeModal({
                         }
                       `}
                     >
-
                       {selected && (
                         <span
                           className="
                             absolute
-                            right-2.5
-                            top-2.5
+                            right-2
+                            top-2
                             flex
-                            h-5
-                            w-5
+                            h-4
+                            w-4
                             items-center
                             justify-center
                             rounded-full
                             bg-[#ef8196]
-                            text-[10px]
+                            text-[8px]
                             font-black
                             text-white
+                            sm:h-5
+                            sm:w-5
+                            sm:text-[10px]
                           "
                         >
                           ✓
@@ -985,8 +1017,10 @@ function WelcomeModal({
 
                       <span
                         className="
-                          text-[35px]
+                          text-[27px]
                           leading-none
+                          sm:text-[31px]
+                          md:text-[35px]
                         "
                       >
                         {option.icon}
@@ -994,9 +1028,12 @@ function WelcomeModal({
 
                       <span
                         className={`
-                          mt-2
-                          text-[13px]
+                          mt-1
+                          text-[11px]
                           font-black
+                          sm:mt-1.5
+                          sm:text-[12px]
+                          md:text-[13px]
                           ${
                             selected
                               ? "text-[#d96f81]"
@@ -1006,43 +1043,50 @@ function WelcomeModal({
                       >
                         {option.title}
                       </span>
-
                     </button>
                   );
                 }
               )}
-
             </div>
 
             <p
               className="
-                mt-3
+                mt-2
                 text-center
-                text-[11px]
+                text-[9px]
                 text-[#978e87]
+                sm:text-[10px]
+                md:text-[11px]
               "
             >
               Vous pouvez en choisir plusieurs.
             </p>
-
           </div>
+
+          {/* BOUTON */}
 
           <button
             type="button"
             onClick={onStart}
             className="
-              mt-6
+              mt-3
               w-full
               rounded-full
               bg-[#ef8196]
-              px-6
-              py-4
-              text-[16px]
+              px-5
+              py-3
+              text-[14px]
               font-black
               text-white
-              shadow-[0_12px_28px_rgba(239,129,150,.32)]
+              shadow-[0_10px_24px_rgba(239,129,150,.28)]
               transition
               active:scale-[.99]
+              sm:mt-4
+              sm:py-3.5
+              sm:text-[15px]
+              md:mt-5
+              md:py-4
+              md:text-[16px]
             "
           >
             {selectedTypes.length > 0
@@ -1055,38 +1099,46 @@ function WelcomeModal({
               type="button"
               onClick={onShowAll}
               className="
-                mt-2
+                mt-1
                 w-full
-                py-2
-                text-xs
+                py-1
+                text-[9px]
                 font-bold
                 text-[#8b817a]
                 underline
                 underline-offset-4
+                sm:text-[10px]
+                md:text-xs
               "
             >
               Voir tous les animaux
             </button>
           )}
 
+          {/* SWIPE INFO */}
+
           <div
             className="
-              mt-5
+              mt-2.5
               flex
               items-center
               justify-center
-              gap-4
-              rounded-[20px]
+              gap-3
+              rounded-[16px]
               bg-[#f7f1ec]
-              px-4
-              py-3
+              px-3
+              py-2
+              sm:mt-3
+              sm:rounded-[18px]
+              sm:py-2.5
             "
           >
             <span
               className="
-                text-[11px]
+                text-[9px]
                 font-bold
                 text-[#df687c]
+                sm:text-[10px]
               "
             >
               → ❤️ Coup de cœur
@@ -1094,7 +1146,7 @@ function WelcomeModal({
 
             <span
               className="
-                h-4
+                h-3
                 w-px
                 bg-[#dcd1ca]
               "
@@ -1102,57 +1154,64 @@ function WelcomeModal({
 
             <span
               className="
-                text-[11px]
+                text-[9px]
                 font-bold
                 text-[#746c66]
+                sm:text-[10px]
               "
             >
               ← Next time
             </span>
           </div>
 
+          {/* STRUCTURE */}
+
           <div
             className="
-              mt-6
+              mt-3
               border-t
               border-[#eadfd8]
-              pt-5
+              pt-3
               text-center
+              sm:mt-4
+              sm:pt-4
             "
           >
-
             <p
               className="
-                text-xs
+                text-[10px]
                 font-bold
                 text-[#756d67]
+                sm:text-[11px]
+                md:text-xs
               "
             >
-              Association, refuge,
-              SIGFA, bénévole ou
-              fourrière ?
+              Association, refuge, SIGFA,
+              bénévole ou fourrière ?
             </p>
 
             <p
               className="
-                mt-1
-                text-[11px]
+                mt-0.5
+                text-[9px]
                 text-[#9a918a]
+                sm:text-[10px]
+                md:text-[11px]
               "
             >
-              Accédez directement à
-              votre espace.
+              Accédez directement à votre espace.
             </p>
 
             <div
               className="
-                mt-4
+                mt-2.5
                 grid
                 grid-cols-2
-                gap-3
+                gap-2
+                sm:mt-3
+                sm:gap-3
               "
             >
-
               <button
                 type="button"
                 onClick={() =>
@@ -1165,12 +1224,14 @@ function WelcomeModal({
                   border
                   border-[#d9cec7]
                   bg-white
-                  px-4
-                  py-3
-                  text-xs
+                  px-3
+                  py-2.5
+                  text-[10px]
                   font-black
                   text-[#064b42]
                   shadow-sm
+                  sm:py-3
+                  sm:text-[11px]
                 "
               >
                 Se connecter
@@ -1186,21 +1247,20 @@ function WelcomeModal({
                 className="
                   rounded-full
                   bg-[#064b42]
-                  px-4
-                  py-3
-                  text-xs
+                  px-3
+                  py-2.5
+                  text-[10px]
                   font-black
                   text-white
                   shadow-sm
+                  sm:py-3
+                  sm:text-[11px]
                 "
               >
                 Créer un compte
               </button>
-
             </div>
-
           </div>
-
         </div>
       </div>
     </div>
@@ -1239,8 +1299,6 @@ function BottomMenu() {
     >
       <div className="grid grid-cols-5 items-end">
 
-        {/* ACCUEIL */}
-
         <Link
           href="/"
           className="
@@ -1271,8 +1329,6 @@ function BottomMenu() {
           </span>
         </Link>
 
-        {/* RECHERCHE */}
-
         <Link
           href="/search"
           className="
@@ -1301,11 +1357,6 @@ function BottomMenu() {
             Recherche
           </span>
         </Link>
-
-        {/* =================================================
-            S.O.S ANIMAL
-            LOGO : /public/sos-paw.png
-        ================================================== */}
 
         <Link
           href="/signalement"
@@ -1350,8 +1401,6 @@ function BottomMenu() {
           </div>
         </Link>
 
-        {/* INFOS */}
-
         <Link
           href="/informations"
           className="
@@ -1380,8 +1429,6 @@ function BottomMenu() {
             Infos
           </span>
         </Link>
-
-        {/* PROFIL */}
 
         <Link
           href="/profile"
