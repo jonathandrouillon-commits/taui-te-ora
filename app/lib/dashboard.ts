@@ -155,6 +155,7 @@ export type Notification = {
 
   animal_id?: string;
   adoption_request_id?: string;
+  conversation_id?: string;
 
   is_read?: boolean;
 };
@@ -337,21 +338,6 @@ export async function getProfile(
    COUPS DE CŒUR
 ========================================================= */
 
-/*
-  IMPORTANT
-
-  Ancien fonctionnement :
-  table "likes"
-  colonne user_id
-
-  Nouveau fonctionnement :
-  table "favorites"
-  colonne profile_id
-
-  C'est donc la même table que celle utilisée
-  par favorite.service.ts.
-*/
-
 export async function getLikes(
   userId: string
 ): Promise<Like[]> {
@@ -512,28 +498,6 @@ export async function getAdoptionRequests(
    ANNULER UNE DEMANDE D'ADOPTION
 ========================================================= */
 
-/*
-  IMPORTANT :
-
-  On ne supprime PAS la demande.
-
-  On passe simplement :
-  status = "cancelled"
-
-  Cela permet de conserver :
-  - l'historique
-  - la conversation
-  - les informations de la demande
-  - le score de compatibilité
-
-  Et surtout :
-
-  PAS de .single()
-
-  Cela corrige l'erreur :
-  "Cannot coerce the result to a single JSON object"
-*/
-
 export async function cancelAdoptionRequest(
   requestId: string,
   userId: string
@@ -574,9 +538,8 @@ export async function getNotifications(
   } = await supabase
     .from("notifications")
     .select("*")
-    .eq(
-      "user_id",
-      userId
+    .or(
+      `user_id.eq.${userId},recipient_id.eq.${userId}`
     )
     .order(
       "created_at",

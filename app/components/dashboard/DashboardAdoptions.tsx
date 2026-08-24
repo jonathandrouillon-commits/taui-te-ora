@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import {
   useEffect,
   useState,
@@ -11,6 +12,10 @@ import {
   getCurrentUser,
 } from "../../lib/dashboard";
 
+import {
+  supabase,
+} from "../../lib/supabase";
+
 import type {
   AdoptionRequest,
 } from "../../lib/dashboard";
@@ -19,6 +24,11 @@ type DashboardAdoptionsProps = {
   adoptionRequests: AdoptionRequest[];
 };
 
+type ConversationMap = Record<
+  string,
+  string
+>;
+
 export default function DashboardAdoptions({
   adoptionRequests,
 }: DashboardAdoptionsProps) {
@@ -26,16 +36,24 @@ export default function DashboardAdoptions({
     requests,
     setRequests,
   ] =
-    useState<AdoptionRequest[]>(
-      adoptionRequests
-    );
+    useState<
+      AdoptionRequest[]
+    >(adoptionRequests);
 
   const [
     cancellingId,
     setCancellingId,
   ] =
-    useState<string | null>(
-      null
+    useState<
+      string | null
+    >(null);
+
+  const [
+    conversations,
+    setConversations,
+  ] =
+    useState<ConversationMap>(
+      {}
     );
 
   useEffect(() => {
@@ -45,6 +63,94 @@ export default function DashboardAdoptions({
   }, [
     adoptionRequests,
   ]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [
+    adoptionRequests,
+  ]);
+
+  async function loadConversations() {
+    try {
+      const requestIds =
+        adoptionRequests
+          .map(
+            (
+              request
+            ) =>
+              request.id
+          )
+          .filter(
+            Boolean
+          );
+
+      if (
+        requestIds.length ===
+        0
+      ) {
+        setConversations(
+          {}
+        );
+
+        return;
+      }
+
+      const {
+        data,
+        error,
+      } =
+        await supabase
+          .from(
+            "conversations"
+          )
+          .select(
+            `
+              id,
+              adoption_request_id
+            `
+          )
+          .in(
+            "adoption_request_id",
+            requestIds
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      const map:
+        ConversationMap =
+          {};
+
+      for (
+        const conversation of
+          data || []
+      ) {
+        if (
+          conversation
+            .adoption_request_id &&
+          conversation.id
+        ) {
+          map[
+            conversation
+              .adoption_request_id
+          ] =
+            conversation.id;
+        }
+      }
+
+      setConversations(
+        map
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        "Erreur conversations demandes :",
+        error
+      );
+    }
+  }
 
   async function handleCancel(
     request: AdoptionRequest
@@ -134,10 +240,7 @@ export default function DashboardAdoptions({
       0 ? (
         <div className="rounded-2xl bg-[#f8f4ec] p-5">
           <p className="text-[#6f5a47]">
-            Tu n&apos;as pas
-            encore envoyé de
-            demande
-            d&apos;adoption.
+            Tu n&apos;as pas encore envoyé de demande d&apos;adoption.
           </p>
 
           <Link
@@ -157,21 +260,25 @@ export default function DashboardAdoptions({
                 request.animals;
 
               const animalName =
-                animal?.animal_name ||
+                animal
+                  ?.animal_name ||
                 "Animal";
 
               const animalSubtitle =
                 `${
-                  animal?.animal_type ||
+                  animal
+                    ?.animal_type ||
                   "Animal"
                 } · ${
-                  animal?.age_label ||
+                  animal
+                    ?.age_label ||
                   "Âge non renseigné"
                 }`;
 
               const photos =
                 Array.isArray(
-                  animal?.animal_photos
+                  animal
+                    ?.animal_photos
                 )
                   ? animal
                       ?.animal_photos
@@ -182,159 +289,180 @@ export default function DashboardAdoptions({
                   (
                     photo
                   ) =>
-                    photo.is_cover
+                    photo
+                      .is_cover
                 ) ||
                 photos[0];
 
               const photoUrl =
-                coverPhoto?.photo_url ||
+                coverPhoto
+                  ?.photo_url ||
                 "";
 
+              const status =
+                String(
+                  request.status ||
+                    "pending"
+                )
+                  .trim()
+                  .toLowerCase();
+
               const canCancel =
-                request.status ===
+                status ===
                   "pending" ||
-                request.status ===
-                  "en_attente" ||
-                !request.status;
+                status ===
+                  "en_attente";
+
+              const conversationId =
+                conversations[
+                  request.id
+                ];
 
               return (
-                <div
+                <article
                   key={
                     request.id
                   }
                   className="
-                    flex
-                    flex-col
-                    gap-4
-                    rounded-2xl
+                    rounded-[26px]
                     border
                     border-[#eadfce]
                     bg-[#f8f4ec]
                     p-4
-
-                    sm:flex-row
-                    sm:items-center
                   "
                 >
-                  {photoUrl ? (
-                    <img
-                      src={
-                        photoUrl
-                      }
-                      alt={
-                        animalName
-                      }
-                      className="
-                        h-24
-                        w-full
-                        shrink-0
-                        rounded-2xl
-                        object-cover
+                  <div
+                    className="
+                      flex
+                      flex-col
+                      gap-4
 
-                        sm:h-20
-                        sm:w-20
-                      "
-                    />
-                  ) : (
-                    <div
-                      className="
-                        flex
-                        h-20
-                        w-20
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        bg-[#eadfce]
-                        text-3xl
-                      "
-                    >
-                      🐾
-                    </div>
-                  )}
+                      sm:flex-row
+                      sm:items-center
+                    "
+                  >
+                    {photoUrl ? (
+                      <img
+                        src={
+                          photoUrl
+                        }
+                        alt={
+                          animalName
+                        }
+                        className="
+                          h-28
+                          w-full
+                          shrink-0
+                          rounded-2xl
+                          object-cover
 
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-[#2f241c]">
-                      {animalName}
-                    </h3>
+                          sm:h-24
+                          sm:w-24
+                        "
+                      />
+                    ) : (
+                      <div
+                        className="
+                          flex
+                          h-24
+                          w-24
+                          shrink-0
+                          items-center
+                          justify-center
+                          rounded-2xl
+                          bg-[#eadfce]
+                          text-3xl
+                        "
+                      >
+                        🐾
+                      </div>
+                    )}
 
-                    <p className="mt-1 text-sm text-[#6f5a47]">
-                      {animalSubtitle}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xl font-black text-[#2f241c]">
+                        {animalName}
+                      </h3>
 
-                    <p className="mt-1 text-sm text-[#6f5a47]">
-                      Demande envoyée le{" "}
-                      {formatDate(
-                        request.created_at
-                      )}
-                    </p>
+                      <p className="mt-1 text-sm text-[#6f5a47]">
+                        {animalSubtitle}
+                      </p>
 
-                    {typeof request.match_score ===
-                      "number" && (
-                      <div className="mt-2">
+                      <p className="mt-1 text-sm text-[#6f5a47]">
+                        Demande envoyée le{" "}
+                        {formatDate(
+                          request.created_at
+                        )}
+                      </p>
+
+                      {typeof request.match_score ===
+                        "number" && (
                         <span
                           className="
+                            mt-3
                             inline-flex
                             rounded-full
                             bg-[#e8f5f1]
                             px-3
-                            py-1
+                            py-1.5
                             text-xs
                             font-black
                             text-[#064b42]
                           "
                         >
-                          ❤️ Match{" "}
+                          ❤️ Compatibilité{" "}
                           {
                             request.match_score
                           }
                           %
                         </span>
-                      </div>
-                    )}
-
-                    <span
-                      className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${getStatusStyle(
-                        request.status
-                      )}`}
-                    >
-                      {getStatusLabel(
-                        request.status
                       )}
-                    </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {animal?.id && (
+                        <Link
+                          href={`/animal/${animal.id}`}
+                          className="
+                            rounded-full
+                            bg-[#2f241c]
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-bold
+                            text-white
+                          "
+                        >
+                          Voir l&apos;animal
+                        </Link>
+                      )}
+
+                      {conversationId && (
+                        <Link
+                          href={`/messages/${conversationId}`}
+                          className="
+                            rounded-full
+                            bg-[#064b42]
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-black
+                            text-white
+                          "
+                        >
+                          💬 Messages
+                        </Link>
+                      )}
+                    </div>
                   </div>
 
-                  <div
-                    className="
-                      flex
-                      shrink-0
-                      flex-wrap
-                      gap-2
+                  <AdoptionStatus
+                    status={
+                      status
+                    }
+                  />
 
-                      sm:flex-col
-                    "
-                  >
-                    {animal?.id && (
-                      <Link
-                        href={`/animal/${animal.id}`}
-                        className="
-                          inline-flex
-                          items-center
-                          justify-center
-                          rounded-full
-                          bg-[#2f241c]
-                          px-4
-                          py-2
-                          text-sm
-                          font-semibold
-                          text-white
-                        "
-                      >
-                        Voir
-                      </Link>
-                    )}
-
-                    {canCancel && (
+                  {canCancel && (
+                    <div className="mt-4">
                       <button
                         type="button"
                         disabled={
@@ -347,20 +475,15 @@ export default function DashboardAdoptions({
                           )
                         }
                         className="
-                          inline-flex
-                          items-center
-                          justify-center
                           rounded-full
                           border
                           border-[#df8995]
                           bg-white
-                          px-4
-                          py-2
+                          px-5
+                          py-2.5
                           text-sm
                           font-bold
                           text-[#d96f81]
-                          transition
-                          hover:bg-[#fff0f2]
                           disabled:opacity-50
                         "
                       >
@@ -369,9 +492,9 @@ export default function DashboardAdoptions({
                           ? "Annulation..."
                           : "Annuler ma demande"}
                       </button>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  )}
+                </article>
               );
             }
           )}
@@ -381,69 +504,96 @@ export default function DashboardAdoptions({
   );
 }
 
-function getStatusLabel(
-  status?: string
-) {
+function AdoptionStatus({
+  status,
+}: {
+  status: string;
+}) {
   if (
     status ===
-    "accepted"
-  )
-    return "Acceptée";
+    "meeting"
+  ) {
+    return (
+      <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+        <div className="font-black text-orange-700">
+          🤝 Rencontre proposée
+        </div>
+
+        <p className="mt-1 text-sm text-orange-700">
+          L&apos;association souhaite passer à l&apos;étape de la rencontre avec vous.
+        </p>
+      </div>
+    );
+  }
 
   if (
     status ===
-      "refused" ||
+      "accepted"
+  ) {
+    return (
+      <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+        <div className="font-black text-green-700">
+          🎉 Adoption validée
+        </div>
+
+        <p className="mt-1 text-sm text-green-700">
+          Votre demande d&apos;adoption a été acceptée par l&apos;association.
+        </p>
+      </div>
+    );
+  }
+
+  if (
     status ===
-      "rejected"
-  )
-    return "Refusée";
+      "rejected" ||
+    status ===
+      "refused"
+  ) {
+    return (
+      <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+        <div className="font-black text-red-700">
+          Adoption refusée
+        </div>
+
+        <p className="mt-1 text-sm text-red-700">
+          L&apos;association n&apos;a pas retenu cette demande d&apos;adoption.
+        </p>
+      </div>
+    );
+  }
 
   if (
     status ===
     "cancelled"
-  )
-    return "Annulée";
+  ) {
+    return (
+      <div className="mt-4 rounded-2xl bg-gray-100 p-4">
+        <div className="font-black text-gray-600">
+          Demande annulée
+        </div>
+      </div>
+    );
+  }
 
-  if (
-    status ===
-    "pending"
-  )
-    return "En attente";
+  return (
+    <div className="mt-4 rounded-2xl border border-orange-100 bg-[#fff8ea] p-4">
+      <div className="font-black text-[#b87518]">
+        ⏳ Demande en attente
+      </div>
 
-  return "En attente";
-}
-
-function getStatusStyle(
-  status?: string
-) {
-  if (
-    status ===
-    "accepted"
-  )
-    return "bg-green-100 text-green-700";
-
-  if (
-    status ===
-      "refused" ||
-    status ===
-      "rejected"
-  )
-    return "bg-red-100 text-red-700";
-
-  if (
-    status ===
-    "cancelled"
-  )
-    return "bg-gray-200 text-gray-600";
-
-  return "bg-orange-100 text-orange-700";
+      <p className="mt-1 text-sm text-[#8a6a3c]">
+        L&apos;association étudie actuellement votre demande.
+      </p>
+    </div>
+  );
 }
 
 function formatDate(
   date?: string
 ) {
-  if (!date)
+  if (!date) {
     return "date inconnue";
+  }
 
   return new Date(
     date

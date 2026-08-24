@@ -36,23 +36,30 @@ type Message = {
   read_at?: string | null;
 };
 
-type AnimalPhoto = {
-  photo_url: string;
-  is_cover?: boolean | null;
-};
-
 type Animal = {
   id: string;
   animal_name: string | null;
   animal_type?: string | null;
-  animal_photos?: AnimalPhoto[];
+  animal_photos?: {
+    photo_url: string;
+    is_cover?: boolean | null;
+  }[];
 };
 
 type Profile = {
   id: string;
+  first_name?: string | null;
+  last_name?: string | null;
   organization_name: string | null;
   avatar_url: string | null;
   role: string | null;
+};
+
+type AdoptionRequestSummary = {
+  id: string;
+  status?: string | null;
+  match_score?: number | null;
+  match_level?: string | null;
 };
 
 /* =========================================================
@@ -63,15 +70,13 @@ export default function ConversationPage() {
   const router = useRouter();
   const params = useParams();
 
-  const conversationId =
-    Array.isArray(
-      params.conversationId
-    )
-      ? params.conversationId[0]
-      : String(
-          params.conversationId ||
-            ""
-        );
+  const conversationId = Array.isArray(
+    params.conversationId
+  )
+    ? params.conversationId[0]
+    : String(
+        params.conversationId || ""
+      );
 
   const bottomRef =
     useRef<HTMLDivElement | null>(
@@ -84,55 +89,48 @@ export default function ConversationPage() {
   const [sending, setSending] =
     useState(false);
 
-  const [
-    currentUserId,
-    setCurrentUserId,
-  ] = useState("");
+  const [currentUserId, setCurrentUserId] =
+    useState("");
 
-  const [
-    currentUserRole,
-    setCurrentUserRole,
-  ] = useState("");
+  const [currentUserRole, setCurrentUserRole] =
+    useState("");
 
-  const [
-    conversation,
-    setConversation,
-  ] =
+  const [conversation, setConversation] =
     useState<Conversation | null>(
       null
     );
 
   const [animal, setAnimal] =
-    useState<Animal | null>(
-      null
-    );
+    useState<Animal | null>(null);
 
-  const [
-    otherProfile,
-    setOtherProfile,
-  ] =
+  const [otherProfile, setOtherProfile] =
     useState<Profile | null>(
       null
     );
 
-  const [
-    messages,
-    setMessages,
-  ] = useState<Message[]>([]);
+  const [requesterProfile, setRequesterProfile] =
+    useState<Profile | null>(null);
 
-  const [
-    newMessage,
-    setNewMessage,
-  ] = useState("");
+  const [ownerProfile, setOwnerProfile] =
+    useState<Profile | null>(null);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+  const [adoptionRequest, setAdoptionRequest] =
+    useState<AdoptionRequestSummary | null>(
+      null
+    );
 
-  /* =========================================================
+  const [messages, setMessages] =
+    useState<Message[]>([]);
+
+  const [newMessage, setNewMessage] =
+    useState("");
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
+  /* =======================================================
      CHARGEMENT
-  ========================================================= */
+  ======================================================= */
 
   useEffect(() => {
     if (!conversationId) {
@@ -143,9 +141,9 @@ export default function ConversationPage() {
     loadConversation();
   }, [conversationId]);
 
-  /* =========================================================
+  /* =======================================================
      REALTIME
-  ========================================================= */
+  ======================================================= */
 
   useEffect(() => {
     if (
@@ -175,9 +173,7 @@ export default function ConversationPage() {
               payload.new as Message;
 
             setMessages(
-              (
-                previousMessages
-              ) => {
+              (previousMessages) => {
                 const exists =
                   previousMessages.some(
                     (message) =>
@@ -218,30 +214,28 @@ export default function ConversationPage() {
     currentUserId,
   ]);
 
-  /* =========================================================
+  /* =======================================================
      SCROLL AUTOMATIQUE
-  ========================================================= */
+  ======================================================= */
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView(
-      {
-        behavior: "smooth",
-      }
-    );
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [messages]);
 
-  /* =========================================================
+  /* =======================================================
      CHARGEMENT CONVERSATION
-  ========================================================= */
+  ======================================================= */
 
   async function loadConversation() {
     try {
       setLoading(true);
       setErrorMessage("");
 
-      /* =====================================================
+      /* ---------------------------------------------------
          UTILISATEUR
-      ===================================================== */
+      --------------------------------------------------- */
 
       const {
         data: { user },
@@ -267,54 +261,19 @@ export default function ConversationPage() {
         user.id
       );
 
-      /* =====================================================
-         ROLE
-      ===================================================== */
-
-      let role =
+      const role =
         String(
-          user.user_metadata
-            ?.role || ""
+          user.user_metadata?.role ||
+            ""
         )
           .toLowerCase()
           .trim();
 
-      /*
-       * Sécurité :
-       * si le rôle n'est pas présent
-       * dans les metadata Auth,
-       * on regarde profiles.
-       */
+      setCurrentUserRole(role);
 
-      if (!role) {
-        const {
-          data: currentProfile,
-        } =
-          await supabase
-            .from("profiles")
-            .select("role")
-            .eq(
-              "id",
-              user.id
-            )
-            .maybeSingle();
-
-        role =
-          String(
-            currentProfile?.role ||
-              ""
-          )
-            .toLowerCase()
-            .trim();
-      }
-
-      setCurrentUserRole(
-        role
-      );
-
-      /* =====================================================
+      /* ---------------------------------------------------
          CONVERSATION
-      ===================================================== */
+      --------------------------------------------------- */
 
       const {
         data:
@@ -353,16 +312,18 @@ export default function ConversationPage() {
         );
       }
 
-      /* =====================================================
-         AUTORISATION
-      ===================================================== */
+      /*
+       * Participants autorisés :
+       *
+       * - Adoptant
+       * - Créateur de la fiche
+       * - Admin
+       */
 
       const isParticipant =
-        conversationData
-          .requester_id ===
+        conversationData.requester_id ===
           user.id ||
-        conversationData
-          .owner_id ===
+        conversationData.owner_id ===
           user.id;
 
       const isAdmin =
@@ -378,16 +339,12 @@ export default function ConversationPage() {
       }
 
       setConversation(
-        conversationData as Conversation
+        conversationData
       );
 
-      /* =====================================================
+      /* ---------------------------------------------------
          ANIMAL
-         
-         IMPORTANT :
-         animals.photo_url N'EXISTE PAS.
-         Les photos viennent de animal_photos.
-      ===================================================== */
+      --------------------------------------------------- */
 
       const {
         data: animalData,
@@ -408,12 +365,13 @@ export default function ConversationPage() {
           )
           .eq(
             "id",
-            conversationData
-              .animal_id
+            conversationData.animal_id
           )
           .single();
 
-      if (animalError) {
+      if (
+        animalError
+      ) {
         console.error(
           "Erreur animal :",
           animalError
@@ -424,72 +382,128 @@ export default function ConversationPage() {
         setAnimal(
           animalData as Animal
         );
-      } else {
-        setAnimal(null);
       }
 
-      /* =====================================================
-         AUTRE PARTICIPANT
-      ===================================================== */
+      /* ---------------------------------------------------
+         PROFILS DES DEUX PARTICIPANTS
+      --------------------------------------------------- */
+
+      const participantIds = [
+        conversationData.requester_id,
+        conversationData.owner_id,
+      ];
+
+      const {
+        data: participantProfiles,
+        error: participantProfilesError,
+      } = await supabase
+        .from("profiles")
+        .select(
+          `
+            id,
+            first_name,
+            last_name,
+            organization_name,
+            avatar_url,
+            role
+          `
+        )
+        .in("id", participantIds);
+
+      if (participantProfilesError) {
+        console.error(
+          "Erreur profils participants :",
+          participantProfilesError
+        );
+      }
+
+      const requester =
+        (participantProfiles || []).find(
+          (profile) =>
+            profile.id ===
+            conversationData.requester_id
+        ) || null;
+
+      const owner =
+        (participantProfiles || []).find(
+          (profile) =>
+            profile.id ===
+            conversationData.owner_id
+        ) || null;
+
+      setRequesterProfile(
+        requester as Profile | null
+      );
+
+      setOwnerProfile(
+        owner as Profile | null
+      );
 
       const otherUserId =
         user.id ===
-        conversationData
-          .requester_id
-          ? conversationData
-              .owner_id
-          : conversationData
-              .requester_id;
+        conversationData.requester_id
+          ? conversationData.owner_id
+          : conversationData.requester_id;
 
-      /*
-       * Si l'admin consulte une conversation
-       * dont il n'est pas participant,
-       * on affiche prioritairement
-       * la structure propriétaire.
-       */
+      const other =
+        (participantProfiles || []).find(
+          (profile) =>
+            profile.id === otherUserId
+        ) ||
+        (
+          isAdmin &&
+          !isParticipant
+            ? owner
+            : null
+        );
 
-      const profileId =
-        isAdmin &&
-        !isParticipant
-          ? conversationData
-              .owner_id
-          : otherUserId;
+      setOtherProfile(
+        (other as Profile | null) ||
+          null
+      );
 
-      const {
-        data: profileData,
-        error: profileError,
-      } =
-        await supabase
-          .from("profiles")
+      /* ---------------------------------------------------
+         SCORE / STATUT DE LA DEMANDE
+      --------------------------------------------------- */
+
+      if (
+        conversationData.adoption_request_id
+      ) {
+        const {
+          data: requestData,
+          error: requestError,
+        } = await supabase
+          .from("adoption_requests")
           .select(
             `
               id,
-              organization_name,
-              avatar_url,
-              role
+              status,
+              match_score,
+              match_level
             `
           )
           .eq(
             "id",
-            profileId
+            conversationData.adoption_request_id
           )
           .maybeSingle();
 
-      if (profileError) {
-        console.error(
-          "Erreur profil :",
-          profileError
+        if (requestError) {
+          console.error(
+            "Erreur demande adoption :",
+            requestError
+          );
+        }
+
+        setAdoptionRequest(
+          (requestData as AdoptionRequestSummary | null) ||
+            null
         );
       }
 
-      setOtherProfile(
-        (profileData as Profile) ||
-          null
-      );
-
-      /* =====================================================
+      /* ---------------------------------------------------
          MESSAGES
-      ===================================================== */
+      --------------------------------------------------- */
 
       const {
         data: messagesData,
@@ -520,7 +534,9 @@ export default function ConversationPage() {
             }
           );
 
-      if (messagesError) {
+      if (
+        messagesError
+      ) {
         throw messagesError;
       }
 
@@ -529,13 +545,14 @@ export default function ConversationPage() {
           []) as Message[]
       );
 
-      /* =====================================================
-         MARQUER LES MESSAGES COMME LUS
-      ===================================================== */
+      /* ---------------------------------------------------
+         MARQUER MESSAGES LUS
+      --------------------------------------------------- */
 
       const unreadIds =
         (
-          messagesData || []
+          messagesData ||
+          []
         )
           .filter(
             (message) =>
@@ -549,72 +566,46 @@ export default function ConversationPage() {
           );
 
       if (
-        unreadIds.length > 0
+        unreadIds.length >
+        0
       ) {
-        const {
-          error: readError,
-        } =
-          await supabase
-            .from(
-              "conversation_messages"
-            )
-            .update({
-              read_at:
-                new Date()
-                  .toISOString(),
-            })
-            .in(
-              "id",
-              unreadIds
-            );
-
-        if (readError) {
-          console.error(
-            "Erreur mise à jour messages lus :",
-            readError
-          );
-        }
-      }
-
-      /* =====================================================
-         NOTIFICATIONS LUES
-      ===================================================== */
-
-      const {
-        error:
-          notificationReadError,
-      } =
         await supabase
-          .from("notifications")
+          .from(
+            "conversation_messages"
+          )
           .update({
-            is_read:
-              true,
-
             read_at:
-              new Date()
-                .toISOString(),
+              new Date().toISOString(),
           })
-          .eq(
-            "recipient_id",
-            user.id
-          )
-          .eq(
-            "conversation_id",
-            conversationId
-          )
-          .eq(
-            "is_read",
-            false
+          .in(
+            "id",
+            unreadIds
           );
-
-      if (
-        notificationReadError
-      ) {
-        console.error(
-          "Erreur notifications lues :",
-          notificationReadError
-        );
       }
+
+      /* ---------------------------------------------------
+         NOTIFICATIONS LUES
+      --------------------------------------------------- */
+
+      await supabase
+        .from("notifications")
+        .update({
+          is_read: true,
+          read_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "recipient_id",
+          user.id
+        )
+        .eq(
+          "conversation_id",
+          conversationId
+        )
+        .eq(
+          "is_read",
+          false
+        );
     } catch (
       error: any
     ) {
@@ -632,57 +623,44 @@ export default function ConversationPage() {
     }
   }
 
-  /* =========================================================
+  /* =======================================================
      MESSAGE LU
-  ========================================================= */
+  ======================================================= */
 
   async function markMessageAsRead(
     messageId: string
   ) {
     try {
-      const { error } =
-        await supabase
-          .from(
-            "conversation_messages"
-          )
-          .update({
-            read_at:
-              new Date()
-                .toISOString(),
-          })
-          .eq(
-            "id",
-            messageId
-          );
-
-      if (error) {
-        console.error(
-          "Erreur lecture message :",
-          error
+      await supabase
+        .from(
+          "conversation_messages"
+        )
+        .update({
+          read_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "id",
+          messageId
         );
 
-        return;
-      }
-
       setMessages(
-        (
-          previousMessages
-        ) =>
+        (previousMessages) =>
           previousMessages.map(
             (message) =>
               message.id ===
               messageId
                 ? {
                     ...message,
-
                     read_at:
-                      new Date()
-                        .toISOString(),
+                      new Date().toISOString(),
                   }
                 : message
           )
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Erreur lecture message :",
         error
@@ -690,9 +668,9 @@ export default function ConversationPage() {
     }
   }
 
-  /* =========================================================
+  /* =======================================================
      ENVOYER MESSAGE
-  ========================================================= */
+  ======================================================= */
 
   async function sendMessage() {
     try {
@@ -711,17 +689,17 @@ export default function ConversationPage() {
         return;
       }
 
-      /* =====================================================
-         SEULS LES PARTICIPANTS PEUVENT ECRIRE
-      ===================================================== */
+      /*
+       * L'admin consulte par défaut.
+       * On ne lui donne pas ici la possibilité
+       * d'écrire dans la conversation.
+       */
 
       const isParticipant =
         currentUserId ===
-          conversation
-            .requester_id ||
+          conversation.requester_id ||
         currentUserId ===
-          conversation
-            .owner_id;
+          conversation.owner_id;
 
       if (!isParticipant) {
         alert(
@@ -733,9 +711,9 @@ export default function ConversationPage() {
 
       setSending(true);
 
-      /* =====================================================
+      /* ---------------------------------------------------
          INSERT MESSAGE
-      ===================================================== */
+      --------------------------------------------------- */
 
       const {
         data,
@@ -763,9 +741,7 @@ export default function ConversationPage() {
       }
 
       setMessages(
-        (
-          previousMessages
-        ) => {
+        (previousMessages) => {
           if (
             previousMessages.some(
               (message) =>
@@ -785,62 +761,32 @@ export default function ConversationPage() {
 
       setNewMessage("");
 
-      /* =====================================================
+      /* ---------------------------------------------------
          UPDATE CONVERSATION
-      ===================================================== */
+      --------------------------------------------------- */
 
-      const {
-        error:
-          conversationUpdateError,
-      } =
-        await supabase
-          .from(
-            "conversations"
-          )
-          .update({
-            updated_at:
-              new Date()
-                .toISOString(),
-          })
-          .eq(
-            "id",
-            conversation.id
-          );
-
-      if (
-        conversationUpdateError
-      ) {
-        console.error(
-          "Erreur mise à jour conversation :",
-          conversationUpdateError
+      await supabase
+        .from(
+          "conversations"
+        )
+        .update({
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "id",
+          conversation.id
         );
-      }
 
-      /* =====================================================
+      /* ---------------------------------------------------
          NOTIFICATION DESTINATAIRE
-         
-         TABLE REELLE notifications :
-         
-         user_id
-         recipient_id
-         title
-         message
-         type
-         animal_id
-         adoption_request_id
-         is_read
-         conversation_id
-         read_at
-      ===================================================== */
+      --------------------------------------------------- */
 
       const recipientId =
         currentUserId ===
-        conversation
-          .requester_id
-          ? conversation
-              .owner_id
-          : conversation
-              .requester_id;
+        conversation.requester_id
+          ? conversation.owner_id
+          : conversation.requester_id;
 
       const animalName =
         animal?.animal_name ||
@@ -859,7 +805,9 @@ export default function ConversationPage() {
           notificationError,
       } =
         await supabase
-          .from("notifications")
+          .from(
+            "notifications"
+          )
           .insert({
             user_id:
               recipientId,
@@ -868,12 +816,16 @@ export default function ConversationPage() {
               recipientId,
 
             animal_id:
-              conversation
-                .animal_id,
+              conversation.animal_id,
+
+            adoptant_id:
+              conversation.requester_id,
+
+            association_id:
+              conversation.owner_id,
 
             adoption_request_id:
-              conversation
-                .adoption_request_id,
+              conversation.adoption_request_id,
 
             conversation_id:
               conversation.id,
@@ -916,17 +868,16 @@ export default function ConversationPage() {
     }
   }
 
-  /* =========================================================
-     ENTREE CLAVIER
-  ========================================================= */
+  /* =======================================================
+     ENTRÉE CLAVIER
+  ======================================================= */
 
   function handleKeyDown(
     event:
       React.KeyboardEvent<HTMLTextAreaElement>
   ) {
     if (
-      event.key ===
-        "Enter" &&
+      event.key === "Enter" &&
       !event.shiftKey
     ) {
       event.preventDefault();
@@ -935,9 +886,9 @@ export default function ConversationPage() {
     }
   }
 
-  /* =========================================================
+  /* =======================================================
      PHOTO ANIMAL
-  ========================================================= */
+  ======================================================= */
 
   function getAnimalPhoto() {
     if (!animal) {
@@ -961,66 +912,85 @@ export default function ConversationPage() {
     );
   }
 
-  /* =========================================================
+  /* =======================================================
      NOM AUTRE PARTICIPANT
-  ========================================================= */
+  ======================================================= */
 
-  function getOtherParticipantName() {
-    if (
-      otherProfile
-        ?.organization_name
-    ) {
-      return otherProfile
-        .organization_name;
+  function getProfileName(
+    profile: Profile | null
+  ) {
+    if (!profile) {
+      return "Utilisateur Taui Te Ora";
+    }
+
+    if (profile.organization_name) {
+      return profile.organization_name;
+    }
+
+    const fullName =
+      `${profile.first_name || ""} ${
+        profile.last_name || ""
+      }`.trim();
+
+    if (fullName) {
+      return fullName;
     }
 
     const role =
-      String(
-        otherProfile?.role ||
-          ""
-      ).toLowerCase();
+      String(profile.role || "")
+        .toLowerCase()
+        .trim();
 
-    if (
-      role ===
-      "association"
-    ) {
+    if (role === "association") {
       return "Association";
     }
 
-    if (
-      role ===
-      "refuge"
-    ) {
+    if (role === "refuge") {
       return "Refuge / SIGFA";
     }
 
-    if (
-      role ===
-      "benevole"
-    ) {
+    if (role === "benevole") {
       return "Bénévole indépendant";
     }
 
-    if (
-      role ===
-      "fourriere"
-    ) {
+    if (role === "fourriere") {
       return "Fourrière";
     }
 
-    if (
-      role ===
-      "adoptant"
-    ) {
+    if (role === "adoptant") {
       return "Adoptant";
     }
 
     return "Utilisateur Taui Te Ora";
   }
 
-  /* =========================================================
+  function getOtherParticipantName() {
+    return getProfileName(otherProfile);
+  }
+
+  function getMessageProfile(
+    senderId: string
+  ) {
+    if (
+      senderId ===
+      conversation?.requester_id
+    ) {
+      return requesterProfile;
+    }
+
+    if (
+      senderId ===
+      conversation?.owner_id
+    ) {
+      return ownerProfile;
+    }
+
+    return null;
+  }
+
+  /* =======================================================
      LOADING
-  ========================================================= */
+  ======================================================= */
 
   if (loading) {
     return (
@@ -1083,9 +1053,9 @@ export default function ConversationPage() {
     );
   }
 
-  /* =========================================================
+  /* =======================================================
      ERREUR
-  ========================================================= */
+  ======================================================= */
 
   if (
     errorMessage ||
@@ -1159,10 +1129,6 @@ export default function ConversationPage() {
     );
   }
 
-  /* =========================================================
-     DONNEES CHAT
-  ========================================================= */
-
   const animalPhoto =
     getAnimalPhoto();
 
@@ -1173,14 +1139,13 @@ export default function ConversationPage() {
     currentUserRole ===
       "admin" &&
     currentUserId !==
-      conversation
-        .requester_id &&
+      conversation.requester_id &&
     currentUserId !==
       conversation.owner_id;
 
-  /* =========================================================
+  /* =======================================================
      CHAT
-  ========================================================= */
+  ======================================================= */
 
   return (
     <main
@@ -1193,9 +1158,9 @@ export default function ConversationPage() {
         text-[#3f3934]
       "
     >
-      {/* =====================================================
+      {/* ===================================================
           HEADER
-      ====================================================== */}
+      ==================================================== */}
 
       <header
         className="
@@ -1242,9 +1207,7 @@ export default function ConversationPage() {
             ←
           </button>
 
-          {/* =================================================
-              ANIMAL
-          ================================================== */}
+          {/* ANIMAL */}
 
           <button
             type="button"
@@ -1268,8 +1231,7 @@ export default function ConversationPage() {
                   animalPhoto
                 }
                 alt={
-                  animal
-                    ?.animal_name ||
+                  animal?.animal_name ||
                   "Animal"
                 }
                 className="
@@ -1327,19 +1289,36 @@ export default function ConversationPage() {
                   ? "Consultation administrateur"
                   : `Conversation avec ${otherName}`}
               </p>
+
+              {typeof adoptionRequest?.match_score ===
+                "number" && (
+                <span
+                  className="
+                    mt-1
+                    inline-flex
+                    rounded-full
+                    bg-[#e8f5f1]
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    font-black
+                    text-[#064b42]
+                  "
+                >
+                  ❤️ Compatibilité{" "}
+                  {adoptionRequest.match_score}%
+                </span>
+              )}
             </div>
           </button>
 
-          {/* =================================================
-              PROFIL AUTRE PARTICIPANT
-          ================================================== */}
+          {/* PROFIL AUTRE PARTICIPANT */}
 
           {otherProfile
             ?.avatar_url ? (
             <img
               src={
-                otherProfile
-                  .avatar_url
+                otherProfile.avatar_url
               }
               alt={
                 otherName
@@ -1383,9 +1362,9 @@ export default function ConversationPage() {
         </div>
       </header>
 
-      {/* =====================================================
-          ADMIN
-      ====================================================== */}
+      {/* ===================================================
+          BANDEAU ADMIN
+      ==================================================== */}
 
       {isAdminViewer && (
         <div
@@ -1404,9 +1383,71 @@ export default function ConversationPage() {
         </div>
       )}
 
-      {/* =====================================================
+      {!isAdminViewer && (
+        <div
+          className="
+            shrink-0
+            border-b
+            border-[#eadfd8]
+            bg-white/70
+            px-4
+            py-2
+          "
+        >
+          <div
+            className="
+              mx-auto
+              flex
+              max-w-3xl
+              items-center
+              justify-center
+              gap-3
+            "
+          >
+            <ParticipantMini
+              profile={requesterProfile}
+              label="Adoptant"
+            />
+
+            <div
+              className="
+                text-xs
+                font-black
+                text-[#9c7b54]
+              "
+            >
+              ↔
+            </div>
+
+            <ParticipantMini
+              profile={ownerProfile}
+              label="Association"
+            />
+
+            {typeof adoptionRequest?.match_score ===
+              "number" && (
+              <div
+                className="
+                  ml-2
+                  rounded-full
+                  bg-[#e8f5f1]
+                  px-3
+                  py-1.5
+                  text-[11px]
+                  font-black
+                  text-[#064b42]
+                "
+              >
+                ❤️ {adoptionRequest.match_score}%
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================
           MESSAGES
-      ====================================================== */}
+      ==================================================== */}
 
       <section
         className="
@@ -1426,9 +1467,7 @@ export default function ConversationPage() {
             gap-3
           "
         >
-          {/* =================================================
-              INTRO
-          ================================================== */}
+          {/* INTRO */}
 
           <div
             className="
@@ -1475,6 +1514,16 @@ export default function ConversationPage() {
                 message.sender_id ===
                 currentUserId;
 
+              const senderProfile =
+                getMessageProfile(
+                  message.sender_id
+                );
+
+              const senderName =
+                getProfileName(
+                  senderProfile
+                );
+
               return (
                 <div
                   key={
@@ -1482,6 +1531,8 @@ export default function ConversationPage() {
                   }
                   className={`
                     flex
+                    items-end
+                    gap-2
                     ${
                       mine
                         ? "justify-end"
@@ -1489,9 +1540,20 @@ export default function ConversationPage() {
                     }
                   `}
                 >
+                  {!mine && (
+                    <ProfileAvatar
+                      profile={
+                        senderProfile
+                      }
+                      name={
+                        senderName
+                      }
+                    />
+                  )}
+
                   <div
                     className={`
-                      max-w-[82%]
+                      max-w-[78%]
                       rounded-[22px]
                       px-4
                       py-3
@@ -1503,6 +1565,23 @@ export default function ConversationPage() {
                       }
                     `}
                   >
+                    <p
+                      className={`
+                        mb-1
+                        text-[10px]
+                        font-black
+                        ${
+                          mine
+                            ? "text-white/80"
+                            : "text-[#9c7b54]"
+                        }
+                      `}
+                    >
+                      {mine
+                        ? "Vous"
+                        : senderName}
+                    </p>
+
                     <p
                       className="
                         whitespace-pre-wrap
@@ -1539,14 +1618,24 @@ export default function ConversationPage() {
 
                       {mine && (
                         <span>
-                          {message
-                            .read_at
+                          {message.read_at
                             ? "✓✓"
                             : "✓"}
                         </span>
                       )}
                     </div>
                   </div>
+
+                  {mine && (
+                    <ProfileAvatar
+                      profile={
+                        senderProfile
+                      }
+                      name={
+                        senderName
+                      }
+                    />
+                  )}
                 </div>
               );
             }
@@ -1560,9 +1649,9 @@ export default function ConversationPage() {
         </div>
       </section>
 
-      {/* =====================================================
+      {/* ===================================================
           SAISIE
-      ====================================================== */}
+      ==================================================== */}
 
       {!isAdminViewer && (
         <footer
@@ -1676,6 +1765,115 @@ export default function ConversationPage() {
   );
 }
 
+function ProfileAvatar({
+  profile,
+  name,
+}: {
+  profile: Profile | null;
+  name: string;
+}) {
+  if (profile?.avatar_url) {
+    return (
+      <img
+        src={profile.avatar_url}
+        alt={name}
+        title={name}
+        className="
+          h-8
+          w-8
+          shrink-0
+          rounded-full
+          border-2
+          border-white
+          object-cover
+          shadow
+        "
+      />
+    );
+  }
+
+  return (
+    <div
+      title={name}
+      className="
+        flex
+        h-8
+        w-8
+        shrink-0
+        items-center
+        justify-center
+        rounded-full
+        border-2
+        border-white
+        bg-[#fff3dc]
+        text-xs
+        shadow
+      "
+    >
+      👤
+    </div>
+  );
+}
+
+function ParticipantMini({
+  profile,
+  label,
+}: {
+  profile: Profile | null;
+  label: string;
+}) {
+  const name =
+    profile?.organization_name ||
+    `${profile?.first_name || ""} ${
+      profile?.last_name || ""
+    }`.trim() ||
+    label;
+
+  return (
+    <div
+      className="
+        flex
+        min-w-0
+        items-center
+        gap-2
+      "
+    >
+      <ProfileAvatar
+        profile={profile}
+        name={name}
+      />
+
+      <div
+        className="
+          hidden
+          min-w-0
+          sm:block
+        "
+      >
+        <p
+          className="
+            truncate
+            text-[10px]
+            font-black
+            text-[#064b42]
+          "
+        >
+          {name}
+        </p>
+
+        <p
+          className="
+            text-[9px]
+            text-[#8a837b]
+          "
+        >
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* =========================================================
    HEURE
 ========================================================= */
@@ -1688,7 +1886,8 @@ function formatTime(
       "fr-FR",
       {
         hour: "2-digit",
-        minute: "2-digit",
+        minute:
+          "2-digit",
       }
     ).format(
       new Date(date)
