@@ -209,6 +209,40 @@ export default function AnimalSwipeCard({
       ? "#ef8196"
       : "#e6a85c";
 
+  // Mise en page adaptative mobile :
+  // plus il y a de badges à gauche, plus on les remonte.
+  // Le bloc nom / association / ville remonte automatiquement
+  // lorsqu'un texte de caractère est affiché afin de laisser
+  // une zone fixe aux 3 boutons d'action en bas.
+  const leftInfoCount = [
+    Boolean(age),
+    Boolean(sexRaw),
+    Boolean(vaccinated),
+    Boolean(microchipped),
+    Boolean(sterilized),
+  ].filter(Boolean).length;
+
+  const leftInfoTop =
+    leftInfoCount >= 5
+      ? "22%"
+      : leftInfoCount === 4
+        ? "25%"
+        : leftInfoCount === 3
+          ? "28%"
+          : "31%";
+
+  const hasCharacter = Boolean(
+    String(character || "").trim()
+  );
+
+  const detailsBottom = hasCharacter
+    ? 205
+    : 164;
+
+  const creatorLogoBottom = hasCharacter
+    ? 196
+    : 158;
+
   function wait(milliseconds: number) {
     return new Promise<void>(
       (resolve) => {
@@ -695,10 +729,12 @@ export default function AnimalSwipeCard({
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
+          style={{
+            top: leftInfoTop,
+          }}
           className="
             absolute
             left-2
-            top-[27%]
             sm:left-3
             sm:top-[28%]
             z-30
@@ -915,10 +951,12 @@ export default function AnimalSwipeCard({
           )}
 
         <div
+          style={{
+            bottom: `${detailsBottom}px`,
+          }}
           className="
             absolute
             inset-x-0
-            bottom-[138px]
             z-40
             px-4
             pb-3
@@ -1053,9 +1091,11 @@ export default function AnimalSwipeCard({
                 ? `Voir ${creatorName}`
                 : "Voir la structure"
             }
+            style={{
+              bottom: `${creatorLogoBottom}px`,
+            }}
             className="
               absolute
-              bottom-[148px]
               right-3
               z-50
               flex
