@@ -8,15 +8,23 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Sur l'accueil, on masque cette ancienne navigation
-  // car la nouvelle barre est directement intégrée dans app/page.tsx
+  // Sur l'accueil, on masque cette navigation
+  // car la barre principale est directement intégrée dans app/page.tsx
   if (pathname === "/") {
     return null;
   }
 
   const mainItems = [
-    { href: "/", label: "Accueil", icon: "🏠" },
-    { href: "/search", label: "Search", icon: "🔎" },
+    {
+      href: "/",
+      label: "Accueil",
+      icon: "🏠",
+    },
+    {
+      href: "/search",
+      label: "Search",
+      icon: "🔎",
+    },
     {
       href: "/signalement",
       label: "SOS",
@@ -37,18 +45,54 @@ export default function BottomNavigation() {
   ];
 
   const menuItems = [
-    { href: "/info", label: "Info", icon: "ℹ️" },
-    { href: "/veterinaires", label: "Vétérinaires", icon: "🩺" },
+    {
+      href: "/info",
+      label: "Info",
+      icon: "ℹ️",
+    },
+    {
+      href: "/veterinaires",
+      label: "Vétérinaires",
+      icon: "🩺",
+    },
     {
       href: "/association",
       label: "Les Veilleurs de Kali",
       icon: "❤️",
     },
-    { href: "/toilettage", label: "Toilettage", icon: "✂️" },
-    { href: "/gardiennage", label: "Gardiennage", icon: "🏡" },
-    { href: "/education", label: "Éducation", icon: "🎓" },
-    { href: "/alimentation", label: "Alimentation", icon: "🥣" },
-    { href: "/hommage", label: "Hommage à Kali", icon: "🐾" },
+
+    // NOUVEL ESPACE BOUTIQUE
+    {
+      href: "/boutique",
+      label: "Boutique",
+      icon: "🛍️",
+    },
+
+    {
+      href: "/toilettage",
+      label: "Toilettage",
+      icon: "✂️",
+    },
+    {
+      href: "/gardiennage",
+      label: "Gardiennage",
+      icon: "🏡",
+    },
+    {
+      href: "/education",
+      label: "Éducation",
+      icon: "🎓",
+    },
+    {
+      href: "/alimentation",
+      label: "Alimentation",
+      icon: "🥣",
+    },
+    {
+      href: "/hommage",
+      label: "Hommage à Kali",
+      icon: "🐾",
+    },
   ];
 
   function toggleMenu() {
@@ -61,6 +105,10 @@ export default function BottomNavigation() {
 
   return (
     <>
+      {/* =====================================================
+          MENU OUVERT
+      ====================================================== */}
+
       {menuOpen && (
         <>
           <button
@@ -71,11 +119,15 @@ export default function BottomNavigation() {
           />
 
           <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
+            {/* Petite poignée */}
+
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
 
             <div className="relative px-5 pb-5 pt-4">
+              {/* Fermer */}
+
               <button
                 type="button"
                 onClick={closeMenu}
@@ -89,28 +141,50 @@ export default function BottomNavigation() {
                 Menu
               </h2>
 
-              <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 rounded-2xl bg-[#f8f4ec] px-4 py-3 shadow-sm transition active:scale-[0.98]"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
-                      {item.icon}
-                    </span>
+              {/* Liste */}
 
-                    <span className="text-base font-black text-[#064b42]">
-                      {item.label}
-                    </span>
-                  </Link>
-                ))}
+              <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
+                {menuItems.map((item) => {
+                  const isMenuItemActive =
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMenu}
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 shadow-sm transition active:scale-[0.98] ${
+                        isMenuItemActive
+                          ? "bg-[#e8f5f1]"
+                          : "bg-[#f8f4ec]"
+                      }`}
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">
+                        {item.icon}
+                      </span>
+
+                      <span
+                        className={`text-base font-black ${
+                          isMenuItemActive
+                            ? "text-[#064b42]"
+                            : "text-[#064b42]"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
         </>
       )}
+
+      {/* =====================================================
+          BOTTOM NAVIGATION
+      ====================================================== */}
 
       <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
@@ -121,6 +195,8 @@ export default function BottomNavigation() {
                 (item.href !== "/" &&
                   pathname.startsWith(`${item.href}/`)));
 
+            /* MENU */
+
             if (item.menu) {
               return (
                 <button
@@ -128,12 +204,18 @@ export default function BottomNavigation() {
                   type="button"
                   onClick={toggleMenu}
                   aria-expanded={menuOpen}
-                  aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                  aria-label={
+                    menuOpen
+                      ? "Fermer le menu"
+                      : "Ouvrir le menu"
+                  }
                   className="flex flex-col items-center justify-center gap-0.5"
                 >
                   <span
                     className={`text-[24px] leading-none ${
-                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
                     }`}
                   >
                     {menuOpen ? "✕" : item.icon}
@@ -141,7 +223,9 @@ export default function BottomNavigation() {
 
                   <span
                     className={`text-[9px] font-black uppercase leading-none ${
-                      menuOpen ? "text-[#064b42]" : "text-[#6f7b63]"
+                      menuOpen
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
                     }`}
                   >
                     {item.label}
@@ -149,6 +233,8 @@ export default function BottomNavigation() {
                 </button>
               );
             }
+
+            /* SOS */
 
             if (item.sos) {
               return (
@@ -169,6 +255,8 @@ export default function BottomNavigation() {
               );
             }
 
+            /* AUTRES BOUTONS */
+
             return (
               <Link
                 key={item.href}
@@ -181,7 +269,9 @@ export default function BottomNavigation() {
 
                 <span
                   className={`text-[9px] font-black uppercase leading-none ${
-                    isActive ? "text-[#064b42]" : "text-[#6f7b63]"
+                    isActive
+                      ? "text-[#064b42]"
+                      : "text-[#6f7b63]"
                   }`}
                 >
                   {item.label}
