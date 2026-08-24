@@ -99,21 +99,32 @@ export default function AdminDashboardPage() {
         currentProfile
       );
 
-      setUsers(
+      const allUsers =
         await profileService
-          .getAllProfiles()
+          .getAllProfiles();
+
+      setUsers(
+        allUsers
       );
 
-      setAnimals(
+      const allAnimals =
         await animalService
-          .getAllWithPhotos()
+          .getAllWithPhotos();
+
+      setAnimals(
+        allAnimals
       );
     } catch (
       error: any
     ) {
+      console.error(
+        "Erreur dashboard admin :",
+        error
+      );
+
       alert(
         error?.message ||
-          "Erreur chargement administration."
+          "Impossible de charger le dashboard."
       );
     } finally {
       setLoading(
@@ -123,6 +134,12 @@ export default function AdminDashboardPage() {
   }
 
   async function handleLogout() {
+    if (
+      loggingOut
+    ) {
+      return;
+    }
+
     try {
       setLoggingOut(
         true
@@ -164,7 +181,17 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] font-black text-[#064b42]">
+      <main
+        className="
+          flex
+          min-h-screen
+          items-center
+          justify-center
+          bg-[#fbf7ef]
+          font-black
+          text-[#064b42]
+        "
+      >
         Chargement...
       </main>
     );
@@ -183,15 +210,52 @@ export default function AdminDashboardPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#fbf7ef] p-5 text-[#064b42] sm:p-8">
-      <section className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <main
+      className="
+        min-h-screen
+        bg-[#fbf7ef]
+        p-5
+        text-[#064b42]
+        sm:p-8
+      "
+    >
+      <section
+        className="
+          mx-auto
+          max-w-7xl
+        "
+      >
+        {/* =====================================================
+            EN-TÊTE
+        ====================================================== */}
+
+        <div
+          className="
+            flex
+            flex-col
+            gap-5
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
           <div>
-            <h1 className="text-4xl font-black sm:text-5xl">
+            <h1
+              className="
+                text-4xl
+                font-black
+                sm:text-5xl
+              "
+            >
               Administration
             </h1>
 
-            <p className="mt-2 text-gray-500">
+            <p
+              className="
+                mt-2
+                text-gray-500
+              "
+            >
               Bonjour{" "}
               {profileService.getDisplayName(
                 profile
@@ -210,76 +274,179 @@ export default function AdminDashboardPage() {
           </Button>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-4">
-          <Card className="text-center">
+        {/* =====================================================
+            STATISTIQUES
+        ====================================================== */}
+
+        <div
+          className="
+            mt-10
+            grid
+            gap-6
+            md:grid-cols-2
+            lg:grid-cols-4
+          "
+        >
+          <Card
+            className="
+              text-center
+            "
+          >
             <Users
-              className="mx-auto text-blue-600"
+              className="
+                mx-auto
+                text-blue-600
+              "
               size={42}
             />
 
-            <h2 className="mt-3 text-4xl font-black">
+            <h2
+              className="
+                mt-3
+                text-4xl
+                font-black
+              "
+            >
               {users.length}
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Utilisateurs
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <ShieldCheck
-              className="mx-auto text-orange-500"
+              className="
+                mx-auto
+                text-orange-500
+              "
               size={42}
             />
 
-            <h2 className="mt-3 text-4xl font-black">
+            <h2
+              className="
+                mt-3
+                text-4xl
+                font-black
+              "
+            >
               {
                 pendingUsers.length
               }
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               En attente
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <PawPrint
-              className="mx-auto text-green-600"
+              className="
+                mx-auto
+                text-green-600
+              "
               size={42}
             />
 
-            <h2 className="mt-3 text-4xl font-black">
+            <h2
+              className="
+                mt-3
+                text-4xl
+                font-black
+              "
+            >
               {animals.length}
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Animaux
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <Siren
-              className="mx-auto text-red-600"
+              className="
+                mx-auto
+                text-red-600
+              "
               size={42}
             />
 
-            <h2 className="mt-3 text-4xl font-black">
+            <h2
+              className="
+                mt-3
+                text-4xl
+                font-black
+              "
+            >
               🚨
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Signalements
             </p>
           </Card>
         </div>
 
-        <Card className="mt-10">
-          <h2 className="text-3xl font-black">
+        {/* =====================================================
+            ACTIONS RAPIDES
+        ====================================================== */}
+
+        <Card
+          className="
+            mt-10
+          "
+        >
+          <h2
+            className="
+              text-3xl
+              font-black
+            "
+          >
             Actions rapides
           </h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div
+            className="
+              mt-6
+              grid
+              gap-4
+              md:grid-cols-2
+              lg:grid-cols-4
+            "
+          >
+            {/* UTILISATEURS */}
+
             <Button
               onClick={() =>
                 router.push(
@@ -287,8 +454,10 @@ export default function AdminDashboardPage() {
                 )
               }
             >
-              Valider les comptes
+              Gérer les utilisateurs
             </Button>
+
+            {/* ANIMAUX */}
 
             <Button
               variant="secondary"
@@ -301,6 +470,8 @@ export default function AdminDashboardPage() {
               Voir les animaux
             </Button>
 
+            {/* SIGNALEMENTS */}
+
             <Button
               variant="secondary"
               onClick={() =>
@@ -312,6 +483,8 @@ export default function AdminDashboardPage() {
               Voir les signalements
             </Button>
 
+            {/* VETERINAIRES */}
+
             <button
               type="button"
               onClick={() =>
@@ -319,16 +492,53 @@ export default function AdminDashboardPage() {
                   "/admin/veterinaires"
                 )
               }
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#e7f3ef] px-4 py-3 font-black text-[#064b42] transition hover:bg-[#d7eae4]"
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#e7f3ef]
+                px-4
+                py-3
+                font-black
+                text-[#064b42]
+                transition
+                hover:bg-[#d7eae4]
+                active:scale-[0.98]
+              "
             >
               <Stethoscope
-                size={19}
+                size={20}
               />
 
-              Vétérinaires
+              Gérer les vétérinaires
             </button>
+          </div>
 
-            <div className="flex flex-col gap-3">
+          {/* ===================================================
+              NAVIGATION / DECONNEXION
+          ==================================================== */}
+
+          <div
+            className="
+              mt-8
+              border-t
+              border-[#eadfd8]
+              pt-6
+            "
+          >
+            <div
+              className="
+                ml-auto
+                flex
+                w-full
+                max-w-sm
+                flex-col
+                gap-3
+              "
+            >
               <Button
                 variant="secondary"
                 onClick={() =>
@@ -348,7 +558,27 @@ export default function AdminDashboardPage() {
                 disabled={
                   loggingOut
                 }
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="
+                  flex
+                  min-h-[48px]
+                  w-full
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  border
+                  border-red-200
+                  bg-red-50
+                  px-4
+                  py-3
+                  font-black
+                  text-red-600
+                  transition
+                  hover:bg-red-100
+                  active:scale-[0.98]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
               >
                 <LogOut
                   size={19}
