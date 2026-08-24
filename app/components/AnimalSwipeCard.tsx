@@ -416,7 +416,7 @@ export default function AnimalSwipeCard({
         flex-col
         items-center
         px-0
-        pb-[76px]
+        pb-[82px]
         pt-0
         sm:px-4
         sm:pb-[122px]
@@ -453,8 +453,8 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-188px)]
-          min-h-[540px]
+          h-[calc(100dvh-86px)]
+          min-h-[640px]
           max-h-none
           w-full
           max-w-[455px]
@@ -842,11 +842,12 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-0
+            bottom-[112px]
             z-40
             px-4
-            pb-4
+            pb-3
             text-white
+            sm:bottom-0
             sm:px-5
             sm:pb-6
           "
@@ -978,7 +979,7 @@ export default function AnimalSwipeCard({
             }
             className="
               absolute
-              bottom-4
+              bottom-[122px]
               right-3
               z-50
               flex
@@ -1016,7 +1017,7 @@ export default function AnimalSwipeCard({
         )}
       </article>
 
-      {/* BOUTONS SOUS LA CARTE */}
+      {/* BOUTONS ACTIONS */}
 
       <div
         className="
@@ -1030,7 +1031,7 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
-          pb-2
+          pb-3
 
           sm:mt-3
           sm:max-w-[520px]
@@ -1084,7 +1085,7 @@ export default function AnimalSwipeCard({
               text-[11px]
               font-semibold
               text-white
-              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
               sm:text-[#3e3a37]
               sm:drop-shadow-none
             "
@@ -1143,7 +1144,7 @@ export default function AnimalSwipeCard({
               text-[11px]
               font-semibold
               text-white
-              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
               sm:text-[#3e3a37]
               sm:drop-shadow-none
             "
@@ -1196,7 +1197,7 @@ export default function AnimalSwipeCard({
               text-[11px]
               font-semibold
               text-white
-              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
               sm:text-[#3e3a37]
               sm:drop-shadow-none
             "
