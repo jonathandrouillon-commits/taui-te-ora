@@ -16,10 +16,6 @@ import { favoriteService } from "./services/favorite.service";
 
 import { supabase } from "./lib/supabase";
 
-/* =========================================================
-   TYPES FILTRE
-========================================================= */
-
 type AnimalFilter =
   | "chien"
   | "chat"
@@ -32,18 +28,16 @@ const FILTER_STORAGE_KEY =
 const WELCOME_STORAGE_KEY =
   "taui-welcome-seen";
 
-/* =========================================================
-   PAGE
-========================================================= */
-
 export default function HomePage() {
   const router = useRouter();
 
   const [animals, setAnimals] =
     useState<any[]>([]);
 
-  const [currentIndex, setCurrentIndex] =
-    useState(0);
+  const [
+    currentIndex,
+    setCurrentIndex,
+  ] = useState(0);
 
   const [loading, setLoading] =
     useState(true);
@@ -68,26 +62,14 @@ export default function HomePage() {
     setSelectedTypes,
   ] = useState<AnimalFilter[]>([]);
 
-  /* =========================================================
-     CHARGEMENT INITIAL
-  ========================================================= */
-
   useEffect(() => {
     loadAnimals();
     loadWelcomePreferences();
   }, []);
 
-  /* =========================================================
-     RETOUR APRES LOGIN FAVORI
-  ========================================================= */
-
   useEffect(() => {
     restoreFavoriteAfterLogin();
   }, []);
-
-  /* =========================================================
-     PREFERENCES ACCUEIL
-  ========================================================= */
 
   async function loadWelcomePreferences() {
     try {
@@ -153,10 +135,6 @@ export default function HomePage() {
     }
   }
 
-  /* =========================================================
-     FILTRES
-  ========================================================= */
-
   function toggleAnimalType(
     type: AnimalFilter
   ) {
@@ -179,10 +157,6 @@ export default function HomePage() {
     );
   }
 
-  /* =========================================================
-     COMMENCER DECOUVERTE
-  ========================================================= */
-
   function startDiscovery() {
     try {
       sessionStorage.setItem(
@@ -204,10 +178,6 @@ export default function HomePage() {
     setWelcomeOpen(false);
   }
 
-  /* =========================================================
-     VOIR TOUS LES ANIMAUX
-  ========================================================= */
-
   function showAllAnimals() {
     setSelectedTypes([]);
 
@@ -228,10 +198,6 @@ export default function HomePage() {
     setCurrentIndex(0);
     setWelcomeOpen(false);
   }
-
-  /* =========================================================
-     RESTAURER FAVORI APRES LOGIN
-  ========================================================= */
 
   async function restoreFavoriteAfterLogin() {
     try {
@@ -275,10 +241,6 @@ export default function HomePage() {
     }
   }
 
-  /* =========================================================
-     CHARGER LES ANIMAUX
-  ========================================================= */
-
   async function loadAnimals() {
     try {
       setLoading(true);
@@ -302,10 +264,6 @@ export default function HomePage() {
       setLoading(false);
     }
   }
-
-  /* =========================================================
-     FILTRAGE DES ANIMAUX
-  ========================================================= */
 
   const filteredAnimals =
     useMemo(() => {
@@ -378,10 +336,6 @@ export default function HomePage() {
       selectedTypes,
     ]);
 
-  /* =========================================================
-     ANIMAL SUIVANT
-  ========================================================= */
-
   function goNext() {
     setCurrentIndex(
       (previousIndex) =>
@@ -397,15 +351,9 @@ export default function HomePage() {
   const filterCount =
     selectedTypes.length;
 
-  /* =========================================================
-     RENDER
-  ========================================================= */
-
   return (
     <TauiPageBackground>
       <div className="relative min-h-[100dvh] w-full">
-
-        {/* FAVORI RESTAURE */}
 
         {favoriteRestored && (
           <div
@@ -429,50 +377,6 @@ export default function HomePage() {
             ❤️ Coup de cœur enregistré
           </div>
         )}
-
-        {/* ===================================================
-            BOUTON FILTRE
-        ==================================================== */}
-
-        {welcomeReady &&
-          !welcomeOpen &&
-          !loading && (
-            <button
-              type="button"
-              onClick={() =>
-                setWelcomeOpen(true)
-              }
-              aria-label="Filtrer les animaux"
-              title="Filtrer"
-              className="
-                fixed
-                right-4
-                top-4
-                z-[120]
-                flex
-                h-11
-                w-11
-                items-center
-                justify-center
-                rounded-full
-                border
-                border-white/70
-                bg-white/80
-                text-[#5d655f]
-                shadow-lg
-                backdrop-blur-xl
-                transition
-                hover:bg-white
-                active:scale-95
-              "
-            >
-              <FilterIcon />
-            </button>
-          )}
-
-        {/* ===================================================
-            SWIPE
-        ==================================================== */}
 
         <section
           className="
@@ -545,6 +449,14 @@ export default function HomePage() {
                 onFavorite={
                   goNext
                 }
+                onOpenFilter={() =>
+                  setWelcomeOpen(
+                    true
+                  )
+                }
+                filterCount={
+                  filterCount
+                }
               />
             )}
 
@@ -588,12 +500,7 @@ export default function HomePage() {
                       : "Aucun autre animal à afficher"}
                   </h2>
 
-                  <p
-                    className="
-                      mt-3
-                      text-gray-600
-                    "
-                  >
+                  <p className="mt-3 text-gray-600">
                     {filterCount > 0
                       ? "Essayez d'élargir votre sélection pour découvrir d'autres animaux."
                       : "Vous avez parcouru tous les animaux disponibles pour le moment."}
@@ -647,10 +554,6 @@ export default function HomePage() {
 
         <BottomMenu />
 
-        {/* ===================================================
-            FENETRE ACCUEIL
-        ==================================================== */}
-
         {welcomeReady &&
           welcomeOpen && (
             <WelcomeModal
@@ -689,7 +592,7 @@ export default function HomePage() {
 }
 
 /* =========================================================
-   FENETRE ACCUEIL RESPONSIVE
+   FENETRE ACCUEIL / FILTRE
 ========================================================= */
 
 function WelcomeModal({
@@ -779,8 +682,6 @@ function WelcomeModal({
           sm:rounded-[36px]
         "
       >
-        {/* DECORATIONS */}
-
         <div
           className="
             pointer-events-none
@@ -809,8 +710,6 @@ function WelcomeModal({
           "
         />
 
-        {/* FERMER */}
-
         <button
           type="button"
           onClick={onClose}
@@ -830,10 +729,6 @@ function WelcomeModal({
             text-base
             text-[#716963]
             shadow-sm
-            sm:right-4
-            sm:top-4
-            sm:h-9
-            sm:w-9
           "
         >
           ×
@@ -851,8 +746,6 @@ function WelcomeModal({
             sm:pt-5
           "
         >
-          {/* LOGO */}
-
           <div className="text-center">
             <img
               src="/logo-taui-te-ora.png"
@@ -862,11 +755,8 @@ function WelcomeModal({
                 h-[66px]
                 w-[66px]
                 object-contain
-                drop-shadow-sm
                 sm:h-20
                 sm:w-20
-                md:h-24
-                md:w-24
               "
             />
 
@@ -878,9 +768,7 @@ function WelcomeModal({
                 uppercase
                 tracking-[0.22em]
                 text-[#df8995]
-                sm:mt-1
                 sm:text-[10px]
-                md:text-[11px]
               "
             >
               Une rencontre peut tout changer
@@ -896,9 +784,7 @@ function WelcomeModal({
                 leading-[1.08]
                 tracking-tight
                 text-[#064b42]
-                sm:mt-3
                 sm:text-[26px]
-                md:text-[29px]
               "
             >
               Et si quelqu&apos;un
@@ -913,17 +799,13 @@ function WelcomeModal({
                 text-[12px]
                 leading-snug
                 text-[#746c66]
-                sm:mt-2
                 sm:text-[13px]
-                md:text-sm
               "
             >
               Dites-nous simplement qui
               vous aimeriez rencontrer.
             </p>
           </div>
-
-          {/* CHOIX */}
 
           <div className="mt-4 sm:mt-5">
             <p
@@ -944,7 +826,6 @@ function WelcomeModal({
                 grid
                 grid-cols-2
                 gap-2
-                sm:mt-3
                 sm:gap-3
               "
             >
@@ -957,9 +838,7 @@ function WelcomeModal({
 
                   return (
                     <button
-                      key={
-                        option.type
-                      }
+                      key={option.type}
                       type="button"
                       onClick={() =>
                         toggleAnimalType(
@@ -980,13 +859,10 @@ function WelcomeModal({
                         transition
                         active:scale-[.98]
                         sm:min-h-[78px]
-                        sm:rounded-[22px]
-                        md:min-h-[92px]
-                        md:rounded-[24px]
                         ${
                           selected
-                            ? "border-[#ef8196] bg-[#fff0f2] shadow-[0_8px_24px_rgba(239,129,150,.17)]"
-                            : "border-[#eee3dd] bg-white/80 shadow-sm"
+                            ? "border-[#ef8196] bg-[#fff0f2]"
+                            : "border-[#eee3dd] bg-white/80"
                         }
                       `}
                     >
@@ -1006,23 +882,13 @@ function WelcomeModal({
                             text-[8px]
                             font-black
                             text-white
-                            sm:h-5
-                            sm:w-5
-                            sm:text-[10px]
                           "
                         >
                           ✓
                         </span>
                       )}
 
-                      <span
-                        className="
-                          text-[27px]
-                          leading-none
-                          sm:text-[31px]
-                          md:text-[35px]
-                        "
-                      >
+                      <span className="text-[27px] leading-none">
                         {option.icon}
                       </span>
 
@@ -1031,9 +897,6 @@ function WelcomeModal({
                           mt-1
                           text-[11px]
                           font-black
-                          sm:mt-1.5
-                          sm:text-[12px]
-                          md:text-[13px]
                           ${
                             selected
                               ? "text-[#d96f81]"
@@ -1055,15 +918,11 @@ function WelcomeModal({
                 text-center
                 text-[9px]
                 text-[#978e87]
-                sm:text-[10px]
-                md:text-[11px]
               "
             >
               Vous pouvez en choisir plusieurs.
             </p>
           </div>
-
-          {/* BOUTON */}
 
           <button
             type="button"
@@ -1078,15 +937,7 @@ function WelcomeModal({
               text-[14px]
               font-black
               text-white
-              shadow-[0_10px_24px_rgba(239,129,150,.28)]
-              transition
-              active:scale-[.99]
-              sm:mt-4
-              sm:py-3.5
-              sm:text-[15px]
-              md:mt-5
-              md:py-4
-              md:text-[16px]
+              shadow-lg
             "
           >
             {selectedTypes.length > 0
@@ -1106,16 +957,11 @@ function WelcomeModal({
                 font-bold
                 text-[#8b817a]
                 underline
-                underline-offset-4
-                sm:text-[10px]
-                md:text-xs
               "
             >
               Voir tous les animaux
             </button>
           )}
-
-          {/* SWIPE INFO */}
 
           <div
             className="
@@ -1128,9 +974,6 @@ function WelcomeModal({
               bg-[#f7f1ec]
               px-3
               py-2
-              sm:mt-3
-              sm:rounded-[18px]
-              sm:py-2.5
             "
           >
             <span
@@ -1138,7 +981,6 @@ function WelcomeModal({
                 text-[9px]
                 font-bold
                 text-[#df687c]
-                sm:text-[10px]
               "
             >
               → ❤️ Coup de cœur
@@ -1157,14 +999,11 @@ function WelcomeModal({
                 text-[9px]
                 font-bold
                 text-[#746c66]
-                sm:text-[10px]
               "
             >
               ← Next time
             </span>
           </div>
-
-          {/* STRUCTURE */}
 
           <div
             className="
@@ -1173,8 +1012,6 @@ function WelcomeModal({
               border-[#eadfd8]
               pt-3
               text-center
-              sm:mt-4
-              sm:pt-4
             "
           >
             <p
@@ -1182,8 +1019,6 @@ function WelcomeModal({
                 text-[10px]
                 font-bold
                 text-[#756d67]
-                sm:text-[11px]
-                md:text-xs
               "
             >
               Association, refuge, SIGFA,
@@ -1195,8 +1030,6 @@ function WelcomeModal({
                 mt-0.5
                 text-[9px]
                 text-[#9a918a]
-                sm:text-[10px]
-                md:text-[11px]
               "
             >
               Accédez directement à votre espace.
@@ -1208,8 +1041,6 @@ function WelcomeModal({
                 grid
                 grid-cols-2
                 gap-2
-                sm:mt-3
-                sm:gap-3
               "
             >
               <button
@@ -1229,9 +1060,6 @@ function WelcomeModal({
                   text-[10px]
                   font-black
                   text-[#064b42]
-                  shadow-sm
-                  sm:py-3
-                  sm:text-[11px]
                 "
               >
                 Se connecter
@@ -1252,9 +1080,6 @@ function WelcomeModal({
                   text-[10px]
                   font-black
                   text-white
-                  shadow-sm
-                  sm:py-3
-                  sm:text-[11px]
                 "
               >
                 Créer un compte
@@ -1268,7 +1093,7 @@ function WelcomeModal({
 }
 
 /* =========================================================
-   NAVIGATION BASSE
+   MENU BAS
 ========================================================= */
 
 function BottomMenu() {
@@ -1294,11 +1119,9 @@ function BottomMenu() {
         md:bottom-4
         md:rounded-[28px]
         md:border
-        md:shadow-xl
       "
     >
       <div className="grid grid-cols-5 items-end">
-
         <Link
           href="/"
           className="
@@ -1347,7 +1170,6 @@ function BottomMenu() {
               w-9
               items-center
               justify-center
-              rounded-full
             "
           >
             <SearchIcon />
@@ -1366,7 +1188,6 @@ function BottomMenu() {
             flex-col
             items-center
             justify-center
-            gap-1
           "
         >
           <div
@@ -1383,8 +1204,6 @@ function BottomMenu() {
               border-[#fffaf7]
               bg-white
               shadow-xl
-              transition
-              active:scale-95
             "
           >
             <img
@@ -1419,7 +1238,6 @@ function BottomMenu() {
               w-9
               items-center
               justify-center
-              rounded-full
             "
           >
             <InfoIcon />
@@ -1448,7 +1266,6 @@ function BottomMenu() {
               w-9
               items-center
               justify-center
-              rounded-full
             "
           >
             <ProfileIcon />
@@ -1458,30 +1275,8 @@ function BottomMenu() {
             Profil
           </span>
         </Link>
-
       </div>
     </nav>
-  );
-}
-
-/* =========================================================
-   ICONES
-========================================================= */
-
-function FilterIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-6 w-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    >
-      <path d="M5 7h14" />
-      <path d="M7 12h10" />
-      <path d="M9 17h6" />
-    </svg>
   );
 }
 
@@ -1514,12 +1309,7 @@ function SearchIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle
-        cx="11"
-        cy="11"
-        r="7"
-      />
-
+      <circle cx="11" cy="11" r="7" />
       <path d="m20 20-4-4" />
     </svg>
   );
@@ -1536,14 +1326,8 @@ function InfoIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-      />
-
+      <circle cx="12" cy="12" r="9" />
       <path d="M12 11v6" />
-
       <path d="M12 7h.01" />
     </svg>
   );
@@ -1560,12 +1344,7 @@ function ProfileIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle
-        cx="12"
-        cy="8"
-        r="4"
-      />
-
+      <circle cx="12" cy="8" r="4" />
       <path d="M4.5 21c.8-4.1 3.5-6.5 7.5-6.5s6.7 2.4 7.5 6.5" />
     </svg>
   );

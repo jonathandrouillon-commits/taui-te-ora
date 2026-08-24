@@ -8,14 +8,13 @@ export default function AdoptionStartPage() {
   const router = useRouter();
   const params = useParams();
 
-  const animalId = String(
-    params.animalId || ""
-  );
+  const animalId = Array.isArray(params.animalId)
+    ? params.animalId[0]
+    : String(params.animalId || "");
 
-  const [message, setMessage] =
-    useState(
-      "Vérification de votre profil..."
-    );
+  const [message, setMessage] = useState(
+    "Vérification de votre profil..."
+  );
 
   useEffect(() => {
     if (!animalId) {
@@ -28,66 +27,80 @@ export default function AdoptionStartPage() {
 
   async function startAdoption() {
     try {
-      /* ===============================================
-         1. VÉRIFIER LA CONNEXION
-      =============================================== */
+      /* =====================================================
+         1. SESSION
+      ===================================================== */
 
       const {
-        data: { user },
-        error,
-      } =
-        await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (error) {
+      if (sessionError) {
         console.error(
           "Erreur authentification :",
-          error
+          sessionError
         );
       }
 
-      /* ===============================================
-         2. PAS CONNECTÉ
-      =============================================== */
+      const user = session?.user;
+
+      /* =====================================================
+         2. NON CONNECTÉ
+      ===================================================== */
 
       if (!user) {
-        setMessage(
-          "Connexion nécessaire..."
-        );
+        setMessage("Connexion nécessaire...");
 
-        /*
-         * IMPORTANT :
-         * on revient exactement ici
-         * après connexion.
-         */
         const redirect =
           `/adoption/start/${animalId}`;
 
         router.replace(
           "/login?redirect=" +
-            encodeURIComponent(
-              redirect
-            )
+            encodeURIComponent(redirect)
         );
 
         return;
       }
 
-      /* ===============================================
-         3. UTILISATEUR CONNECTÉ
-      =============================================== */
+      /* =====================================================
+         3. RÔLE
+      ===================================================== */
 
-      const role =
-        String(
-          user.user_metadata?.role ||
-            ""
+      let role = String(
+        user.user_metadata?.role || ""
+      )
+        .toLowerCase()
+        .trim();
+
+      if (!role) {
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error(
+            "Erreur lecture profil :",
+            profileError
+          );
+        }
+
+        role = String(
+          profile?.role || ""
         )
           .toLowerCase()
           .trim();
+      }
 
-      /*
-       * Un ancien compte peut éventuellement
-       * ne pas encore avoir de rôle.
-       */
+      /* =====================================================
+         4. PAS DE RÔLE
+      ===================================================== */
+
       if (!role) {
         setMessage(
           "Choix de votre profil..."
@@ -103,9 +116,9 @@ export default function AdoptionStartPage() {
         return;
       }
 
-      /* ===============================================
-         4. L'ADOPTION EST RÉSERVÉE AU PROFIL ADOPTANT
-      =============================================== */
+      /* =====================================================
+         5. ADOPTANT UNIQUEMENT
+      ===================================================== */
 
       if (role !== "adoptant") {
         alert(
@@ -116,9 +129,9 @@ export default function AdoptionStartPage() {
         return;
       }
 
-      /* ===============================================
-         5. VÉRIFIER SI UNE DEMANDE EXISTE DÉJÀ
-      =============================================== */
+      /* =====================================================
+         6. DEMANDE EXISTANTE ?
+      ===================================================== */
 
       setMessage(
         "Vérification de votre demande..."
@@ -138,14 +151,8 @@ export default function AdoptionStartPage() {
             status
           `
         )
-        .eq(
-          "animal_id",
-          animalId
-        )
-        .eq(
-          "requester_id",
-          user.id
-        )
+        .eq("animal_id", animalId)
+        .eq("requester_id", user.id)
         .maybeSingle();
 
       if (requestError) {
@@ -155,18 +162,29 @@ export default function AdoptionStartPage() {
         );
       }
 
-      /* ===============================================
-         6. SI UNE DEMANDE EXISTE DÉJÀ,
-            CHERCHER SA CONVERSATION
-      =============================================== */
+      /* =====================================================
+         7. CONVERSATION EXISTANTE ?
+      ===================================================== */
 
       if (existingRequest) {
         setMessage(
           "Ouverture de votre demande..."
         );
 
+        /*
+         * Structure réelle de conversations :
+         *
+         * id
+         * animal_id
+         * requester_id
+         * owner_id
+         * adoption_request_id
+         * updated_at
+         */
+
         const {
           data: conversation,
+          error: conversationError,
         } = await supabase
           .from("conversations")
           .select("id")
@@ -174,12 +192,23 @@ export default function AdoptionStartPage() {
             "adoption_request_id",
             existingRequest.id
           )
+          .eq(
+            "requester_id",
+            user.id
+          )
+          .eq(
+            "owner_id",
+            existingRequest.owner_id
+          )
           .maybeSingle();
 
-        /*
-         * Si conversation existante :
-         * ouverture directe du chat.
-         */
+        if (conversationError) {
+          console.error(
+            "Erreur recherche conversation :",
+            conversationError
+          );
+        }
+
         if (conversation?.id) {
           router.replace(
             `/messages/${conversation.id}`
@@ -187,38 +216,20 @@ export default function AdoptionStartPage() {
 
           return;
         }
-
-        /*
-         * Demande ancienne sans conversation :
-         * le questionnaire pourra compléter
-         * le workflow.
-         */
       }
 
-      /* ===============================================
-         7. QUESTIONNAIRE ADOPTANT
-      =============================================== */
+      /* =====================================================
+         8. QUESTIONNAIRE
+      ===================================================== */
 
       setMessage(
         "Préparation de votre demande d'adoption..."
       );
 
-      /*
-       * On utilise une query string car ta route
-       * actuelle est :
-       *
-       * /adoption/questionnaire
-       *
-       * et non :
-       *
-       * /adoption/questionnaire/[animalId]
-       */
       router.replace(
-        "/adoption/questionnaire" +
-          "?animalId=" +
-          encodeURIComponent(
-            animalId
-          )
+        `/adoption/questionnaire/${encodeURIComponent(
+          animalId
+        )}`
       );
     } catch (error) {
       console.error(

@@ -36,15 +36,16 @@ type Message = {
   read_at?: string | null;
 };
 
+type AnimalPhoto = {
+  photo_url: string;
+  is_cover?: boolean | null;
+};
+
 type Animal = {
   id: string;
   animal_name: string | null;
   animal_type?: string | null;
-  photo_url?: string | null;
-  animal_photos?: {
-    photo_url: string;
-    is_cover?: boolean | null;
-  }[];
+  animal_photos?: AnimalPhoto[];
 };
 
 type Profile = {
@@ -62,13 +63,15 @@ export default function ConversationPage() {
   const router = useRouter();
   const params = useParams();
 
-  const conversationId = Array.isArray(
-    params.conversationId
-  )
-    ? params.conversationId[0]
-    : String(
-        params.conversationId || ""
-      );
+  const conversationId =
+    Array.isArray(
+      params.conversationId
+    )
+      ? params.conversationId[0]
+      : String(
+          params.conversationId ||
+            ""
+        );
 
   const bottomRef =
     useRef<HTMLDivElement | null>(
@@ -81,37 +84,55 @@ export default function ConversationPage() {
   const [sending, setSending] =
     useState(false);
 
-  const [currentUserId, setCurrentUserId] =
-    useState("");
+  const [
+    currentUserId,
+    setCurrentUserId,
+  ] = useState("");
 
-  const [currentUserRole, setCurrentUserRole] =
-    useState("");
+  const [
+    currentUserRole,
+    setCurrentUserRole,
+  ] = useState("");
 
-  const [conversation, setConversation] =
+  const [
+    conversation,
+    setConversation,
+  ] =
     useState<Conversation | null>(
       null
     );
 
   const [animal, setAnimal] =
-    useState<Animal | null>(null);
+    useState<Animal | null>(
+      null
+    );
 
-  const [otherProfile, setOtherProfile] =
+  const [
+    otherProfile,
+    setOtherProfile,
+  ] =
     useState<Profile | null>(
       null
     );
 
-  const [messages, setMessages] =
-    useState<Message[]>([]);
+  const [
+    messages,
+    setMessages,
+  ] = useState<Message[]>([]);
 
-  const [newMessage, setNewMessage] =
-    useState("");
+  const [
+    newMessage,
+    setNewMessage,
+  ] = useState("");
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-  /* =======================================================
+  /* =========================================================
      CHARGEMENT
-  ======================================================= */
+  ========================================================= */
 
   useEffect(() => {
     if (!conversationId) {
@@ -122,9 +143,9 @@ export default function ConversationPage() {
     loadConversation();
   }, [conversationId]);
 
-  /* =======================================================
+  /* =========================================================
      REALTIME
-  ======================================================= */
+  ========================================================= */
 
   useEffect(() => {
     if (
@@ -154,7 +175,9 @@ export default function ConversationPage() {
               payload.new as Message;
 
             setMessages(
-              (previousMessages) => {
+              (
+                previousMessages
+              ) => {
                 const exists =
                   previousMessages.some(
                     (message) =>
@@ -195,28 +218,30 @@ export default function ConversationPage() {
     currentUserId,
   ]);
 
-  /* =======================================================
+  /* =========================================================
      SCROLL AUTOMATIQUE
-  ======================================================= */
+  ========================================================= */
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    bottomRef.current?.scrollIntoView(
+      {
+        behavior: "smooth",
+      }
+    );
   }, [messages]);
 
-  /* =======================================================
+  /* =========================================================
      CHARGEMENT CONVERSATION
-  ======================================================= */
+  ========================================================= */
 
   async function loadConversation() {
     try {
       setLoading(true);
       setErrorMessage("");
 
-      /* ---------------------------------------------------
+      /* =====================================================
          UTILISATEUR
-      --------------------------------------------------- */
+      ===================================================== */
 
       const {
         data: { user },
@@ -242,19 +267,54 @@ export default function ConversationPage() {
         user.id
       );
 
-      const role =
+      /* =====================================================
+         ROLE
+      ===================================================== */
+
+      let role =
         String(
-          user.user_metadata?.role ||
-            ""
+          user.user_metadata
+            ?.role || ""
         )
           .toLowerCase()
           .trim();
 
-      setCurrentUserRole(role);
+      /*
+       * Sécurité :
+       * si le rôle n'est pas présent
+       * dans les metadata Auth,
+       * on regarde profiles.
+       */
 
-      /* ---------------------------------------------------
+      if (!role) {
+        const {
+          data: currentProfile,
+        } =
+          await supabase
+            .from("profiles")
+            .select("role")
+            .eq(
+              "id",
+              user.id
+            )
+            .maybeSingle();
+
+        role =
+          String(
+            currentProfile?.role ||
+              ""
+          )
+            .toLowerCase()
+            .trim();
+      }
+
+      setCurrentUserRole(
+        role
+      );
+
+      /* =====================================================
          CONVERSATION
-      --------------------------------------------------- */
+      ===================================================== */
 
       const {
         data:
@@ -293,18 +353,16 @@ export default function ConversationPage() {
         );
       }
 
-      /*
-       * Participants autorisés :
-       *
-       * - Adoptant
-       * - Créateur de la fiche
-       * - Admin
-       */
+      /* =====================================================
+         AUTORISATION
+      ===================================================== */
 
       const isParticipant =
-        conversationData.requester_id ===
+        conversationData
+          .requester_id ===
           user.id ||
-        conversationData.owner_id ===
+        conversationData
+          .owner_id ===
           user.id;
 
       const isAdmin =
@@ -320,12 +378,16 @@ export default function ConversationPage() {
       }
 
       setConversation(
-        conversationData
+        conversationData as Conversation
       );
 
-      /* ---------------------------------------------------
+      /* =====================================================
          ANIMAL
-      --------------------------------------------------- */
+         
+         IMPORTANT :
+         animals.photo_url N'EXISTE PAS.
+         Les photos viennent de animal_photos.
+      ===================================================== */
 
       const {
         data: animalData,
@@ -338,7 +400,6 @@ export default function ConversationPage() {
               id,
               animal_name,
               animal_type,
-              photo_url,
               animal_photos (
                 photo_url,
                 is_cover
@@ -347,13 +408,12 @@ export default function ConversationPage() {
           )
           .eq(
             "id",
-            conversationData.animal_id
+            conversationData
+              .animal_id
           )
           .single();
 
-      if (
-        animalError
-      ) {
+      if (animalError) {
         console.error(
           "Erreur animal :",
           animalError
@@ -364,27 +424,35 @@ export default function ConversationPage() {
         setAnimal(
           animalData as Animal
         );
+      } else {
+        setAnimal(null);
       }
 
-      /* ---------------------------------------------------
+      /* =====================================================
          AUTRE PARTICIPANT
-      --------------------------------------------------- */
+      ===================================================== */
 
       const otherUserId =
         user.id ===
-        conversationData.requester_id
-          ? conversationData.owner_id
-          : conversationData.requester_id;
+        conversationData
+          .requester_id
+          ? conversationData
+              .owner_id
+          : conversationData
+              .requester_id;
 
       /*
-       * Pour l'admin qui consulte :
+       * Si l'admin consulte une conversation
+       * dont il n'est pas participant,
        * on affiche prioritairement
-       * le créateur de la fiche.
+       * la structure propriétaire.
        */
+
       const profileId =
         isAdmin &&
         !isParticipant
-          ? conversationData.owner_id
+          ? conversationData
+              .owner_id
           : otherUserId;
 
       const {
@@ -407,9 +475,7 @@ export default function ConversationPage() {
           )
           .maybeSingle();
 
-      if (
-        profileError
-      ) {
+      if (profileError) {
         console.error(
           "Erreur profil :",
           profileError
@@ -417,13 +483,13 @@ export default function ConversationPage() {
       }
 
       setOtherProfile(
-        profileData ||
+        (profileData as Profile) ||
           null
       );
 
-      /* ---------------------------------------------------
+      /* =====================================================
          MESSAGES
-      --------------------------------------------------- */
+      ===================================================== */
 
       const {
         data: messagesData,
@@ -454,9 +520,7 @@ export default function ConversationPage() {
             }
           );
 
-      if (
-        messagesError
-      ) {
+      if (messagesError) {
         throw messagesError;
       }
 
@@ -465,14 +529,13 @@ export default function ConversationPage() {
           []) as Message[]
       );
 
-      /* ---------------------------------------------------
-         MARQUER MESSAGES LUS
-      --------------------------------------------------- */
+      /* =====================================================
+         MARQUER LES MESSAGES COMME LUS
+      ===================================================== */
 
       const unreadIds =
         (
-          messagesData ||
-          []
+          messagesData || []
         )
           .filter(
             (message) =>
@@ -486,46 +549,72 @@ export default function ConversationPage() {
           );
 
       if (
-        unreadIds.length >
-        0
+        unreadIds.length > 0
       ) {
-        await supabase
-          .from(
-            "conversation_messages"
-          )
-          .update({
-            read_at:
-              new Date().toISOString(),
-          })
-          .in(
-            "id",
-            unreadIds
+        const {
+          error: readError,
+        } =
+          await supabase
+            .from(
+              "conversation_messages"
+            )
+            .update({
+              read_at:
+                new Date()
+                  .toISOString(),
+            })
+            .in(
+              "id",
+              unreadIds
+            );
+
+        if (readError) {
+          console.error(
+            "Erreur mise à jour messages lus :",
+            readError
           );
+        }
       }
 
-      /* ---------------------------------------------------
+      /* =====================================================
          NOTIFICATIONS LUES
-      --------------------------------------------------- */
+      ===================================================== */
 
-      await supabase
-        .from("notifications")
-        .update({
-          is_read: true,
-          read_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "recipient_id",
-          user.id
-        )
-        .eq(
-          "conversation_id",
-          conversationId
-        )
-        .eq(
-          "is_read",
-          false
+      const {
+        error:
+          notificationReadError,
+      } =
+        await supabase
+          .from("notifications")
+          .update({
+            is_read:
+              true,
+
+            read_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            "recipient_id",
+            user.id
+          )
+          .eq(
+            "conversation_id",
+            conversationId
+          )
+          .eq(
+            "is_read",
+            false
+          );
+
+      if (
+        notificationReadError
+      ) {
+        console.error(
+          "Erreur notifications lues :",
+          notificationReadError
         );
+      }
     } catch (
       error: any
     ) {
@@ -543,44 +632,57 @@ export default function ConversationPage() {
     }
   }
 
-  /* =======================================================
+  /* =========================================================
      MESSAGE LU
-  ======================================================= */
+  ========================================================= */
 
   async function markMessageAsRead(
     messageId: string
   ) {
     try {
-      await supabase
-        .from(
-          "conversation_messages"
-        )
-        .update({
-          read_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          messageId
+      const { error } =
+        await supabase
+          .from(
+            "conversation_messages"
+          )
+          .update({
+            read_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            "id",
+            messageId
+          );
+
+      if (error) {
+        console.error(
+          "Erreur lecture message :",
+          error
         );
 
+        return;
+      }
+
       setMessages(
-        (previousMessages) =>
+        (
+          previousMessages
+        ) =>
           previousMessages.map(
             (message) =>
               message.id ===
               messageId
                 ? {
                     ...message,
+
                     read_at:
-                      new Date().toISOString(),
+                      new Date()
+                        .toISOString(),
                   }
                 : message
           )
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       console.error(
         "Erreur lecture message :",
         error
@@ -588,9 +690,9 @@ export default function ConversationPage() {
     }
   }
 
-  /* =======================================================
+  /* =========================================================
      ENVOYER MESSAGE
-  ======================================================= */
+  ========================================================= */
 
   async function sendMessage() {
     try {
@@ -609,17 +711,17 @@ export default function ConversationPage() {
         return;
       }
 
-      /*
-       * L'admin consulte par défaut.
-       * On ne lui donne pas ici la possibilité
-       * d'écrire dans la conversation.
-       */
+      /* =====================================================
+         SEULS LES PARTICIPANTS PEUVENT ECRIRE
+      ===================================================== */
 
       const isParticipant =
         currentUserId ===
-          conversation.requester_id ||
+          conversation
+            .requester_id ||
         currentUserId ===
-          conversation.owner_id;
+          conversation
+            .owner_id;
 
       if (!isParticipant) {
         alert(
@@ -631,9 +733,9 @@ export default function ConversationPage() {
 
       setSending(true);
 
-      /* ---------------------------------------------------
+      /* =====================================================
          INSERT MESSAGE
-      --------------------------------------------------- */
+      ===================================================== */
 
       const {
         data,
@@ -661,7 +763,9 @@ export default function ConversationPage() {
       }
 
       setMessages(
-        (previousMessages) => {
+        (
+          previousMessages
+        ) => {
           if (
             previousMessages.some(
               (message) =>
@@ -681,32 +785,62 @@ export default function ConversationPage() {
 
       setNewMessage("");
 
-      /* ---------------------------------------------------
+      /* =====================================================
          UPDATE CONVERSATION
-      --------------------------------------------------- */
+      ===================================================== */
 
-      await supabase
-        .from(
-          "conversations"
-        )
-        .update({
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          conversation.id
+      const {
+        error:
+          conversationUpdateError,
+      } =
+        await supabase
+          .from(
+            "conversations"
+          )
+          .update({
+            updated_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            "id",
+            conversation.id
+          );
+
+      if (
+        conversationUpdateError
+      ) {
+        console.error(
+          "Erreur mise à jour conversation :",
+          conversationUpdateError
         );
+      }
 
-      /* ---------------------------------------------------
+      /* =====================================================
          NOTIFICATION DESTINATAIRE
-      --------------------------------------------------- */
+         
+         TABLE REELLE notifications :
+         
+         user_id
+         recipient_id
+         title
+         message
+         type
+         animal_id
+         adoption_request_id
+         is_read
+         conversation_id
+         read_at
+      ===================================================== */
 
       const recipientId =
         currentUserId ===
-        conversation.requester_id
-          ? conversation.owner_id
-          : conversation.requester_id;
+        conversation
+          .requester_id
+          ? conversation
+              .owner_id
+          : conversation
+              .requester_id;
 
       const animalName =
         animal?.animal_name ||
@@ -725,24 +859,21 @@ export default function ConversationPage() {
           notificationError,
       } =
         await supabase
-          .from(
-            "notifications"
-          )
+          .from("notifications")
           .insert({
+            user_id:
+              recipientId,
+
             recipient_id:
               recipientId,
 
             animal_id:
-              conversation.animal_id,
-
-            adoptant_id:
-              conversation.requester_id,
-
-            association_id:
-              conversation.owner_id,
+              conversation
+                .animal_id,
 
             adoption_request_id:
-              conversation.adoption_request_id,
+              conversation
+                .adoption_request_id,
 
             conversation_id:
               conversation.id,
@@ -785,16 +916,17 @@ export default function ConversationPage() {
     }
   }
 
-  /* =======================================================
-     ENTRÉE CLAVIER
-  ======================================================= */
+  /* =========================================================
+     ENTREE CLAVIER
+  ========================================================= */
 
   function handleKeyDown(
     event:
       React.KeyboardEvent<HTMLTextAreaElement>
   ) {
     if (
-      event.key === "Enter" &&
+      event.key ===
+        "Enter" &&
       !event.shiftKey
     ) {
       event.preventDefault();
@@ -803,9 +935,9 @@ export default function ConversationPage() {
     }
   }
 
-  /* =======================================================
+  /* =========================================================
      PHOTO ANIMAL
-  ======================================================= */
+  ========================================================= */
 
   function getAnimalPhoto() {
     if (!animal) {
@@ -825,21 +957,21 @@ export default function ConversationPage() {
     return (
       cover?.photo_url ||
       photos[0]?.photo_url ||
-      animal.photo_url ||
       ""
     );
   }
 
-  /* =======================================================
+  /* =========================================================
      NOM AUTRE PARTICIPANT
-  ======================================================= */
+  ========================================================= */
 
   function getOtherParticipantName() {
     if (
       otherProfile
         ?.organization_name
     ) {
-      return otherProfile.organization_name;
+      return otherProfile
+        .organization_name;
     }
 
     const role =
@@ -856,7 +988,8 @@ export default function ConversationPage() {
     }
 
     if (
-      role === "refuge"
+      role ===
+      "refuge"
     ) {
       return "Refuge / SIGFA";
     }
@@ -885,9 +1018,9 @@ export default function ConversationPage() {
     return "Utilisateur Taui Te Ora";
   }
 
-  /* =======================================================
+  /* =========================================================
      LOADING
-  ======================================================= */
+  ========================================================= */
 
   if (loading) {
     return (
@@ -950,9 +1083,9 @@ export default function ConversationPage() {
     );
   }
 
-  /* =======================================================
+  /* =========================================================
      ERREUR
-  ======================================================= */
+  ========================================================= */
 
   if (
     errorMessage ||
@@ -1026,6 +1159,10 @@ export default function ConversationPage() {
     );
   }
 
+  /* =========================================================
+     DONNEES CHAT
+  ========================================================= */
+
   const animalPhoto =
     getAnimalPhoto();
 
@@ -1036,13 +1173,14 @@ export default function ConversationPage() {
     currentUserRole ===
       "admin" &&
     currentUserId !==
-      conversation.requester_id &&
+      conversation
+        .requester_id &&
     currentUserId !==
       conversation.owner_id;
 
-  /* =======================================================
+  /* =========================================================
      CHAT
-  ======================================================= */
+  ========================================================= */
 
   return (
     <main
@@ -1055,9 +1193,9 @@ export default function ConversationPage() {
         text-[#3f3934]
       "
     >
-      {/* ===================================================
+      {/* =====================================================
           HEADER
-      ==================================================== */}
+      ====================================================== */}
 
       <header
         className="
@@ -1104,7 +1242,9 @@ export default function ConversationPage() {
             ←
           </button>
 
-          {/* ANIMAL */}
+          {/* =================================================
+              ANIMAL
+          ================================================== */}
 
           <button
             type="button"
@@ -1128,7 +1268,8 @@ export default function ConversationPage() {
                   animalPhoto
                 }
                 alt={
-                  animal?.animal_name ||
+                  animal
+                    ?.animal_name ||
                   "Animal"
                 }
                 className="
@@ -1189,13 +1330,16 @@ export default function ConversationPage() {
             </div>
           </button>
 
-          {/* PROFIL AUTRE PARTICIPANT */}
+          {/* =================================================
+              PROFIL AUTRE PARTICIPANT
+          ================================================== */}
 
           {otherProfile
             ?.avatar_url ? (
             <img
               src={
-                otherProfile.avatar_url
+                otherProfile
+                  .avatar_url
               }
               alt={
                 otherName
@@ -1239,9 +1383,9 @@ export default function ConversationPage() {
         </div>
       </header>
 
-      {/* ===================================================
-          BANDEAU ADMIN
-      ==================================================== */}
+      {/* =====================================================
+          ADMIN
+      ====================================================== */}
 
       {isAdminViewer && (
         <div
@@ -1260,9 +1404,9 @@ export default function ConversationPage() {
         </div>
       )}
 
-      {/* ===================================================
+      {/* =====================================================
           MESSAGES
-      ==================================================== */}
+      ====================================================== */}
 
       <section
         className="
@@ -1282,7 +1426,9 @@ export default function ConversationPage() {
             gap-3
           "
         >
-          {/* INTRO */}
+          {/* =================================================
+              INTRO
+          ================================================== */}
 
           <div
             className="
@@ -1393,7 +1539,8 @@ export default function ConversationPage() {
 
                       {mine && (
                         <span>
-                          {message.read_at
+                          {message
+                            .read_at
                             ? "✓✓"
                             : "✓"}
                         </span>
@@ -1413,9 +1560,9 @@ export default function ConversationPage() {
         </div>
       </section>
 
-      {/* ===================================================
+      {/* =====================================================
           SAISIE
-      ==================================================== */}
+      ====================================================== */}
 
       {!isAdminViewer && (
         <footer
@@ -1541,8 +1688,7 @@ function formatTime(
       "fr-FR",
       {
         hour: "2-digit",
-        minute:
-          "2-digit",
+        minute: "2-digit",
       }
     ).format(
       new Date(date)

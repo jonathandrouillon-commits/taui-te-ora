@@ -172,8 +172,10 @@ export default function AdoptionQuestionnairePage() {
   const [loading, setLoading] =
     useState(false);
 
-  const [statusMessage, setStatusMessage] =
-    useState("");
+  const [
+    statusMessage,
+    setStatusMessage,
+  ] = useState("");
 
   function updateField(
     field: keyof FormData,
@@ -392,10 +394,18 @@ export default function AdoptionQuestionnairePage() {
     } = await supabase
       .from("adoption_requests")
       .insert({
-        animal_id: animalId,
-        requester_id: userId,
-        owner_id: animal.owner_id,
-        status: "pending",
+        animal_id:
+          animalId,
+
+        requester_id:
+          userId,
+
+        owner_id:
+          animal.owner_id,
+
+        status:
+          "pending",
+
         message:
           `Je souhaite adopter ${
             animal.animal_name ||
@@ -418,6 +428,16 @@ export default function AdoptionQuestionnairePage() {
 
   /* =======================================================
      CONVERSATION
+
+     TABLE RÉELLE :
+
+     id
+     created_at
+     animal_id
+     requester_id
+     owner_id
+     adoption_request_id
+     updated_at
   ======================================================= */
 
   async function getOrCreateConversation(
@@ -464,14 +484,14 @@ export default function AdoptionQuestionnairePage() {
         animal_id:
           animalId,
 
-        adoption_request_id:
-          requestId,
-
         requester_id:
           requesterId,
 
         owner_id:
           ownerId,
+
+        adoption_request_id:
+          requestId,
 
         updated_at:
           new Date().toISOString(),
@@ -552,13 +572,11 @@ export default function AdoptionQuestionnairePage() {
   async function createNotifications({
     animalName,
     ownerId,
-    requesterId,
     requestId,
     conversationId,
   }: {
     animalName: string;
     ownerId: string;
-    requesterId: string;
     requestId: string;
     conversationId: string;
   }) {
@@ -577,11 +595,6 @@ export default function AdoptionQuestionnairePage() {
 
     const notifications: any[] = [
       {
-        /*
-         * IMPORTANT :
-         * ta vraie table notifications
-         * exige user_id.
-         */
         user_id:
           ownerId,
 
@@ -609,12 +622,6 @@ export default function AdoptionQuestionnairePage() {
       },
     ];
 
-    /*
-     * Notification administrateur.
-     * On évite le doublon si l'admin
-     * est également propriétaire
-     * de la fiche.
-     */
     if (
       adminId &&
       adminId !== ownerId
@@ -717,13 +724,40 @@ export default function AdoptionQuestionnairePage() {
 
       /* PROFIL ADOPTANT */
 
-      const role =
+      let role =
         String(
           user.user_metadata
             ?.role || ""
         )
           .toLowerCase()
           .trim();
+
+      if (!role) {
+        const {
+          data: profile,
+          error: profileError,
+        } =
+          await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        if (profileError) {
+          console.error(
+            "Erreur profil :",
+            profileError
+          );
+        }
+
+        role =
+          String(
+            profile?.role ||
+              ""
+          )
+            .toLowerCase()
+            .trim();
+      }
 
       if (
         role &&
@@ -796,9 +830,6 @@ export default function AdoptionQuestionnairePage() {
           ownerId:
             request.owner_id,
 
-          requesterId:
-            user.id,
-
           requestId:
             request.id,
 
@@ -859,7 +890,6 @@ export default function AdoptionQuestionnairePage() {
         "
       >
         <div className="text-center">
-
           <img
             src="/logo-taui-te-ora.png"
             alt="Taui Te Ora"
@@ -885,7 +915,6 @@ export default function AdoptionQuestionnairePage() {
           <p className="mt-3 text-gray-600">
             Ces informations aideront le créateur de la fiche à vérifier votre compatibilité avec l’animal.
           </p>
-
         </div>
 
         <div
@@ -903,7 +932,9 @@ export default function AdoptionQuestionnairePage() {
 
               return (
                 <label
-                  key={field.name}
+                  key={
+                    field.name
+                  }
                   className="block"
                 >
                   <span
@@ -955,8 +986,12 @@ export default function AdoptionQuestionnairePage() {
                     {field.options.map(
                       (option) => (
                         <option
-                          key={option}
-                          value={option}
+                          key={
+                            option
+                          }
+                          value={
+                            option
+                          }
                         >
                           {option}
                         </option>
@@ -969,7 +1004,6 @@ export default function AdoptionQuestionnairePage() {
           )}
 
           <label className="block md:col-span-2">
-
             <span
               className="
                 mb-2
@@ -1015,11 +1049,8 @@ export default function AdoptionQuestionnairePage() {
                 loading
               }
             />
-
           </label>
         </div>
-
-        {/* ÉTAT */}
 
         {loading &&
           statusMessage && (
@@ -1040,8 +1071,6 @@ export default function AdoptionQuestionnairePage() {
             </div>
           )}
 
-        {/* BOUTONS */}
-
         <div
           className="
             mt-8
@@ -1057,7 +1086,9 @@ export default function AdoptionQuestionnairePage() {
             onClick={() =>
               router.back()
             }
-            disabled={loading}
+            disabled={
+              loading
+            }
             className="
               rounded-2xl
               bg-gray-100
@@ -1076,7 +1107,9 @@ export default function AdoptionQuestionnairePage() {
             onClick={
               submitQuestionnaire
             }
-            disabled={loading}
+            disabled={
+              loading
+            }
             className="
               rounded-2xl
               bg-[#064b42]
@@ -1092,7 +1125,6 @@ export default function AdoptionQuestionnairePage() {
               : "Envoyer ma demande"}
           </button>
         </div>
-
       </section>
     </main>
   );
