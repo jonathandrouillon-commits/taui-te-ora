@@ -140,7 +140,7 @@ export default function AdoptantProfilePage() {
       if (error) throw error;
 
       alert("Profil mis à jour avec succès.");
-      router.push("/dashboard");
+      router.push("/profile");
     } catch (error: any) {
       alert(error.message || "Impossible d'enregistrer le profil.");
     } finally {
@@ -165,7 +165,7 @@ export default function AdoptantProfilePage() {
           </h1>
           <p className="mt-2 text-[#6f5a47]">
             Modifiez vos informations personnelles et votre questionnaire
-            d'adoption.
+            d&apos;adoption.
           </p>
         </div>
 
@@ -299,10 +299,11 @@ export default function AdoptantProfilePage() {
           </button>
 
           <button
-            onClick={() => router.push("/dashboard")}
+            type="button"
+            onClick={() => router.push("/profile")}
             className="rounded-full bg-white px-8 py-4 font-bold text-[#064b42] shadow"
           >
-            Retour dashboard
+            Retour à mon espace
           </button>
         </div>
       </div>
