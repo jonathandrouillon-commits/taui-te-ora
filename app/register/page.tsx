@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+
+/* =========================================================
+   ROLES
+========================================================= */
 
 type UserRole =
   | "adoptant"
@@ -19,7 +28,10 @@ const ALLOWED_ROLES: UserRole[] = [
   "fourriere",
 ];
 
-const ROLE_LABELS: Record<UserRole, string> = {
+const ROLE_LABELS: Record<
+  UserRole,
+  string
+> = {
   adoptant: "Adoptant",
   association: "Association",
   refuge: "Refuge / SIGFA",
@@ -27,14 +39,278 @@ const ROLE_LABELS: Record<UserRole, string> = {
   fourriere: "Fourrière",
 };
 
+/* =========================================================
+   PAYS
+========================================================= */
+
+type Country = {
+  code: string;
+  name: string;
+  dial: string;
+};
+
+const COUNTRIES: Country[] = [
+  {
+    code: "PF",
+    name: "Polynésie française",
+    dial: "+689",
+  },
+  {
+    code: "FR",
+    name: "France",
+    dial: "+33",
+  },
+  {
+    code: "NZ",
+    name: "Nouvelle-Zélande",
+    dial: "+64",
+  },
+  {
+    code: "AU",
+    name: "Australie",
+    dial: "+61",
+  },
+  {
+    code: "US",
+    name: "États-Unis",
+    dial: "+1",
+  },
+  {
+    code: "CA",
+    name: "Canada",
+    dial: "+1",
+  },
+  {
+    code: "GB",
+    name: "Royaume-Uni",
+    dial: "+44",
+  },
+  {
+    code: "BE",
+    name: "Belgique",
+    dial: "+32",
+  },
+  {
+    code: "CH",
+    name: "Suisse",
+    dial: "+41",
+  },
+  {
+    code: "DE",
+    name: "Allemagne",
+    dial: "+49",
+  },
+  {
+    code: "ES",
+    name: "Espagne",
+    dial: "+34",
+  },
+  {
+    code: "IT",
+    name: "Italie",
+    dial: "+39",
+  },
+  {
+    code: "PT",
+    name: "Portugal",
+    dial: "+351",
+  },
+  {
+    code: "NL",
+    name: "Pays-Bas",
+    dial: "+31",
+  },
+  {
+    code: "LU",
+    name: "Luxembourg",
+    dial: "+352",
+  },
+  {
+    code: "IE",
+    name: "Irlande",
+    dial: "+353",
+  },
+  {
+    code: "AT",
+    name: "Autriche",
+    dial: "+43",
+  },
+  {
+    code: "DK",
+    name: "Danemark",
+    dial: "+45",
+  },
+  {
+    code: "SE",
+    name: "Suède",
+    dial: "+46",
+  },
+  {
+    code: "NO",
+    name: "Norvège",
+    dial: "+47",
+  },
+  {
+    code: "FI",
+    name: "Finlande",
+    dial: "+358",
+  },
+  {
+    code: "IS",
+    name: "Islande",
+    dial: "+354",
+  },
+  {
+    code: "GR",
+    name: "Grèce",
+    dial: "+30",
+  },
+  {
+    code: "PL",
+    name: "Pologne",
+    dial: "+48",
+  },
+  {
+    code: "CZ",
+    name: "République tchèque",
+    dial: "+420",
+  },
+  {
+    code: "RO",
+    name: "Roumanie",
+    dial: "+40",
+  },
+  {
+    code: "HR",
+    name: "Croatie",
+    dial: "+385",
+  },
+  {
+    code: "MX",
+    name: "Mexique",
+    dial: "+52",
+  },
+  {
+    code: "BR",
+    name: "Brésil",
+    dial: "+55",
+  },
+  {
+    code: "AR",
+    name: "Argentine",
+    dial: "+54",
+  },
+  {
+    code: "CL",
+    name: "Chili",
+    dial: "+56",
+  },
+  {
+    code: "CO",
+    name: "Colombie",
+    dial: "+57",
+  },
+  {
+    code: "JP",
+    name: "Japon",
+    dial: "+81",
+  },
+  {
+    code: "KR",
+    name: "Corée du Sud",
+    dial: "+82",
+  },
+  {
+    code: "SG",
+    name: "Singapour",
+    dial: "+65",
+  },
+  {
+    code: "TH",
+    name: "Thaïlande",
+    dial: "+66",
+  },
+  {
+    code: "ID",
+    name: "Indonésie",
+    dial: "+62",
+  },
+  {
+    code: "PH",
+    name: "Philippines",
+    dial: "+63",
+  },
+  {
+    code: "IN",
+    name: "Inde",
+    dial: "+91",
+  },
+  {
+    code: "ZA",
+    name: "Afrique du Sud",
+    dial: "+27",
+  },
+  {
+    code: "MA",
+    name: "Maroc",
+    dial: "+212",
+  },
+  {
+    code: "AE",
+    name: "Émirats arabes unis",
+    dial: "+971",
+  },
+  {
+    code: "NC",
+    name: "Nouvelle-Calédonie",
+    dial: "+687",
+  },
+  {
+    code: "WF",
+    name: "Wallis-et-Futuna",
+    dial: "+681",
+  },
+  {
+    code: "RE",
+    name: "La Réunion",
+    dial: "+262",
+  },
+  {
+    code: "MQ",
+    name: "Martinique",
+    dial: "+596",
+  },
+  {
+    code: "GP",
+    name: "Guadeloupe",
+    dial: "+590",
+  },
+  {
+    code: "GF",
+    name: "Guyane française",
+    dial: "+594",
+  },
+  {
+    code: "OTHER",
+    name: "Autre pays",
+    dial: "",
+  },
+];
+
+/* =========================================================
+   PAGE
+========================================================= */
+
 export default function RegisterPage() {
   const router = useRouter();
 
   const [role, setRole] =
     useState<UserRole>("adoptant");
 
-  const [redirectAfterAuth, setRedirectAfterAuth] =
-    useState("");
+  const [
+    redirectAfterAuth,
+    setRedirectAfterAuth,
+  ] = useState("");
 
   const [loading, setLoading] =
     useState(false);
@@ -45,8 +321,10 @@ export default function RegisterPage() {
   const [logoFile, setLogoFile] =
     useState<File | null>(null);
 
-  const [logoPreview, setLogoPreview] =
-    useState("");
+  const [
+    logoPreview,
+    setLogoPreview,
+  ] = useState("");
 
   const [fullName, setFullName] =
     useState("");
@@ -62,7 +340,37 @@ export default function RegisterPage() {
   const [password, setPassword] =
     useState("");
 
+  /* =======================================================
+     LOCALISATION INTERNATIONALE
+  ======================================================= */
+
+  const [
+    countryCode,
+    setCountryCode,
+  ] = useState("PF");
+
+  const [
+    customCountry,
+    setCustomCountry,
+  ] = useState("");
+
+  const [
+    dialCode,
+    setDialCode,
+  ] = useState("+689");
+
   const [phone, setPhone] =
+    useState("");
+
+  const [address, setAddress] =
+    useState("");
+
+  const [
+    postalCode,
+    setPostalCode,
+  ] = useState("");
+
+  const [region, setRegion] =
     useState("");
 
   const [island, setIsland] =
@@ -71,16 +379,10 @@ export default function RegisterPage() {
   const [city, setCity] =
     useState("");
 
-  /*
-   * Récupération :
-   *
-   * /register?role=association
-   * /register?role=refuge
-   * etc.
-   *
-   * On récupère également un éventuel redirect
-   * venant d'une Swipe Card.
-   */
+  /* =======================================================
+     URL ROLE + REDIRECT
+  ======================================================= */
+
   useEffect(() => {
     const params =
       new URLSearchParams(
@@ -104,12 +406,15 @@ export default function RegisterPage() {
       );
     }
 
-    setRedirectAfterAuth(redirect);
+    setRedirectAfterAuth(
+      redirect
+    );
   }, []);
 
-  /*
-   * Nettoyage de l'aperçu image.
-   */
+  /* =======================================================
+     LOGO PREVIEW
+  ======================================================= */
+
   useEffect(() => {
     if (!logoFile) {
       setLogoPreview("");
@@ -117,44 +422,92 @@ export default function RegisterPage() {
     }
 
     const preview =
-      URL.createObjectURL(logoFile);
+      URL.createObjectURL(
+        logoFile
+      );
 
     setLogoPreview(preview);
 
     return () => {
-      URL.revokeObjectURL(preview);
+      URL.revokeObjectURL(
+        preview
+      );
     };
   }, [logoFile]);
 
-  /*
-   * Association / Refuge / Fourrière
-   * représentent une structure.
-   */
+  /* =======================================================
+     PAYS
+  ======================================================= */
+
+  const selectedCountry =
+    useMemo(
+      () =>
+        COUNTRIES.find(
+          (country) =>
+            country.code ===
+            countryCode
+        ),
+      [countryCode]
+    );
+
+  const countryName =
+    countryCode === "OTHER"
+      ? customCountry.trim()
+      : selectedCountry?.name ||
+        "";
+
+  const isFrenchPolynesia =
+    countryCode === "PF";
+
+  function changeCountry(
+    newCode: string
+  ) {
+    setCountryCode(newCode);
+
+    const country =
+      COUNTRIES.find(
+        (item) =>
+          item.code === newCode
+      );
+
+    setDialCode(
+      country?.dial || ""
+    );
+
+    /*
+     * Si on quitte la Polynésie,
+     * l'île ne doit plus rester
+     * enregistrée.
+     */
+    if (newCode !== "PF") {
+      setIsland("");
+    }
+
+    if (
+      newCode !== "OTHER"
+    ) {
+      setCustomCountry("");
+    }
+  }
+
+  /* =======================================================
+     ROLE
+  ======================================================= */
+
   const isOrganization =
     role === "association" ||
     role === "refuge" ||
     role === "fourriere";
 
-  /*
-   * Tous les profils sauf Adoptant
-   * peuvent publier des animaux.
-   */
   const canPublishAnimals =
     role !== "adoptant";
 
-  /*
-   * Logo / photo de profil proposé
-   * aux comptes pouvant publier.
-   */
   const canUploadAvatar =
     canPublishAnimals;
 
   const roleLabel =
     ROLE_LABELS[role];
 
-  /*
-   * Texte adapté au type de compte.
-   */
   const organizationPlaceholder =
     useMemo(() => {
       switch (role) {
@@ -172,10 +525,10 @@ export default function RegisterPage() {
       }
     }, [role]);
 
-  /*
-   * Destination principale après
-   * création / connexion.
-   */
+  /* =======================================================
+     DESTINATIONS
+  ======================================================= */
+
   function getDefaultDestination(
     currentRole: UserRole
   ) {
@@ -200,14 +553,6 @@ export default function RegisterPage() {
     }
   }
 
-  /*
-   * Pour un Adoptant, le questionnaire
-   * reste obligatoire avant de reprendre
-   * une éventuelle demande d'adoption.
-   *
-   * On transmet donc le redirect au
-   * questionnaire.
-   */
   function getDestinationAfterSignup() {
     if (role === "adoptant") {
       if (redirectAfterAuth) {
@@ -227,12 +572,51 @@ export default function RegisterPage() {
       return redirectAfterAuth;
     }
 
-    return getDefaultDestination(role);
+    return getDefaultDestination(
+      role
+    );
   }
 
-  /*
-   * Upload logo/photo.
-   */
+  /* =======================================================
+     TELEPHONE
+  ======================================================= */
+
+  function cleanPhoneNumber(
+    value: string
+  ) {
+    return value.replace(
+      /[^\d]/g,
+      ""
+    );
+  }
+
+  function getInternationalPhone() {
+    const cleanPhone =
+      cleanPhoneNumber(phone);
+
+    const cleanDial =
+      dialCode
+        .replace(
+          /[^\d+]/g,
+          ""
+        )
+        .trim();
+
+    if (!cleanPhone) {
+      return "";
+    }
+
+    if (!cleanDial) {
+      return cleanPhone;
+    }
+
+    return `${cleanDial}${cleanPhone}`;
+  }
+
+  /* =======================================================
+     UPLOAD LOGO / PHOTO
+  ======================================================= */
+
   async function uploadLogo() {
     if (
       !logoFile ||
@@ -241,17 +625,18 @@ export default function RegisterPage() {
       return "";
     }
 
-    const safeName = logoFile.name
-      .normalize("NFD")
-      .replace(
-        /[\u0300-\u036f]/g,
-        ""
-      )
-      .replace(
-        /[^a-zA-Z0-9.-]/g,
-        "-"
-      )
-      .toLowerCase();
+    const safeName =
+      logoFile.name
+        .normalize("NFD")
+        .replace(
+          /[\u0300-\u036f]/g,
+          ""
+        )
+        .replace(
+          /[^a-zA-Z0-9.-]/g,
+          "-"
+        )
+        .toLowerCase();
 
     const folder =
       isOrganization
@@ -284,9 +669,10 @@ export default function RegisterPage() {
     return data.publicUrl;
   }
 
-  /*
-   * Notification administrateur.
-   */
+  /* =======================================================
+     NOTIFICATION ADMIN
+  ======================================================= */
+
   async function notifyAdmin({
     firstName,
     lastName,
@@ -308,7 +694,8 @@ export default function RegisterPage() {
           },
 
           body: JSON.stringify({
-            email: email.trim(),
+            email:
+              email.trim(),
 
             first_name:
               firstName,
@@ -326,8 +713,31 @@ export default function RegisterPage() {
                 ? organizationName.trim()
                 : "",
 
+            country_code:
+              countryCode,
+
+            country:
+              countryName,
+
+            phone_country_code:
+              dialCode.trim(),
+
             phone:
-              phone.trim(),
+              cleanPhoneNumber(
+                phone
+              ),
+
+            phone_international:
+              getInternationalPhone(),
+
+            address:
+              address.trim(),
+
+            postal_code:
+              postalCode.trim(),
+
+            region:
+              region.trim(),
 
             island:
               island.trim(),
@@ -350,6 +760,10 @@ export default function RegisterPage() {
       );
     }
   }
+
+  /* =======================================================
+     RATE LIMIT
+  ======================================================= */
 
   function isRateLimitError(
     error: any
@@ -375,9 +789,109 @@ export default function RegisterPage() {
     );
   }
 
-  /*
-   * Création du compte.
-   */
+  /* =======================================================
+     VALIDATION
+  ======================================================= */
+
+  function validateForm() {
+    if (
+      !fullName.trim() ||
+      !email.trim() ||
+      !password.trim()
+    ) {
+      alert(
+        "Merci de remplir le nom complet, l'email et le mot de passe."
+      );
+
+      return false;
+    }
+
+    if (
+      isOrganization &&
+      !organizationName.trim()
+    ) {
+      alert(
+        `Merci d'indiquer ${organizationPlaceholder.toLowerCase()}.`
+      );
+
+      return false;
+    }
+
+    if (
+      password.length < 6
+    ) {
+      alert(
+        "Le mot de passe doit contenir au moins 6 caractères."
+      );
+
+      return false;
+    }
+
+    /*
+     * Pour tous les comptes,
+     * on demande désormais le pays.
+     */
+    if (!countryName) {
+      alert(
+        "Merci d'indiquer votre pays de résidence."
+      );
+
+      return false;
+    }
+
+    /*
+     * Le téléphone est important
+     * pour les demandes d'adoption.
+     */
+    if (!phone.trim()) {
+      alert(
+        "Merci d'indiquer votre numéro de téléphone."
+      );
+
+      return false;
+    }
+
+    if (
+      countryCode === "OTHER" &&
+      !dialCode.trim()
+    ) {
+      alert(
+        "Merci d'indiquer l'indicatif téléphonique de votre pays."
+      );
+
+      return false;
+    }
+
+    if (!city.trim()) {
+      alert(
+        "Merci d'indiquer votre ville ou commune."
+      );
+
+      return false;
+    }
+
+    /*
+     * Île obligatoire uniquement
+     * en Polynésie française.
+     */
+    if (
+      isFrenchPolynesia &&
+      !island.trim()
+    ) {
+      alert(
+        "Merci d'indiquer votre île."
+      );
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /* =======================================================
+     REGISTER
+  ======================================================= */
+
   async function register() {
     try {
       if (cooldown) {
@@ -386,36 +900,7 @@ export default function RegisterPage() {
 
       setLoading(true);
 
-      if (
-        !fullName.trim() ||
-        !email.trim() ||
-        !password.trim()
-      ) {
-        alert(
-          "Merci de remplir le nom complet, l'email et le mot de passe."
-        );
-
-        return;
-      }
-
-      if (
-        isOrganization &&
-        !organizationName.trim()
-      ) {
-        alert(
-          `Merci d'indiquer ${organizationPlaceholder.toLowerCase()}.`
-        );
-
-        return;
-      }
-
-      if (
-        password.length < 6
-      ) {
-        alert(
-          "Le mot de passe doit contenir au moins 6 caractères."
-        );
-
+      if (!validateForm()) {
         return;
       }
 
@@ -434,6 +919,14 @@ export default function RegisterPage() {
 
       const avatarUrl =
         await uploadLogo();
+
+      const phoneClean =
+        cleanPhoneNumber(
+          phone
+        );
+
+      const phoneInternational =
+        getInternationalPhone();
 
       const {
         data,
@@ -467,14 +960,43 @@ export default function RegisterPage() {
                 role_label:
                   roleLabel,
 
-                phone:
-                  phone.trim(),
+                /*
+                 * LOCALISATION
+                 */
+                country_code:
+                  countryCode,
+
+                country:
+                  countryName,
+
+                address:
+                  address.trim(),
+
+                postal_code:
+                  postalCode.trim(),
+
+                region:
+                  region.trim(),
 
                 island:
-                  island.trim(),
+                  isFrenchPolynesia
+                    ? island.trim()
+                    : "",
 
                 city:
                   city.trim(),
+
+                /*
+                 * TELEPHONE
+                 */
+                phone_country_code:
+                  dialCode.trim(),
+
+                phone:
+                  phoneClean,
+
+                phone_international:
+                  phoneInternational,
 
                 avatar_url:
                   avatarUrl,
@@ -482,11 +1004,6 @@ export default function RegisterPage() {
                 can_publish_animals:
                   canPublishAnimals,
 
-                /*
-                 * On conserve pour le moment
-                 * ton fonctionnement actuel :
-                 * compte actif directement.
-                 */
                 approval_status:
                   "approved",
 
@@ -505,7 +1022,9 @@ export default function RegisterPage() {
 
       if (error) {
         if (
-          isRateLimitError(error)
+          isRateLimitError(
+            error
+          )
         ) {
           setCooldown(true);
 
@@ -514,7 +1033,9 @@ export default function RegisterPage() {
           );
 
           setTimeout(() => {
-            setCooldown(false);
+            setCooldown(
+              false
+            );
           }, 60000);
 
           return;
@@ -532,10 +1053,6 @@ export default function RegisterPage() {
       const destination =
         getDestinationAfterSignup();
 
-      /*
-       * Supabase a créé directement
-       * une session.
-       */
       if (data.session) {
         alert(
           "Votre compte a été créé. Vous êtes maintenant connecté."
@@ -550,11 +1067,6 @@ export default function RegisterPage() {
         return;
       }
 
-      /*
-       * Si confirmation email requise,
-       * on garde la destination dans
-       * l'URL du login.
-       */
       alert(
         "Votre compte a été créé avec succès. Connectez-vous pour continuer."
       );
@@ -579,6 +1091,10 @@ export default function RegisterPage() {
       setLoading(false);
     }
   }
+
+  /* =========================================================
+     AFFICHAGE
+  ========================================================= */
 
   return (
     <main
@@ -630,12 +1146,7 @@ export default function RegisterPage() {
             Créer un compte
           </h1>
 
-          <p
-            className="
-              mt-2
-              text-gray-600
-            "
-          >
+          <p className="mt-2 text-gray-600">
             Profil sélectionné :
           </p>
 
@@ -658,15 +1169,9 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* CHANGER DE PROFIL */}
+        {/* CHANGER PROFIL */}
 
-        <div
-          className="
-            mt-6
-            flex
-            justify-center
-          "
-        >
+        <div className="mt-6 flex justify-center">
           <button
             type="button"
             onClick={() =>
@@ -688,12 +1193,8 @@ export default function RegisterPage() {
 
         {/* FORMULAIRE */}
 
-        <div
-          className="
-            mt-8
-            space-y-5
-          "
-        >
+        <div className="mt-8 space-y-5">
+
           {/* ROLE */}
 
           <div>
@@ -712,7 +1213,9 @@ export default function RegisterPage() {
             <select
               className="input"
               value={role}
-              onChange={(event) => {
+              onChange={(
+                event
+              ) => {
                 const nextRole =
                   event.target
                     .value as UserRole;
@@ -762,7 +1265,9 @@ export default function RegisterPage() {
                 : "Nom complet du responsable"
             }
             value={fullName}
-            onChange={(event) =>
+            onChange={(
+              event
+            ) =>
               setFullName(
                 event.target.value
               )
@@ -780,7 +1285,9 @@ export default function RegisterPage() {
               value={
                 organizationName
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 setOrganizationName(
                   event.target.value
                 )
@@ -811,23 +1318,16 @@ export default function RegisterPage() {
                   : "Photo du bénévole"}
               </h2>
 
-              <p
-                className="
-                  mt-1
-                  text-sm
-                  text-gray-500
-                "
-              >
-                Cette image pourra être
-                affichée sur les fiches
-                des animaux que vous
-                créez.
+              <p className="mt-1 text-sm text-gray-500">
+                Cette image pourra être affichée sur les fiches des animaux que vous créez.
               </p>
 
               <input
                 type="file"
                 accept="image/*"
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   setLogoFile(
                     event.target
                       .files?.[0] ||
@@ -845,7 +1345,9 @@ export default function RegisterPage() {
 
               {logoPreview && (
                 <img
-                  src={logoPreview}
+                  src={
+                    logoPreview
+                  }
                   alt="Aperçu"
                   className="
                     mt-5
@@ -870,7 +1372,9 @@ export default function RegisterPage() {
             autoComplete="email"
             placeholder="Email"
             value={email}
-            onChange={(event) =>
+            onChange={(
+              event
+            ) =>
               setEmail(
                 event.target.value
               )
@@ -885,56 +1389,310 @@ export default function RegisterPage() {
             autoComplete="new-password"
             placeholder="Mot de passe"
             value={password}
-            onChange={(event) =>
+            onChange={(
+              event
+            ) =>
               setPassword(
                 event.target.value
               )
             }
           />
 
-          {/* TELEPHONE */}
+          {/* =================================================
+              LOCALISATION
+          ================================================== */}
 
-          <input
-            className="input"
-            type="tel"
-            placeholder="Téléphone"
-            value={phone}
-            onChange={(event) =>
-              setPhone(
-                event.target.value
-              )
-            }
-          />
+          <div
+            className="
+              rounded-[26px]
+              bg-white
+              p-5
+              shadow
+            "
+          >
+            <h2
+              className="
+                text-xl
+                font-black
+                text-[#064b42]
+              "
+            >
+              Coordonnées
+            </h2>
 
-          {/* ILE */}
+            <p className="mt-1 text-sm text-gray-500">
+              Ces informations permettent à Taui Te Ora de gérer également les adoptants vivant hors de Polynésie française.
+            </p>
 
-          <input
-            className="input"
-            placeholder="Île"
-            value={island}
-            onChange={(event) =>
-              setIsland(
-                event.target.value
-              )
-            }
-          />
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
 
-          {/* COMMUNE */}
+              {/* PAYS */}
 
-          <input
-            className="input"
-            placeholder="Commune"
-            value={city}
-            onChange={(event) =>
-              setCity(
-                event.target.value
-              )
-            }
-          />
+              <label className="sm:col-span-2">
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Pays de résidence *
+                </span>
 
-          {/* MESSAGE SELON ROLE */}
+                <select
+                  className="input"
+                  value={
+                    countryCode
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    changeCountry(
+                      event.target.value
+                    )
+                  }
+                >
+                  {COUNTRIES.map(
+                    (country) => (
+                      <option
+                        key={
+                          country.code
+                        }
+                        value={
+                          country.code
+                        }
+                      >
+                        {country.name}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
 
-          {role === "adoptant" ? (
+              {/* AUTRE PAYS */}
+
+              {countryCode ===
+                "OTHER" && (
+                <label className="sm:col-span-2">
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Nom du pays *
+                  </span>
+
+                  <input
+                    className="input"
+                    placeholder="Votre pays"
+                    value={
+                      customCountry
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setCustomCountry(
+                        event.target.value
+                      )
+                    }
+                  />
+                </label>
+              )}
+
+              {/* INDICATIF */}
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Indicatif *
+                </span>
+
+                <input
+                  className="input"
+                  placeholder="+689"
+                  value={
+                    dialCode
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setDialCode(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+              {/* TELEPHONE */}
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Téléphone *
+                </span>
+
+                <input
+                  className="input"
+                  type="tel"
+                  placeholder="Numéro de téléphone"
+                  value={phone}
+                  onChange={(
+                    event
+                  ) =>
+                    setPhone(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+              {/* APERCU TELEPHONE */}
+
+              {phone.trim() && (
+                <div
+                  className="
+                    sm:col-span-2
+                    rounded-2xl
+                    bg-[#f7f2eb]
+                    px-4
+                    py-3
+                    text-sm
+                    text-[#6d655e]
+                  "
+                >
+                  Numéro international :{" "}
+                  <strong className="text-[#064b42]">
+                    {getInternationalPhone()}
+                  </strong>
+                </div>
+              )}
+
+              {/* ADRESSE */}
+
+              <label className="sm:col-span-2">
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Adresse
+                </span>
+
+                <input
+                  className="input"
+                  placeholder="Adresse"
+                  value={
+                    address
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setAddress(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+              {/* CODE POSTAL */}
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Code postal
+                </span>
+
+                <input
+                  className="input"
+                  placeholder="Code postal"
+                  value={
+                    postalCode
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setPostalCode(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+              {/* REGION */}
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Région / Province / État
+                </span>
+
+                <input
+                  className="input"
+                  placeholder={
+                    isFrenchPolynesia
+                      ? "Archipel / région"
+                      : "Région, province ou État"
+                  }
+                  value={
+                    region
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setRegion(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+              {/* ILE POLYNESIE */}
+
+              {isFrenchPolynesia && (
+                <label>
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Île *
+                  </span>
+
+                  <input
+                    className="input"
+                    placeholder="Tahiti, Moorea, Bora Bora..."
+                    value={
+                      island
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setIsland(
+                        event.target.value
+                      )
+                    }
+                  />
+                </label>
+              )}
+
+              {/* VILLE */}
+
+              <label
+                className={
+                  isFrenchPolynesia
+                    ? ""
+                    : "sm:col-span-2"
+                }
+              >
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  {isFrenchPolynesia
+                    ? "Commune *"
+                    : "Ville *"}
+                </span>
+
+                <input
+                  className="input"
+                  placeholder={
+                    isFrenchPolynesia
+                      ? "Papeete, Punaauia..."
+                      : "Ville"
+                  }
+                  value={city}
+                  onChange={(
+                    event
+                  ) =>
+                    setCity(
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+
+            </div>
+          </div>
+
+          {/* MESSAGE ROLE */}
+
+          {role ===
+          "adoptant" ? (
             <div
               className="
                 rounded-[22px]
@@ -945,10 +1703,7 @@ export default function RegisterPage() {
                 text-[#76545b]
               "
             >
-              Après la création de votre
-              compte, vous compléterez
-              votre questionnaire
-              adoptant.
+              Après la création de votre compte, vous compléterez votre questionnaire adoptant. Les personnes résidant en France ou à l'étranger peuvent également déposer une demande d'adoption.
             </div>
           ) : (
             <div
@@ -961,10 +1716,7 @@ export default function RegisterPage() {
                 text-[#48675e]
               "
             >
-              Ce type de compte permet
-              de créer et gérer des
-              fiches d'animaux sur Taui
-              Te Ora.
+              Ce type de compte permet de créer et gérer des fiches d'animaux sur Taui Te Ora.
             </div>
           )}
 
@@ -1023,8 +1775,9 @@ export default function RegisterPage() {
               underline-offset-4
             "
           >
-            J'ai déjà un compte
+            J&apos;ai déjà un compte
           </button>
+
         </div>
       </section>
     </main>
