@@ -1,250 +1,609 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
+import {
+  supabase,
+} from "../../lib/supabase";
+
+/* =========================================================
+   TYPES
+========================================================= */
 
 type Profile = {
   id: string;
+
   role?: string | null;
+
   first_name?: string | null;
   last_name?: string | null;
+
   birth_date?: string | null;
+
   phone?: string | null;
   email?: string | null;
+
   avatar_url?: string | null;
+
   island?: string | null;
   city?: string | null;
+
   address?: string | null;
   postal_code?: string | null;
+};
 
-  adopter_experience?: string | null;
-  current_animals?: string | null;
-  adoption_for?: string | null;
-  children_age?: string | null;
-  garden_type?: string | null;
-  ideal_age?: string | null;
-  ideal_sex?: string | null;
-  ideal_size?: string | null;
-  ideal_activity?: string | null;
-  ideal_breed?: string | null;
-  hypoallergenic?: string | null;
-  cleanliness?: string | null;
-  special_needs?: string | null;
+type AdoptionQuestionnaire = {
+  id?: string;
+
+  user_id?: string | null;
+  animal_id?: string | null;
+
+  proprietaire_animal?: string | null;
+
+  animal_actuel?: string | null;
+  adoption_pour?: string | null;
+
+  enfants?: string | null;
+  jardin?: string | null;
+
+  age_souhaite?: string | null;
+  sexe_souhaite?: string | null;
+  taille_souhaitee?: string | null;
+  activite_souhaitee?: string | null;
+
+  hypoallergenique?: string | null;
+  proprete?: string | null;
+
+  besoins_speciaux?: string | null;
+  race_souhaitee?: string | null;
+
+  animaux_chiens_count?: number | null;
+  animaux_chats_count?: number | null;
+  animaux_autres_count?: number | null;
+
+  enfants_moins_8_count?: number | null;
+  enfants_8_14_count?: number | null;
+  enfants_15_plus_count?: number | null;
+
+  type_logement?: string | null;
+  temps_seul?: string | null;
+  rythme_vie?: string | null;
+
+  age_recherche?: string | null;
+  taille_recherche?: string | null;
+  sexe_recherche?: string | null;
+
+  accepte_handicap?: boolean | null;
+  accepte_traitement?: boolean | null;
+  accepte_craintif?: boolean | null;
+  accepte_education?: boolean | null;
+  accepte_accompagnement_discussion?: boolean | null;
+
+  lieu_vie_animal?: string | null;
+  accompagne_regulierement?: string | null;
+  place_dans_quotidien?: string | null;
+  temps_adaptation?: string | null;
+  gestion_difficulte?: string | null;
+
+  preference_libre?: string | null;
+
+  updated_at?: string | null;
+  created_at?: string | null;
 };
 
 type AdoptionRequest = {
   id: string;
+
   owner_id?: string | null;
   requester_id?: string | null;
   animal_id?: string | null;
+
   status?: string | null;
+
   match_score?: number | null;
   match_level?: string | null;
+
+  created_at?: string | null;
+};
+
+type AnimalPhoto = {
+  id?: string;
+
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+
+  sort_order?: number | null;
 };
 
 type Animal = {
   id: string;
+
   animal_name?: string | null;
   animal_type?: string | null;
   age_label?: string | null;
-  animal_photos?: {
-    id?: string;
-    photo_url?: string | null;
-    is_cover?: boolean | null;
-    sort_order?: number | null;
-  }[] | null;
+
+  animal_photos?: AnimalPhoto[] | null;
 };
 
-const ALLOWED_ROLES = new Set([
-  "association",
-  "refuge",
-  "fourriere",
-  "benevole",
-  "admin",
-]);
+const ALLOWED_ROLES =
+  new Set([
+    "association",
+    "refuge",
+    "fourriere",
+    "benevole",
+    "admin",
+  ]);
+
+/* =========================================================
+   PAGE
+========================================================= */
 
 export default function AdoptantPublicProfilePage() {
-  const router = useRouter();
-  const params = useParams();
-  const searchParams = useSearchParams();
+  const router =
+    useRouter();
 
-  const adoptantId = Array.isArray(params.id)
-    ? params.id[0]
-    : String(params.id || "");
+  const params =
+    useParams();
 
-  const requestId = searchParams.get("request");
+  const searchParams =
+    useSearchParams();
 
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const adoptantId =
+    Array.isArray(
+      params.id
+    )
+      ? params.id[0]
+      : String(
+          params.id ||
+            ""
+        );
 
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [request, setRequest] = useState<AdoptionRequest | null>(null);
-  const [animal, setAnimal] = useState<Animal | null>(null);
+  const requestId =
+    searchParams.get(
+      "request"
+    );
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] =
+    useState("");
+
+  const [
+    profile,
+    setProfile,
+  ] =
+    useState<Profile | null>(
+      null
+    );
+
+  const [
+    questionnaire,
+    setQuestionnaire,
+  ] =
+    useState<AdoptionQuestionnaire | null>(
+      null
+    );
+
+  const [
+    request,
+    setRequest,
+  ] =
+    useState<AdoptionRequest | null>(
+      null
+    );
+
+  const [
+    animal,
+    setAnimal,
+  ] =
+    useState<Animal | null>(
+      null
+    );
 
   useEffect(() => {
-    if (adoptantId) {
+    if (
+      adoptantId
+    ) {
       loadProfile();
     }
-  }, [adoptantId, requestId]);
+  }, [
+    adoptantId,
+    requestId,
+  ]);
+
+  /* =======================================================
+     CHARGEMENT
+  ======================================================= */
 
   async function loadProfile() {
     try {
       setLoading(true);
-      setErrorMessage("");
+
+      setErrorMessage(
+        ""
+      );
 
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: {
+          user,
+        },
+        error:
+          userError,
+      } =
+        await supabase
+          .auth
+          .getUser();
 
-      if (userError || !user) {
+      if (
+        userError ||
+        !user
+      ) {
         router.replace(
           "/login?redirect=" +
             encodeURIComponent(
               `/adoptant/${adoptantId}${
-                requestId ? `?request=${requestId}` : ""
+                requestId
+                  ? `?request=${requestId}`
+                  : ""
               }`
             )
         );
+
         return;
       }
 
-      const { data: viewer, error: viewerError } = await supabase
-        .from("profiles")
-        .select("id, role")
-        .eq("id", user.id)
-        .maybeSingle();
+      /* ---------------------------------------------------
+         PROFIL DU VISITEUR
+      --------------------------------------------------- */
 
-      if (viewerError) throw viewerError;
+      const {
+        data:
+          viewer,
+        error:
+          viewerError,
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .select(
+            "id, role"
+          )
+          .eq(
+            "id",
+            user.id
+          )
+          .maybeSingle();
 
-      const viewerRole = String(viewer?.role || "")
-        .trim()
-        .toLowerCase();
+      if (
+        viewerError
+      ) {
+        throw viewerError;
+      }
 
-      if (!ALLOWED_ROLES.has(viewerRole)) {
+      const viewerRole =
+        String(
+          viewer?.role ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (
+        !ALLOWED_ROLES.has(
+          viewerRole
+        )
+      ) {
         throw new Error(
           "Vous n'êtes pas autorisé à consulter ce profil adoptant."
         );
       }
 
-      let requestQuery = supabase
-        .from("adoption_requests")
-        .select(
-          "id, owner_id, requester_id, animal_id, status, match_score, match_level"
-        )
-        .eq("requester_id", adoptantId);
+      /* ---------------------------------------------------
+         VÉRIFIER QUE CET ADOPTANT A BIEN FAIT
+         UNE DEMANDE POUR UN ANIMAL DU COMPTE
+      --------------------------------------------------- */
 
-      if (requestId) {
-        requestQuery = requestQuery.eq("id", requestId);
+      let requestQuery =
+        supabase
+          .from(
+            "adoption_requests"
+          )
+          .select(
+            `
+              id,
+              created_at,
+              owner_id,
+              requester_id,
+              animal_id,
+              status,
+              match_score,
+              match_level
+            `
+          )
+          .eq(
+            "requester_id",
+            adoptantId
+          );
+
+      if (
+        requestId
+      ) {
+        requestQuery =
+          requestQuery.eq(
+            "id",
+            requestId
+          );
       }
 
-      if (viewerRole !== "admin") {
-        requestQuery = requestQuery.eq("owner_id", user.id);
+      if (
+        viewerRole !==
+        "admin"
+      ) {
+        requestQuery =
+          requestQuery.eq(
+            "owner_id",
+            user.id
+          );
       }
 
       const {
-        data: requestData,
-        error: requestError,
-      } = await requestQuery
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        data:
+          requestData,
+        error:
+          requestError,
+      } =
+        await requestQuery
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle();
 
-      if (requestError) throw requestError;
+      if (
+        requestError
+      ) {
+        throw requestError;
+      }
 
-      if (!requestData) {
+      if (
+        !requestData
+      ) {
         throw new Error(
           "Ce profil n'est accessible que lorsqu'une demande d'adoption concerne l'un de vos animaux."
         );
       }
 
-      setRequest(requestData as AdoptionRequest);
+      setRequest(
+        requestData as AdoptionRequest
+      );
 
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          role,
-          first_name,
-          last_name,
-          birth_date,
-          phone,
-          email,
-          avatar_url,
-          island,
-          city,
-          address,
-          postal_code,
-          adopter_experience,
-          current_animals,
-          adoption_for,
-          children_age,
-          garden_type,
-          ideal_age,
-          ideal_sex,
-          ideal_size,
-          ideal_activity,
-          ideal_breed,
-          hypoallergenic,
-          cleanliness,
-          special_needs
-        `)
-        .eq("id", adoptantId)
-        .maybeSingle();
+      /* ---------------------------------------------------
+         PROFIL PERSONNEL
+      --------------------------------------------------- */
 
-      if (profileError) throw profileError;
-
-      if (!profileData) {
-        throw new Error("Profil adoptant introuvable.");
-      }
-
-      setProfile(profileData as Profile);
-
-      if (requestData.animal_id) {
-        const { data: animalData, error: animalError } = await supabase
-          .from("animals")
-          .select(`
-            id,
-            animal_name,
-            animal_type,
-            age_label,
-            animal_photos (
+      const {
+        data:
+          profileData,
+        error:
+          profileError,
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .select(
+            `
               id,
-              photo_url,
-              is_cover,
-              sort_order
-            )
-          `)
-          .eq("id", requestData.animal_id)
+              role,
+              first_name,
+              last_name,
+              birth_date,
+              phone,
+              email,
+              avatar_url,
+              island,
+              city,
+              address,
+              postal_code
+            `
+          )
+          .eq(
+            "id",
+            adoptantId
+          )
           .maybeSingle();
 
-        if (animalError) {
-          console.error("Erreur animal :", animalError);
+      if (
+        profileError
+      ) {
+        throw profileError;
+      }
+
+      if (
+        !profileData
+      ) {
+        throw new Error(
+          "Profil adoptant introuvable."
+        );
+      }
+
+      setProfile(
+        profileData as Profile
+      );
+
+      /* ---------------------------------------------------
+         DERNIER QUESTIONNAIRE ADOPTANT
+         = MÊME SOURCE QUE /adoptant/questionnaire
+      --------------------------------------------------- */
+
+      const {
+        data:
+          questionnaireData,
+        error:
+          questionnaireError,
+      } =
+        await supabase
+          .from(
+            "questionnaires_adoption"
+          )
+          .select("*")
+          .eq(
+            "user_id",
+            adoptantId
+          )
+          .order(
+            "updated_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle();
+
+      if (
+        questionnaireError
+      ) {
+        console.error(
+          "Erreur questionnaire adoptant :",
+          questionnaireError
+        );
+      }
+
+      setQuestionnaire(
+        (
+          questionnaireData as
+            | AdoptionQuestionnaire
+            | null
+        ) ||
+          null
+      );
+
+      /* ---------------------------------------------------
+         ANIMAL CONCERNÉ
+      --------------------------------------------------- */
+
+      if (
+        requestData.animal_id
+      ) {
+        const {
+          data:
+            animalData,
+          error:
+            animalError,
+        } =
+          await supabase
+            .from(
+              "animals"
+            )
+            .select(
+              `
+                id,
+                animal_name,
+                animal_type,
+                age_label,
+                animal_photos (
+                  id,
+                  photo_url,
+                  is_cover,
+                  sort_order
+                )
+              `
+            )
+            .eq(
+              "id",
+              requestData.animal_id
+            )
+            .maybeSingle();
+
+        if (
+          animalError
+        ) {
+          console.error(
+            "Erreur animal :",
+            animalError
+          );
         } else {
-          setAnimal((animalData as Animal | null) || null);
+          setAnimal(
+            (
+              animalData as
+                | Animal
+                | null
+            ) ||
+              null
+          );
         }
       }
-    } catch (error: any) {
-      console.error("Erreur profil adoptant :", error);
+    } catch (
+      error: any
+    ) {
+      console.error(
+        "Erreur profil adoptant :",
+        error
+      );
+
       setErrorMessage(
-        error?.message || "Impossible de charger le profil adoptant."
+        error?.message ||
+          "Impossible de charger le profil adoptant."
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
-  const fullName = useMemo(() => {
-    if (!profile) return "Adoptant";
+  /* =======================================================
+     NOM
+  ======================================================= */
 
-    return (
-      `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
-      "Adoptant"
-    );
-  }, [profile]);
+  const fullName =
+    useMemo(() => {
+      if (
+        !profile
+      ) {
+        return "Adoptant";
+      }
 
-  if (loading) {
+      return (
+        `${profile.first_name || ""} ${
+          profile.last_name || ""
+        }`.trim() ||
+        "Adoptant"
+      );
+    }, [
+      profile,
+    ]);
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
+
+  if (
+    loading
+  ) {
     return (
       <main className="min-h-[100dvh] bg-[#f8f4ec] p-8 text-center font-bold text-[#064b42]">
         Chargement du profil adoptant...
@@ -252,7 +611,15 @@ export default function AdoptantPublicProfilePage() {
     );
   }
 
-  if (errorMessage || !profile || !request) {
+  /* =======================================================
+     ERREUR
+  ======================================================= */
+
+  if (
+    errorMessage ||
+    !profile ||
+    !request
+  ) {
     return (
       <main className="min-h-[100dvh] bg-[#f8f4ec] p-6">
         <div className="mx-auto max-w-xl rounded-[28px] bg-white p-8 text-center shadow">
@@ -261,12 +628,15 @@ export default function AdoptantPublicProfilePage() {
           </h1>
 
           <p className="mt-4 text-[#6f5a47]">
-            {errorMessage || "Profil adoptant introuvable."}
+            {errorMessage ||
+              "Profil adoptant introuvable."}
           </p>
 
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() =>
+              router.back()
+            }
             className="mt-6 rounded-full bg-[#064b42] px-6 py-3 font-black text-white"
           >
             Retour
@@ -276,25 +646,59 @@ export default function AdoptantPublicProfilePage() {
     );
   }
 
-  const animalPhoto = getAnimalPhoto(animal);
+  const animalPhoto =
+    getAnimalPhoto(
+      animal
+    );
+
+  const animalCountLabel =
+    getAnimalCountLabel(
+      questionnaire
+    );
+
+  const childrenLabel =
+    getChildrenLabel(
+      questionnaire
+    );
+
+  const specialNeeds =
+    getSpecialNeeds(
+      questionnaire
+    );
+
+  /* =======================================================
+     AFFICHAGE
+  ======================================================= */
 
   return (
     <main className="min-h-[100dvh] bg-[#f8f4ec] px-4 py-8 pb-24 sm:px-6">
       <div className="mx-auto max-w-5xl">
+        {/* RETOUR */}
+
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() =>
+            router.back()
+          }
           className="mb-5 rounded-full bg-white px-5 py-3 font-black text-[#064b42] shadow"
         >
           ← Retour
         </button>
 
+        {/* =================================================
+            PROFIL
+        ================================================== */}
+
         <section className="rounded-[30px] bg-white p-6 shadow-lg">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             {profile.avatar_url ? (
               <img
-                src={profile.avatar_url}
-                alt={fullName}
+                src={
+                  profile.avatar_url
+                }
+                alt={
+                  fullName
+                }
                 className="h-28 w-28 rounded-full object-cover shadow"
               />
             ) : (
@@ -313,25 +717,52 @@ export default function AdoptantPublicProfilePage() {
               </h1>
 
               <p className="mt-2 text-[#6f5a47]">
-                {[profile.city, profile.island]
-                  .filter(Boolean)
-                  .join(" · ") || "Localisation non renseignée"}
+                {[
+                  profile.city,
+                  profile.island,
+                ]
+                  .filter(
+                    Boolean
+                  )
+                  .join(
+                    " · "
+                  ) ||
+                  "Localisation non renseignée"}
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {typeof request.match_score === "number" && (
+                {typeof request.match_score ===
+                  "number" && (
                   <span className="rounded-full bg-[#e8f5f1] px-4 py-2 text-sm font-black text-[#064b42]">
-                    ❤️ Compatibilité {request.match_score} %
+                    ❤️ Compatibilité{" "}
+                    {
+                      request.match_score
+                    }
+                    %
+                  </span>
+                )}
+
+                {request.match_level && (
+                  <span className="rounded-full bg-[#eef7ff] px-4 py-2 text-sm font-black text-[#23608a]">
+                    {
+                      request.match_level
+                    }
                   </span>
                 )}
 
                 <span className="rounded-full bg-[#f8f4ec] px-4 py-2 text-sm font-black text-[#6f5a47]">
-                  {getStatusLabel(request.status)}
+                  {getStatusLabel(
+                    request.status
+                  )}
                 </span>
               </div>
             </div>
           </div>
         </section>
+
+        {/* =================================================
+            ANIMAL CONCERNÉ
+        ================================================== */}
 
         {animal && (
           <section className="mt-6 rounded-[30px] bg-white p-5 shadow">
@@ -342,8 +773,13 @@ export default function AdoptantPublicProfilePage() {
             <div className="mt-4 flex items-center gap-4 rounded-[22px] bg-[#f8f4ec] p-4">
               {animalPhoto ? (
                 <img
-                  src={animalPhoto}
-                  alt={animal.animal_name || "Animal"}
+                  src={
+                    animalPhoto
+                  }
+                  alt={
+                    animal.animal_name ||
+                    "Animal"
+                  }
                   className="h-20 w-20 rounded-[18px] object-cover"
                 />
               ) : (
@@ -354,18 +790,30 @@ export default function AdoptantPublicProfilePage() {
 
               <div>
                 <h3 className="text-xl font-black text-[#2f241c]">
-                  {animal.animal_name || "Animal"}
+                  {animal.animal_name ||
+                    "Animal"}
                 </h3>
 
                 <p className="mt-1 text-sm text-[#6f5a47]">
-                  {[animal.animal_type, animal.age_label]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {[
+                    animal.animal_type,
+                    animal.age_label,
+                  ]
+                    .filter(
+                      Boolean
+                    )
+                    .join(
+                      " · "
+                    )}
                 </p>
               </div>
             </div>
           </section>
         )}
+
+        {/* =================================================
+            INFORMATIONS PERSONNELLES
+        ================================================== */}
 
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
           <h2 className="text-xl font-black text-[#064b42]">
@@ -373,9 +821,27 @@ export default function AdoptantPublicProfilePage() {
           </h2>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <Info title="Âge" value={formatAge(profile.birth_date)} />
-            <Info title="Téléphone" value={profile.phone} />
-            <Info title="Email" value={profile.email} />
+            <Info
+              title="Âge"
+              value={formatAge(
+                profile.birth_date
+              )}
+            />
+
+            <Info
+              title="Téléphone"
+              value={
+                profile.phone
+              }
+            />
+
+            <Info
+              title="Email"
+              value={
+                profile.email
+              }
+            />
+
             <Info
               title="Adresse"
               value={[
@@ -384,97 +850,341 @@ export default function AdoptantPublicProfilePage() {
                 profile.city,
                 profile.island,
               ]
-                .filter(Boolean)
-                .join(" · ")}
+                .filter(
+                  Boolean
+                )
+                .join(
+                  " · "
+                )}
             />
           </div>
         </section>
 
+        {/* =================================================
+            QUESTIONNAIRE
+        ================================================== */}
+
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
-          <h2 className="text-xl font-black text-[#064b42]">
-            Questionnaire adoptant
-          </h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-black text-[#064b42]">
+                Dernier questionnaire adoptant
+              </h2>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <Info
-              title="Expérience avec les animaux"
-              value={profile.adopter_experience}
-            />
+              <p className="mt-1 text-sm text-[#6f5a47]">
+                Réponses actuellement enregistrées dans le profil adoptant.
+              </p>
+            </div>
 
-            <Info
-              title="Animaux actuels"
-              value={profile.current_animals}
-            />
-
-            <Info
-              title="Adoption pour"
-              value={profile.adoption_for}
-            />
-
-            <Info
-              title="Enfants"
-              value={profile.children_age}
-            />
-
-            <Info
-              title="Jardin / extérieur"
-              value={profile.garden_type}
-            />
-
-            <Info
-              title="Âge souhaité"
-              value={profile.ideal_age}
-            />
-
-            <Info
-              title="Sexe souhaité"
-              value={profile.ideal_sex}
-            />
-
-            <Info
-              title="Taille souhaitée"
-              value={profile.ideal_size}
-            />
-
-            <Info
-              title="Activité souhaitée"
-              value={profile.ideal_activity}
-            />
-
-            <Info
-              title="Race souhaitée"
-              value={profile.ideal_breed}
-            />
-
-            <Info
-              title="Hypoallergénique"
-              value={profile.hypoallergenic}
-            />
-
-            <Info
-              title="Propreté"
-              value={profile.cleanliness}
-            />
+            {questionnaire?.updated_at && (
+              <span className="rounded-full bg-[#f8f4ec] px-4 py-2 text-xs font-bold text-[#6f5a47]">
+                Mis à jour le{" "}
+                {formatDateTime(
+                  questionnaire.updated_at
+                )}
+              </span>
+            )}
           </div>
 
-          <div className="mt-3">
-            <Info
-              title="Besoins particuliers acceptés"
-              value={profile.special_needs}
-            />
-          </div>
+          {!questionnaire ? (
+            <div className="mt-5 rounded-[22px] bg-[#fff6e8] p-5">
+              <p className="font-black text-[#a86517]">
+                Questionnaire récent non disponible
+              </p>
+
+              <p className="mt-2 text-sm text-[#8c6b43]">
+                Aucun questionnaire n&apos;a été retrouvé dans la table questionnaires_adoption pour cet adoptant.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* 1 */}
+
+              <QuestionBlock
+                number="1"
+                title="Expérience avec les animaux"
+              >
+                <Answer
+                  label="Avez-vous déjà eu un animal ?"
+                  value={
+                    questionnaire.proprietaire_animal
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 2 */}
+
+              <QuestionBlock
+                number="2"
+                title="Animaux vivant actuellement dans le foyer"
+              >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <CounterInfo
+                    icon="🐶"
+                    label="Chien(s)"
+                    value={
+                      questionnaire.animaux_chiens_count
+                    }
+                  />
+
+                  <CounterInfo
+                    icon="🐱"
+                    label="Chat(s)"
+                    value={
+                      questionnaire.animaux_chats_count
+                    }
+                  />
+
+                  <CounterInfo
+                    icon="🐾"
+                    label="Autre(s)"
+                    value={
+                      questionnaire.animaux_autres_count
+                    }
+                  />
+                </div>
+
+                <Answer
+                  label="Résumé"
+                  value={
+                    animalCountLabel
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 3 */}
+
+              <QuestionBlock
+                number="3"
+                title="Enfants dans le foyer"
+              >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <CounterInfo
+                    icon="👶"
+                    label="Moins de 8 ans"
+                    value={
+                      questionnaire.enfants_moins_8_count
+                    }
+                  />
+
+                  <CounterInfo
+                    icon="🧒"
+                    label="8 à 14 ans"
+                    value={
+                      questionnaire.enfants_8_14_count
+                    }
+                  />
+
+                  <CounterInfo
+                    icon="🧑"
+                    label="15 ans et +"
+                    value={
+                      questionnaire.enfants_15_plus_count
+                    }
+                  />
+                </div>
+
+                <Answer
+                  label="Résumé"
+                  value={
+                    childrenLabel
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 4 */}
+
+              <QuestionBlock
+                number="4"
+                title="Environnement de vie"
+              >
+                <Answer
+                  label="Type de logement"
+                  value={
+                    questionnaire.type_logement
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 5 */}
+
+              <QuestionBlock
+                number="5"
+                title="Temps seul"
+              >
+                <Answer
+                  label="Temps pendant lequel l'animal sera généralement seul"
+                  value={
+                    questionnaire.temps_seul
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 6 */}
+
+              <QuestionBlock
+                number="6"
+                title="Rythme de vie"
+              >
+                <Answer
+                  label="Rythme souhaité avec l'animal"
+                  value={
+                    questionnaire.rythme_vie
+                  }
+                />
+              </QuestionBlock>
+
+              {/* 7-9 */}
+
+              <QuestionBlock
+                number="7–9"
+                title="Préférences principales"
+              >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Answer
+                    label="Âge recherché"
+                    value={
+                      questionnaire.age_recherche
+                    }
+                  />
+
+                  <Answer
+                    label="Taille recherchée"
+                    value={
+                      questionnaire.taille_recherche
+                    }
+                  />
+
+                  <Answer
+                    label="Sexe recherché"
+                    value={
+                      questionnaire.sexe_recherche
+                    }
+                  />
+                </div>
+              </QuestionBlock>
+
+              {/* 10 */}
+
+              <QuestionBlock
+                number="10"
+                title="Accompagnement / besoins particuliers"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <BooleanAnswer
+                    label="Handicap"
+                    value={
+                      questionnaire.accepte_handicap
+                    }
+                  />
+
+                  <BooleanAnswer
+                    label="Traitement médical régulier"
+                    value={
+                      questionnaire.accepte_traitement
+                    }
+                  />
+
+                  <BooleanAnswer
+                    label="Animal craintif / traumatisé"
+                    value={
+                      questionnaire.accepte_craintif
+                    }
+                  />
+
+                  <BooleanAnswer
+                    label="Éducation à poursuivre"
+                    value={
+                      questionnaire.accepte_education
+                    }
+                  />
+
+                  <BooleanAnswer
+                    label="Ouvert à en discuter"
+                    value={
+                      questionnaire.accepte_accompagnement_discussion
+                    }
+                  />
+                </div>
+
+                <Answer
+                  label="Résumé besoins spéciaux"
+                  value={
+                    specialNeeds
+                  }
+                />
+              </QuestionBlock>
+
+              {/* FACULTATIF */}
+
+              <QuestionBlock
+                number="+"
+                title="Informations complémentaires"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Answer
+                    label="Où vivra principalement l'animal ?"
+                    value={
+                      questionnaire.lieu_vie_animal
+                    }
+                  />
+
+                  <Answer
+                    label="L'animal pourra accompagner régulièrement l'adoptant"
+                    value={
+                      questionnaire.accompagne_regulierement
+                    }
+                  />
+
+                  <Answer
+                    label="Place de l'animal dans le quotidien"
+                    value={
+                      questionnaire.place_dans_quotidien
+                    }
+                  />
+
+                  <Answer
+                    label="Temps consacré à l'adaptation"
+                    value={
+                      questionnaire.temps_adaptation
+                    }
+                  />
+
+                  <Answer
+                    label="Gestion des difficultés comportementales"
+                    value={
+                      questionnaire.gestion_difficulte
+                    }
+                  />
+                </div>
+
+                <Answer
+                  label="Préférence particulière"
+                  value={
+                    questionnaire.preference_libre
+                  }
+                />
+              </QuestionBlock>
+            </>
+          )}
         </section>
       </div>
     </main>
   );
 }
 
+/* =========================================================
+   COMPONENTS
+========================================================= */
+
 function Info({
   title,
   value,
 }: {
   title: string;
-  value?: string | null;
+  value?:
+    | string
+    | null;
 }) {
   return (
     <div className="rounded-[20px] bg-[#faf7f2] p-4">
@@ -483,21 +1193,155 @@ function Info({
       </p>
 
       <p className="mt-2 whitespace-pre-wrap font-semibold text-[#064b42]">
-        {value || "Non renseigné"}
+        {value ||
+          "Non renseigné"}
       </p>
     </div>
   );
 }
 
+function QuestionBlock({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children:
+    React.ReactNode;
+}) {
+  return (
+    <div className="mt-5 rounded-[24px] border border-[#eee3dc] bg-[#fffaf7] p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 min-w-8 items-center justify-center rounded-full bg-[#ef8196] px-2 text-xs font-black text-white">
+          {number}
+        </div>
+
+        <h3 className="text-lg font-black text-[#064b42]">
+          {title}
+        </h3>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Answer({
+  label,
+  value,
+}: {
+  label: string;
+  value?:
+    | string
+    | null;
+}) {
+  return (
+    <div className="rounded-[18px] bg-white p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-[#b58b5b]">
+        {label}
+      </p>
+
+      <p className="mt-2 font-bold text-[#064b42]">
+        {value ||
+          "Non renseigné"}
+      </p>
+    </div>
+  );
+}
+
+function CounterInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value?:
+    | number
+    | null;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-[18px] bg-white p-4">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">
+          {icon}
+        </span>
+
+        <span className="text-sm font-black text-[#5d5955]">
+          {label}
+        </span>
+      </div>
+
+      <span className="text-xl font-black text-[#064b42]">
+        {Number(
+          value || 0
+        )}
+      </span>
+    </div>
+  );
+}
+
+function BooleanAnswer({
+  label,
+  value,
+}: {
+  label: string;
+  value?:
+    | boolean
+    | null;
+}) {
+  return (
+    <div
+      className={`rounded-[18px] border p-4 ${
+        value
+          ? "border-green-200 bg-green-50"
+          : "border-[#eee3dc] bg-white"
+      }`}
+    >
+      <p className="text-sm font-black text-[#064b42]">
+        {value
+          ? "✓ "
+          : "— "}
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 text-xs font-bold ${
+          value
+            ? "text-green-700"
+            : "text-gray-500"
+        }`}
+      >
+        {value
+          ? "Accepté"
+          : "Non sélectionné"}
+      </p>
+    </div>
+  );
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
 function formatAge(
-  birthDate?: string | null
+  birthDate?:
+    | string
+    | null
 ) {
-  if (!birthDate) {
+  if (
+    !birthDate
+  ) {
     return "Non renseigné";
   }
 
   const birth =
-    new Date(birthDate);
+    new Date(
+      birthDate
+    );
 
   if (
     Number.isNaN(
@@ -532,23 +1376,67 @@ function formatAge(
   return `${age} ans`;
 }
 
+function formatDateTime(
+  value:
+    | string
+    | null
+    | undefined
+) {
+  if (
+    !value
+  ) {
+    return "";
+  }
+
+  try {
+    return new Intl.DateTimeFormat(
+      "fr-FR",
+      {
+        day:
+          "2-digit",
+        month:
+          "2-digit",
+        year:
+          "numeric",
+        hour:
+          "2-digit",
+        minute:
+          "2-digit",
+      }
+    ).format(
+      new Date(
+        value
+      )
+    );
+  } catch {
+    return "";
+  }
+}
+
 function getStatusLabel(
-  status?: string | null
+  status?:
+    | string
+    | null
 ) {
   switch (
     String(
-      status || "pending"
+      status ||
+        "pending"
     ).toLowerCase()
   ) {
     case "meeting":
       return "🤝 Rencontre";
+
     case "accepted":
       return "✅ Adoption validée";
+
     case "rejected":
     case "refused":
       return "❌ Demande refusée";
+
     case "cancelled":
       return "Demande annulée";
+
     case "pending":
     default:
       return "⏳ En attente";
@@ -556,9 +1444,13 @@ function getStatusLabel(
 }
 
 function getAnimalPhoto(
-  animal: Animal | null
+  animal:
+    | Animal
+    | null
 ) {
-  if (!animal) {
+  if (
+    !animal
+  ) {
     return "";
   }
 
@@ -571,13 +1463,18 @@ function getAnimalPhoto(
 
   const cover =
     photos.find(
-      (photo) =>
+      (
+        photo
+      ) =>
         photo.is_cover
     ) ||
     photos
       .slice()
       .sort(
-        (a, b) =>
+        (
+          a,
+          b
+        ) =>
           Number(
             a.sort_order ||
               0
@@ -591,5 +1488,195 @@ function getAnimalPhoto(
   return (
     cover?.photo_url ||
     ""
+  );
+}
+
+function getAnimalCountLabel(
+  questionnaire:
+    | AdoptionQuestionnaire
+    | null
+) {
+  if (
+    !questionnaire
+  ) {
+    return "Non renseigné";
+  }
+
+  const labels:
+    string[] = [];
+
+  const dogs =
+    Number(
+      questionnaire.animaux_chiens_count ||
+        0
+    );
+
+  const cats =
+    Number(
+      questionnaire.animaux_chats_count ||
+        0
+    );
+
+  const others =
+    Number(
+      questionnaire.animaux_autres_count ||
+        0
+    );
+
+  if (
+    dogs > 0
+  ) {
+    labels.push(
+      `${dogs} chien(s)`
+    );
+  }
+
+  if (
+    cats > 0
+  ) {
+    labels.push(
+      `${cats} chat(s)`
+    );
+  }
+
+  if (
+    others > 0
+  ) {
+    labels.push(
+      `${others} autre(s)`
+    );
+  }
+
+  return (
+    labels.join(
+      ", "
+    ) ||
+    "Aucun"
+  );
+}
+
+function getChildrenLabel(
+  questionnaire:
+    | AdoptionQuestionnaire
+    | null
+) {
+  if (
+    !questionnaire
+  ) {
+    return "Non renseigné";
+  }
+
+  const labels:
+    string[] = [];
+
+  const under8 =
+    Number(
+      questionnaire.enfants_moins_8_count ||
+        0
+    );
+
+  const eightTo14 =
+    Number(
+      questionnaire.enfants_8_14_count ||
+        0
+    );
+
+  const over15 =
+    Number(
+      questionnaire.enfants_15_plus_count ||
+        0
+    );
+
+  if (
+    under8 > 0
+  ) {
+    labels.push(
+      `${under8} moins de 8 ans`
+    );
+  }
+
+  if (
+    eightTo14 > 0
+  ) {
+    labels.push(
+      `${eightTo14} de 8 à 14 ans`
+    );
+  }
+
+  if (
+    over15 > 0
+  ) {
+    labels.push(
+      `${over15} de 15 ans et +`
+    );
+  }
+
+  return (
+    labels.join(
+      ", "
+    ) ||
+    "Aucun enfant"
+  );
+}
+
+function getSpecialNeeds(
+  questionnaire:
+    | AdoptionQuestionnaire
+    | null
+) {
+  if (
+    !questionnaire
+  ) {
+    return "Non renseigné";
+  }
+
+  const values:
+    string[] = [];
+
+  if (
+    questionnaire.accepte_handicap
+  ) {
+    values.push(
+      "Handicap"
+    );
+  }
+
+  if (
+    questionnaire.accepte_traitement
+  ) {
+    values.push(
+      "Traitement médical"
+    );
+  }
+
+  if (
+    questionnaire.accepte_craintif
+  ) {
+    values.push(
+      "Animal craintif / traumatisé"
+    );
+  }
+
+  if (
+    questionnaire.accepte_education
+  ) {
+    values.push(
+      "Éducation à poursuivre"
+    );
+  }
+
+  if (
+    questionnaire.accepte_accompagnement_discussion
+  ) {
+    values.push(
+      "Ouvert à en discuter"
+    );
+  }
+
+  return (
+    values.join(
+      ", "
+    ) ||
+    "Aucun besoin particulier sélectionné"
   );
 }
