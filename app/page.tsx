@@ -1097,186 +1097,157 @@ function WelcomeModal({
 ========================================================= */
 
 function BottomMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const menuPages = [
+    { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
+    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
+    { label: "Toilettage", href: "/toilettage", icon: "✂️" },
+    { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
+    { label: "Éducation", href: "/education", icon: "🎓" },
+    { label: "Alimentation", href: "/alimentation", icon: "🥣" },
+    { label: "Pension", href: "/pension", icon: "🛏️" },
+    { label: "Hommage", href: "/hommage", icon: "🕯️" },
+  ];
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
   return (
-    <nav
-      className="
-        fixed
-        bottom-0
-        left-0
-        right-0
-        z-[100]
-        mx-auto
-        w-full
-        max-w-[470px]
-        border-t
-        border-[#eadfd8]
-        bg-[#fffaf7]/95
-        px-2
-        pb-[max(8px,env(safe-area-inset-bottom))]
-        pt-2
-        shadow-[0_-8px_30px_rgba(50,40,35,0.10)]
-        backdrop-blur-xl
-        md:bottom-4
-        md:rounded-[28px]
-        md:border
-      "
+    <>
+      {menuOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/35 backdrop-blur-[4px]">
+          <button
+            type="button"
+            onClick={closeMenu}
+            aria-label="Fermer le menu"
+            className="absolute inset-0 h-full w-full"
+          />
+
+          <div className="absolute bottom-[82px] left-3 right-3 z-10 mx-auto max-h-[75dvh] max-w-[440px] overflow-y-auto rounded-[30px] border border-white/70 bg-[#fffaf7]/98 p-5 shadow-[0_25px_70px_rgba(0,0,0,.25)] backdrop-blur-xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#df8995]">
+                  Taui Te Ora
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-[#064b42]">
+                  Menu
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl font-bold text-[#6f665f] shadow-sm"
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {menuPages.map((page) => (
+                <Link
+                  key={page.href}
+                  href={page.href}
+                  onClick={closeMenu}
+                  className="flex min-h-[92px] flex-col items-center justify-center rounded-[22px] border border-[#eadfd8] bg-white px-3 py-4 text-center shadow-sm transition active:scale-[.98]"
+                >
+                  <span className="text-3xl leading-none">{page.icon}</span>
+                  <span className="mt-2 text-[12px] font-black text-[#064b42]">{page.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-[470px] border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(50,40,35,0.10)] backdrop-blur-xl md:bottom-4 md:rounded-[28px] md:border">
+        <div className="grid grid-cols-5 items-end">
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center gap-1 text-[#ee8f9b]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde7e9]">
+              <HomeIcon />
+            </div>
+            <span className="text-[10px] font-bold">Accueil</span>
+          </Link>
+
+          <Link
+            href="/search"
+            className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center">
+              <SearchIcon />
+            </div>
+            <span className="text-[10px] font-semibold">Recherche</span>
+          </Link>
+
+          <Link
+            href="/signalement"
+            aria-label="S.O.S Animal"
+            className="flex flex-col items-center justify-center"
+          >
+            <div className="flex h-[60px] w-[60px] -translate-y-2 items-center justify-center overflow-hidden rounded-full border-[3px] border-[#fffaf7] bg-white shadow-xl">
+              <img
+                src="/sos-paw.png"
+                alt="S.O.S Animal"
+                draggable={false}
+                className="h-full w-full rounded-full object-cover"
+              />
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((previous) => !previous)}
+            aria-label="Ouvrir le menu"
+            className={`flex flex-col items-center justify-center gap-1 ${
+              menuOpen ? "text-[#ee8f9b]" : "text-[#5d655f]"
+            }`}
+          >
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                menuOpen ? "bg-[#fde7e9]" : ""
+              }`}
+            >
+              <MenuIcon />
+            </div>
+            <span className="text-[10px] font-semibold">Menu</span>
+          </button>
+
+          <Link
+            href="/profile"
+            className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center">
+              <ProfileIcon />
+            </div>
+            <span className="text-[10px] font-semibold">Profil</span>
+          </Link>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
     >
-      <div className="grid grid-cols-5 items-end">
-        <Link
-          href="/"
-          className="
-            flex
-            flex-col
-            items-center
-            justify-center
-            gap-1
-            text-[#ee8f9b]
-          "
-        >
-          <div
-            className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-              rounded-full
-              bg-[#fde7e9]
-            "
-          >
-            <HomeIcon />
-          </div>
-
-          <span className="text-[10px] font-bold">
-            Accueil
-          </span>
-        </Link>
-
-        <Link
-          href="/search"
-          className="
-            flex
-            flex-col
-            items-center
-            justify-center
-            gap-1
-            text-[#5d655f]
-          "
-        >
-          <div
-            className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-            "
-          >
-            <SearchIcon />
-          </div>
-
-          <span className="text-[10px] font-semibold">
-            Recherche
-          </span>
-        </Link>
-
-        <Link
-          href="/signalement"
-          aria-label="S.O.S Animal"
-          className="
-            flex
-            flex-col
-            items-center
-            justify-center
-          "
-        >
-          <div
-            className="
-              flex
-              h-[60px]
-              w-[60px]
-              -translate-y-2
-              items-center
-              justify-center
-              overflow-hidden
-              rounded-full
-              border-[3px]
-              border-[#fffaf7]
-              bg-white
-              shadow-xl
-            "
-          >
-            <img
-              src="/sos-paw.png"
-              alt="S.O.S Animal"
-              draggable={false}
-              className="
-                h-full
-                w-full
-                rounded-full
-                object-cover
-              "
-            />
-          </div>
-        </Link>
-
-        <Link
-          href="/informations"
-          className="
-            flex
-            flex-col
-            items-center
-            justify-center
-            gap-1
-            text-[#5d655f]
-          "
-        >
-          <div
-            className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-            "
-          >
-            <InfoIcon />
-          </div>
-
-          <span className="text-[10px] font-semibold">
-            Infos
-          </span>
-        </Link>
-
-        <Link
-          href="/profile"
-          className="
-            flex
-            flex-col
-            items-center
-            justify-center
-            gap-1
-            text-[#5d655f]
-          "
-        >
-          <div
-            className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-            "
-          >
-            <ProfileIcon />
-          </div>
-
-          <span className="text-[10px] font-semibold">
-            Profil
-          </span>
-        </Link>
-      </div>
-    </nav>
+      <path d="M5 7h14" />
+      <path d="M5 12h14" />
+      <path d="M5 17h14" />
+    </svg>
   );
 }
 
