@@ -49,55 +49,12 @@ export default function AnimalSwipeCard({
   const [swipeFeedback, setSwipeFeedback] =
     useState<SwipeFeedback>(null);
 
-  const [isFavorite, setIsFavorite] =
-    useState(false);
-
   useEffect(() => {
     setStartX(null);
     setTranslateX(0);
     setDragging(false);
     setActionLoading(false);
     setSwipeFeedback(null);
-    setIsFavorite(false);
-
-    let active = true;
-
-    async function loadFavoriteStatus() {
-      if (!animal?.id) return;
-
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          if (active) {
-            setIsFavorite(false);
-          }
-          return;
-        }
-
-        const favorite =
-          await favoriteService.isFavorite(
-            animal.id
-          );
-
-        if (active) {
-          setIsFavorite(favorite);
-        }
-      } catch (error) {
-        console.error(
-          "Erreur lecture coup de cœur :",
-          error
-        );
-      }
-    }
-
-    loadFavoriteStatus();
-
-    return () => {
-      active = false;
-    };
   }, [animal?.id]);
 
   const animalName =
@@ -275,7 +232,6 @@ export default function AnimalSwipeCard({
         animal.id
       );
 
-      setIsFavorite(true);
       setSwipeFeedback("favorite");
 
       await wait(480);
@@ -460,7 +416,7 @@ export default function AnimalSwipeCard({
         flex-col
         items-center
         px-0
-        pb-0
+        pb-[112px]
         pt-0
         sm:px-4
         sm:pb-[122px]
@@ -497,9 +453,9 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-78px)]
-          min-h-[620px]
-          max-h-none
+          h-[calc(100dvh-250px)]
+          min-h-[480px]
+          max-h-[660px]
           w-full
           max-w-[455px]
           select-none
@@ -534,7 +490,6 @@ export default function AnimalSwipeCard({
               h-full
               w-full
               object-cover
-              object-center
             "
           />
         ) : (
@@ -658,49 +613,15 @@ export default function AnimalSwipeCard({
           )}
         </button>
 
-        {isFavorite && (
-          <div
-            className="
-              absolute
-              left-3
-              top-3
-              z-50
-              flex
-              items-center
-              gap-2
-              rounded-full
-              border
-              border-white/80
-              bg-white/92
-              px-3
-              py-2
-              text-[11px]
-              font-black
-              text-[#df687c]
-              shadow-lg
-              backdrop-blur-xl
-
-              sm:left-4
-              sm:top-4
-              sm:text-xs
-            "
-          >
-            <span className="text-base leading-none">
-              ❤️
-            </span>
-            <span>Coup de cœur</span>
-          </div>
-        )}
-
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
           className="
             absolute
             left-2
-            top-[31%]
+            top-[105px]
             sm:left-3
-            sm:top-[30%]
+            sm:top-[116px]
             z-30
             flex
             flex-col
@@ -918,12 +839,11 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-[118px]
+            bottom-0
             z-40
             px-4
-            pb-3
+            pb-4
             text-white
-            sm:bottom-0
             sm:px-5
             sm:pb-6
           "
@@ -1055,7 +975,7 @@ export default function AnimalSwipeCard({
             }
             className="
               absolute
-              bottom-[126px]
+              bottom-4
               right-3
               z-50
               flex
@@ -1093,13 +1013,11 @@ export default function AnimalSwipeCard({
         )}
       </article>
 
-      {/* BOUTONS ACTIONS */}
+      {/* BOUTONS SOUS LA CARTE */}
 
       <div
         className="
-          relative
-          z-[70]
-          -mt-[120px]
+          mt-2
           grid
           w-full
           max-w-[455px]
@@ -1107,14 +1025,10 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
-          pb-0
-
           sm:mt-3
           sm:max-w-[520px]
           sm:gap-3
           sm:px-4
-          sm:pb-0
-
           md:max-w-[560px]
           lg:max-w-[620px]
         "
@@ -1160,10 +1074,7 @@ export default function AnimalSwipeCard({
               mt-1.5
               text-[11px]
               font-semibold
-              text-white
-              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
-              sm:text-[#3e3a37]
-              sm:drop-shadow-none
+              text-[#3e3a37]
             "
           >
             Passer
@@ -1219,10 +1130,7 @@ export default function AnimalSwipeCard({
               whitespace-nowrap
               text-[11px]
               font-semibold
-              text-white
-              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
-              sm:text-[#3e3a37]
-              sm:drop-shadow-none
+              text-[#3e3a37]
             "
           >
             Je veux adopter
@@ -1242,12 +1150,7 @@ export default function AnimalSwipeCard({
             onClick={
               handleFavorite
             }
-            data-favorite={isFavorite}
-            aria-label={
-              isFavorite
-                ? "Déjà dans vos coups de cœur"
-                : "Coup de cœur"
-            }
+            aria-label="Coup de cœur"
             className="
               flex
               h-[58px]
@@ -1262,7 +1165,6 @@ export default function AnimalSwipeCard({
               bg-[#6bd1cc]
               text-[32px]
               text-white
-              data-[favorite=true]:bg-[#ef8196]
               shadow-xl
               transition
               active:scale-95
@@ -1278,15 +1180,10 @@ export default function AnimalSwipeCard({
               whitespace-nowrap
               text-[11px]
               font-semibold
-              text-white
-              drop-shadow-[0_2px_5px_rgba(0,0,0,.85)]
-              sm:text-[#3e3a37]
-              sm:drop-shadow-none
+              text-[#3e3a37]
             "
           >
-            {isFavorite
-              ? "Déjà aimé"
-              : "Coup de cœur"}
+            Coup de cœur
           </span>
         </div>
       </div>
@@ -1325,7 +1222,7 @@ function InfoBox({
     <div
       className="
         flex
-        h-[42px]
+        h-[44px]
         w-[56px]
         sm:h-[50px]
         sm:w-[64px]
