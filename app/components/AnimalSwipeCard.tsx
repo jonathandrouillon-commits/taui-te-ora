@@ -209,11 +209,11 @@ export default function AnimalSwipeCard({
       ? "#ef8196"
       : "#e6a85c";
 
-  // Mise en page adaptative mobile :
-  // plus il y a de badges à gauche, plus on les remonte.
-  // Le bloc nom / association / ville remonte automatiquement
-  // lorsqu'un texte de caractère est affiché afin de laisser
-  // une zone fixe aux 3 boutons d'action en bas.
+  // Mise en page mobile :
+  // 1) les 5 infos de gauche restent dans la moitié haute de la carte,
+  // 2) le nom de l'animal reste au-dessus du bloc structure,
+  // 3) association + ville sont alignées avec le logo de la structure,
+  // 4) le résumé reste juste au-dessus des boutons d'action.
   const leftInfoCount = [
     Boolean(age),
     Boolean(sexRaw),
@@ -224,24 +224,23 @@ export default function AnimalSwipeCard({
 
   const leftInfoTop =
     leftInfoCount >= 5
-      ? "22%"
+      ? "14%"
       : leftInfoCount === 4
-        ? "25%"
+        ? "17%"
         : leftInfoCount === 3
-          ? "28%"
-          : "31%";
+          ? "20%"
+          : "23%";
 
   const hasCharacter = Boolean(
     String(character || "").trim()
   );
 
-  const detailsBottom = hasCharacter
-    ? 205
-    : 164;
-
-  const creatorLogoBottom = hasCharacter
-    ? 196
-    : 158;
+  // Positions indépendantes : cela évite que la présence ou l'absence
+  // d'un texte de caractère fasse remonter toute la fiche.
+  const animalNameBottom = 252;
+  const structureBottom = hasCharacter ? 168 : 146;
+  const characterBottom = 112;
+  const creatorLogoBottom = 158;
 
   function wait(milliseconds: number) {
     return new Promise<void>(
@@ -950,20 +949,18 @@ export default function AnimalSwipeCard({
             </div>
           )}
 
+        {/* NOM DE L'ANIMAL */}
         <div
           style={{
-            bottom: `${detailsBottom}px`,
+            bottom: `${animalNameBottom}px`,
           }}
           className="
             absolute
             inset-x-0
             z-40
             px-4
-            pb-3
             text-white
-            sm:bottom-0
             sm:px-5
-            sm:pb-6
           "
         >
           <div
@@ -994,9 +991,7 @@ export default function AnimalSwipeCard({
 
             <button
               type="button"
-              onClick={
-                handleInformation
-              }
+              onClick={handleInformation}
               className="
                 flex
                 h-10
@@ -1016,12 +1011,28 @@ export default function AnimalSwipeCard({
               i
             </button>
           </div>
+        </div>
 
+        {/* ASSOCIATION + LOCALISATION : AU NIVEAU DU LOGO STRUCTURE */}
+        <div
+          style={{
+            bottom: `${structureBottom}px`,
+          }}
+          className="
+            absolute
+            inset-x-0
+            z-40
+            px-4
+            pr-[78px]
+            text-white
+            sm:px-5
+            sm:pr-[88px]
+          "
+        >
           {creatorName && (
             <p
               className="
-                mt-3
-                max-w-[80%]
+                max-w-full
                 truncate
                 text-[15px]
                 font-bold
@@ -1036,7 +1047,7 @@ export default function AnimalSwipeCard({
             <p
               className="
                 mt-1
-                max-w-[80%]
+                max-w-full
                 truncate
                 text-[14px]
                 text-white/95
@@ -1048,36 +1059,43 @@ export default function AnimalSwipeCard({
                 .join(" · ")}
             </p>
           )}
+        </div>
 
-          {character && (
+        {/* COURTE DESCRIPTION */}
+        {character && (
+          <div
+            style={{
+              bottom: `${characterBottom}px`,
+            }}
+            className="
+              absolute
+              left-4
+              z-40
+              max-w-[72%]
+              sm:left-5
+            "
+          >
             <div
               className="
-                mt-3
-                max-w-[76%]
+                inline-flex
+                max-w-full
+                rounded-full
+                bg-[#d8b8df]/95
+                px-4
+                py-2
+                text-[13px]
+                font-bold
+                text-white
+                shadow
+                backdrop-blur
               "
             >
-              <div
-                className="
-                  inline-flex
-                  max-w-full
-                  rounded-full
-                  bg-[#d8b8df]/95
-                  px-4
-                  py-2
-                  text-[13px]
-                  font-bold
-                  text-white
-                  shadow
-                  backdrop-blur
-                "
-              >
-                <span className="truncate">
-                  {character}
-                </span>
-              </div>
+              <span className="truncate">
+                {character}
+              </span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {creatorLogo && (
           <button
@@ -1139,7 +1157,7 @@ export default function AnimalSwipeCard({
         className="
           relative
           z-[70]
-          -mt-[112px]
+          -mt-[82px]
           grid
           w-full
           max-w-[455px]
