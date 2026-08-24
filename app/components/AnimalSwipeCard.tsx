@@ -698,9 +698,9 @@ export default function AnimalSwipeCard({
           className="
             absolute
             left-2
-            top-[31%]
+            top-[27%]
             sm:left-3
-            sm:top-[30%]
+            sm:top-[28%]
             z-30
             flex
             flex-col
@@ -918,7 +918,7 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-[118px]
+            bottom-[92px]
             z-40
             px-4
             pb-3
@@ -1055,7 +1055,7 @@ export default function AnimalSwipeCard({
             }
             className="
               absolute
-              bottom-[126px]
+              bottom-[100px]
               right-3
               z-50
               flex
