@@ -23,7 +23,7 @@ export default function DashboardQuestionnaire({
 
           <p className="mt-2 text-[#6f5a47]">
             Ces informations sont enregistrées dans votre profil et seront
-            utilisées pour vos futures demandes d'adoption.
+            utilisées pour vos futures demandes d&apos;adoption.
           </p>
         </div>
 
@@ -41,31 +41,95 @@ export default function DashboardQuestionnaire({
       {filled ? (
         <>
           <div className="space-y-2">
-            <Info label="Expérience" value={profile?.adopter_experience} />
-            <Info label="Animaux actuels" value={profile?.current_animals} />
-            <Info label="Adoption pour" value={profile?.adoption_for} />
-            <Info label="Enfants" value={profile?.children_age} />
-            <Info label="Jardin" value={profile?.garden_type} />
-            <Info label="Âge souhaité" value={profile?.ideal_age} />
-            <Info label="Sexe souhaité" value={profile?.ideal_sex} />
-            <Info label="Taille souhaitée" value={profile?.ideal_size} />
-            <Info label="Activité souhaitée" value={profile?.ideal_activity} />
-            <Info label="Race souhaitée" value={profile?.ideal_breed} />
-            <Info label="Hypoallergénique" value={profile?.hypoallergenic} />
-            <Info label="Propreté" value={profile?.cleanliness} />
-            <Info label="Besoins particuliers" value={profile?.special_needs} />
+            <Info
+              label="Expérience"
+              value={profile?.adopter_experience}
+            />
+
+            <Info
+              label="Animaux actuels"
+              value={profile?.current_animals}
+            />
+
+            <Info
+              label="Adoption pour"
+              value={profile?.adoption_for}
+            />
+
+            <Info
+              label="Enfants"
+              value={profile?.children_age}
+            />
+
+            <Info
+              label="Jardin"
+              value={profile?.garden_type}
+            />
+
+            <Info
+              label="Âge souhaité"
+              value={profile?.ideal_age}
+            />
+
+            <Info
+              label="Sexe souhaité"
+              value={profile?.ideal_sex}
+            />
+
+            <Info
+              label="Taille souhaitée"
+              value={profile?.ideal_size}
+            />
+
+            <Info
+              label="Activité souhaitée"
+              value={profile?.ideal_activity}
+            />
+
+            <Info
+              label="Race souhaitée"
+              value={profile?.ideal_breed}
+            />
+
+            <Info
+              label="Hypoallergénique"
+              value={profile?.hypoallergenic}
+            />
+
+            <Info
+              label="Propreté"
+              value={profile?.cleanliness}
+            />
+
+            <Info
+              label="Besoins particuliers"
+              value={profile?.special_needs}
+            />
           </div>
 
           <Link
-            href="/adoption/questionnaire"
-            className="mt-8 inline-flex rounded-full bg-[#9c7b54] px-6 py-3 font-semibold text-white transition hover:bg-[#846646]"
+            href="/adoptant/questionnaire"
+            className="
+              mt-8
+              inline-flex
+              rounded-full
+              bg-[#9c7b54]
+              px-6
+              py-3
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#846646]
+            "
           >
             Modifier mon questionnaire
           </Link>
         </>
       ) : (
         <div className="rounded-3xl bg-[#f8f4ec] p-8 text-center">
-          <div className="mb-4 text-6xl">📋</div>
+          <div className="mb-4 text-6xl">
+            📋
+          </div>
 
           <h3 className="text-xl font-bold text-[#2f241c]">
             Questionnaire incomplet
@@ -77,8 +141,20 @@ export default function DashboardQuestionnaire({
           </p>
 
           <Link
-            href="/adoption/questionnaire"
-            className="mt-8 inline-flex rounded-full bg-[#064b42] px-8 py-4 text-lg font-bold text-white transition hover:bg-[#0a6659]"
+            href="/adoptant/questionnaire"
+            className="
+              mt-8
+              inline-flex
+              rounded-full
+              bg-[#064b42]
+              px-8
+              py-4
+              text-lg
+              font-bold
+              text-white
+              transition
+              hover:bg-[#0a6659]
+            "
           >
             Compléter mon questionnaire
           </Link>
@@ -96,8 +172,23 @@ function Info({
   value?: string | null;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-5 py-3">
-      <span className="font-medium text-[#6f5a47]">{label}</span>
+    <div
+      className="
+        flex
+        items-center
+        justify-between
+        gap-4
+        rounded-2xl
+        border
+        border-[#eadfce]
+        bg-[#faf7f2]
+        px-5
+        py-3
+      "
+    >
+      <span className="font-medium text-[#6f5a47]">
+        {label}
+      </span>
 
       <span className="text-right font-bold text-[#2f241c]">
         {value || "Non renseigné"}

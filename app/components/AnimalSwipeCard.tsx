@@ -75,10 +75,9 @@ export default function AnimalSwipeCard({
     animal?.sexe ||
     "";
 
-  const sex =
-    String(sexRaw)
-      .trim()
-      .toLowerCase();
+  const sex = String(sexRaw)
+    .trim()
+    .toLowerCase();
 
   const age =
     animal?.age_label ||
@@ -115,13 +114,6 @@ export default function AnimalSwipeCard({
     animal?.sterilise ??
     false;
 
-  const creatorId =
-    animal?.owner_profile?.id ||
-    animal?.owner_id ||
-    animal?.created_by ||
-    animal?.association_id ||
-    "";
-
   const creatorName =
     animal?.owner_profile
       ?.organization_name ||
@@ -131,6 +123,13 @@ export default function AnimalSwipeCard({
   const creatorLogo =
     animal?.owner_profile
       ?.avatar_url ||
+    "";
+
+  const creatorId =
+    animal?.owner_profile?.id ||
+    animal?.owner_id ||
+    animal?.created_by ||
+    animal?.association_id ||
     "";
 
   const photoUrl = useMemo(() => {
@@ -176,16 +175,6 @@ export default function AnimalSwipeCard({
         );
       }
     );
-  }
-
-  function stopSwipeEvent(
-    event: PointerEvent<HTMLElement>
-  ) {
-    event.stopPropagation();
-
-    setStartX(null);
-    setDragging(false);
-    setTranslateX(0);
   }
 
   async function handlePass() {
@@ -243,9 +232,7 @@ export default function AnimalSwipeCard({
         animal.id
       );
 
-      setSwipeFeedback(
-        "favorite"
-      );
+      setSwipeFeedback("favorite");
 
       await wait(480);
 
@@ -287,16 +274,7 @@ export default function AnimalSwipeCard({
   }
 
   function handleAdopt() {
-    if (
-      actionLoading ||
-      !animal?.id
-    ) {
-      return;
-    }
-
-    setStartX(null);
-    setDragging(false);
-    setTranslateX(0);
+    if (!animal?.id) return;
 
     router.push(
       `/adoption/start/${animal.id}`
@@ -304,16 +282,7 @@ export default function AnimalSwipeCard({
   }
 
   function handleInformation() {
-    if (
-      actionLoading ||
-      !animal?.id
-    ) {
-      return;
-    }
-
-    setStartX(null);
-    setDragging(false);
-    setTranslateX(0);
+    if (!animal?.id) return;
 
     router.push(
       `/animal/${animal.id}`
@@ -321,9 +290,7 @@ export default function AnimalSwipeCard({
   }
 
   function handleStructure() {
-    if (!creatorId) {
-      return;
-    }
+    if (!creatorId) return;
 
     router.push(
       `/structure/${creatorId}`
@@ -350,10 +317,9 @@ export default function AnimalSwipeCard({
     setDragging(true);
 
     try {
-      event.currentTarget
-        .setPointerCapture(
-          event.pointerId
-        );
+      event.currentTarget.setPointerCapture(
+        event.pointerId
+      );
     } catch {
       // rien
     }
@@ -449,10 +415,14 @@ export default function AnimalSwipeCard({
         w-full
         flex-col
         items-center
-        px-3
-        pb-[118px]
-        pt-2
+        px-0
+        pb-[112px]
+        pt-0
         sm:px-4
+        sm:pb-[122px]
+        sm:pt-2
+        md:px-6
+        lg:px-8
       "
     >
       <article
@@ -483,14 +453,27 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-310px)]
-          min-h-[540px]
-          max-h-[720px]
+          h-[calc(100dvh-250px)]
+          min-h-[480px]
+          max-h-[660px]
           w-full
           max-w-[455px]
           select-none
           overflow-hidden
-          rounded-[30px]
+          rounded-none
+          sm:h-[calc(100dvh-285px)]
+          sm:min-h-[560px]
+          sm:max-h-[700px]
+          sm:max-w-[520px]
+          sm:rounded-[28px]
+          md:h-[680px]
+          md:max-h-[680px]
+          md:max-w-[560px]
+          md:rounded-[32px]
+          lg:h-[720px]
+          lg:max-h-[720px]
+          lg:max-w-[620px]
+          lg:rounded-[34px]
           bg-[#d9d4cf]
           shadow-[0_18px_45px_rgba(40,30,25,.22)]
         "
@@ -539,8 +522,6 @@ export default function AnimalSwipeCard({
           "
         />
 
-        {/* LOGO TAUI */}
-
         <div
           className="
             pointer-events-none
@@ -556,54 +537,53 @@ export default function AnimalSwipeCard({
             alt=""
             draggable={false}
             className="
-              h-[86px]
-              w-[86px]
+              h-[70px]
+              w-[70px]
               object-contain
+              sm:h-[82px]
+              sm:w-[82px]
+              md:h-[90px]
+              md:w-[90px]
+              lg:h-[96px]
+              lg:w-[96px]
               drop-shadow-[0_3px_8px_rgba(0,0,0,.20)]
             "
           />
         </div>
 
-        {/* ===================================================
-            FILTRE
-            MEME AXE VERTICAL QUE LOGO ASSOCIATION
-        ==================================================== */}
+        {/* FILTRE RAPIDE */}
 
         <button
           type="button"
-          onPointerDown={
-            stopSwipeEvent
-          }
-          onPointerUp={
-            stopSwipeEvent
-          }
-          onPointerCancel={
-            stopSwipeEvent
-          }
           onClick={(event) => {
             event.stopPropagation();
             onOpenFilter?.();
           }}
           aria-label="Filtrer les animaux"
+          title="Filtrer"
           className="
             absolute
-            right-4
-            top-4
+            right-3
+            top-3
             z-50
             flex
-            h-11
-            w-11
+            h-10
+            w-10
             items-center
             justify-center
             rounded-full
             border
             border-white/70
-            bg-white/80
+            bg-white/85
             text-[#5d655f]
             shadow-lg
             backdrop-blur-xl
             transition
             active:scale-95
+            sm:right-4
+            sm:top-4
+            sm:h-11
+            sm:w-11
           "
         >
           <FilterIcon />
@@ -633,14 +613,17 @@ export default function AnimalSwipeCard({
           )}
         </button>
 
-        {/* INFOS GAUCHE */}
+        {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
           className="
             absolute
-            left-3
-            top-[30%]
-            bottom-[190px]
+            left-2
+            top-[27%]
+            bottom-[165px]
+            sm:left-3
+            sm:top-[30%]
+            sm:bottom-[190px]
             z-30
             flex
             flex-col
@@ -721,6 +704,7 @@ export default function AnimalSwipeCard({
                 font-black
                 uppercase
                 text-red-500
+                drop-shadow-lg
               "
             >
               ♥ COUP DE CŒUR
@@ -751,6 +735,7 @@ export default function AnimalSwipeCard({
                 font-black
                 uppercase
                 text-red-500
+                drop-shadow-lg
               "
             >
               ✕ NEXT TIME
@@ -774,9 +759,11 @@ export default function AnimalSwipeCard({
               <div className="text-center">
                 <div
                   className="
+                    animate-[ping_.45s_ease-out_1]
                     text-[130px]
                     leading-none
                     text-red-500
+                    drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
                   "
                 >
                   ♥
@@ -792,7 +779,9 @@ export default function AnimalSwipeCard({
                     text-xl
                     font-black
                     uppercase
+                    tracking-widest
                     text-white
+                    backdrop-blur
                   "
                 >
                   Coup de cœur
@@ -822,6 +811,7 @@ export default function AnimalSwipeCard({
                     font-black
                     leading-none
                     text-red-500
+                    drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
                   "
                 >
                   ×
@@ -837,7 +827,9 @@ export default function AnimalSwipeCard({
                     text-xl
                     font-black
                     uppercase
+                    tracking-widest
                     text-white
+                    backdrop-blur
                   "
                 >
                   NEXT TIME
@@ -846,17 +838,17 @@ export default function AnimalSwipeCard({
             </div>
           )}
 
-        {/* INFORMATIONS BAS */}
-
         <div
           className="
             absolute
             inset-x-0
             bottom-0
             z-40
-            px-5
-            pb-6
+            px-4
+            pb-4
             text-white
+            sm:px-5
+            sm:pb-6
           "
         >
           <div
@@ -872,12 +864,14 @@ export default function AnimalSwipeCard({
               className="
                 min-w-0
                 truncate
-                text-[38px]
+                text-[30px]
                 font-black
                 leading-none
                 tracking-tight
                 drop-shadow-lg
-                sm:text-[42px]
+                sm:text-[38px]
+                md:text-[42px]
+                lg:text-[46px]
               "
             >
               {animalName}
@@ -885,19 +879,9 @@ export default function AnimalSwipeCard({
 
             <button
               type="button"
-              onPointerDown={
-                stopSwipeEvent
+              onClick={
+                handleInformation
               }
-              onPointerUp={
-                stopSwipeEvent
-              }
-              onPointerCancel={
-                stopSwipeEvent
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                handleInformation();
-              }}
               className="
                 flex
                 h-10
@@ -969,6 +953,7 @@ export default function AnimalSwipeCard({
                   font-bold
                   text-white
                   shadow
+                  backdrop-blur
                 "
               >
                 <span className="truncate">
@@ -979,22 +964,9 @@ export default function AnimalSwipeCard({
           )}
         </div>
 
-        {/* ===================================================
-            LOGO ASSOCIATION CLIQUABLE
-        ==================================================== */}
-
         {creatorLogo && (
           <button
             type="button"
-            onPointerDown={
-              stopSwipeEvent
-            }
-            onPointerUp={
-              stopSwipeEvent
-            }
-            onPointerCancel={
-              stopSwipeEvent
-            }
             onClick={(event) => {
               event.stopPropagation();
               handleStructure();
@@ -1006,12 +978,12 @@ export default function AnimalSwipeCard({
             }
             className="
               absolute
-              bottom-5
-              right-4
+              bottom-4
+              right-3
               z-50
               flex
-              h-[58px]
-              w-[58px]
+              h-[52px]
+              w-[52px]
               items-center
               justify-center
               overflow-hidden
@@ -1022,14 +994,17 @@ export default function AnimalSwipeCard({
               shadow-xl
               transition
               active:scale-95
+              sm:bottom-5
+              sm:right-4
+              sm:h-[58px]
+              sm:w-[58px]
+              md:h-[62px]
+              md:w-[62px]
             "
           >
             <img
               src={creatorLogo}
-              alt={
-                creatorName ||
-                "Structure"
-              }
+              alt={creatorName || "Structure"}
               draggable={false}
               className="
                 h-full
@@ -1041,41 +1016,44 @@ export default function AnimalSwipeCard({
         )}
       </article>
 
-      {/* BOUTONS */}
+      {/* BOUTONS SOUS LA CARTE */}
 
       <div
         className="
-          mt-3
+          mt-2
           grid
           w-full
           max-w-[455px]
           grid-cols-3
           items-start
-          gap-3
-          px-4
+          gap-2
+          px-3
+          sm:mt-3
+          sm:max-w-[520px]
+          sm:gap-3
+          sm:px-4
+          md:max-w-[560px]
+          lg:max-w-[620px]
         "
       >
-        <div className="flex flex-col items-center">
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
           <button
             type="button"
             disabled={actionLoading}
-            onPointerDown={
-              stopSwipeEvent
-            }
-            onPointerUp={
-              stopSwipeEvent
-            }
-            onPointerCancel={
-              stopSwipeEvent
-            }
-            onClick={(event) => {
-              event.stopPropagation();
-              handlePass();
-            }}
+            onClick={handlePass}
+            aria-label="Passer"
             className="
               flex
-              h-[66px]
-              w-[66px]
+              h-[58px]
+              w-[58px]
+              sm:h-[66px]
+              sm:w-[66px]
               items-center
               justify-center
               rounded-full
@@ -1086,41 +1064,50 @@ export default function AnimalSwipeCard({
               font-light
               text-white
               shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
             "
           >
             ×
           </button>
 
-          <span className="mt-1.5 text-[11px] font-semibold text-[#3e3a37]">
+          <span
+            className="
+              mt-1.5
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
             Passer
           </span>
         </div>
 
-        <div className="flex flex-col items-center">
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
           <button
             type="button"
             disabled={actionLoading}
-            onPointerDown={
-              stopSwipeEvent
-            }
-            onPointerUp={
-              stopSwipeEvent
-            }
-            onPointerCancel={
-              stopSwipeEvent
-            }
-            onClick={(event) => {
-              event.stopPropagation();
-              handleAdopt();
-            }}
+            onClick={handleAdopt}
+            aria-label="Je veux adopter"
             style={{
               backgroundColor:
                 genderColor,
             }}
             className="
               flex
-              h-[78px]
-              w-[78px]
+              h-[68px]
+              w-[68px]
+              sm:h-[78px]
+              sm:w-[78px]
+              md:h-[82px]
+              md:w-[82px]
               -translate-y-1
               items-center
               justify-center
@@ -1128,6 +1115,9 @@ export default function AnimalSwipeCard({
               border-[4px]
               border-white
               shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
             "
           >
             <AnimalActionIcon
@@ -1137,32 +1127,39 @@ export default function AnimalSwipeCard({
             />
           </button>
 
-          <span className="mt-0.5 whitespace-nowrap text-[11px] font-semibold text-[#3e3a37]">
+          <span
+            className="
+              mt-0.5
+              whitespace-nowrap
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
             Je veux adopter
           </span>
         </div>
 
-        <div className="flex flex-col items-center">
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+          "
+        >
           <button
             type="button"
             disabled={actionLoading}
-            onPointerDown={
-              stopSwipeEvent
+            onClick={
+              handleFavorite
             }
-            onPointerUp={
-              stopSwipeEvent
-            }
-            onPointerCancel={
-              stopSwipeEvent
-            }
-            onClick={(event) => {
-              event.stopPropagation();
-              handleFavorite();
-            }}
+            aria-label="Coup de cœur"
             className="
               flex
-              h-[66px]
-              w-[66px]
+              h-[58px]
+              w-[58px]
+              sm:h-[66px]
+              sm:w-[66px]
               items-center
               justify-center
               rounded-full
@@ -1172,12 +1169,23 @@ export default function AnimalSwipeCard({
               text-[32px]
               text-white
               shadow-xl
+              transition
+              active:scale-95
+              disabled:opacity-60
             "
           >
             ♥
           </button>
 
-          <span className="mt-1.5 whitespace-nowrap text-[11px] font-semibold text-[#3e3a37]">
+          <span
+            className="
+              mt-1.5
+              whitespace-nowrap
+              text-[11px]
+              font-semibold
+              text-[#3e3a37]
+            "
+          >
             Coup de cœur
           </span>
         </div>
@@ -1190,11 +1198,12 @@ function FilterIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-6 w-6"
+      className="h-5 w-5 sm:h-6 sm:w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.2"
       strokeLinecap="round"
+      aria-hidden="true"
     >
       <path d="M5 7h14" />
       <path d="M7 12h10" />
@@ -1216,8 +1225,10 @@ function InfoBox({
     <div
       className="
         flex
-        h-[50px]
-        w-[64px]
+        h-[44px]
+        w-[56px]
+        sm:h-[50px]
+        sm:w-[64px]
         shrink-0
         flex-col
         items-center
@@ -1228,6 +1239,7 @@ function InfoBox({
         py-1
         text-center
         shadow-lg
+        backdrop-blur
       "
     >
       <span
@@ -1235,8 +1247,9 @@ function InfoBox({
           color: iconColor,
         }}
         className="
-          text-[16px]
+          text-[14px]
           font-black
+          sm:text-[16px]
           leading-none
         "
       >
@@ -1248,8 +1261,9 @@ function InfoBox({
           mt-1
           max-w-full
           truncate
-          text-[9px]
+          text-[8px]
           font-semibold
+          sm:text-[9px]
           leading-none
           text-[#52504d]
         "
@@ -1273,7 +1287,9 @@ function AnimalActionIcon({
       "horse"
     )
   ) {
-    return <HorseShoeIcon />;
+    return (
+      <HorseShoeIcon />
+    );
   }
 
   if (
@@ -1284,10 +1300,14 @@ function AnimalActionIcon({
       "cat"
     )
   ) {
-    return <CatPawIcon />;
+    return (
+      <CatPawIcon />
+    );
   }
 
-  return <DogPawIcon />;
+  return (
+    <DogPawIcon />
+  );
 }
 
 function DogPawIcon() {
@@ -1296,39 +1316,59 @@ function DogPawIcon() {
       viewBox="0 0 64 64"
       className="h-11 w-11"
       fill="white"
+      aria-hidden="true"
     >
       <ellipse
         cx="18"
         cy="17"
         rx="6"
         ry="9"
+        transform="rotate(-20 18 17)"
       />
+
       <ellipse
         cx="32"
         cy="13"
         rx="6"
         ry="9"
       />
+
       <ellipse
         cx="46"
         cy="17"
         rx="6"
         ry="9"
+        transform="rotate(20 46 17)"
       />
+
       <ellipse
         cx="11"
         cy="31"
         rx="5"
         ry="8"
+        transform="rotate(-30 11 31)"
       />
+
       <ellipse
         cx="53"
         cy="31"
         rx="5"
         ry="8"
+        transform="rotate(30 53 31)"
       />
 
-      <path d="M32 26C21 26 15 36 16 45C17 52 22 55 28 52C30 51 31 50 32 50C33 50 34 51 36 52C42 55 47 52 48 45C49 36 43 26 32 26Z" />
+      <path
+        d="
+          M32 26
+          C21 26 15 36 16 45
+          C17 52 22 55 28 52
+          C30 51 31 50 32 50
+          C33 50 34 51 36 52
+          C42 55 47 52 48 45
+          C49 36 43 26 32 26
+          Z
+        "
+      />
     </svg>
   );
 }
@@ -1339,39 +1379,59 @@ function CatPawIcon() {
       viewBox="0 0 64 64"
       className="h-11 w-11"
       fill="white"
+      aria-hidden="true"
     >
       <ellipse
         cx="19"
         cy="18"
         rx="5"
         ry="8"
+        transform="rotate(-18 19 18)"
       />
+
       <ellipse
         cx="31"
         cy="14"
         rx="5"
         ry="8"
       />
+
       <ellipse
         cx="43"
         cy="18"
         rx="5"
         ry="8"
+        transform="rotate(18 43 18)"
       />
+
       <ellipse
         cx="12"
         cy="31"
         rx="4.5"
         ry="7"
+        transform="rotate(-28 12 31)"
       />
+
       <ellipse
         cx="50"
         cy="31"
         rx="4.5"
         ry="7"
+        transform="rotate(28 50 31)"
       />
 
-      <path d="M31 27C22 27 17 36 18 44C19 51 24 54 29 51C30 50 31 49 32 49C33 49 34 50 35 51C40 54 45 51 46 44C47 36 40 27 31 27Z" />
+      <path
+        d="
+          M31 27
+          C22 27 17 36 18 44
+          C19 51 24 54 29 51
+          C30 50 31 49 32 49
+          C33 49 34 50 35 51
+          C40 54 45 51 46 44
+          C47 36 40 27 31 27
+          Z
+        "
+      />
     </svg>
   );
 }
@@ -1385,9 +1445,25 @@ function HorseShoeIcon() {
       stroke="white"
       strokeWidth="8"
       strokeLinecap="round"
+      aria-hidden="true"
     >
-      <path d="M14 13C9 25 10 40 18 49C25 57 39 57 46 49C54 40 55 25 50 13" />
-      <path d="M20 17C17 27 18 38 23 44C28 50 36 50 41 44C46 38 47 27 44 17" />
+      <path
+        d="
+          M14 13
+          C9 25 10 40 18 49
+          C25 57 39 57 46 49
+          C54 40 55 25 50 13
+        "
+      />
+
+      <path
+        d="
+          M20 17
+          C17 27 18 38 23 44
+          C28 50 36 50 41 44
+          C46 38 47 27 44 17
+        "
+      />
     </svg>
   );
 }
