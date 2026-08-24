@@ -20,12 +20,17 @@ export default function HomePage() {
     try {
       setLoading(true);
 
-      const data = await animalService.getPublishedWithPhotos();
+      const data =
+        await animalService.getPublishedWithPhotos();
 
       setAnimals(data || []);
       setCurrentIndex(0);
     } catch (error) {
-      console.error("Erreur chargement animaux :", error);
+      console.error(
+        "Erreur chargement animaux :",
+        error
+      );
+
       setAnimals([]);
     } finally {
       setLoading(false);
@@ -33,67 +38,93 @@ export default function HomePage() {
   }
 
   function goNext() {
-    setCurrentIndex((previousIndex) => previousIndex + 1);
+    setCurrentIndex(
+      (previousIndex) =>
+        previousIndex + 1
+    );
   }
 
-  const currentAnimal = animals[currentIndex];
+  const currentAnimal =
+    animals[currentIndex];
 
   return (
     <TauiPageBackground>
       <div className="flex h-[100dvh] w-full flex-col overflow-hidden">
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+
           {loading && (
             <div className="flex flex-1 items-center justify-center">
               <div className="rounded-3xl bg-white/90 px-8 py-6 text-center shadow-xl backdrop-blur">
+
                 <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
 
                 <p className="mt-4 font-bold text-[#667568]">
                   Chargement des animaux...
                 </p>
+
               </div>
             </div>
           )}
 
-          {!loading && currentAnimal && (
-            <AnimalSwipeCard
-              animal={currentAnimal}
-              onPass={goNext}
-              onFavorite={goNext}
-              onMenu={() => setMenuOpen(true)}
-            />
-          )}
+          {!loading &&
+            currentAnimal && (
+              <AnimalSwipeCard
+                animal={currentAnimal}
+                onPass={goNext}
+                onFavorite={goNext}
+                onMenu={() =>
+                  setMenuOpen(true)
+                }
+              />
+            )}
 
-          {!loading && !currentAnimal && (
-            <div className="flex flex-1 items-center justify-center px-5">
-              <div className="max-w-md rounded-[32px] bg-white/90 p-8 text-center shadow-xl backdrop-blur">
-                <div className="text-6xl">🐾</div>
+          {!loading &&
+            !currentAnimal && (
+              <div className="flex flex-1 items-center justify-center px-5">
 
-                <h2 className="mt-4 text-2xl font-black text-[#667568]">
-                  Aucun autre animal à afficher
-                </h2>
+                <div className="max-w-md rounded-[32px] bg-white/90 p-8 text-center shadow-xl backdrop-blur">
 
-                <p className="mt-3 text-gray-600">
-                  Revenez prochainement pour découvrir de nouveaux animaux.
-                </p>
+                  <div className="text-6xl">
+                    🐾
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={loadAnimals}
-                  className="mt-6 rounded-full bg-[#ef919b] px-6 py-3 font-black text-white shadow-lg"
-                >
-                  Recommencer
-                </button>
+                  <h2 className="mt-4 text-2xl font-black text-[#667568]">
+                    Aucun autre animal à afficher
+                  </h2>
+
+                  <p className="mt-3 text-gray-600">
+                    Revenez prochainement pour découvrir de nouveaux animaux.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={loadAnimals}
+                    className="mt-6 rounded-full bg-[#ef919b] px-6 py-3 font-black text-white shadow-lg"
+                  >
+                    Recommencer
+                  </button>
+
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
         </main>
 
-        <BottomMenu onMenu={() => setMenuOpen(true)} />
+        <BottomMenu
+          onMenu={() =>
+            setMenuOpen(true)
+          }
+        />
 
         {menuOpen && (
-          <InformationMenu onClose={() => setMenuOpen(false)} />
+          <InformationMenu
+            onClose={() =>
+              setMenuOpen(false)
+            }
+          />
         )}
+
       </div>
     </TauiPageBackground>
   );
@@ -107,9 +138,12 @@ function BottomMenu({
   return (
     <nav
       className="
-        relative z-[100]
-        w-full shrink-0
-        border-t border-[#eadfd8]
+        relative
+        z-[100]
+        w-full
+        shrink-0
+        border-t
+        border-[#eadfd8]
         bg-[#fffaf7]/97
         px-1
         pb-[max(7px,env(safe-area-inset-bottom))]
@@ -118,43 +152,71 @@ function BottomMenu({
         backdrop-blur-xl
       "
     >
-      <div className="mx-auto grid h-[64px] w-full max-w-[470px] grid-cols-5 items-center">
+      <div
+        className="
+          mx-auto
+          grid
+          h-[62px]
+          w-full
+          max-w-[470px]
+          grid-cols-5
+          items-center
+        "
+      >
 
-        <NavLink href="/" label="Accueil">
+        <NavLink
+          href="/"
+          label="Accueil"
+        >
           <HomeIcon />
         </NavLink>
 
-        <NavLink href="/search" label="Search">
+        <NavLink
+          href="/search"
+          label="Search"
+        >
           <SearchIcon />
         </NavLink>
 
+        {/* SOS */}
         <Link
           href="/signalement"
-          className="relative flex h-full flex-col items-center justify-center"
+          aria-label="SOS"
+          className="
+            relative
+            flex
+            h-full
+            items-center
+            justify-center
+          "
         >
           <div
             className="
-              absolute -top-[25px]
-              flex h-[64px] w-[64px]
-              items-center justify-center
+              absolute
+              -top-[25px]
+              flex
+              h-[64px]
+              w-[64px]
+              items-center
+              justify-center
               rounded-full
-              border-[5px] border-[#fffaf7]
+              border-[5px]
+              border-[#fffaf7]
               bg-[#ef5c63]
               text-white
               shadow-[0_6px_16px_rgba(0,0,0,.22)]
             "
           >
-            <div className="flex flex-col items-center leading-none">
+            <div className="flex flex-col items-center justify-center leading-none">
+
               <PawIcon />
-              <span className="-mt-1 text-[9px] font-black">
+
+              <span className="-mt-[2px] text-[9px] font-black">
                 SOS
               </span>
+
             </div>
           </div>
-
-          <span className="mt-[42px] text-[9px] font-bold text-[#706e67]">
-            SOS
-          </span>
         </Link>
 
         <button
@@ -171,7 +233,10 @@ function BottomMenu({
           </span>
         </button>
 
-        <NavLink href="/profile" label="Profil">
+        <NavLink
+          href="/profile"
+          label="Profil"
+        >
           <ProfileIcon />
         </NavLink>
 
@@ -213,27 +278,38 @@ function InformationMenu({
   return (
     <div
       className="
-        fixed inset-0 z-[300]
-        flex items-end
+        fixed
+        inset-0
+        z-[300]
+        flex
+        items-end
         bg-black/30
         backdrop-blur-[2px]
       "
       onClick={onClose}
     >
+
       <div
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) =>
+          event.stopPropagation()
+        }
         className="
-          mx-auto w-full max-w-[470px]
+          mx-auto
+          w-full
+          max-w-[470px]
           rounded-t-[30px]
           bg-[#fffaf7]
-          px-5 pb-[max(25px,env(safe-area-inset-bottom))]
+          px-5
+          pb-[max(25px,env(safe-area-inset-bottom))]
           pt-4
           shadow-2xl
         "
       >
+
         <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-[#d8d0c8]" />
 
         <div className="flex items-center justify-between">
+
           <div>
             <h2 className="text-xl font-black text-[#514d48]">
               Informations
@@ -251,39 +327,64 @@ function InformationMenu({
           >
             ×
           </button>
+
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
 
-          <MenuItem href="/veterinaires" icon="🩺">
+          <MenuItem
+            href="/veterinaires"
+            icon="🩺"
+          >
             Vétérinaires
           </MenuItem>
 
-          <MenuItem href="/association/lesveilleursdekali" icon="🐾">
+          <MenuItem
+            href="/association/lesveilleursdekali"
+            icon="🐾"
+          >
             Les Veilleurs de Kali
           </MenuItem>
 
-          <MenuItem href="/toilettage" icon="✂️">
+          <MenuItem
+            href="/toilettage"
+            icon="✂️"
+          >
             Toilettage
           </MenuItem>
 
-          <MenuItem href="/gardiennage" icon="🏠">
+          <MenuItem
+            href="/gardiennage"
+            icon="🏠"
+          >
             Gardiennage
           </MenuItem>
 
-          <MenuItem href="/education" icon="🎓">
+          <MenuItem
+            href="/education"
+            icon="🎓"
+          >
             Éducation
           </MenuItem>
 
-          <MenuItem href="/alimentation" icon="🥣">
+          <MenuItem
+            href="/alimentation"
+            icon="🥣"
+          >
             Alimentation
           </MenuItem>
 
-          <MenuItem href="/hommage" icon="♡">
+          <MenuItem
+            href="/hommage"
+            icon="♡"
+          >
             Hommage
           </MenuItem>
 
-          <MenuItem href="/associations" icon="🤝">
+          <MenuItem
+            href="/associations"
+            icon="🤝"
+          >
             Associations
           </MenuItem>
 
@@ -306,16 +407,21 @@ function MenuItem({
     <Link
       href={href}
       className="
-        flex min-h-[78px]
-        items-center gap-3
+        flex
+        min-h-[78px]
+        items-center
+        gap-3
         rounded-[20px]
         bg-white
         p-4
         shadow-sm
-        transition active:scale-[.98]
+        transition
+        active:scale-[.98]
       "
     >
-      <span className="text-2xl">{icon}</span>
+      <span className="text-2xl">
+        {icon}
+      </span>
 
       <span className="text-sm font-bold leading-tight text-[#625d58]">
         {children}
@@ -351,7 +457,12 @@ function SearchIcon() {
       stroke="currentColor"
       strokeWidth="2"
     >
-      <circle cx="11" cy="11" r="7" />
+      <circle
+        cx="11"
+        cy="11"
+        r="7"
+      />
+
       <path d="m20 20-4-4" />
     </svg>
   );
@@ -364,10 +475,34 @@ function PawIcon() {
       className="h-7 w-7"
       fill="currentColor"
     >
-      <ellipse cx="7" cy="7" rx="2.2" ry="3" />
-      <ellipse cx="17" cy="7" rx="2.2" ry="3" />
-      <ellipse cx="4.5" cy="12" rx="2" ry="2.7" />
-      <ellipse cx="19.5" cy="12" rx="2" ry="2.7" />
+      <ellipse
+        cx="7"
+        cy="7"
+        rx="2.2"
+        ry="3"
+      />
+
+      <ellipse
+        cx="17"
+        cy="7"
+        rx="2.2"
+        ry="3"
+      />
+
+      <ellipse
+        cx="4.5"
+        cy="12"
+        rx="2"
+        ry="2.7"
+      />
+
+      <ellipse
+        cx="19.5"
+        cy="12"
+        rx="2"
+        ry="2.7"
+      />
+
       <path d="M12 10.5c-3.4 0-6 3.1-6 6 0 2.1 1.5 3.5 3.3 3.5 1 0 1.8-.5 2.7-.5s1.7.5 2.7.5c1.8 0 3.3-1.4 3.3-3.5 0-2.9-2.6-6-6-6Z" />
     </svg>
   );
@@ -382,7 +517,12 @@ function InfoIcon() {
       stroke="currentColor"
       strokeWidth="2"
     >
-      <circle cx="12" cy="12" r="9" />
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+      />
+
       <path d="M12 11v6" />
       <path d="M12 7h.01" />
     </svg>
@@ -398,7 +538,12 @@ function ProfileIcon() {
       stroke="currentColor"
       strokeWidth="2"
     >
-      <circle cx="12" cy="8" r="4" />
+      <circle
+        cx="12"
+        cy="8"
+        r="4"
+      />
+
       <path d="M4.5 21c.8-4.1 3.5-6.5 7.5-6.5s6.7 2.4 7.5 6.5" />
     </svg>
   );

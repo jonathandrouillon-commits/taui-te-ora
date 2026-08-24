@@ -52,10 +52,25 @@ export default function AnimalSwipeCard({
     animal.ile ||
     "";
 
+  const animalType =
+    animal.type ||
+    animal.animal_type ||
+    animal.espece ||
+    animal.species ||
+    "";
+
   const associationName =
     animal.owner_profile?.organization_name ||
     animal.association_name ||
+    animal.creator_name ||
     "Association";
+
+  const associationLogo =
+    animal.owner_profile?.avatar_url ||
+    animal.owner_profile?.logo_url ||
+    animal.association_logo ||
+    animal.creator_avatar ||
+    "";
 
   const isSterilized =
     animal.sterilized ??
@@ -138,7 +153,6 @@ export default function AnimalSwipeCard({
       if (!animal?.id) return;
 
       await favoriteService.add(animal.id);
-
       onFavorite?.();
     } catch (error: any) {
       console.error(error);
@@ -147,7 +161,6 @@ export default function AnimalSwipeCard({
         router.push(
           `/login?redirect=/animal/${animal.id}`
         );
-
         return;
       }
 
@@ -171,8 +184,66 @@ export default function AnimalSwipeCard({
     router.push(`/animal/${animal.id}`);
   }
 
+  function getAdoptionIcon() {
+    const type = String(animalType)
+      .toLowerCase()
+      .trim();
+
+    if (
+      type.includes("chat") ||
+      type.includes("cat")
+    ) {
+      return "🐾";
+    }
+
+    if (
+      type.includes("chien") ||
+      type.includes("dog")
+    ) {
+      return "🐾";
+    }
+
+    if (
+      type.includes("cheval") ||
+      type.includes("horse")
+    ) {
+      return "🐴";
+    }
+
+    if (
+      type.includes("oiseau") ||
+      type.includes("bird")
+    ) {
+      return "🪶";
+    }
+
+    if (
+      type.includes("lapin") ||
+      type.includes("rabbit")
+    ) {
+      return "🐇";
+    }
+
+    return "🐾";
+  }
+
+  function getAdoptionPawClass() {
+    const type = String(animalType)
+      .toLowerCase()
+      .trim();
+
+    if (
+      type.includes("chat") ||
+      type.includes("cat")
+    ) {
+      return "text-[30px]";
+    }
+
+    return "text-[28px]";
+  }
+
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[470px] flex-1 flex-col px-2 pb-2 pt-2">
+    <div className="mx-auto flex min-h-0 w-full max-w-[470px] flex-1 flex-col px-2 pb-4 pt-2">
 
       <article
         onMouseDown={(event) =>
@@ -188,10 +259,14 @@ export default function AnimalSwipeCard({
           }
         }}
         onTouchStart={(event) =>
-          handleStart(event.touches[0].clientX)
+          handleStart(
+            event.touches[0].clientX
+          )
         }
         onTouchMove={(event) =>
-          handleMove(event.touches[0].clientX)
+          handleMove(
+            event.touches[0].clientX
+          )
         }
         onTouchEnd={handleEnd}
         className="
@@ -236,7 +311,7 @@ export default function AnimalSwipeCard({
           )}
         </button>
 
-        {/* DEGRADE */}
+        {/* DÉGRADÉ */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-black/10" />
 
         {/* MENU HAUT GAUCHE */}
@@ -246,6 +321,7 @@ export default function AnimalSwipeCard({
             event.stopPropagation();
             onMenu?.();
           }}
+          aria-label="Menu"
           className="
             absolute left-4 top-4 z-40
             flex h-12 w-12
@@ -261,29 +337,7 @@ export default function AnimalSwipeCard({
           </span>
         </button>
 
-        {/* FAVORI HAUT DROITE */}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            handleFavorite();
-          }}
-          className="
-            absolute right-4 top-4 z-40
-            flex h-12 w-12
-            items-center justify-center
-            rounded-full
-            bg-black/20
-            text-white
-            backdrop-blur-md
-          "
-        >
-          <span className="text-[34px] font-light leading-none">
-            ♡
-          </span>
-        </button>
-
-        {/* LOGO TAUI TE ORA PNG TRANSPARENT */}
+        {/* LOGO TAUI TE ORA */}
         <div
           className="
             pointer-events-none
@@ -340,37 +394,22 @@ export default function AnimalSwipeCard({
         {/* INFOS BAS */}
         <div className="absolute bottom-5 left-5 right-5 z-30 text-white">
 
-          <div className="flex items-end gap-3">
+          {/* PRÉNOM + BOUTON I SUR LA MÊME LIGNE */}
+          <div className="flex items-center gap-3 pr-[74px]">
 
-            <div className="min-w-0 flex-1">
-
-              <h1
-                className="
-                  truncate
-                  text-[clamp(42px,12vw,58px)]
-                  font-medium
-                  leading-none
-                  tracking-tight
-                  drop-shadow
-                "
-              >
-                {name}
-              </h1>
-
-              <p className="mt-3 truncate text-[15px] font-semibold">
-                {associationName}
-              </p>
-
-              {(city || island) && (
-                <p className="mt-1 truncate text-[14px]">
-                  📍{" "}
-                  {[city, island]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              )}
-
-            </div>
+            <h1
+              className="
+                min-w-0
+                truncate
+                text-[clamp(40px,11vw,56px)]
+                font-medium
+                leading-none
+                tracking-tight
+                drop-shadow
+              "
+            >
+              {name}
+            </h1>
 
             <button
               type="button"
@@ -378,13 +417,14 @@ export default function AnimalSwipeCard({
                 event.stopPropagation();
                 handleInfo();
               }}
+              aria-label="Voir la fiche"
               className="
-                flex h-[52px] w-[52px]
+                flex h-[48px] w-[48px]
                 shrink-0
                 items-center justify-center
                 rounded-full
                 bg-[#fffaf4]
-                text-[26px]
+                text-[24px]
                 font-bold
                 text-[#706d66]
                 shadow-lg
@@ -393,59 +433,117 @@ export default function AnimalSwipeCard({
               i
             </button>
 
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleFavorite();
-              }}
-              className="
-                flex h-[52px] w-[52px]
-                shrink-0
-                items-center justify-center
-                text-[44px]
-                font-light
-                leading-none
-                text-[#f17f98]
-              "
-            >
-              ♡
-            </button>
-
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 pr-[72px]">
 
-            {animal.character_1 && (
-              <Tag>{animal.character_1}</Tag>
+            <p className="truncate text-[15px] font-semibold">
+              {associationName}
+            </p>
+
+            {(city || island) && (
+              <p className="mt-1 truncate text-[14px]">
+                📍{" "}
+                {[city, island]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             )}
 
-            {animal.character_2 && (
-              <Tag>{animal.character_2}</Tag>
-            )}
+            <div className="mt-3 flex flex-wrap gap-2">
 
-            {animal.character_3 && (
-              <Tag>{animal.character_3}</Tag>
-            )}
+              {animal.character_1 && (
+                <Tag>
+                  {animal.character_1}
+                </Tag>
+              )}
 
-            {!animal.character_1 && (
-              <>
-                {isVaccinated && (
-                  <Tag>Vacciné</Tag>
-                )}
+              {animal.character_2 && (
+                <Tag>
+                  {animal.character_2}
+                </Tag>
+              )}
 
-                {isMicrochipped && (
-                  <Tag>Identifié</Tag>
-                )}
-              </>
-            )}
+              {animal.character_3 && (
+                <Tag>
+                  {animal.character_3}
+                </Tag>
+              )}
 
+              {!animal.character_1 && (
+                <>
+                  {isVaccinated && (
+                    <Tag>Vacciné</Tag>
+                  )}
+
+                  {isMicrochipped && (
+                    <Tag>Identifié</Tag>
+                  )}
+                </>
+              )}
+
+            </div>
           </div>
+
+          {/* LOGO ASSOCIATION / CRÉATEUR */}
+          <div
+            className="
+              absolute
+              bottom-0
+              right-0
+              flex
+              flex-col
+              items-center
+            "
+          >
+            {associationLogo ? (
+              <img
+                src={associationLogo}
+                alt={associationName}
+                className="
+                  h-[60px]
+                  w-[60px]
+                  rounded-full
+                  border-[3px]
+                  border-white
+                  bg-white
+                  object-cover
+                  shadow-[0_4px_14px_rgba(0,0,0,.25)]
+                "
+              />
+            ) : (
+              <div
+                className="
+                  flex h-[60px] w-[60px]
+                  items-center justify-center
+                  rounded-full
+                  border-[3px]
+                  border-white
+                  bg-[#fffaf4]
+                  text-[26px]
+                  shadow-[0_4px_14px_rgba(0,0,0,.25)]
+                "
+              >
+                🐾
+              </div>
+            )}
+          </div>
+
         </div>
       </article>
 
       {/* ACTIONS */}
-      <div className="grid shrink-0 grid-cols-3 gap-2 pb-1 pt-3">
+      <div
+        className="
+          grid
+          shrink-0
+          grid-cols-3
+          items-start
+          gap-2
+          pb-3
+          pt-3
+        "
+      >
 
         <ActionButton
           icon="×"
@@ -455,7 +553,8 @@ export default function AnimalSwipeCard({
         />
 
         <ActionButton
-          icon="🐾"
+          icon={getAdoptionIcon()}
+          iconClass={getAdoptionPawClass()}
           label="Je veux adopter"
           color="bg-[#ef8196]"
           large
@@ -533,12 +632,14 @@ function ActionButton({
   color,
   onClick,
   large = false,
+  iconClass = "",
 }: {
   icon: string;
   label: string;
   color: string;
   onClick: () => void;
   large?: boolean;
+  iconClass?: string;
 }) {
   return (
     <button
@@ -556,12 +657,21 @@ function ActionButton({
           ${color}
           ${
             large
-              ? "h-[78px] w-[78px] text-[27px]"
-              : "h-[66px] w-[66px] text-[38px]"
+              ? "h-[76px] w-[76px]"
+              : "h-[64px] w-[64px]"
           }
+          ${iconClass}
         `}
       >
-        {icon}
+        <span
+          className={
+            large
+              ? "text-[28px] leading-none"
+              : "text-[36px] leading-none"
+          }
+        >
+          {icon}
+        </span>
       </div>
 
       <span
