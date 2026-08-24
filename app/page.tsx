@@ -385,14 +385,9 @@ export default function HomePage() {
             w-full
             items-start
             justify-center
-            px-0
-            py-0
-            sm:px-4
-            sm:py-4
+            p-0
             md:px-6
-            md:py-6
-            lg:px-10
-            lg:py-8
+            md:py-8
           "
         >
           {loading && (
@@ -676,8 +671,6 @@ function WelcomeModal({
           my-auto
           w-full
           max-w-[430px]
-          sm:max-w-[470px]
-          md:max-w-[520px]
           max-h-[calc(100dvh-24px)]
           overflow-y-auto
           rounded-[30px]
@@ -1109,6 +1102,7 @@ function BottomMenu() {
   const menuPages = [
     { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
     { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
+    { label: "Boutique", href: "/boutique", icon: "🛍️" },
     { label: "Toilettage", href: "/toilettage", icon: "✂️" },
     { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
     { label: "Éducation", href: "/education", icon: "🎓" },
