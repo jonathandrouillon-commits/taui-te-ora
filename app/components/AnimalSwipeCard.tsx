@@ -168,7 +168,6 @@ export default function AnimalSwipeCard({
         router.push(
           `/login?redirect=/animal/${animal.id}`
         );
-
         return;
       }
 
@@ -209,10 +208,6 @@ export default function AnimalSwipeCard({
         pt-2
       "
     >
-      {/* =====================================================
-          SWIPE CARD
-      ====================================================== */}
-
       <article
         onMouseDown={(event) =>
           handleStart(event.clientX)
@@ -250,17 +245,13 @@ export default function AnimalSwipeCard({
         style={{
           transform:
             `translateX(${translateX}px) rotate(${translateX / 25}deg)`,
-
           transition:
             startX === null
               ? "transform .22s ease"
               : "none",
         }}
       >
-        {/* =====================================================
-            PHOTO
-        ====================================================== */}
-
+        {/* PHOTO */}
         <button
           type="button"
           onClick={nextMedia}
@@ -296,10 +287,7 @@ export default function AnimalSwipeCard({
           )}
         </button>
 
-        {/* =====================================================
-            DÉGRADÉ POUR LECTURE
-        ====================================================== */}
-
+        {/* DÉGRADÉ */}
         <div
           className="
             pointer-events-none
@@ -312,10 +300,7 @@ export default function AnimalSwipeCard({
           "
         />
 
-        {/* =====================================================
-            LOGO TAUI TE ORA
-        ====================================================== */}
-
+        {/* LOGO TAUI TE ORA */}
         <div
           className="
             pointer-events-none
@@ -339,22 +324,18 @@ export default function AnimalSwipeCard({
           />
         </div>
 
-        {/* =====================================================
-            INFORMATIONS À GAUCHE
-            Zone limitée pour ne jamais toucher au prénom
-        ====================================================== */}
-
+        {/* INFOS GAUCHE : ÂGE / SEXE / SANTÉ */}
         <div
           className="
             absolute
             left-3
-            top-[23%]
-            bottom-[205px]
+            top-[18%]
+            bottom-[190px]
             z-30
             flex
             flex-col
             justify-center
-            gap-2
+            gap-1.5
           "
         >
           <InfoBox
@@ -364,11 +345,7 @@ export default function AnimalSwipeCard({
 
           {sex && (
             <InfoBox
-              icon={
-                isFemale(sex)
-                  ? "♀"
-                  : "♂"
-              }
+              icon={isFemale(sex) ? "♀" : "♂"}
               text={String(sex)}
             />
           )}
@@ -379,34 +356,42 @@ export default function AnimalSwipeCard({
               text="Stérilisé"
             />
           )}
+
+          {isVaccinated && (
+            <InfoBox
+              icon="✓"
+              text="Vacciné"
+            />
+          )}
+
+          {isMicrochipped && (
+            <InfoBox
+              icon="⌖"
+              text="Identifié"
+            />
+          )}
         </div>
 
-        {/* =====================================================
-            ZONE INFORMATIONS BAS
-        ====================================================== */}
-
+        {/* INFOS BAS : NOM / ASSO / VILLE / CARACTÈRE */}
         <div
           className="
             absolute
-            bottom-5
+            bottom-1
             left-5
             right-5
             z-30
-            min-h-[165px]
+            min-h-[150px]
             text-white
           "
         >
-          {/* ===================================================
-              PRÉNOM + I SUR UNE SEULE LIGNE
-          ==================================================== */}
-
+          {/* NOM + I */}
           <div
             className="
               flex
-              min-h-[54px]
+              min-h-[52px]
               items-center
               gap-3
-              pr-[76px]
+              pr-[78px]
             "
           >
             <h1
@@ -432,14 +417,14 @@ export default function AnimalSwipeCard({
               aria-label="Voir la fiche"
               className="
                 flex
-                h-[46px]
-                w-[46px]
+                h-[44px]
+                w-[44px]
                 shrink-0
                 items-center
                 justify-center
                 rounded-full
                 bg-[#fffaf4]
-                text-[23px]
+                text-[22px]
                 font-bold
                 text-[#706d66]
                 shadow-lg
@@ -449,11 +434,8 @@ export default function AnimalSwipeCard({
             </button>
           </div>
 
-          {/* ===================================================
-              ASSOCIATION + LOCALISATION
-          ==================================================== */}
-
-          <div className="mt-2 pr-[78px]">
+          {/* ASSO + LOCALISATION */}
+          <div className="mt-1.5 pr-[80px]">
             <p
               className="
                 truncate
@@ -481,12 +463,7 @@ export default function AnimalSwipeCard({
               </p>
             )}
 
-            {/* =================================================
-                SANTÉ / CARACTÈRE
-                Vacciné et identifié restent ici
-                et non dans la colonne gauche
-            ================================================== */}
-
+            {/* CARACTÈRE UNIQUEMENT */}
             <div
               className="
                 mt-3
@@ -513,27 +490,10 @@ export default function AnimalSwipeCard({
                   {animal.character_3}
                 </Tag>
               )}
-
-              {!animal.character_1 &&
-                isVaccinated && (
-                  <Tag>
-                    Vacciné
-                  </Tag>
-                )}
-
-              {!animal.character_1 &&
-                isMicrochipped && (
-                  <Tag>
-                    Identifié
-                  </Tag>
-                )}
             </div>
           </div>
 
-          {/* ===================================================
-              LOGO ASSOCIATION / CRÉATEUR
-          ==================================================== */}
-
+          {/* LOGO ASSOCIATION / CRÉATEUR */}
           <div
             className="
               absolute
@@ -583,10 +543,7 @@ export default function AnimalSwipeCard({
         </div>
       </article>
 
-      {/* =====================================================
-          ACTIONS SOUS LA CARTE
-      ====================================================== */}
-
+      {/* ACTIONS */}
       <div
         className="
           grid
@@ -598,8 +555,6 @@ export default function AnimalSwipeCard({
           pt-3
         "
       >
-        {/* PASSER */}
-
         <ActionButton
           icon="×"
           label="Passer"
@@ -607,11 +562,7 @@ export default function AnimalSwipeCard({
           onClick={handlePass}
         />
 
-        {/* ===================================================
-            ADOPTER
-            Image selon espèce + sexe
-        ==================================================== */}
-
+        {/* ADOPTER SELON ESPÈCE + SEXE */}
         <button
           type="button"
           onClick={handleAdopt}
@@ -662,8 +613,6 @@ export default function AnimalSwipeCard({
           </span>
         </button>
 
-        {/* COUP DE CŒUR */}
-
         <ActionButton
           icon="♥"
           label="Coup de cœur"
@@ -689,8 +638,6 @@ function getAdoptionIcon(
 
   const female = isFemale(sex);
 
-  /* CHIEN */
-
   if (
     type.includes("chien") ||
     type.includes("dog") ||
@@ -700,8 +647,6 @@ function getAdoptionIcon(
       ? "/adopt-dog-female.png"
       : "/adopt-dog-male.png";
   }
-
-  /* CHAT */
 
   if (
     type.includes("chat") ||
@@ -713,8 +658,6 @@ function getAdoptionIcon(
       : "/adopt-cat-male.png";
   }
 
-  /* CHEVAL */
-
   if (
     type.includes("cheval") ||
     type.includes("horse") ||
@@ -723,8 +666,6 @@ function getAdoptionIcon(
   ) {
     return "/adopt-horse.png";
   }
-
-  /* PAR DÉFAUT */
 
   return female
     ? "/adopt-dog-female.png"
@@ -749,7 +690,7 @@ function isFemale(sex: string) {
 }
 
 /* =========================================================
-   NORMALISATION TEXTE
+   NORMALISATION
 ========================================================= */
 
 function normalizeText(
@@ -766,7 +707,7 @@ function normalizeText(
 }
 
 /* =========================================================
-   BLOC INFORMATION GAUCHE
+   INFO BOX GAUCHE
 ========================================================= */
 
 function InfoBox({
@@ -780,16 +721,15 @@ function InfoBox({
     <div
       className="
         flex
-        min-h-[58px]
-        w-[60px]
+        h-[49px]
+        w-[58px]
         shrink-0
         flex-col
         items-center
         justify-center
-        rounded-[17px]
+        rounded-[15px]
         bg-[#fffaf5]/94
         px-1
-        py-2
         text-center
         shadow-md
         backdrop-blur
@@ -797,7 +737,7 @@ function InfoBox({
     >
       <span
         className="
-          text-[18px]
+          text-[15px]
           leading-none
           text-[#e58fa5]
         "
@@ -807,11 +747,11 @@ function InfoBox({
 
       <span
         className="
-          mt-1.5
-          line-clamp-2
-          text-[10px]
+          mt-1
+          line-clamp-1
+          text-[8.5px]
           font-semibold
-          leading-tight
+          leading-none
           text-[#54504c]
         "
       >
@@ -822,7 +762,7 @@ function InfoBox({
 }
 
 /* =========================================================
-   TAGS
+   TAG CARACTÈRE
 ========================================================= */
 
 function Tag({
