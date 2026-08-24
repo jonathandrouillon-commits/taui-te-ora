@@ -1,80 +1,193 @@
 "use client";
 
 import Link from "next/link";
-import type { Like } from "../../lib/dashboard";
+import type {
+  Like,
+} from "../../lib/dashboard";
 
 type DashboardLikesProps = {
   likes: Like[];
 };
 
-export default function DashboardLikes({ likes }: DashboardLikesProps) {
+export default function DashboardLikes({
+  likes,
+}: DashboardLikesProps) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-md">
-      <h2 className="mb-5 text-2xl font-bold text-[#2f241c]">
-        Mes animaux likés ❤️
-      </h2>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold text-[#2f241c]">
+          Animaux coup de cœur ❤️
+        </h2>
+
+        {likes.length > 0 && (
+          <Link
+            href="/favorites"
+            className="text-sm font-bold text-[#df687c]"
+          >
+            Voir tous
+          </Link>
+        )}
+      </div>
 
       {likes.length === 0 ? (
         <div className="rounded-2xl bg-[#f8f4ec] p-5">
           <p className="text-[#6f5a47]">
-            Tu n'as pas encore liké d'animal.
+            Tu n&apos;as pas encore ajouté
+            d&apos;animal à tes coups de cœur.
           </p>
 
           <Link
-            href="/adoption"
+            href="/"
             className="mt-5 inline-block rounded-full bg-[#9c7b54] px-5 py-3 text-sm font-semibold text-white"
           >
-            Voir les animaux
+            Découvrir les animaux
           </Link>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {likes.map((like) => {
-            const animal = like.animals;
-            const animalName = animal?.animal_name || "Animal";
-            const animalSubtitle = `${animal?.animal_type || "Animal"} · ${
-              animal?.age_label || "Âge non renseigné"
-            } · ${animal?.sex || "Sexe non renseigné"}`;
+        <div
+          className="
+            grid
+            gap-4
 
-            return (
-              <div
-                key={like.id}
-                className="overflow-hidden rounded-[1.7rem] border border-[#eadfce] bg-[#f8f4ec]"
-              >
-                <div className="flex h-56 items-center justify-center bg-[#eadfce] text-5xl">
-                  🐶
-                </div>
+            sm:grid-cols-2
+            lg:grid-cols-3
+          "
+        >
+          {likes.map(
+            (like) => {
+              const animal =
+                like.animals;
 
-                <div className="p-5">
-                  <h3 className="text-xl font-bold text-[#2f241c]">
-                    {animalName}
-                  </h3>
+              const photos =
+                Array.isArray(
+                  animal?.animal_photos
+                )
+                  ? animal
+                      ?.animal_photos
+                  : [];
 
-                  <p className="mt-1 text-sm text-[#6f5a47]">
-                    {animalSubtitle}
-                  </p>
+              const cover =
+                photos.find(
+                  (photo) =>
+                    photo.is_cover
+                ) ||
+                photos[0];
 
-                  <p className="mt-1 text-sm text-[#9c7b54]">
-                    {animal?.association_name || "Association non renseignée"}
-                  </p>
+              const photoUrl =
+                cover?.photo_url ||
+                "";
 
-                  <p className="mt-1 text-sm text-[#6f5a47]">
-                    {animal?.city || "Ville non renseignée"} ·{" "}
-                    {animal?.island || "Île non renseignée"}
-                  </p>
+              return (
+                <article
+                  key={
+                    like.id
+                  }
+                  className="
+                    overflow-hidden
+                    rounded-[24px]
+                    border
+                    border-[#eadfce]
+                    bg-[#f8f4ec]
+                  "
+                >
+                  <Link
+                    href={`/animal/${like.animal_id}`}
+                    className="block"
+                  >
+                    <div
+                      className="
+                        aspect-[4/3]
+                        overflow-hidden
+                        bg-[#eadfce]
+                      "
+                    >
+                      {photoUrl ? (
+                        <img
+                          src={
+                            photoUrl
+                          }
+                          alt={
+                            animal
+                              ?.animal_name ||
+                            "Animal"
+                          }
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                            transition
+                            hover:scale-[1.03]
+                          "
+                        />
+                      ) : (
+                        <div
+                          className="
+                            flex
+                            h-full
+                            items-center
+                            justify-center
+                            text-5xl
+                          "
+                        >
+                          🐾
+                        </div>
+                      )}
+                    </div>
+                  </Link>
 
-                  {animal?.id && (
+                  <div className="p-4">
+                    <h3 className="text-lg font-black text-[#2f241c]">
+                      {animal
+                        ?.animal_name ||
+                        "Animal"}
+                    </h3>
+
+                    <p className="mt-1 text-sm text-[#6f5a47]">
+                      {animal
+                        ?.animal_type ||
+                        "Animal"}
+                      {animal
+                        ?.age_label
+                        ? ` · ${animal.age_label}`
+                        : ""}
+                    </p>
+
+                    <p className="mt-1 text-sm text-[#6f5a47]">
+                      📍{" "}
+                      {[
+                        animal?.city,
+                        animal?.island,
+                      ]
+                        .filter(
+                          Boolean
+                        )
+                        .join(
+                          " · "
+                        ) ||
+                        "Localisation non renseignée"}
+                    </p>
+
                     <Link
-                      href={`/animal/${animal.id}`}
-                      className="mt-4 inline-block rounded-full bg-[#2f241c] px-5 py-2 text-sm font-semibold text-white"
+                      href={`/animal/${like.animal_id}`}
+                      className="
+                        mt-4
+                        inline-flex
+                        rounded-full
+                        bg-[#064b42]
+                        px-5
+                        py-2.5
+                        text-sm
+                        font-bold
+                        text-white
+                      "
                     >
                       Voir le profil
                     </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                </article>
+              );
+            }
+          )}
         </div>
       )}
     </section>
