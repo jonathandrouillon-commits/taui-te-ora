@@ -416,7 +416,7 @@ export default function AnimalSwipeCard({
         flex-col
         items-center
         px-0
-        pb-[112px]
+        pb-[76px]
         pt-0
         sm:px-4
         sm:pb-[122px]
@@ -453,9 +453,9 @@ export default function AnimalSwipeCard({
         className="
           relative
           isolate
-          h-[calc(100dvh-250px)]
-          min-h-[480px]
-          max-h-[660px]
+          h-[calc(100dvh-188px)]
+          min-h-[540px]
+          max-h-none
           w-full
           max-w-[455px]
           select-none
@@ -1020,7 +1020,9 @@ export default function AnimalSwipeCard({
 
       <div
         className="
-          mt-2
+          relative
+          z-[70]
+          -mt-[104px]
           grid
           w-full
           max-w-[455px]
@@ -1028,10 +1030,14 @@ export default function AnimalSwipeCard({
           items-start
           gap-2
           px-3
+          pb-2
+
           sm:mt-3
           sm:max-w-[520px]
           sm:gap-3
           sm:px-4
+          sm:pb-0
+
           md:max-w-[560px]
           lg:max-w-[620px]
         "
@@ -1077,7 +1083,10 @@ export default function AnimalSwipeCard({
               mt-1.5
               text-[11px]
               font-semibold
-              text-[#3e3a37]
+              text-white
+              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              sm:text-[#3e3a37]
+              sm:drop-shadow-none
             "
           >
             Passer
@@ -1133,7 +1142,10 @@ export default function AnimalSwipeCard({
               whitespace-nowrap
               text-[11px]
               font-semibold
-              text-[#3e3a37]
+              text-white
+              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              sm:text-[#3e3a37]
+              sm:drop-shadow-none
             "
           >
             Je veux adopter
@@ -1183,7 +1195,10 @@ export default function AnimalSwipeCard({
               whitespace-nowrap
               text-[11px]
               font-semibold
-              text-[#3e3a37]
+              text-white
+              drop-shadow-[0_2px_4px_rgba(0,0,0,.75)]
+              sm:text-[#3e3a37]
+              sm:drop-shadow-none
             "
           >
             Coup de cœur

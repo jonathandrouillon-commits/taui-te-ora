@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
+import { compatibilityService } from "../../../services/compatibility.service";
 
 /* =========================================================
    ADMIN TAUI TE ORA
@@ -341,7 +342,20 @@ export default function AdoptionQuestionnairePage() {
         `
           id,
           animal_name,
-          owner_id
+          owner_id,
+          garden_requirement,
+          enfants_moins_8,
+          enfants_8_14,
+          enfants_15_plus,
+          foyer_chiens,
+          foyer_chats,
+          foyer_autres,
+          activity_level,
+          experience_recommandee,
+          handicap,
+          traitement_regulier,
+          craintif_traumatise,
+          education_a_poursuivre
         `
       )
       .eq("id", animalId)
@@ -357,6 +371,29 @@ export default function AdoptionQuestionnairePage() {
       );
     }
 
+    /* =====================================================
+       CALCUL DE COMPATIBILITÉ
+
+       Le score est calculé à partir :
+       - des réponses du questionnaire actuel
+       - des critères renseignés sur la fiche animal
+
+       Le résultat est figé dans adoption_requests.
+    ===================================================== */
+
+    setStatusMessage(
+      "Calcul de votre compatibilité..."
+    );
+
+    const matchResult =
+      compatibilityService.calculate(
+        form,
+        animal
+      );
+
+    const matchCalculatedAt =
+      new Date().toISOString();
+
     const {
       data: existingRequest,
       error: searchError,
@@ -369,7 +406,11 @@ export default function AdoptionQuestionnairePage() {
           requester_id,
           owner_id,
           status,
-          message
+          message,
+          match_score,
+          match_level,
+          match_details,
+          match_calculated_at
         `
       )
       .eq("animal_id", animalId)
@@ -381,10 +422,46 @@ export default function AdoptionQuestionnairePage() {
     }
 
     if (existingRequest) {
+      const {
+        data: updatedRequest,
+        error: updateMatchError,
+      } = await supabase
+        .from("adoption_requests")
+        .update({
+          match_score:
+            matchResult.score,
+
+          match_level:
+            matchResult.level,
+
+          match_details:
+            matchResult.details,
+
+          match_calculated_at:
+            matchCalculatedAt,
+        })
+        .eq(
+          "id",
+          existingRequest.id
+        )
+        .eq(
+          "requester_id",
+          userId
+        )
+        .select()
+        .single();
+
+      if (updateMatchError) {
+        throw updateMatchError;
+      }
+
       return {
-        request: existingRequest,
+        request:
+          updatedRequest ||
+          existingRequest,
         animal,
         isNew: false,
+        match: matchResult,
       };
     }
 
@@ -411,6 +488,18 @@ export default function AdoptionQuestionnairePage() {
             animal.animal_name ||
             "cet animal"
           }.`,
+
+        match_score:
+          matchResult.score,
+
+        match_level:
+          matchResult.level,
+
+        match_details:
+          matchResult.details,
+
+        match_calculated_at:
+          matchCalculatedAt,
       })
       .select()
       .single();
@@ -423,6 +512,7 @@ export default function AdoptionQuestionnairePage() {
       request,
       animal,
       isNew: true,
+      match: matchResult,
     };
   }
 
@@ -786,10 +876,23 @@ export default function AdoptionQuestionnairePage() {
         request,
         animal,
         isNew: isNewRequest,
+        match,
       } =
         await getOrCreateAdoptionRequest(
           user.id
         );
+
+      console.log(
+        "MATCH ADOPTION :",
+        {
+          score:
+            match?.score,
+          level:
+            match?.level,
+          details:
+            match?.details,
+        }
+      );
 
       /* 3 — CONVERSATION */
 
