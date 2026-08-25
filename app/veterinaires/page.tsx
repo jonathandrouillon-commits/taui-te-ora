@@ -1,37 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  Mail,
-  MapPin,
-  Phone,
-  Search,
-  Stethoscope,
-} from "lucide-react";
+import AnimalSwipeCard from "./components/AnimalSwipeCard";
+import TauiPageBackground from "./components/ui/TauiPageBackground";
 
-import TauiPageBackground from "../components/ui/TauiPageBackground";
+import { animalService } from "./services/animal.service";
+import { favoriteService } from "./services/favorite.service";
 
-import {
-  supabase,
-} from "../lib/supabase";
+import { supabase } from "./lib/supabase";
 
-type Veterinaire = {
-  id: string;
-
-  island: string | null;
-  name: string;
-  city: string | null;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-
-  is_active?: boolean | null;
-};
+type AnimalFilter =
+  | "chien"
+  | "chat"
+  | "cheval"
+  | "autre";
 
 type Ad = {
   id: string;
@@ -46,10 +35,722 @@ type Ad = {
   priority: number;
 };
 
-function VeterinaireAdCard({
+type SwipeItem =
+  | {
+      kind: "animal";
+      id: string;
+      animal: any;
+    }
+  | {
+      kind: "ad";
+      id: string;
+      ad: Ad;
+    };
+
+const FILTER_STORAGE_KEY =
+  "taui-selected-animal-types";
+
+const WELCOME_STORAGE_KEY =
+  "taui-welcome-seen";
+
+export default function HomePage() {
+  const router = useRouter();
+
+  const [animals, setAnimals] =
+    useState<any[]>([]);
+
+  const [ads, setAds] =
+    useState<Ad[]>([]);
+
+  const [
+    currentIndex,
+    setCurrentIndex,
+  ] = useState(0);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [
+    favoriteRestored,
+    setFavoriteRestored,
+  ] = useState(false);
+
+  const [
+    welcomeOpen,
+    setWelcomeOpen,
+  ] = useState(false);
+
+  const [
+    welcomeReady,
+    setWelcomeReady,
+  ] = useState(false);
+
+  const [
+    selectedTypes,
+    setSelectedTypes,
+  ] = useState<AnimalFilter[]>([]);
+
+  useEffect(() => {
+    void loadAnimals();
+    void loadAds();
+    void loadWelcomePreferences();
+  }, []);
+
+  useEffect(() => {
+    restoreFavoriteAfterLogin();
+  }, []);
+
+  async function loadWelcomePreferences() {
+    try {
+      const alreadySeen =
+        sessionStorage.getItem(
+          WELCOME_STORAGE_KEY
+        );
+
+      const savedFilters =
+        sessionStorage.getItem(
+          FILTER_STORAGE_KEY
+        );
+
+      if (savedFilters) {
+        const parsed =
+          JSON.parse(savedFilters);
+
+        if (Array.isArray(parsed)) {
+          setSelectedTypes(
+            parsed.filter(
+              (
+                value
+              ): value is AnimalFilter =>
+                [
+                  "chien",
+                  "chat",
+                  "cheval",
+                  "autre",
+                ].includes(value)
+            )
+          );
+        }
+      }
+
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (user) {
+        setWelcomeOpen(false);
+
+        sessionStorage.setItem(
+          WELCOME_STORAGE_KEY,
+          "yes"
+        );
+
+        return;
+      }
+
+      setWelcomeOpen(
+        alreadySeen !== "yes"
+      );
+    } catch (error) {
+      console.error(
+        "Erreur préférence accueil :",
+        error
+      );
+
+      setWelcomeOpen(true);
+    } finally {
+      setWelcomeReady(true);
+    }
+  }
+
+  function toggleAnimalType(
+    type: AnimalFilter
+  ) {
+    setSelectedTypes(
+      (previous) => {
+        if (
+          previous.includes(type)
+        ) {
+          return previous.filter(
+            (item) =>
+              item !== type
+          );
+        }
+
+        return [
+          ...previous,
+          type,
+        ];
+      }
+    );
+  }
+
+  function startDiscovery() {
+    try {
+      sessionStorage.setItem(
+        WELCOME_STORAGE_KEY,
+        "yes"
+      );
+
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify(
+          selectedTypes
+        )
+      );
+    } catch {
+      // rien
+    }
+
+    setCurrentIndex(0);
+    setWelcomeOpen(false);
+  }
+
+  function showAllAnimals() {
+    setSelectedTypes([]);
+
+    try {
+      sessionStorage.setItem(
+        WELCOME_STORAGE_KEY,
+        "yes"
+      );
+
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify([])
+      );
+    } catch {
+      // rien
+    }
+
+    setCurrentIndex(0);
+    setWelcomeOpen(false);
+  }
+
+  async function restoreFavoriteAfterLogin() {
+    try {
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+      const favoriteAnimalId =
+        params.get("favorite");
+
+      if (!favoriteAnimalId) {
+        return;
+      }
+
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (!user) {
+        return;
+      }
+
+      await favoriteService.add(
+        favoriteAnimalId
+      );
+
+      setFavoriteRestored(true);
+
+      router.replace("/");
+
+      window.setTimeout(() => {
+        setFavoriteRestored(false);
+      }, 2500);
+    } catch (error) {
+      console.error(
+        "Erreur restauration coup de cœur :",
+        error
+      );
+    }
+  }
+
+  async function loadAnimals() {
+    try {
+      setLoading(true);
+
+      const data =
+        await animalService.getPublishedWithPhotos();
+
+      setAnimals(
+        data || []
+      );
+
+      setCurrentIndex(0);
+    } catch (error) {
+      console.error(
+        "Erreur chargement animaux :",
+        error
+      );
+
+      setAnimals([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAds() {
+    try {
+      const { data, error } = await supabase
+        .from("ads")
+        .select(
+          `
+            id,
+            advertiser_name,
+            title,
+            description,
+            image_url,
+            logo_url,
+            button_text,
+            target_url,
+            placement,
+            priority
+          `
+        )
+        .eq("placement", "swipe")
+        .order("priority", {
+          ascending: false,
+        })
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setAds(
+        (data || []) as Ad[]
+      );
+    } catch (error) {
+      console.error(
+        "Erreur chargement publicités :",
+        error
+      );
+
+      setAds([]);
+    }
+  }
+
+  const filteredAnimals =
+    useMemo(() => {
+      if (
+        selectedTypes.length === 0
+      ) {
+        return animals;
+      }
+
+      return animals.filter(
+        (animal) => {
+          const type =
+            String(
+              animal?.animal_type ||
+                animal?.type ||
+                ""
+            )
+              .trim()
+              .toLowerCase();
+
+          const isDog =
+            type.includes("chien") ||
+            type.includes("dog");
+
+          const isCat =
+            type.includes("chat") ||
+            type.includes("cat");
+
+          const isHorse =
+            type.includes("cheval") ||
+            type.includes("horse");
+
+          return selectedTypes.some(
+            (selected) => {
+              if (
+                selected === "chien"
+              ) {
+                return isDog;
+              }
+
+              if (
+                selected === "chat"
+              ) {
+                return isCat;
+              }
+
+              if (
+                selected === "cheval"
+              ) {
+                return isHorse;
+              }
+
+              if (
+                selected === "autre"
+              ) {
+                return (
+                  !isDog &&
+                  !isCat &&
+                  !isHorse
+                );
+              }
+
+              return false;
+            }
+          );
+        }
+      );
+    }, [
+      animals,
+      selectedTypes,
+    ]);
+
+  const swipeItems =
+    useMemo<SwipeItem[]>(() => {
+      const items: SwipeItem[] = [];
+
+      let adIndex = 0;
+
+      filteredAnimals.forEach(
+        (animal, index) => {
+          items.push({
+            kind: "animal",
+            id: `animal-${animal.id}`,
+            animal,
+          });
+
+          const shouldInsertAd =
+            ads.length > 0 &&
+            (
+              index === 0 ||
+              (
+                index > 0 &&
+                index % 3 === 0
+              )
+            ) &&
+            index <
+              filteredAnimals.length - 1;
+
+          if (shouldInsertAd) {
+            const ad =
+              ads[
+                adIndex %
+                  ads.length
+              ];
+
+            items.push({
+              kind: "ad",
+              id: `ad-${ad.id}-${index}`,
+              ad,
+            });
+
+            adIndex += 1;
+          }
+        }
+      );
+
+      return items;
+    }, [
+      filteredAnimals,
+      ads,
+    ]);
+
+  function goNext() {
+    setCurrentIndex(
+      (previousIndex) =>
+        previousIndex + 1
+    );
+  }
+
+  const currentItem =
+    swipeItems[
+      currentIndex
+    ];
+
+  const currentAnimal =
+    currentItem?.kind ===
+    "animal"
+      ? currentItem.animal
+      : null;
+
+  const currentAd =
+    currentItem?.kind ===
+    "ad"
+      ? currentItem.ad
+      : null;
+
+  const filterCount =
+    selectedTypes.length;
+
+  return (
+    <TauiPageBackground>
+      <div className="relative min-h-[100dvh] w-full">
+
+        {favoriteRestored && (
+          <div
+            className="
+              fixed
+              left-1/2
+              top-5
+              z-[300]
+              -translate-x-1/2
+              whitespace-nowrap
+              rounded-full
+              bg-white/95
+              px-5
+              py-3
+              font-black
+              text-[#df687c]
+              shadow-xl
+              backdrop-blur
+            "
+          >
+            ❤️ Coup de cœur enregistré
+          </div>
+        )}
+
+        <section
+          className="
+            flex
+            min-h-[calc(100dvh-74px)]
+            w-full
+            items-start
+            justify-center
+            p-0
+            md:px-6
+            md:py-8
+          "
+        >
+          {loading && (
+            <div
+              className="
+                flex
+                min-h-[calc(100dvh-74px)]
+                w-full
+                items-center
+                justify-center
+              "
+            >
+              <div
+                className="
+                  rounded-3xl
+                  bg-white/90
+                  px-8
+                  py-6
+                  text-center
+                  shadow-xl
+                  backdrop-blur-md
+                "
+              >
+                <div
+                  className="
+                    mx-auto
+                    h-10
+                    w-10
+                    animate-spin
+                    rounded-full
+                    border-4
+                    border-[#efd5d7]
+                    border-t-[#df8995]
+                  "
+                />
+
+                <p
+                  className="
+                    mt-4
+                    font-bold
+                    text-[#667568]
+                  "
+                >
+                  Chargement des animaux...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!loading &&
+            currentAnimal && (
+              <AnimalSwipeCard
+                animal={
+                  currentAnimal
+                }
+                onPass={
+                  goNext
+                }
+                onFavorite={
+                  goNext
+                }
+                onOpenFilter={() =>
+                  setWelcomeOpen(
+                    true
+                  )
+                }
+                filterCount={
+                  filterCount
+                }
+              />
+            )}
+
+          {!loading &&
+            currentAd && (
+              <SwipeAdCard
+                ad={currentAd}
+                onNext={goNext}
+                onOpenFilter={() =>
+                  setWelcomeOpen(
+                    true
+                  )
+                }
+                filterCount={
+                  filterCount
+                }
+              />
+            )}
+
+          {!loading &&
+            !currentItem && (
+              <div
+                className="
+                  flex
+                  min-h-[calc(100dvh-74px)]
+                  w-full
+                  items-center
+                  justify-center
+                  px-5
+                "
+              >
+                <div
+                  className="
+                    max-w-md
+                    rounded-[32px]
+                    bg-white/90
+                    p-8
+                    text-center
+                    shadow-xl
+                    backdrop-blur-md
+                  "
+                >
+                  <div className="text-6xl">
+                    🐾
+                  </div>
+
+                  <h2
+                    className="
+                      mt-4
+                      text-2xl
+                      font-black
+                      text-[#667568]
+                    "
+                  >
+                    {filterCount > 0
+                      ? "Pas d'autre rencontre pour ce filtre"
+                      : "Aucun autre animal à afficher"}
+                  </h2>
+
+                  <p className="mt-3 text-gray-600">
+                    {filterCount > 0
+                      ? "Essayez d'élargir votre sélection pour découvrir d'autres animaux."
+                      : "Vous avez parcouru tous les animaux disponibles pour le moment."}
+                  </p>
+
+                  {filterCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWelcomeOpen(
+                          true
+                        )
+                      }
+                      className="
+                        mt-6
+                        rounded-full
+                        bg-[#ef919b]
+                        px-6
+                        py-3
+                        font-black
+                        text-white
+                        shadow-lg
+                      "
+                    >
+                      Modifier mes choix
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={
+                        loadAnimals
+                      }
+                      className="
+                        mt-6
+                        rounded-full
+                        bg-[#ef919b]
+                        px-6
+                        py-3
+                        font-black
+                        text-white
+                        shadow-lg
+                      "
+                    >
+                      Recommencer
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+        </section>
+
+        <BottomMenu />
+
+        {welcomeReady &&
+          welcomeOpen && (
+            <WelcomeModal
+              selectedTypes={
+                selectedTypes
+              }
+              toggleAnimalType={
+                toggleAnimalType
+              }
+              onStart={
+                startDiscovery
+              }
+              onShowAll={
+                showAllAnimals
+              }
+              onClose={() => {
+                const alreadySeen =
+                  sessionStorage.getItem(
+                    WELCOME_STORAGE_KEY
+                  );
+
+                if (
+                  alreadySeen === "yes"
+                ) {
+                  setWelcomeOpen(
+                    false
+                  );
+                }
+              }}
+              router={router}
+            />
+          )}
+      </div>
+    </TauiPageBackground>
+  );
+}
+
+function SwipeAdCard({
   ad,
+  onNext,
+  onOpenFilter,
+  filterCount,
 }: {
   ad: Ad;
+  onNext: () => void;
+  onOpenFilter: () => void;
+  filterCount: number;
 }) {
   const [
     impressionSent,
@@ -63,40 +764,28 @@ function VeterinaireAdCard({
 
     setImpressionSent(true);
 
-    void supabase
-      .rpc(
-        "track_ad_impression",
-        {
-          p_ad_id: ad.id,
-        }
-      )
-      .then(
-        ({ error }) => {
-          if (error) {
-            console.error(
-              "Erreur impression publicité :",
-              error
-            );
-          }
-        }
-      );
+    void supabase.rpc(
+      "track_ad_impression",
+      {
+        p_ad_id: ad.id,
+      }
+    );
   }, [
     ad.id,
     impressionSent,
   ]);
 
-  async function handleAdClick() {
-    const { error } =
+  async function handleClick() {
+    try {
       await supabase.rpc(
         "track_ad_click",
         {
           p_ad_id: ad.id,
         }
       );
-
-    if (error) {
+    } catch (error) {
       console.error(
-        "Erreur clic publicité :",
+        "Erreur tracking clic publicité :",
         error
       );
     }
@@ -111,1115 +800,903 @@ function VeterinaireAdCard({
   }
 
   return (
-    <article
+    <div className="flex w-full justify-center px-3 md:px-0">
+      <article className="relative w-full max-w-[470px] overflow-hidden rounded-[30px] bg-white shadow-[0_20px_60px_rgba(61,49,44,.18)]">
+        <div className="relative">
+          {ad.image_url ? (
+            <div className="h-[58dvh] min-h-[430px] max-h-[640px] bg-[#eee7df]">
+              <img
+                src={ad.image_url}
+                alt={ad.title}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex h-[58dvh] min-h-[430px] max-h-[640px] items-center justify-center bg-gradient-to-br from-[#064b42] to-[#0a796b] px-10 text-center text-white">
+              <div>
+                <div className="text-6xl">
+                  ✨
+                </div>
+
+                <h2 className="mt-5 text-3xl font-black">
+                  {ad.title}
+                </h2>
+              </div>
+            </div>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-5 pb-6 pt-24 text-white">
+            <div className="flex items-center gap-3">
+              {ad.logo_url && (
+                <img
+                  src={ad.logo_url}
+                  alt={ad.advertiser_name}
+                  className="h-12 w-12 rounded-full bg-white object-contain p-1 shadow"
+                />
+              )}
+
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">
+                  Sponsorisé
+                </p>
+
+                <p className="mt-0.5 text-sm font-black uppercase">
+                  {ad.advertiser_name}
+                </p>
+              </div>
+            </div>
+
+            <h2 className="mt-4 text-3xl font-black leading-tight">
+              {ad.title}
+            </h2>
+
+            {ad.description && (
+              <p className="mt-3 text-sm leading-6 text-white/85">
+                {ad.description}
+              </p>
+            )}
+
+            {ad.target_url && (
+              <button
+                type="button"
+                onClick={handleClick}
+                className="mt-5 w-full rounded-full bg-white px-5 py-3.5 font-black text-[#064b42] shadow-lg"
+              >
+                {ad.button_text ||
+                  "Découvrir"}
+              </button>
+            )}
+          </div>
+
+          <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#064b42] shadow">
+            Sponsorisé
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 bg-[#fffaf7] p-4">
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-full border border-[#eadfd8] bg-white px-5 py-3 font-black text-[#746c66]"
+          >
+            ← Next time
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenFilter}
+            className="rounded-full bg-[#f3e7df] px-5 py-3 font-black text-[#064b42]"
+          >
+            Filtres
+            {filterCount > 0
+              ? ` (${filterCount})`
+              : ""}
+          </button>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+/* =========================================================
+   FENETRE ACCUEIL / FILTRE
+========================================================= */
+
+function WelcomeModal({
+  selectedTypes,
+  toggleAnimalType,
+  onStart,
+  onShowAll,
+  onClose,
+  router,
+}: {
+  selectedTypes: AnimalFilter[];
+
+  toggleAnimalType: (
+    type: AnimalFilter
+  ) => void;
+
+  onStart: () => void;
+
+  onShowAll: () => void;
+
+  onClose: () => void;
+
+  router: ReturnType<
+    typeof useRouter
+  >;
+}) {
+  const options: {
+    type: AnimalFilter;
+    icon: string;
+    title: string;
+  }[] = [
+    {
+      type: "chien",
+      icon: "🐶",
+      title: "Chien",
+    },
+    {
+      type: "chat",
+      icon: "🐱",
+      title: "Chat",
+    },
+    {
+      type: "cheval",
+      icon: "🐴",
+      title: "Cheval",
+    },
+    {
+      type: "autre",
+      icon: "🐾",
+      title: "Autre",
+    },
+  ];
+
+  return (
+    <div
       className="
-        mt-6
-        overflow-hidden
-        rounded-[28px]
-        border
-        border-white/80
-        bg-white/95
-        shadow-xl
-        backdrop-blur-md
+        fixed
+        inset-0
+        z-[500]
+        flex
+        min-h-[100dvh]
+        items-center
+        justify-center
+        overflow-y-auto
+        bg-[#332c29]/40
+        px-3
+        py-3
+        backdrop-blur-[7px]
+        sm:px-4
+        sm:py-5
       "
     >
       <div
         className="
-          grid
-          md:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]
+          relative
+          my-auto
+          w-full
+          max-w-[430px]
+          max-h-[calc(100dvh-24px)]
+          overflow-y-auto
+          rounded-[30px]
+          border
+          border-white/70
+          bg-[#fffaf7]/95
+          shadow-[0_30px_100px_rgba(38,30,27,.30)]
+          backdrop-blur-2xl
+          sm:rounded-[36px]
         "
       >
-        {ad.image_url ? (
-          <div
-            className="
-              relative
-              min-h-[230px]
-              overflow-hidden
-              bg-[#efe7df]
-              md:min-h-[300px]
-            "
-          >
-            <img
-              src={ad.image_url}
-              alt={ad.title}
-              className="
-                absolute
-                inset-0
-                h-full
-                w-full
-                object-cover
-              "
-            />
-
-            <div
-              className="
-                absolute
-                left-4
-                top-4
-                rounded-full
-                bg-white/95
-                px-3
-                py-1.5
-                text-[10px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                text-[#064b42]
-                shadow
-              "
-            >
-              Sponsorisé
-            </div>
-          </div>
-        ) : (
-          <div
-            className="
-              flex
-              min-h-[230px]
-              items-center
-              justify-center
-              bg-[#064b42]
-              p-8
-              text-center
-              text-white
-              md:min-h-[300px]
-            "
-          >
-            <div>
-              <p
-                className="
-                  text-xs
-                  font-black
-                  uppercase
-                  tracking-[0.25em]
-                  text-white/70
-                "
-              >
-                Sponsorisé
-              </p>
-
-              <p
-                className="
-                  mt-4
-                  text-3xl
-                  font-black
-                "
-              >
-                {ad.advertiser_name}
-              </p>
-            </div>
-          </div>
-        )}
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -right-16
+            -top-16
+            h-40
+            w-40
+            rounded-full
+            bg-[#f8ccd3]/45
+            blur-3xl
+          "
+        />
 
         <div
           className="
+            pointer-events-none
+            absolute
+            -bottom-20
+            -left-12
+            h-48
+            w-48
+            rounded-full
+            bg-[#bfe4da]/40
+            blur-3xl
+          "
+        />
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="
+            absolute
+            right-3
+            top-3
+            z-20
             flex
-            flex-col
+            h-8
+            w-8
+            items-center
             justify-center
-            p-6
-            md:p-8
+            rounded-full
+            bg-white/80
+            text-base
+            text-[#716963]
+            shadow-sm
           "
         >
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-            "
-          >
-            {ad.logo_url && (
-              <img
-                src={ad.logo_url}
-                alt={ad.advertiser_name}
-                className="
-                  h-14
-                  w-14
-                  rounded-full
-                  border
-                  border-[#eee2da]
-                  bg-white
-                  object-contain
-                  p-1
-                  shadow
-                "
-              />
-            )}
+          ×
+        </button>
 
-            <div>
-              <p
-                className="
-                  text-[10px]
-                  font-black
-                  uppercase
-                  tracking-[0.2em]
-                  text-[#b58b5b]
-                "
-              >
-                Partenaire
-              </p>
+        <div
+          className="
+            relative
+            z-10
+            px-4
+            pb-4
+            pt-3
+            sm:px-6
+            sm:pb-6
+            sm:pt-5
+          "
+        >
+          <div className="text-center">
+            <img
+              src="/logo-taui-te-ora.png"
+              alt="Taui Te Ora"
+              className="
+                mx-auto
+                h-[66px]
+                w-[66px]
+                object-contain
+                sm:h-20
+                sm:w-20
+              "
+            />
 
-              <p
-                className="
-                  mt-1
-                  font-black
-                  text-[#064b42]
-                "
-              >
-                {ad.advertiser_name}
-              </p>
-            </div>
-          </div>
-
-          <h2
-            className="
-              mt-5
-              text-2xl
-              font-black
-              leading-tight
-              text-[#064b42]
-              md:text-3xl
-            "
-          >
-            {ad.title}
-          </h2>
-
-          {ad.description && (
             <p
               className="
-                mt-3
-                leading-6
-                text-gray-700
-              "
-            >
-              {ad.description}
-            </p>
-          )}
-
-          {ad.target_url && (
-            <button
-              type="button"
-              onClick={
-                handleAdClick
-              }
-              className="
-                mt-6
-                rounded-full
-                bg-[#df8995]
-                px-6
-                py-3.5
+                mt-0.5
+                text-[8px]
                 font-black
-                text-white
-                shadow-lg
-                transition
-                hover:bg-[#c76d7b]
+                uppercase
+                tracking-[0.22em]
+                text-[#df8995]
+                sm:text-[10px]
               "
             >
-              {ad.button_text ||
-                "Découvrir"}
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
+              Une rencontre peut tout changer
+            </p>
 
-export default function VeterinairesPage() {
-  const [
-    veterinaires,
-    setVeterinaires,
-  ] =
-    useState<Veterinaire[]>(
-      []
-    );
+            <h1
+              className="
+                mx-auto
+                mt-2
+                max-w-[330px]
+                text-[22px]
+                font-black
+                leading-[1.08]
+                tracking-tight
+                text-[#064b42]
+                sm:text-[26px]
+              "
+            >
+              Et si quelqu&apos;un
+              vous attendait déjà ?
+            </h1>
 
-  const [
-    loading,
-    setLoading,
-  ] =
-    useState(true);
-
-  const [
-    error,
-    setError,
-  ] =
-    useState("");
-
-  const [
-    search,
-    setSearch,
-  ] =
-    useState("");
-
-  const [
-    islandFilter,
-    setIslandFilter,
-  ] =
-    useState("");
-
-  const [
-    ads,
-    setAds,
-  ] =
-    useState<Ad[]>([]);
-
-  useEffect(() => {
-    void loadVeterinaires();
-    void loadAds();
-  }, []);
-
-  async function loadVeterinaires() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const {
-        data,
-        error:
-          loadError,
-      } =
-        await supabase
-          .from(
-            "veterinaires"
-          )
-          .select(
-            `
-              id,
-              island,
-              name,
-              city,
-              address,
-              phone,
-              email,
-              is_active
-            `
-          )
-          .eq(
-            "is_active",
-            true
-          )
-          .order(
-            "island",
-            {
-              ascending: true,
-            }
-          )
-          .order(
-            "city",
-            {
-              ascending: true,
-            }
-          )
-          .order(
-            "name",
-            {
-              ascending: true,
-            }
-          );
-
-      if (
-        loadError
-      ) {
-        throw loadError;
-      }
-
-      setVeterinaires(
-        (
-          data || []
-        ) as Veterinaire[]
-      );
-    } catch (
-      err: any
-    ) {
-      console.error(
-        "Erreur chargement vétérinaires :",
-        err
-      );
-
-      setError(
-        err?.message ||
-          "Impossible de charger l'annuaire des vétérinaires."
-      );
-
-      setVeterinaires(
-        []
-      );
-    } finally {
-      setLoading(
-        false
-      );
-    }
-  }
-
-  async function loadAds() {
-    try {
-      const { data, error: adsError } =
-        await supabase
-          .from("ads")
-          .select(
-            `
-              id,
-              advertiser_name,
-              title,
-              description,
-              image_url,
-              logo_url,
-              button_text,
-              target_url,
-              placement,
-              priority
-            `
-          )
-          .eq(
-            "placement",
-            "veterinaires"
-          )
-          .order(
-            "priority",
-            {
-              ascending: false,
-            }
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false,
-            }
-          );
-
-      if (adsError) {
-        throw adsError;
-      }
-
-      setAds(
-        (data || []) as Ad[]
-      );
-    } catch (err) {
-      console.error(
-        "Erreur chargement publicités vétérinaires :",
-        err
-      );
-
-      setAds([]);
-    }
-  }
-
-  const islands =
-    useMemo(() => {
-      return Array.from(
-        new Set(
-          veterinaires
-            .map(
-              (
-                item
-              ) =>
-                item.island
-                  ?.trim()
-            )
-            .filter(
-              Boolean
-            ) as string[]
-        )
-      ).sort(
-        (
-          a,
-          b
-        ) =>
-          a.localeCompare(
-            b,
-            "fr"
-          )
-      );
-    }, [
-      veterinaires,
-    ]);
-
-  const filteredVeterinaires =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
-
-      return veterinaires.filter(
-        (
-          item
-        ) => {
-          if (
-            islandFilter &&
-            item.island !==
-              islandFilter
-          ) {
-            return false;
-          }
-
-          if (
-            !query
-          ) {
-            return true;
-          }
-
-          const searchableText =
-            [
-              item.name,
-              item.city,
-              item.island,
-              item.address,
-              item.phone,
-              item.email,
-            ]
-              .filter(
-                Boolean
-              )
-              .join(
-                " "
-              )
-              .toLowerCase();
-
-          return searchableText.includes(
-            query
-          );
-        }
-      );
-    }, [
-      veterinaires,
-      search,
-      islandFilter,
-    ]);
-
-  return (
-    <TauiPageBackground>
-      <section
-        className="
-          mx-auto
-          max-w-6xl
-          px-4
-          py-10
-          pb-28
-        "
-      >
-        {/* HEADER */}
-
-        <div
-          className="
-            text-center
-          "
-        >
-          <div
-            className="
-              mx-auto
-              flex
-              h-20
-              w-20
-              items-center
-              justify-center
-              rounded-full
-              bg-white/90
-              text-[#064b42]
-              shadow-xl
-            "
-          >
-            <Stethoscope
-              size={38}
-            />
+            <p
+              className="
+                mx-auto
+                mt-1.5
+                max-w-[320px]
+                text-[12px]
+                leading-snug
+                text-[#746c66]
+                sm:text-[13px]
+              "
+            >
+              Dites-nous simplement qui
+              vous aimeriez rencontrer.
+            </p>
           </div>
 
-          <p
-            className="
-              mt-5
-              text-sm
-              font-black
-              uppercase
-              tracking-[0.3em]
-              text-[#b58b5b]
-            "
-          >
-            Annuaire
-          </p>
-
-          <h1
-            className="
-              mt-2
-              text-4xl
-              font-black
-              text-[#064b42]
-              md:text-6xl
-            "
-          >
-            Vétérinaires
-          </h1>
-
-          <p
-            className="
-              mx-auto
-              mt-4
-              max-w-2xl
-              text-gray-700
-            "
-          >
-            Retrouvez les coordonnées
-            des vétérinaires disponibles
-            en Polynésie française.
-          </p>
-        </div>
-
-        {/* FILTRES */}
-
-        <div
-          className="
-            mt-8
-            grid
-            gap-3
-            rounded-[26px]
-            bg-white/90
-            p-4
-            shadow-lg
-            backdrop-blur
-            md:grid-cols-2
-          "
-        >
-          <label>
-            <span
+          <div className="mt-4 sm:mt-5">
+            <p
               className="
-                mb-2
-                block
-                text-sm
+                text-center
+                text-[13px]
                 font-black
                 text-[#064b42]
+                sm:text-sm
               "
             >
-              Rechercher
-            </span>
+              Je veux adopter…
+            </p>
 
             <div
               className="
-                relative
+                mt-2.5
+                grid
+                grid-cols-2
+                gap-2
+                sm:gap-3
               "
             >
-              <Search
-                size={18}
-                className="
-                  absolute
-                  left-4
-                  top-1/2
-                  -translate-y-1/2
-                  text-gray-400
-                "
-              />
+              {options.map(
+                (option) => {
+                  const selected =
+                    selectedTypes.includes(
+                      option.type
+                    );
 
-              <input
-                type="text"
-                value={
-                  search
+                  return (
+                    <button
+                      key={option.type}
+                      type="button"
+                      onClick={() =>
+                        toggleAnimalType(
+                          option.type
+                        )
+                      }
+                      className={`
+                        relative
+                        flex
+                        min-h-[66px]
+                        flex-col
+                        items-center
+                        justify-center
+                        rounded-[19px]
+                        border-2
+                        px-2
+                        py-2
+                        transition
+                        active:scale-[.98]
+                        sm:min-h-[78px]
+                        ${
+                          selected
+                            ? "border-[#ef8196] bg-[#fff0f2]"
+                            : "border-[#eee3dd] bg-white/80"
+                        }
+                      `}
+                    >
+                      {selected && (
+                        <span
+                          className="
+                            absolute
+                            right-2
+                            top-2
+                            flex
+                            h-4
+                            w-4
+                            items-center
+                            justify-center
+                            rounded-full
+                            bg-[#ef8196]
+                            text-[8px]
+                            font-black
+                            text-white
+                          "
+                        >
+                          ✓
+                        </span>
+                      )}
+
+                      <span className="text-[27px] leading-none">
+                        {option.icon}
+                      </span>
+
+                      <span
+                        className={`
+                          mt-1
+                          text-[11px]
+                          font-black
+                          ${
+                            selected
+                              ? "text-[#d96f81]"
+                              : "text-[#5d5955]"
+                          }
+                        `}
+                      >
+                        {option.title}
+                      </span>
+                    </button>
+                  );
                 }
-                onChange={(
-                  event
-                ) =>
-                  setSearch(
-                    event.target.value
-                  )
-                }
-                placeholder="Nom, ville, adresse..."
-                className="
-                  w-full
-                  rounded-[18px]
-                  border
-                  border-[#e5d9cf]
-                  bg-[#fffaf7]
-                  py-3
-                  pl-11
-                  pr-4
-                  outline-none
-                  focus:border-[#064b42]
-                "
-              />
-            </div>
-          </label>
-
-          <label>
-            <span
-              className="
-                mb-2
-                block
-                text-sm
-                font-black
-                text-[#064b42]
-              "
-            >
-              Île
-            </span>
-
-            <select
-              value={
-                islandFilter
-              }
-              onChange={(
-                event
-              ) =>
-                setIslandFilter(
-                  event.target.value
-                )
-              }
-              className="
-                w-full
-                rounded-[18px]
-                border
-                border-[#e5d9cf]
-                bg-[#fffaf7]
-                px-4
-                py-3
-                outline-none
-              "
-            >
-              <option
-                value=""
-              >
-                Toutes les îles
-              </option>
-
-              {islands.map(
-                (
-                  island
-                ) => (
-                  <option
-                    key={
-                      island
-                    }
-                    value={
-                      island
-                    }
-                  >
-                    {
-                      island
-                    }
-                  </option>
-                )
               )}
-            </select>
-          </label>
-        </div>
+            </div>
 
-        {/* PUBLICITÉ VÉTÉRINAIRES */}
+            <p
+              className="
+                mt-2
+                text-center
+                text-[9px]
+                text-[#978e87]
+              "
+            >
+              Vous pouvez en choisir plusieurs.
+            </p>
+          </div>
 
-        {ads.length > 0 && (
-          <VeterinaireAdCard
-            ad={ads[0]}
-          />
-        )}
-
-        {/* LOADING */}
-
-        {loading && (
-          <div
+          <button
+            type="button"
+            onClick={onStart}
             className="
-              mt-10
-              rounded-[28px]
-              bg-white/90
-              p-10
-              text-center
+              mt-3
+              w-full
+              rounded-full
+              bg-[#ef8196]
+              px-5
+              py-3
+              text-[14px]
+              font-black
+              text-white
               shadow-lg
             "
           >
-            <div
+            {selectedTypes.length > 0
+              ? "Voir qui m’attend"
+              : "Découvrir tous les animaux"}
+          </button>
+
+          {selectedTypes.length > 0 && (
+            <button
+              type="button"
+              onClick={onShowAll}
               className="
-                mx-auto
-                h-10
-                w-10
-                animate-spin
-                rounded-full
-                border-4
-                border-[#e6ddd4]
-                border-t-[#064b42]
+                mt-1
+                w-full
+                py-1
+                text-[9px]
+                font-bold
+                text-[#8b817a]
+                underline
+              "
+            >
+              Voir tous les animaux
+            </button>
+          )}
+
+          <div
+            className="
+              mt-2.5
+              flex
+              items-center
+              justify-center
+              gap-3
+              rounded-[16px]
+              bg-[#f7f1ec]
+              px-3
+              py-2
+            "
+          >
+            <span
+              className="
+                text-[9px]
+                font-bold
+                text-[#df687c]
+              "
+            >
+              → ❤️ Coup de cœur
+            </span>
+
+            <span
+              className="
+                h-3
+                w-px
+                bg-[#dcd1ca]
               "
             />
 
+            <span
+              className="
+                text-[9px]
+                font-bold
+                text-[#746c66]
+              "
+            >
+              ← Next time
+            </span>
+          </div>
+
+          <div
+            className="
+              mt-3
+              border-t
+              border-[#eadfd8]
+              pt-3
+              text-center
+            "
+          >
             <p
               className="
-                mt-4
-                font-black
-                text-[#064b42]
+                text-[10px]
+                font-bold
+                text-[#756d67]
               "
             >
-              Chargement des vétérinaires...
+              Association, refuge, SIGFA,
+              bénévole ou fourrière ?
             </p>
-          </div>
-        )}
 
-        {/* ERROR */}
+            <p
+              className="
+                mt-0.5
+                text-[9px]
+                text-[#9a918a]
+              "
+            >
+              Accédez directement à votre espace.
+            </p>
 
-        {!loading &&
-          error && (
             <div
               className="
-                mt-10
-                rounded-[28px]
-                bg-red-50
-                p-6
-                text-center
-                font-bold
-                text-red-600
-                shadow
+                mt-2.5
+                grid
+                grid-cols-2
+                gap-2
               "
             >
-              {error}
-            </div>
-          )}
-
-        {/* LISTE */}
-
-        {!loading &&
-          !error && (
-            <>
-              <div
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    "/login"
+                  )
+                }
                 className="
-                  mt-6
-                  text-sm
+                  rounded-full
+                  border
+                  border-[#d9cec7]
+                  bg-white
+                  px-3
+                  py-2.5
+                  text-[10px]
                   font-black
                   text-[#064b42]
                 "
               >
-                {
-                  filteredVeterinaires.length
-                }{" "}
-                vétérinaire
-                {filteredVeterinaires.length >
-                1
-                  ? "s"
-                  : ""}
+                Se connecter
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    "/choose-role"
+                  )
+                }
+                className="
+                  rounded-full
+                  bg-[#064b42]
+                  px-3
+                  py-2.5
+                  text-[10px]
+                  font-black
+                  text-white
+                "
+              >
+                Créer un compte
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   MENU BAS
+========================================================= */
+
+function BottomMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const menuPages = [
+    {
+      label: "Vétérinaires",
+      href: "/veterinaires",
+      icon: "🩺",
+    },
+    {
+      label: "Associations",
+      href: "/associations",
+      icon: "🤝",
+    },
+    {
+      label: "Conseils santé",
+      href: "/conseils-sante",
+      icon: "❤️‍🩹",
+    },
+    {
+      label: "Les Veilleurs de Kali",
+      href: "/association/lesveilleursdekali",
+      icon: "🐾",
+    },
+    {
+      label: "Boutique",
+      href: "/boutique",
+      icon: "🛍️",
+    },
+    {
+      label: "Toilettage",
+      href: "/toilettage",
+      icon: "✂️",
+    },
+    {
+      label: "Gardiennage",
+      href: "/gardiennage",
+      icon: "🏡",
+    },
+    {
+      label: "Éducation",
+      href: "/education",
+      icon: "🎓",
+    },
+    {
+      label: "Alimentation",
+      href: "/alimentation",
+      icon: "🥣",
+    },
+    {
+      label: "Pension",
+      href: "/pension",
+      icon: "🛏️",
+    },
+    {
+      label: "Hommage",
+      href: "/hommage",
+      icon: "🕯️",
+    },
+  ];
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
+  return (
+    <>
+      {menuOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/35 backdrop-blur-[4px]">
+          <button
+            type="button"
+            onClick={closeMenu}
+            aria-label="Fermer le menu"
+            className="absolute inset-0 h-full w-full"
+          />
+
+          <div className="absolute bottom-[82px] left-3 right-3 z-10 mx-auto max-h-[75dvh] max-w-[440px] overflow-y-auto rounded-[30px] border border-white/70 bg-[#fffaf7]/98 p-5 shadow-[0_25px_70px_rgba(0,0,0,.25)] backdrop-blur-xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#df8995]">
+                  Taui Te Ora
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-[#064b42]">
+                  Menu
+                </h2>
               </div>
 
-              {filteredVeterinaires.length ===
-              0 ? (
-                <div
-                  className="
-                    mt-6
-                    rounded-[28px]
-                    bg-white/90
-                    p-10
-                    text-center
-                    shadow-lg
-                  "
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl font-bold text-[#6f665f] shadow-sm"
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {menuPages.map((page) => (
+                <Link
+                  key={page.href}
+                  href={page.href}
+                  onClick={closeMenu}
+                  className="flex min-h-[92px] flex-col items-center justify-center rounded-[22px] border border-[#eadfd8] bg-white px-3 py-4 text-center shadow-sm transition active:scale-[.98]"
                 >
-                  <Stethoscope
-                    size={42}
-                    className="
-                      mx-auto
-                      text-[#a89e96]
-                    "
-                  />
+                  <span className="text-3xl leading-none">
+                    {page.icon}
+                  </span>
 
-                  <p
-                    className="
-                      mt-4
-                      font-black
-                      text-[#064b42]
-                    "
-                  >
-                    Aucun vétérinaire trouvé.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className="
-                    mt-6
-                    grid
-                    gap-5
-                    md:grid-cols-2
-                    lg:grid-cols-3
-                  "
-                >
-                  {filteredVeterinaires.map(
-                    (
-                      veterinaire
-                    ) => (
-                      <article
-                        key={
-                          veterinaire.id
-                        }
-                        className="
-                          rounded-[28px]
-                          border
-                          border-white/80
-                          bg-white/90
-                          p-6
-                          shadow-xl
-                          backdrop-blur-md
-                          transition
-                          hover:-translate-y-1
-                          hover:shadow-2xl
-                        "
-                      >
-                        <div
-                          className="
-                            flex
-                            items-start
-                            justify-between
-                            gap-4
-                          "
-                        >
-                          <div>
-                            {veterinaire.island && (
-                              <span
-                                className="
-                                  rounded-full
-                                  bg-[#e8f4f1]
-                                  px-3
-                                  py-1
-                                  text-xs
-                                  font-black
-                                  uppercase
-                                  tracking-wide
-                                  text-[#064b42]
-                                "
-                              >
-                                {
-                                  veterinaire.island
-                                }
-                              </span>
-                            )}
-
-                            <h2
-                              className="
-                                mt-4
-                                text-xl
-                                font-black
-                                text-[#064b42]
-                              "
-                            >
-                              {
-                                veterinaire.name
-                              }
-                            </h2>
-                          </div>
-
-                          <Stethoscope
-                            size={28}
-                            className="
-                              shrink-0
-                              text-[#df8995]
-                            "
-                          />
-                        </div>
-
-                        <div
-                          className="
-                            mt-5
-                            space-y-3
-                            text-sm
-                            text-gray-700
-                          "
-                        >
-                          {veterinaire.city && (
-                            <p
-                              className="
-                                flex
-                                items-start
-                                gap-2
-                              "
-                            >
-                              <MapPin
-                                size={16}
-                                className="
-                                  mt-0.5
-                                  shrink-0
-                                  text-[#064b42]
-                                "
-                              />
-
-                              <span>
-                                <strong>
-                                  Ville :
-                                </strong>{" "}
-                                {
-                                  veterinaire.city
-                                }
-                              </span>
-                            </p>
-                          )}
-
-                          {veterinaire.address && (
-                            <p
-                              className="
-                                flex
-                                items-start
-                                gap-2
-                              "
-                            >
-                              <MapPin
-                                size={16}
-                                className="
-                                  mt-0.5
-                                  shrink-0
-                                  text-[#b58b5b]
-                                "
-                              />
-
-                              <span>
-                                <strong>
-                                  Adresse :
-                                </strong>{" "}
-                                {
-                                  veterinaire.address
-                                }
-                              </span>
-                            </p>
-                          )}
-
-                          {veterinaire.phone && (
-                            <p
-                              className="
-                                flex
-                                items-start
-                                gap-2
-                              "
-                            >
-                              <Phone
-                                size={16}
-                                className="
-                                  mt-0.5
-                                  shrink-0
-                                  text-[#064b42]
-                                "
-                              />
-
-                              <span>
-                                <strong>
-                                  Téléphone :
-                                </strong>{" "}
-                                {
-                                  veterinaire.phone
-                                }
-                              </span>
-                            </p>
-                          )}
-
-                          {veterinaire.email && (
-                            <p
-                              className="
-                                flex
-                                items-start
-                                gap-2
-                                break-all
-                              "
-                            >
-                              <Mail
-                                size={16}
-                                className="
-                                  mt-0.5
-                                  shrink-0
-                                  text-[#064b42]
-                                "
-                              />
-
-                              <span>
-                                <strong>
-                                  Mail :
-                                </strong>{" "}
-                                {
-                                  veterinaire.email
-                                }
-                              </span>
-                            </p>
-                          )}
-                        </div>
-
-                        <div
-                          className="
-                            mt-6
-                            grid
-                            gap-2
-                          "
-                        >
-                          {veterinaire.phone && (
-                            <a
-                              href={`tel:${veterinaire.phone
-                                .split("/")[0]
-                                .replace(
-                                  /[^\d+]/g,
-                                  ""
-                                )}`}
-                              className="
-                                flex
-                                items-center
-                                justify-center
-                                gap-2
-                                rounded-full
-                                bg-[#064b42]
-                                px-5
-                                py-3
-                                text-center
-                                font-black
-                                text-white
-                                transition
-                                hover:bg-[#08695d]
-                              "
-                            >
-                              <Phone
-                                size={17}
-                              />
-
-                              Appeler
-                            </a>
-                          )}
-
-                          {veterinaire.email && (
-                            <a
-                              href={`mailto:${veterinaire.email}`}
-                              className="
-                                flex
-                                items-center
-                                justify-center
-                                gap-2
-                                rounded-full
-                                bg-[#f5e7ea]
-                                px-5
-                                py-3
-                                text-center
-                                font-black
-                                text-[#c76d7b]
-                              "
-                            >
-                              <Mail
-                                size={17}
-                              />
-
-                              Envoyer un mail
-                            </a>
-                          )}
-                        </div>
-                      </article>
-                    )
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-        <div
-          className="
-            mt-8
-            rounded-[28px]
-            border
-            border-[#e8d9c3]
-            bg-[#fffaf1]/90
-            p-6
-            text-center
-            shadow-lg
-            backdrop-blur-md
-          "
-        >
-          <p
-            className="
-              font-bold
-              text-[#6f5b40]
-            "
-          >
-            En cas d'urgence vitale,
-            contactez directement le vétérinaire
-            le plus proche.
-          </p>
+                  <span className="mt-2 text-[12px] font-black text-[#064b42]">
+                    {page.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
-      </section>
-    </TauiPageBackground>
+      )}
+
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-[470px] border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(50,40,35,0.10)] backdrop-blur-xl md:bottom-4 md:rounded-[28px] md:border">
+        <div className="grid grid-cols-5 items-end">
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center gap-1 text-[#ee8f9b]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde7e9]">
+              <HomeIcon />
+            </div>
+
+            <span className="text-[10px] font-bold">
+              Accueil
+            </span>
+          </Link>
+
+          <Link
+            href="/search"
+            className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center">
+              <SearchIcon />
+            </div>
+
+            <span className="text-[10px] font-semibold">
+              Recherche
+            </span>
+          </Link>
+
+          <Link
+            href="/signalement"
+            aria-label="S.O.S Animal"
+            className="flex flex-col items-center justify-center"
+          >
+            <div className="flex h-[60px] w-[60px] -translate-y-2 items-center justify-center overflow-hidden rounded-full border-[3px] border-[#fffaf7] bg-white shadow-xl">
+              <img
+                src="/sos-paw.png"
+                alt="S.O.S Animal"
+                draggable={false}
+                className="h-full w-full rounded-full object-cover"
+              />
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMenuOpen(
+                (previous) =>
+                  !previous
+              )
+            }
+            aria-label="Ouvrir le menu"
+            className={`flex flex-col items-center justify-center gap-1 ${
+              menuOpen
+                ? "text-[#ee8f9b]"
+                : "text-[#5d655f]"
+            }`}
+          >
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                menuOpen
+                  ? "bg-[#fde7e9]"
+                  : ""
+              }`}
+            >
+              <MenuIcon />
+            </div>
+
+            <span className="text-[10px] font-semibold">
+              Menu
+            </span>
+          </button>
+
+          <Link
+            href="/profile"
+            className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center">
+              <ProfileIcon />
+            </div>
+
+            <span className="text-[10px] font-semibold">
+              Profil
+            </span>
+          </Link>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    >
+      <path d="M5 7h14" />
+      <path d="M5 12h14" />
+      <path d="M5 17h14" />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5.5 10.5V20h13v-9.5" />
+      <path d="M9.5 20v-6h5v6" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-4-4" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v6" />
+      <path d="M12 7h.01" />
+    </svg>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 21c.8-4.1 3.5-6.5 7.5-6.5s6.7 2.4 7.5 6.5" />
+    </svg>
   );
 }

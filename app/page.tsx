@@ -22,6 +22,31 @@ type AnimalFilter =
   | "cheval"
   | "autre";
 
+type Ad = {
+  id: string;
+  advertiser_name: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  logo_url: string | null;
+  button_text: string | null;
+  target_url: string | null;
+  placement: string;
+  priority: number;
+};
+
+type SwipeItem =
+  | {
+      kind: "animal";
+      id: string;
+      animal: any;
+    }
+  | {
+      kind: "ad";
+      id: string;
+      ad: Ad;
+    };
+
 const FILTER_STORAGE_KEY =
   "taui-selected-animal-types";
 
@@ -33,6 +58,9 @@ export default function HomePage() {
 
   const [animals, setAnimals] =
     useState<any[]>([]);
+
+  const [ads, setAds] =
+    useState<Ad[]>([]);
 
   const [
     currentIndex,
@@ -63,8 +91,9 @@ export default function HomePage() {
   ] = useState<AnimalFilter[]>([]);
 
   useEffect(() => {
-    loadAnimals();
-    loadWelcomePreferences();
+    void loadAnimals();
+    void loadAds();
+    void loadWelcomePreferences();
   }, []);
 
   useEffect(() => {
@@ -265,6 +294,49 @@ export default function HomePage() {
     }
   }
 
+  async function loadAds() {
+    try {
+      const { data, error } = await supabase
+        .from("ads")
+        .select(
+          `
+            id,
+            advertiser_name,
+            title,
+            description,
+            image_url,
+            logo_url,
+            button_text,
+            target_url,
+            placement,
+            priority
+          `
+        )
+        .eq("placement", "swipe")
+        .order("priority", {
+          ascending: false,
+        })
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setAds(
+        (data || []) as Ad[]
+      );
+    } catch (error) {
+      console.error(
+        "Erreur chargement publicités :",
+        error
+      );
+
+      setAds([]);
+    }
+  }
+
   const filteredAnimals =
     useMemo(() => {
       if (
@@ -336,6 +408,56 @@ export default function HomePage() {
       selectedTypes,
     ]);
 
+  const swipeItems =
+    useMemo<SwipeItem[]>(() => {
+      const items: SwipeItem[] = [];
+
+      let adIndex = 0;
+
+      filteredAnimals.forEach(
+        (animal, index) => {
+          items.push({
+            kind: "animal",
+            id: `animal-${animal.id}`,
+            animal,
+          });
+
+          const shouldInsertAd =
+            ads.length > 0 &&
+            (
+              index === 0 ||
+              (
+                index > 0 &&
+                index % 3 === 0
+              )
+            ) &&
+            index <
+              filteredAnimals.length - 1;
+
+          if (shouldInsertAd) {
+            const ad =
+              ads[
+                adIndex %
+                  ads.length
+              ];
+
+            items.push({
+              kind: "ad",
+              id: `ad-${ad.id}-${index}`,
+              ad,
+            });
+
+            adIndex += 1;
+          }
+        }
+      );
+
+      return items;
+    }, [
+      filteredAnimals,
+      ads,
+    ]);
+
   function goNext() {
     setCurrentIndex(
       (previousIndex) =>
@@ -343,10 +465,22 @@ export default function HomePage() {
     );
   }
 
-  const currentAnimal =
-    filteredAnimals[
+  const currentItem =
+    swipeItems[
       currentIndex
     ];
+
+  const currentAnimal =
+    currentItem?.kind ===
+    "animal"
+      ? currentItem.animal
+      : null;
+
+  const currentAd =
+    currentItem?.kind ===
+    "ad"
+      ? currentItem.ad
+      : null;
 
   const filterCount =
     selectedTypes.length;
@@ -461,7 +595,23 @@ export default function HomePage() {
             )}
 
           {!loading &&
-            !currentAnimal && (
+            currentAd && (
+              <SwipeAdCard
+                ad={currentAd}
+                onNext={goNext}
+                onOpenFilter={() =>
+                  setWelcomeOpen(
+                    true
+                  )
+                }
+                filterCount={
+                  filterCount
+                }
+              />
+            )}
+
+          {!loading &&
+            !currentItem && (
               <div
                 className="
                   flex
@@ -588,6 +738,163 @@ export default function HomePage() {
           )}
       </div>
     </TauiPageBackground>
+  );
+}
+
+function SwipeAdCard({
+  ad,
+  onNext,
+  onOpenFilter,
+  filterCount,
+}: {
+  ad: Ad;
+  onNext: () => void;
+  onOpenFilter: () => void;
+  filterCount: number;
+}) {
+  const [
+    impressionSent,
+    setImpressionSent,
+  ] = useState(false);
+
+  useEffect(() => {
+    if (impressionSent) {
+      return;
+    }
+
+    setImpressionSent(true);
+
+    void supabase.rpc(
+      "track_ad_impression",
+      {
+        p_ad_id: ad.id,
+      }
+    );
+  }, [
+    ad.id,
+    impressionSent,
+  ]);
+
+  async function handleClick() {
+    try {
+      await supabase.rpc(
+        "track_ad_click",
+        {
+          p_ad_id: ad.id,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Erreur tracking clic publicité :",
+        error
+      );
+    }
+
+    if (ad.target_url) {
+      window.open(
+        ad.target_url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+  }
+
+  return (
+    <div className="flex w-full justify-center px-3 md:px-0">
+      <article className="relative w-full max-w-[470px] overflow-hidden rounded-[30px] bg-white shadow-[0_20px_60px_rgba(61,49,44,.18)]">
+        <div className="relative">
+          {ad.image_url ? (
+            <div className="h-[58dvh] min-h-[430px] max-h-[640px] bg-[#eee7df]">
+              <img
+                src={ad.image_url}
+                alt={ad.title}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex h-[58dvh] min-h-[430px] max-h-[640px] items-center justify-center bg-gradient-to-br from-[#064b42] to-[#0a796b] px-10 text-center text-white">
+              <div>
+                <div className="text-6xl">
+                  ✨
+                </div>
+
+                <h2 className="mt-5 text-3xl font-black">
+                  {ad.title}
+                </h2>
+              </div>
+            </div>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-5 pb-6 pt-24 text-white">
+            <div className="flex items-center gap-3">
+              {ad.logo_url && (
+                <img
+                  src={ad.logo_url}
+                  alt={ad.advertiser_name}
+                  className="h-12 w-12 rounded-full bg-white object-contain p-1 shadow"
+                />
+              )}
+
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">
+                  Sponsorisé
+                </p>
+
+                <p className="mt-0.5 text-sm font-black uppercase">
+                  {ad.advertiser_name}
+                </p>
+              </div>
+            </div>
+
+            <h2 className="mt-4 text-3xl font-black leading-tight">
+              {ad.title}
+            </h2>
+
+            {ad.description && (
+              <p className="mt-3 text-sm leading-6 text-white/85">
+                {ad.description}
+              </p>
+            )}
+
+            {ad.target_url && (
+              <button
+                type="button"
+                onClick={handleClick}
+                className="mt-5 w-full rounded-full bg-white px-5 py-3.5 font-black text-[#064b42] shadow-lg"
+              >
+                {ad.button_text ||
+                  "Découvrir"}
+              </button>
+            )}
+          </div>
+
+          <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#064b42] shadow">
+            Sponsorisé
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 bg-[#fffaf7] p-4">
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-full border border-[#eadfd8] bg-white px-5 py-3 font-black text-[#746c66]"
+          >
+            ← Next time
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenFilter}
+            className="rounded-full bg-[#f3e7df] px-5 py-3 font-black text-[#064b42]"
+          >
+            Filtres
+            {filterCount > 0
+              ? ` (${filterCount})`
+              : ""}
+          </button>
+        </div>
+      </article>
+    </div>
   );
 }
 
