@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -130,106 +131,62 @@ export default function ConversationPage() {
     useState("");
 
   /* =======================================================
-     CHARGEMENT
+     MESSAGE LU
   ======================================================= */
 
-  useEffect(() => {
-    if (!conversationId) {
-      router.replace("/");
-      return;
-    }
+  const markMessageAsRead =
+    useCallback(
+      async (
+        messageId: string
+      ) => {
+        try {
+          const readAt =
+            new Date().toISOString();
 
-    loadConversation();
-  }, [conversationId]);
-
-  /* =======================================================
-     REALTIME
-  ======================================================= */
-
-  useEffect(() => {
-    if (
-      !conversationId ||
-      !currentUserId
-    ) {
-      return;
-    }
-
-    const channel =
-      supabase
-        .channel(
-          `conversation-${conversationId}`
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table:
-              "conversation_messages",
-            filter:
-              `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            const incoming =
-              payload.new as Message;
-
-            setMessages(
-              (previousMessages) => {
-                const exists =
-                  previousMessages.some(
-                    (message) =>
-                      message.id ===
-                      incoming.id
-                  );
-
-                if (exists) {
-                  return previousMessages;
-                }
-
-                return [
-                  ...previousMessages,
-                  incoming,
-                ];
-              }
+          await supabase
+            .from(
+              "conversation_messages"
+            )
+            .update({
+              read_at: readAt,
+            })
+            .eq(
+              "id",
+              messageId
             );
 
-            if (
-              incoming.sender_id !==
-              currentUserId
-            ) {
-              markMessageAsRead(
-                incoming.id
-              );
-            }
-          }
-        )
-        .subscribe();
-
-    return () => {
-      supabase.removeChannel(
-        channel
-      );
-    };
-  }, [
-    conversationId,
-    currentUserId,
-  ]);
-
-  /* =======================================================
-     SCROLL AUTOMATIQUE
-  ======================================================= */
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages]);
+          setMessages(
+            (previousMessages) =>
+              previousMessages.map(
+                (message) =>
+                  message.id ===
+                  messageId
+                    ? {
+                        ...message,
+                        read_at:
+                          readAt,
+                      }
+                    : message
+              )
+          );
+        } catch (
+          error: unknown
+        ) {
+          console.error(
+            "Erreur lecture message :",
+            error
+          );
+        }
+      },
+      []
+    );
 
   /* =======================================================
      CHARGEMENT CONVERSATION
   ======================================================= */
 
-  async function loadConversation() {
+  const loadConversation =
+    useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage("");
@@ -608,7 +565,7 @@ export default function ConversationPage() {
           false
         );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur chat :",
@@ -616,58 +573,128 @@ export default function ConversationPage() {
       );
 
       setErrorMessage(
-        error?.message ||
-          "Impossible d'ouvrir cette conversation."
+        error instanceof Error
+          ? error.message
+          : "Impossible d'ouvrir cette conversation."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    conversationId,
+    router,
+  ]);
 
   /* =======================================================
-     MESSAGE LU
+     CHARGEMENT
   ======================================================= */
 
-  async function markMessageAsRead(
-    messageId: string
-  ) {
-    try {
-      await supabase
-        .from(
-          "conversation_messages"
-        )
-        .update({
-          read_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          messageId
-        );
-
-      setMessages(
-        (previousMessages) =>
-          previousMessages.map(
-            (message) =>
-              message.id ===
-              messageId
-                ? {
-                    ...message,
-                    read_at:
-                      new Date().toISOString(),
-                  }
-                : message
-          )
-      );
-    } catch (
-      error
-    ) {
-      console.error(
-        "Erreur lecture message :",
-        error
-      );
+  useEffect(() => {
+    if (!conversationId) {
+      router.replace("/");
+      return;
     }
-  }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadConversation();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    conversationId,
+    loadConversation,
+    router,
+  ]);
+
+  /* =======================================================
+     REALTIME
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      !conversationId ||
+      !currentUserId
+    ) {
+      return;
+    }
+
+    const channel =
+      supabase
+        .channel(
+          `conversation-${conversationId}`
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table:
+              "conversation_messages",
+            filter:
+              `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const incoming =
+              payload.new as Message;
+
+            setMessages(
+              (previousMessages) => {
+                const exists =
+                  previousMessages.some(
+                    (message) =>
+                      message.id ===
+                      incoming.id
+                  );
+
+                if (exists) {
+                  return previousMessages;
+                }
+
+                return [
+                  ...previousMessages,
+                  incoming,
+                ];
+              }
+            );
+
+            if (
+              incoming.sender_id !==
+              currentUserId
+            ) {
+              markMessageAsRead(
+                incoming.id
+              );
+            }
+          }
+        )
+        .subscribe();
+
+    return () => {
+      supabase.removeChannel(
+        channel
+      );
+    };
+  }, [
+    conversationId,
+    currentUserId,
+    markMessageAsRead,
+  ]);
+
+  /* =======================================================
+     SCROLL AUTOMATIQUE
+  ======================================================= */
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
+
+  /* =======================================================
+     CHARGEMENT CONVERSATION
+  ======================================================= */
 
   /* =======================================================
      ENVOYER MESSAGE
@@ -844,7 +871,7 @@ export default function ConversationPage() {
         );
       }
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur envoi message :",
@@ -852,8 +879,9 @@ export default function ConversationPage() {
       );
 
       alert(
-        error?.message ||
-          "Impossible d'envoyer le message."
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer le message."
       );
     } finally {
       setSending(false);

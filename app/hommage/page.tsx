@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -193,19 +194,7 @@ export default function HommagePage() {
     };
   }, []);
 
-  useEffect(() => {
-    void loadApprovedHommages();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
-      }
-    };
-  }, [photoPreview]);
-
-  async function loadApprovedHommages() {
+  const loadApprovedHommages = useCallback(async () => {
     try {
       setLoadingHommages(true);
 
@@ -244,7 +233,7 @@ export default function HommagePage() {
       setHommages(
         (data || []) as Hommage[]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur chargement hommages :",
         error
@@ -252,7 +241,25 @@ export default function HommagePage() {
     } finally {
       setLoadingHommages(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadApprovedHommages();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadApprovedHommages]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
 
   function updateForm(
     field: keyof FormState,
@@ -271,14 +278,15 @@ export default function HommagePage() {
 
     try {
       validateHommagePhoto(file);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
       alert(
-        error?.message ||
-          "Photo non autorisée."
+        error instanceof Error
+          ? error.message
+          : "Photo non autorisée."
       );
 
       return;
@@ -480,15 +488,16 @@ export default function HommagePage() {
       window.setTimeout(() => {
         setSuccessMessage("");
       }, 7000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur envoi hommage :",
         error
       );
 
       alert(
-        error?.message ||
-          "Impossible d'envoyer votre hommage."
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer votre hommage."
       );
     } finally {
       setSubmitting(false);

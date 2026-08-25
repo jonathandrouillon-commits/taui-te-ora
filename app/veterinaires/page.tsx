@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -51,17 +53,15 @@ function VeterinaireAdCard({
 }: {
   ad: Ad;
 }) {
-  const [
-    impressionSent,
-    setImpressionSent,
-  ] = useState(false);
+  const impressionSentRef =
+    useRef(false);
 
   useEffect(() => {
-    if (impressionSent) {
+    if (impressionSentRef.current) {
       return;
     }
 
-    setImpressionSent(true);
+    impressionSentRef.current = true;
 
     void supabase
       .rpc(
@@ -80,10 +80,7 @@ function VeterinaireAdCard({
           }
         }
       );
-  }, [
-    ad.id,
-    impressionSent,
-  ]);
+  }, [ad.id]);
 
   async function handleAdClick() {
     const { error } =
@@ -363,12 +360,7 @@ export default function VeterinairesPage() {
   ] =
     useState<Ad[]>([]);
 
-  useEffect(() => {
-    void loadVeterinaires();
-    void loadAds();
-  }, []);
-
-  async function loadVeterinaires() {
+  const loadVeterinaires = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -429,7 +421,7 @@ export default function VeterinairesPage() {
         ) as Veterinaire[]
       );
     } catch (
-      err: any
+      err: unknown
     ) {
       console.error(
         "Erreur chargement vétérinaires :",
@@ -437,8 +429,9 @@ export default function VeterinairesPage() {
       );
 
       setError(
-        err?.message ||
-          "Impossible de charger l'annuaire des vétérinaires."
+        err instanceof Error
+          ? err.message
+          : "Impossible de charger l'annuaire des vétérinaires."
       );
 
       setVeterinaires(
@@ -449,9 +442,9 @@ export default function VeterinairesPage() {
         false
       );
     }
-  }
+  }, []);
 
-  async function loadAds() {
+  const loadAds = useCallback(async () => {
     try {
       const { data, error: adsError } =
         await supabase
@@ -502,7 +495,18 @@ export default function VeterinairesPage() {
 
       setAds([]);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadVeterinaires();
+      void loadAds();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadAds, loadVeterinaires]);
 
   const islands =
     useMemo(() => {

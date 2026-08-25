@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -83,12 +84,15 @@ export default function AdminDashboardPage() {
     ad_clicks: 0,
   });
 
-  useEffect(() => {
-    void loadDashboard();
-  }, []);
+  const [
+    analyticsError,
+    setAnalyticsError,
+  ] = useState<string | null>(null);
 
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     try {
+      await Promise.resolve();
+      setLoading(true);
       const currentProfile =
         await profileService.getCurrentProfile();
 
@@ -142,7 +146,14 @@ export default function AdminDashboardPage() {
           "Erreur statistiques analytics :",
           analyticsError
         );
+
+        setAnalyticsError(
+          analyticsError.message ||
+            "Les statistiques sont temporairement indisponibles."
+        );
       } else if (analyticsData) {
+        setAnalyticsError(null);
+
         setAnalytics({
           visitors_today: Number(analyticsData.visitors_today || 0),
           visitors_total: Number(analyticsData.visitors_total || 0),
@@ -151,6 +162,10 @@ export default function AdminDashboardPage() {
           ad_impressions: Number(analyticsData.ad_impressions || 0),
           ad_clicks: Number(analyticsData.ad_clicks || 0),
         });
+      } else {
+        setAnalyticsError(
+          "Les statistiques n'ont retourné aucune donnée."
+        );
       }
     } catch (
       error: any
@@ -169,7 +184,17 @@ export default function AdminDashboardPage() {
         false
       );
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadDashboard]);
 
   async function handleLogout() {
     if (
@@ -686,6 +711,26 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
+          {analyticsError ? (
+            <Card className="border border-red-200 bg-red-50">
+              <div className="text-center">
+                <Activity
+                  className="mx-auto text-red-600"
+                  size={38}
+                />
+                <h3 className="mt-3 text-xl font-black text-red-700">
+                  Statistiques indisponibles
+                </h3>
+                <p className="mt-2 text-sm font-semibold text-red-600">
+                  Les données analytics n’ont pas pu être chargées.
+                </p>
+                <p className="mt-1 text-xs text-red-500">
+                  {analyticsError}
+                </p>
+              </div>
+            </Card>
+          ) : (
+            <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card className="text-center">
               <Users className="mx-auto text-blue-600" size={38} />
@@ -754,6 +799,8 @@ export default function AdminDashboardPage() {
               <p className="text-gray-500">CTR publicitaire global</p>
             </Card>
           </div>
+            </>
+          )}
         </div>
 
         {/* =====================================================

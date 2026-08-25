@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 
@@ -42,11 +42,7 @@ export default function EditAnimalPage() {
     microchipped: false,
   });
 
-  useEffect(() => {
-    checkAdminAndLoadAnimal();
-  }, []);
-
-  async function checkAdminAndLoadAnimal() {
+  const checkAdminAndLoadAnimal = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -116,7 +112,15 @@ export default function EditAnimalPage() {
     });
 
     setLoading(false);
-  }
+  }, [animalId, router]);
+
+  useEffect(() => {
+    async function loadAnimal() {
+      await checkAdminAndLoadAnimal();
+    }
+
+    void loadAnimal();
+  }, [checkAdminAndLoadAnimal]);
 
   function updateField(name: string, value: string | boolean) {
     setForm((prev) => ({
@@ -167,8 +171,12 @@ export default function EditAnimalPage() {
 
       alert("Profil animal mis à jour.");
       router.push("/admin/animals");
-    } catch (error: any) {
-      alert(error.message || "Erreur lors de l'enregistrement.");
+    } catch (error: unknown) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'enregistrement.",
+      );
     } finally {
       setSaving(false);
     }

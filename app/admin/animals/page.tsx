@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -28,11 +28,24 @@ export default function AdminAnimalsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Animal>>({});
 
-  useEffect(() => {
-    checkAdmin();
+  const loadAnimals = useCallback(async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("animals")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setAnimals((data || []) as Animal[]);
+    }
+
+    setLoading(false);
   }, []);
 
-  async function checkAdmin() {
+  const checkAdmin = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -54,24 +67,15 @@ export default function AdminAnimalsPage() {
     }
 
     await loadAnimals();
-  }
+  }, [loadAnimals, router]);
 
-  async function loadAnimals() {
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("animals")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      alert(error.message);
-    } else {
-      setAnimals((data || []) as Animal[]);
+  useEffect(() => {
+    async function loadAdminAnimals() {
+      await checkAdmin();
     }
 
-    setLoading(false);
-  }
+    void loadAdminAnimals();
+  }, [checkAdmin]);
 
   function startEdit(animal: Animal) {
     setEditingId(animal.id);
