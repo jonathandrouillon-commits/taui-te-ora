@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -53,13 +53,16 @@ export default function SearchPage() {
   const [sterilized, setSterilized] = useState("");
   const [microchipped, setMicrochipped] = useState("");
 
-  useEffect(() => {
-    searchAnimals();
-  }, []);
-
-  async function searchAnimals() {
+  const searchAnimals = useCallback(async () => {
     try {
       setLoading(true);
+
+      const safeKeyword = keyword
+        .trim()
+        .slice(0, 80)
+        .replace(/[,%()]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
       let query = supabase
         .from("animals")
@@ -78,9 +81,15 @@ export default function SearchPage() {
         .eq("is_published", true)
         .order("created_at", { ascending: false });
 
-      if (keyword.trim()) {
+      if (safeKeyword) {
         query = query.or(
-          `animal_name.ilike.%${keyword}%,breed.ilike.%${keyword}%,description_character.ilike.%${keyword}%,story.ilike.%${keyword}%,association_name.ilike.%${keyword}%`
+          [
+            `animal_name.ilike.%${safeKeyword}%`,
+            `breed.ilike.%${safeKeyword}%`,
+            `description_character.ilike.%${safeKeyword}%`,
+            `story.ilike.%${safeKeyword}%`,
+            `association_name.ilike.%${safeKeyword}%`,
+          ].join(",")
         );
       }
 
@@ -105,7 +114,28 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    keyword,
+    animalType,
+    sex,
+    size,
+    status,
+    island,
+    city,
+    vaccinated,
+    sterilized,
+    microchipped,
+  ]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void searchAnimals();
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchAnimals]);
 
   function getAnimalImage(animal: Animal) {
     const cover = animal.animal_photos?.find((photo) => photo.is_cover);
@@ -129,10 +159,6 @@ export default function SearchPage() {
     setVaccinated("");
     setSterilized("");
     setMicrochipped("");
-
-    setTimeout(() => {
-      searchAnimals();
-    }, 100);
   }
 
   return (
