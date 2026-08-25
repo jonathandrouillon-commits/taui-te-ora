@@ -3,80 +3,127 @@ import { supabase } from "../lib/supabase";
 export type Notification = {
   id: string;
   created_at: string;
-  user_id: string;
+
+  recipient_id: string;
+
   title: string;
   message: string;
   type: string;
+
   animal_id?: string | null;
   adoption_request_id?: string | null;
-  lien?: string | null;
+  conversation_id?: string | null;
+  signalement_id?: string | null;
+
   is_read: boolean;
+  read_at?: string | null;
+};
+
+type CreateNotificationInput = {
+  recipient_id: string;
+  type: string;
+  title: string;
+  message: string;
+
+  animal_id?: string | null;
+  adoption_request_id?: string | null;
+  conversation_id?: string | null;
+  signalement_id?: string | null;
 };
 
 export const notificationService = {
-  async getMyNotifications(userId: string): Promise<Notification[]> {
+  async getMyNotifications(
+    recipientId: string
+  ): Promise<Notification[]> {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+      .eq("recipient_id", recipientId)
+      .order("created_at", {
+        ascending: false,
+      });
 
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      throw error;
+    }
+
+    return (data || []) as Notification[];
   },
 
-  async markAsRead(notificationId: string) {
+  async markAsRead(
+    notificationId: string
+  ) {
     const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true })
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString(),
+      })
       .eq("id", notificationId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   },
 
-  async markAllAsRead(userId: string) {
+  async markAllAsRead(
+    recipientId: string
+  ) {
     const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", userId)
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString(),
+      })
+      .eq("recipient_id", recipientId)
       .eq("is_read", false);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   },
 
   async create({
-    user_id,
+    recipient_id,
     type,
-    titre,
+    title,
     message,
     animal_id,
     adoption_request_id,
-    lien,
-  }: {
-    user_id: string;
-    type: string;
-    titre: string;
-    message: string;
-    animal_id?: string;
-    adoption_request_id?: string;
-    lien?: string;
-  }) {
+    conversation_id,
+    signalement_id,
+  }: CreateNotificationInput) {
     const { data, error } = await supabase
       .from("notifications")
       .insert({
-        user_id,
+        recipient_id,
+
         type,
-        title: titre,
+        title,
         message,
-        animal_id: animal_id ?? null,
-        adoption_request_id: adoption_request_id ?? null,
-        lien: lien ?? null,
+
+        animal_id:
+          animal_id ?? null,
+
+        adoption_request_id:
+          adoption_request_id ?? null,
+
+        conversation_id:
+          conversation_id ?? null,
+
+        signalement_id:
+          signalement_id ?? null,
+
         is_read: false,
+        read_at: null,
       })
       .select()
       .single();
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      throw error;
+    }
+
+    return data as Notification;
   },
 };

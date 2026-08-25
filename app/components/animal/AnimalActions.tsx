@@ -80,10 +80,12 @@ export default function AnimalActions({
 
       if (ownerProfileId) {
         notifications.push({
-          user_id: ownerProfileId,
+          recipient_id: ownerProfileId,
           type: "adoption_request",
           title: "Nouvelle demande d'adoption",
-          message: `${adoptantProfile?.full_name || "Un adoptant"} souhaite adopter ${animalName}.`,
+          message: `${
+            adoptantProfile?.full_name || "Un adoptant"
+          } souhaite adopter ${animalName}.`,
           animal_id: animalId,
           adoption_request_id: adoptionRequest.id,
           is_read: false,
@@ -92,10 +94,12 @@ export default function AnimalActions({
 
       if (adminProfile?.id) {
         notifications.push({
-          user_id: adminProfile.id,
+          recipient_id: adminProfile.id,
           type: "adoption_request",
           title: "Nouvelle demande d'adoption",
-          message: `${adoptantProfile?.full_name || "Un adoptant"} souhaite adopter ${animalName}.`,
+          message: `${
+            adoptantProfile?.full_name || "Un adoptant"
+          } souhaite adopter ${animalName}.`,
           animal_id: animalId,
           adoption_request_id: adoptionRequest.id,
           is_read: false,
@@ -110,7 +114,9 @@ export default function AnimalActions({
         if (notificationError) throw notificationError;
       }
 
-      setMessage("✅ Votre demande d'adoption a été envoyée à l'association.");
+      setMessage(
+        "✅ Votre demande d'adoption a été envoyée à l'association."
+      );
     } catch (error) {
       console.error(error);
       setMessage("Impossible d'envoyer la demande d'adoption.");
@@ -142,7 +148,11 @@ export default function AnimalActions({
 
         <button
           type="button"
-          onClick={() => navigator.share?.({ url: window.location.href })}
+          onClick={() =>
+            navigator.share?.({
+              url: window.location.href,
+            })
+          }
           className="rounded-2xl bg-white px-5 py-3 font-bold text-[#064b42] shadow"
         >
           ℹ️ Partager

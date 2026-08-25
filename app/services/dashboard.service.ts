@@ -35,7 +35,7 @@ async function getAssociationDashboardStats() {
     supabase
       .from("notifications")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
+      .eq("recipient_id", user.id)
       .eq("is_read", false)
       .eq("is_archived", false),
 
@@ -92,7 +92,7 @@ async function getRecentNotifications(limit = 5) {
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("recipient_id", user.id)
     .eq("is_archived", false)
     .order("created_at", { ascending: false })
     .limit(limit);

@@ -677,10 +677,12 @@ export default function RegisterPage() {
     firstName,
     lastName,
     avatarUrl,
+    accessToken,
   }: {
     firstName: string;
     lastName: string;
     avatarUrl: string;
+    accessToken: string;
   }) {
     try {
       await fetch(
@@ -691,6 +693,8 @@ export default function RegisterPage() {
           headers: {
             "Content-Type":
               "application/json",
+            Authorization:
+              `Bearer ${accessToken}`,
           },
 
           body: JSON.stringify({
@@ -1044,11 +1048,19 @@ approved_at:
         throw error;
       }
 
-      await notifyAdmin({
-        firstName,
-        lastName,
-        avatarUrl,
-      });
+      if (data.session?.access_token) {
+        await notifyAdmin({
+          firstName,
+          lastName,
+          avatarUrl,
+          accessToken:
+            data.session.access_token,
+        });
+      } else {
+        console.info(
+          "Notification admin différée : aucune session Supabase disponible après l'inscription."
+        );
+      }
 
       const destination =
         getDestinationAfterSignup();

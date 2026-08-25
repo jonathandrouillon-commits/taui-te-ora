@@ -685,9 +685,6 @@ export default function AdoptionQuestionnairePage() {
 
     const notifications: any[] = [
       {
-        user_id:
-          ownerId,
-
         recipient_id:
           ownerId,
 
@@ -717,9 +714,6 @@ export default function AdoptionQuestionnairePage() {
       adminId !== ownerId
     ) {
       notifications.push({
-        user_id:
-          adminId,
-
         recipient_id:
           adminId,
 

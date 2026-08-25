@@ -17,8 +17,7 @@ import {
 type NotificationRow = {
   id: string;
 
-  user_id?: string | null;
-  recipient_id?: string | null;
+  recipient_id: string;
 
   title?: string | null;
   message?: string | null;
@@ -101,8 +100,8 @@ export default function NotificationBell() {
       );
 
       /*
-       * On écoute les nouvelles notifications
-       * en temps réel.
+       * On écoute uniquement les notifications
+       * destinées à l'utilisateur connecté.
        */
       channel =
         supabase
@@ -118,6 +117,8 @@ export default function NotificationBell() {
                 "public",
               table:
                 "notifications",
+              filter:
+                `recipient_id=eq.${user.id}`,
             },
             (
               payload
@@ -125,14 +126,9 @@ export default function NotificationBell() {
               const notification =
                 payload.new as NotificationRow;
 
-              const belongsToUser =
-                notification.user_id ===
-                  user.id ||
-                notification.recipient_id ===
-                  user.id;
-
               if (
-                !belongsToUser
+                notification.recipient_id !==
+                user.id
               ) {
                 return;
               }
@@ -161,9 +157,7 @@ export default function NotificationBell() {
               );
 
               /*
-               * Notification navigateur facultative :
-               * fonctionne si l'utilisateur a déjà
-               * autorisé les notifications.
+               * Notification navigateur facultative.
                */
               showBrowserNotification(
                 notification
@@ -179,6 +173,8 @@ export default function NotificationBell() {
                 "public",
               table:
                 "notifications",
+              filter:
+                `recipient_id=eq.${user.id}`,
             },
             (
               payload
@@ -186,14 +182,9 @@ export default function NotificationBell() {
               const notification =
                 payload.new as NotificationRow;
 
-              const belongsToUser =
-                notification.user_id ===
-                  user.id ||
-                notification.recipient_id ===
-                  user.id;
-
               if (
-                belongsToUser
+                notification.recipient_id ===
+                user.id
               ) {
                 /*
                  * On recalcule le compteur afin
@@ -252,8 +243,9 @@ export default function NotificationBell() {
               true,
           }
         )
-        .or(
-          `user_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`
+        .eq(
+          "recipient_id",
+          currentUserId
         )
         .eq(
           "is_read",

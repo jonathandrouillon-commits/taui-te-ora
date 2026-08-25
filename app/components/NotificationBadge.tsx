@@ -10,7 +10,7 @@ export default function NotificationBadge() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    initNotifications();
+    void initNotifications();
   }, []);
 
   async function initNotifications() {
@@ -22,34 +22,42 @@ export default function NotificationBadge() {
 
     setUserId(user.id);
 
-    const notifications = await notificationService.getMyNotifications(user.id);
-    setCount(notifications.filter((n) => !n.is_read).length);
+    const notifications =
+      await notificationService.getMyNotifications(user.id);
+
+    setCount(
+      notifications.filter((notification) => !notification.is_read).length
+    );
   }
 
   useEffect(() => {
     if (!userId) return;
 
     const channel = supabase
-      .channel(`notifications-${userId}`)
+      .channel(`notification-badge-${userId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "notifications",
-          filter: `user_id=eq.${userId}`,
+          filter: `recipient_id=eq.${userId}`,
         },
         async () => {
           const notifications =
             await notificationService.getMyNotifications(userId);
 
-          setCount(notifications.filter((n) => !n.is_read).length);
+          setCount(
+            notifications.filter(
+              (notification) => !notification.is_read
+            ).length
+          );
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [userId]);
 
@@ -58,7 +66,7 @@ export default function NotificationBadge() {
       <Bell size={28} className="text-[#0f5d52]" />
 
       {count > 0 && (
-        <div className="absolute -top-2 -right-2 min-w-6 h-6 px-1 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+        <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
           {count}
         </div>
       )}

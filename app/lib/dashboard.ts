@@ -146,7 +146,7 @@ export type Notification = {
   id: string;
   created_at?: string;
 
-  user_id?: string;
+  recipient_id?: string;
 
   title?: string;
   message?: string;
@@ -538,8 +538,9 @@ export async function getNotifications(
   } = await supabase
     .from("notifications")
     .select("*")
-    .or(
-      `user_id.eq.${userId},recipient_id.eq.${userId}`
+    .eq(
+      "recipient_id",
+      userId
     )
     .order(
       "created_at",

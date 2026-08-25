@@ -454,8 +454,6 @@ export default function AdminSignalementsPage() {
           "notifications"
         )
         .insert({
-          user_id:
-            item.user_id,
           recipient_id:
             item.user_id,
           signalement_id:

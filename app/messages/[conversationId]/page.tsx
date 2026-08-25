@@ -809,20 +809,11 @@ export default function ConversationPage() {
             "notifications"
           )
           .insert({
-            user_id:
-              recipientId,
-
             recipient_id:
               recipientId,
 
             animal_id:
               conversation.animal_id,
-
-            adoptant_id:
-              conversation.requester_id,
-
-            association_id:
-              conversation.owner_id,
 
             adoption_request_id:
               conversation.adoption_request_id,

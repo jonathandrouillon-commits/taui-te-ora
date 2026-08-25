@@ -481,9 +481,6 @@ export default function SignalementDetailPage() {
           "notifications"
         )
         .insert({
-          user_id:
-            signalement.user_id,
-
           recipient_id:
             signalement.user_id,
 

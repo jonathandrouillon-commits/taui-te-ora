@@ -63,9 +63,9 @@ export default function AssociationDemandeDetailPage() {
       if (error) throw error;
 
       await notificationService.create({
-        user_id: demande.requester_id,
+        recipient_id: demande.requester_id,
         type: "reponse_adoption",
-        titre:
+        title:
           status === "accepted"
             ? "Demande d'adoption acceptée"
             : "Demande d'adoption refusée",
@@ -75,7 +75,6 @@ export default function AssociationDemandeDetailPage() {
             : "Votre demande d’adoption a été refusée.",
         animal_id: demande.animal_id,
         adoption_request_id: demande.id,
-        lien: `/animal/${demande.animal_id}`,
       });
 
       setDemande({
@@ -90,23 +89,38 @@ export default function AssociationDemandeDetailPage() {
       );
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Erreur lors de la mise à jour.");
+
+      alert(
+        error?.message ||
+          "Erreur lors de la mise à jour."
+      );
     } finally {
       setUpdating(false);
     }
   }
 
   function getStatusLabel(status: string) {
-    if (status === "pending") return "Nouvelle demande";
-    if (status === "accepted") return "Demande acceptée";
-    if (status === "refused") return "Demande refusée";
+    if (status === "pending") {
+      return "Nouvelle demande";
+    }
+
+    if (status === "accepted") {
+      return "Demande acceptée";
+    }
+
+    if (status === "refused") {
+      return "Demande refusée";
+    }
+
     return status;
   }
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
-        <p className="text-xl font-black">Chargement de la demande...</p>
+        <p className="text-xl font-black">
+          Chargement de la demande...
+        </p>
       </main>
     );
   }
@@ -115,10 +129,15 @@ export default function AssociationDemandeDetailPage() {
     return (
       <main className="min-h-screen bg-[#f4eee3] px-4 py-8 text-[#064b42]">
         <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow">
-          <h1 className="text-3xl font-black">Demande introuvable</h1>
+          <h1 className="text-3xl font-black">
+            Demande introuvable
+          </h1>
+
           <button
             type="button"
-            onClick={() => router.push("/association/demandes")}
+            onClick={() =>
+              router.push("/association/demandes")
+            }
             className="mt-6 rounded-2xl bg-[#064b42] px-5 py-3 font-bold text-white"
           >
             Retour aux demandes
@@ -143,22 +162,41 @@ export default function AssociationDemandeDetailPage() {
           Demande adoption
         </p>
 
-        <h1 className="mt-2 text-3xl font-black">Détail de la demande</h1>
+        <h1 className="mt-2 text-3xl font-black">
+          Détail de la demande
+        </h1>
 
         <div className="mt-6 rounded-2xl bg-[#f4eee3] p-5">
-          <p className="text-sm font-black uppercase text-[#b68b2f]">Statut</p>
+          <p className="text-sm font-black uppercase text-[#b68b2f]">
+            Statut
+          </p>
+
           <p className="mt-1 text-xl font-black">
             {getStatusLabel(demande.status)}
           </p>
         </div>
 
         <div className="mt-6 space-y-4">
-          <Info label="ID demande" value={demande.id} />
-          <Info label="ID animal" value={demande.animal_id} />
-          <Info label="ID adoptant" value={demande.requester_id} />
+          <Info
+            label="ID demande"
+            value={demande.id}
+          />
+
+          <Info
+            label="ID animal"
+            value={demande.animal_id}
+          />
+
+          <Info
+            label="ID adoptant"
+            value={demande.requester_id}
+          />
+
           <Info
             label="Date"
-            value={new Date(demande.created_at).toLocaleString("fr-FR")}
+            value={new Date(
+              demande.created_at
+            ).toLocaleString("fr-FR")}
           />
         </div>
 
@@ -168,7 +206,8 @@ export default function AssociationDemandeDetailPage() {
           </p>
 
           <pre className="whitespace-pre-wrap rounded-2xl bg-[#f4eee3] p-4 text-sm text-gray-700">
-            {demande.message || "Aucun message renseigné."}
+            {demande.message ||
+              "Aucun message renseigné."}
           </pre>
         </div>
 
@@ -177,19 +216,27 @@ export default function AssociationDemandeDetailPage() {
             <button
               type="button"
               disabled={updating}
-              onClick={() => updateStatus("accepted")}
+              onClick={() =>
+                updateStatus("accepted")
+              }
               className="rounded-2xl bg-[#064b42] px-5 py-4 text-lg font-black text-white shadow disabled:opacity-60"
             >
-              Accepter
+              {updating
+                ? "Mise à jour..."
+                : "Accepter"}
             </button>
 
             <button
               type="button"
               disabled={updating}
-              onClick={() => updateStatus("refused")}
+              onClick={() =>
+                updateStatus("refused")
+              }
               className="rounded-2xl bg-red-600 px-5 py-4 text-lg font-black text-white shadow disabled:opacity-60"
             >
-              Refuser
+              {updating
+                ? "Mise à jour..."
+                : "Refuser"}
             </button>
           </div>
         )}
@@ -198,11 +245,22 @@ export default function AssociationDemandeDetailPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow">
-      <p className="text-xs font-black uppercase text-[#b68b2f]">{label}</p>
-      <p className="mt-1 break-all font-bold text-[#064b42]">{value}</p>
+      <p className="text-xs font-black uppercase text-[#b68b2f]">
+        {label}
+      </p>
+
+      <p className="mt-1 break-all font-bold text-[#064b42]">
+        {value}
+      </p>
     </div>
   );
 }

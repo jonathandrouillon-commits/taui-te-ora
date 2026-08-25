@@ -10,10 +10,10 @@ import {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [recipientId, setRecipientId] = useState<string | null>(null);
 
   useEffect(() => {
-    initNotifications();
+    void initNotifications();
   }, []);
 
   async function initNotifications() {
@@ -26,31 +26,33 @@ export default function NotificationsPage() {
       return;
     }
 
-    setUserId(user.id);
+    setRecipientId(user.id);
     await loadNotifications(user.id);
     setLoading(false);
   }
 
   async function loadNotifications(id: string) {
-    const data = await notificationService.getMyNotifications(id);
+    const data =
+      await notificationService.getMyNotifications(id);
+
     setNotifications(data);
   }
 
   useEffect(() => {
-    if (!userId) return;
+    if (!recipientId) return;
 
     const channel = supabase
-      .channel(`notifications-page-${userId}`)
+      .channel(`notifications-page-${recipientId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "notifications",
-          filter: `user_id=eq.${userId}`,
+          filter: `recipient_id=eq.${recipientId}`,
         },
         async () => {
-          await loadNotifications(userId);
+          await loadNotifications(recipientId);
         }
       )
       .subscribe();
@@ -58,32 +60,46 @@ export default function NotificationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [recipientId]);
 
   async function markAsRead(id: string) {
     await notificationService.markAsRead(id);
 
     setNotifications((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, is_read: true } : item
+        item.id === id
+          ? {
+              ...item,
+              is_read: true,
+              read_at: new Date().toISOString(),
+            }
+          : item
       )
     );
   }
 
   async function markAllAsRead() {
-    if (!userId) return;
+    if (!recipientId) return;
 
-    await notificationService.markAllAsRead(userId);
+    await notificationService.markAllAsRead(
+      recipientId
+    );
+
+    const now = new Date().toISOString();
 
     setNotifications((current) =>
       current.map((item) => ({
         ...item,
         is_read: true,
+        read_at: item.read_at || now,
       }))
     );
   }
 
-  const unreadCount = notifications.filter((item) => !item.is_read).length;
+  const unreadCount =
+    notifications.filter(
+      (item) => !item.is_read
+    ).length;
 
   if (loading) {
     return (
@@ -111,6 +127,7 @@ export default function NotificationsPage() {
 
           {unreadCount > 0 && (
             <button
+              type="button"
               onClick={markAllAsRead}
               className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white"
             >
@@ -146,25 +163,19 @@ export default function NotificationsPage() {
                   {notification.message}
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {notification.lien && (
-                    <a
-                      href={notification.lien}
-                      className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      Voir
-                    </a>
-                  )}
-
-                  {!notification.is_read && (
+                {!notification.is_read && (
+                  <div className="mt-4">
                     <button
-                      onClick={() => markAsRead(notification.id)}
+                      type="button"
+                      onClick={() =>
+                        markAsRead(notification.id)
+                      }
                       className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow"
                     >
                       Marquer comme lu
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))
           )}
