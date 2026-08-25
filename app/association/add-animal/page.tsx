@@ -109,7 +109,7 @@ export default function AddAnimalPage() {
       } = await supabase
         .from("profiles")
         .select(
-          "id, role, full_name, first_name, last_name, organization_name, email, approval_status, is_active, is_verified"
+          "id, role, first_name, last_name, organization_name, email, approval_status, is_active, is_verified"
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -156,7 +156,7 @@ export default function AddAnimalPage() {
         !ALLOWED_ROLES.includes(
           userRole as PublisherRole
         ) ||
-        profileData.is_active !== true ||
+        profileData.is_active === false ||
         approvalStatus === "rejected" ||
         approvalStatus === "suspended"
       ) {
@@ -180,7 +180,6 @@ export default function AddAnimalPage() {
         "";
 
       const fullName =
-        profileData.full_name ||
         user.user_metadata?.full_name ||
         [
           profileData.first_name ||
