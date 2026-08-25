@@ -16,6 +16,7 @@ import {
   Siren,
   LogOut,
   Stethoscope,
+  BarChart3,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
@@ -34,44 +35,32 @@ import {
 } from "../../lib/supabase";
 
 export default function AdminDashboardPage() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
   const [
     loggingOut,
     setLoggingOut,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   const [
     profile,
     setProfile,
-  ] =
-    useState<any>(
-      null
-    );
+  ] = useState<any>(null);
 
   const [
     users,
     setUsers,
-  ] =
-    useState<any[]>(
-      []
-    );
+  ] = useState<any[]>([]);
 
   const [
     animals,
     setAnimals,
-  ] =
-    useState<any[]>(
-      []
-    );
+  ] = useState<any[]>([]);
 
   useEffect(() => {
     void loadDashboard();
@@ -80,43 +69,28 @@ export default function AdminDashboardPage() {
   async function loadDashboard() {
     try {
       const currentProfile =
-        await profileService
-          .getCurrentProfile();
+        await profileService.getCurrentProfile();
 
       if (
         !currentProfile ||
-        currentProfile.role !==
-          "admin"
+        currentProfile.role !== "admin"
       ) {
-        router.replace(
-          "/"
-        );
-
+        router.replace("/");
         return;
       }
 
-      setProfile(
-        currentProfile
-      );
+      setProfile(currentProfile);
 
       const allUsers =
-        await profileService
-          .getAllProfiles();
+        await profileService.getAllProfiles();
 
-      setUsers(
-        allUsers
-      );
+      setUsers(allUsers);
 
       const allAnimals =
-        await animalService
-          .getAllWithPhotos();
+        await animalService.getAllWithPhotos();
 
-      setAnimals(
-        allAnimals
-      );
-    } catch (
-      error: any
-    ) {
+      setAnimals(allAnimals);
+    } catch (error: any) {
       console.error(
         "Erreur dashboard admin :",
         error
@@ -127,42 +101,28 @@ export default function AdminDashboardPage() {
           "Impossible de charger le dashboard."
       );
     } finally {
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
 
   async function handleLogout() {
-    if (
-      loggingOut
-    ) {
+    if (loggingOut) {
       return;
     }
 
     try {
-      setLoggingOut(
-        true
-      );
+      setLoggingOut(true);
 
-      const {
-        error,
-      } =
-        await supabase.auth
-          .signOut();
+      const { error } =
+        await supabase.auth.signOut();
 
       if (error) {
         throw error;
       }
 
-      router.replace(
-        "/login"
-      );
-
+      router.replace("/login");
       router.refresh();
-    } catch (
-      error: any
-    ) {
+    } catch (error: any) {
       console.error(
         "Erreur déconnexion admin :",
         error
@@ -173,9 +133,7 @@ export default function AdminDashboardPage() {
           "Impossible de vous déconnecter."
       );
 
-      setLoggingOut(
-        false
-      );
+      setLoggingOut(false);
     }
   }
 
@@ -199,14 +157,11 @@ export default function AdminDashboardPage() {
 
   const pendingUsers =
     users.filter(
-      (
-        user
-      ) =>
+      (user) =>
         (
           user.approval_status ||
           "pending"
-        ) ===
-        "pending"
+        ) === "pending"
     );
 
   return (
@@ -225,9 +180,7 @@ export default function AdminDashboardPage() {
           max-w-7xl
         "
       >
-        {/* =====================================================
-            EN-TÊTE
-        ====================================================== */}
+        {/* HEADER */}
 
         <div
           className="
@@ -274,9 +227,7 @@ export default function AdminDashboardPage() {
           </Button>
         </div>
 
-        {/* =====================================================
-            STATISTIQUES
-        ====================================================== */}
+        {/* STATISTIQUES */}
 
         <div
           className="
@@ -287,11 +238,7 @@ export default function AdminDashboardPage() {
             lg:grid-cols-4
           "
         >
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <Users
               className="
                 mx-auto
@@ -310,20 +257,12 @@ export default function AdminDashboardPage() {
               {users.length}
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               Utilisateurs
             </p>
           </Card>
 
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <ShieldCheck
               className="
                 mx-auto
@@ -339,25 +278,15 @@ export default function AdminDashboardPage() {
                 font-black
               "
             >
-              {
-                pendingUsers.length
-              }
+              {pendingUsers.length}
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               En attente
             </p>
           </Card>
 
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <PawPrint
               className="
                 mx-auto
@@ -376,20 +305,12 @@ export default function AdminDashboardPage() {
               {animals.length}
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               Animaux
             </p>
           </Card>
 
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <Siren
               className="
                 mx-auto
@@ -408,19 +329,13 @@ export default function AdminDashboardPage() {
               🚨
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               Signalements
             </p>
           </Card>
         </div>
 
-        {/* =====================================================
-            ACTIONS RAPIDES
-        ====================================================== */}
+        {/* ACTIONS RAPIDES */}
 
         <Card
           className="
@@ -442,7 +357,7 @@ export default function AdminDashboardPage() {
               grid
               gap-4
               md:grid-cols-2
-              lg:grid-cols-4
+              lg:grid-cols-5
             "
           >
             {/* UTILISATEURS */}
@@ -515,11 +430,42 @@ export default function AdminDashboardPage() {
 
               Gérer les vétérinaires
             </button>
+
+            {/* PUBLICITES */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/admin/publicites"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#f5e7ea]
+                px-4
+                py-3
+                font-black
+                text-[#c76d7b]
+                transition
+                hover:bg-[#efd9de]
+                active:scale-[0.98]
+              "
+            >
+              <BarChart3
+                size={20}
+              />
+
+              Publicités & Partenaires
+            </button>
           </div>
 
-          {/* ===================================================
-              NAVIGATION / DECONNEXION
-          ==================================================== */}
+          {/* NAVIGATION / DECONNEXION */}
 
           <div
             className="
@@ -542,9 +488,7 @@ export default function AdminDashboardPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  router.push(
-                    "/"
-                  )
+                  router.push("/")
                 }
               >
                 Retour au site
