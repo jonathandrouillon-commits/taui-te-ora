@@ -136,15 +136,17 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] px-5 pb-28 pt-8">
+    <main className="min-h-screen bg-[#f8f4ec] px-5 pb-28 pt-20">
       <div className="mx-auto max-w-7xl">
-        <h1 className="text-4xl font-black text-[#064b42]">
-          🔎 Recherche animaux
-        </h1>
+        <div className="text-center">
+          <h1 className="text-3xl font-black text-[#064b42] sm:text-4xl">
+            🔎 Recherche animaux
+          </h1>
 
-        <p className="mt-2 text-gray-600">
-          Rechercher un animal selon les informations de sa fiche.
-        </p>
+          <p className="mx-auto mt-2 max-w-2xl text-gray-600">
+            Rechercher un animal selon les informations de sa fiche.
+          </p>
+        </div>
 
         <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-lg">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
