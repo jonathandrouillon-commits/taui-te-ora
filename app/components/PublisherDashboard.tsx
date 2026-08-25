@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import SupportButton from "./SupportButton";
 
 export type PublisherRole =
   | "association"
@@ -1332,6 +1333,28 @@ export default function PublisherDashboard({
                 );
               })
             )}
+          </div>
+        </section>
+
+        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                Assistance
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black">
+                Signaler un problème
+              </h2>
+
+              <p className="mt-1 text-sm text-[#6f5a47]">
+                Une erreur, un bug ou un problème avec votre compte ? Contactez directement l'administration.
+              </p>
+            </div>
+
+            <div className="w-full sm:w-auto sm:min-w-[240px]">
+              <SupportButton />
+            </div>
           </div>
         </section>
       </section>
