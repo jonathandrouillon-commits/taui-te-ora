@@ -335,6 +335,31 @@ export default function PublisherDashboard({
     }
   }
 
+  async function handleLogout() {
+    try {
+      const { error } =
+        await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch (error: any) {
+      console.error(
+        "Erreur déconnexion :",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Impossible de se déconnecter."
+      );
+    }
+  }
+
+
   async function archiveAnimal(animalId: string) {
     const confirmed =
       window.confirm(
@@ -608,6 +633,27 @@ export default function PublisherDashboard({
               >
                 Gérer mes animaux
               </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="
+                  rounded-full
+                  border-2
+                  border-red-200
+                  bg-white
+                  px-6
+                  py-3
+                  font-black
+                  text-red-600
+                  shadow
+                  transition
+                  hover:bg-red-50
+                  active:scale-[0.98]
+                "
+              >
+                Déconnexion
+              </button>
             </div>
           </div>
         </header>
