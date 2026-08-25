@@ -238,10 +238,6 @@ export default function AdminDashboardPage() {
     );
   }
 
-  /* =========================================================
-     UTILISATEURS EN ATTENTE
-  ========================================================= */
-
   const pendingUsers =
     users.filter(
       (
@@ -253,10 +249,6 @@ export default function AdminDashboardPage() {
         ) ===
         "pending"
     );
-
-  /* =========================================================
-     REPARTITION DES UTILISATEURS PAR ROLE
-  ========================================================= */
 
   const adoptantUsers =
     users.filter(
@@ -312,12 +304,6 @@ export default function AdminDashboardPage() {
         "admin"
     ).length;
 
-  /*
-   * Permet de repérer immédiatement
-   * un éventuel rôle qui ne correspond
-   * à aucune des catégories connues.
-   */
-
   const knownUsers =
     adoptantUsers +
     associationUsers +
@@ -366,8 +352,10 @@ export default function AdminDashboardPage() {
           <div>
             <h1
               className="
+                mt-12
                 text-4xl
                 font-black
+                sm:mt-10
                 sm:text-5xl
               "
             >
@@ -411,10 +399,6 @@ export default function AdminDashboardPage() {
             lg:grid-cols-4
           "
         >
-          {/* =================================================
-              UTILISATEURS + REPARTITION
-          ================================================== */}
-
           <Card
             className="
               text-center
@@ -435,9 +419,7 @@ export default function AdminDashboardPage() {
                 font-black
               "
             >
-              {
-                users.length
-              }
+              {users.length}
             </h2>
 
             <p
@@ -459,357 +441,121 @@ export default function AdminDashboardPage() {
                 text-left
               "
             >
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   👤 Adoptants
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-blue-50
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-blue-700
-                  "
-                >
-                  {
-                    adoptantUsers
-                  }
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-sm font-black text-blue-700">
+                  {adoptantUsers}
                 </span>
               </div>
 
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   🐾 Associations
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-pink-50
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-pink-700
-                  "
-                >
-                  {
-                    associationUsers
-                  }
+                <span className="rounded-full bg-pink-50 px-2.5 py-1 text-sm font-black text-pink-700">
+                  {associationUsers}
                 </span>
               </div>
 
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   🏠 Refuges / SIGFA
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-green-50
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-green-700
-                  "
-                >
-                  {
-                    refugeUsers
-                  }
+                <span className="rounded-full bg-green-50 px-2.5 py-1 text-sm font-black text-green-700">
+                  {refugeUsers}
                 </span>
               </div>
 
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   🚐 Fourrières
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-orange-50
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-orange-700
-                  "
-                >
-                  {
-                    fourriereUsers
-                  }
+                <span className="rounded-full bg-orange-50 px-2.5 py-1 text-sm font-black text-orange-700">
+                  {fourriereUsers}
                 </span>
               </div>
 
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   🤝 Bénévoles
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-violet-50
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-violet-700
-                  "
-                >
-                  {
-                    benevoleUsers
-                  }
+                <span className="rounded-full bg-violet-50 px-2.5 py-1 text-sm font-black text-violet-700">
+                  {benevoleUsers}
                 </span>
               </div>
 
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    text-sm
-                    text-gray-500
-                  "
-                >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">
                   🛡️ Administrateurs
                 </span>
 
-                <span
-                  className="
-                    rounded-full
-                    bg-gray-100
-                    px-2.5
-                    py-1
-                    text-sm
-                    font-black
-                    text-gray-700
-                  "
-                >
-                  {
-                    adminUsers
-                  }
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-sm font-black text-gray-700">
+                  {adminUsers}
                 </span>
               </div>
 
-              {otherUsers >
-                0 && (
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    gap-3
-                  "
-                >
-                  <span
-                    className="
-                      text-sm
-                      text-gray-500
-                    "
-                  >
+              {otherUsers > 0 && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-500">
                     ❓ Autres profils
                   </span>
 
-                  <span
-                    className="
-                      rounded-full
-                      bg-gray-100
-                      px-2.5
-                      py-1
-                      text-sm
-                      font-black
-                      text-gray-700
-                    "
-                  >
-                    {
-                      otherUsers
-                    }
+                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-sm font-black text-gray-700">
+                    {otherUsers}
                   </span>
                 </div>
               )}
             </div>
           </Card>
 
-          {/* =================================================
-              UTILISATEURS EN ATTENTE
-          ================================================== */}
-
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <ShieldCheck
-              className="
-                mx-auto
-                text-orange-500
-              "
+              className="mx-auto text-orange-500"
               size={42}
             />
 
-            <h2
-              className="
-                mt-3
-                text-4xl
-                font-black
-              "
-            >
-              {
-                pendingUsers.length
-              }
+            <h2 className="mt-3 text-4xl font-black">
+              {pendingUsers.length}
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               En attente
             </p>
           </Card>
 
-          {/* =================================================
-              ANIMAUX
-          ================================================== */}
-
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <PawPrint
-              className="
-                mx-auto
-                text-green-600
-              "
+              className="mx-auto text-green-600"
               size={42}
             />
 
-            <h2
-              className="
-                mt-3
-                text-4xl
-                font-black
-              "
-            >
-              {
-                animals.length
-              }
+            <h2 className="mt-3 text-4xl font-black">
+              {animals.length}
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               Animaux
             </p>
           </Card>
 
-          {/* =================================================
-              SIGNALEMENTS
-          ================================================== */}
-
-          <Card
-            className="
-              text-center
-            "
-          >
+          <Card className="text-center">
             <Siren
-              className="
-                mx-auto
-                text-red-600
-              "
+              className="mx-auto text-red-600"
               size={42}
             />
 
-            <h2
-              className="
-                mt-3
-                text-4xl
-                font-black
-              "
-            >
+            <h2 className="mt-3 text-4xl font-black">
               🚨
             </h2>
 
-            <p
-              className="
-                text-gray-500
-              "
-            >
+            <p className="text-gray-500">
               Signalements
             </p>
           </Card>
@@ -819,297 +565,142 @@ export default function AdminDashboardPage() {
             ANALYTICS
         ====================================================== */}
 
-        <div
-          className="
-            mt-10
-          "
-        >
-          <div
-            className="
-              mb-5
-            "
-          >
-            <h2
-              className="
-                text-3xl
-                font-black
-              "
-            >
+        <div className="mt-10">
+          <div className="mb-5">
+            <h2 className="text-3xl font-black">
               Statistiques du site
             </h2>
 
-            <p
-              className="
-                mt-1
-                text-sm
-                text-gray-500
-              "
-            >
+            <p className="mt-1 text-sm text-gray-500">
               Suivi des visites et des performances
               publicitaires depuis l’activation des
               statistiques.
             </p>
           </div>
 
-          <div
-            className="
-              grid
-              gap-6
-              md:grid-cols-2
-              lg:grid-cols-4
-            "
-          >
-            <Card
-              className="
-                text-center
-              "
-            >
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="text-center">
               <Users
-                className="
-                  mx-auto
-                  text-blue-600
-                "
+                className="mx-auto text-blue-600"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.visitors_today.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Visiteurs aujourd’hui
               </p>
             </Card>
 
-            <Card
-              className="
-                text-center
-              "
-            >
+            <Card className="text-center">
               <Users
-                className="
-                  mx-auto
-                  text-[#064b42]
-                "
+                className="mx-auto text-[#064b42]"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.visitors_total.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Visiteurs cumulés
               </p>
             </Card>
 
-            <Card
-              className="
-                text-center
-              "
-            >
+            <Card className="text-center">
               <Eye
-                className="
-                  mx-auto
-                  text-violet-600
-                "
+                className="mx-auto text-violet-600"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.page_views_today.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Pages vues aujourd’hui
               </p>
             </Card>
 
-            <Card
-              className="
-                text-center
-              "
-            >
+            <Card className="text-center">
               <Activity
-                className="
-                  mx-auto
-                  text-indigo-600
-                "
+                className="mx-auto text-indigo-600"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.page_views_total.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Pages vues cumulées
               </p>
             </Card>
           </div>
 
-          <div
-            className="
-              mt-6
-              grid
-              gap-6
-              md:grid-cols-3
-            "
-          >
-            <Card
-              className="
-                text-center
-              "
-            >
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            <Card className="text-center">
               <Eye
-                className="
-                  mx-auto
-                  text-[#c76d7b]
-                "
+                className="mx-auto text-[#c76d7b]"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.ad_impressions.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Affichages publicitaires
               </p>
             </Card>
 
-            <Card
-              className="
-                text-center
-              "
-            >
+            <Card className="text-center">
               <MousePointerClick
-                className="
-                  mx-auto
-                  text-[#c76d7b]
-                "
+                className="mx-auto text-[#c76d7b]"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
+              <h3 className="mt-3 text-4xl font-black">
                 {analytics.ad_clicks.toLocaleString(
                   "fr-FR"
                 )}
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 Clics publicitaires
               </p>
             </Card>
 
-            <Card
-              className="
-                text-center
-              "
-            >
+            <Card className="text-center">
               <BarChart3
-                className="
-                  mx-auto
-                  text-[#c76d7b]
-                "
+                className="mx-auto text-[#c76d7b]"
                 size={38}
               />
 
-              <h3
-                className="
-                  mt-3
-                  text-4xl
-                  font-black
-                "
-              >
-                {analytics.ad_impressions >
-                0
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.ad_impressions > 0
                   ? (
                       (analytics.ad_clicks /
                         analytics.ad_impressions) *
                       100
-                    ).toFixed(
-                      2
-                    )
+                    ).toFixed(2)
                   : "0.00"}
                 %
               </h3>
 
-              <p
-                className="
-                  text-gray-500
-                "
-              >
+              <p className="text-gray-500">
                 CTR publicitaire global
               </p>
             </Card>
@@ -1120,32 +711,12 @@ export default function AdminDashboardPage() {
             ACTIONS RAPIDES
         ====================================================== */}
 
-        <Card
-          className="
-            mt-10
-          "
-        >
-          <h2
-            className="
-              text-3xl
-              font-black
-            "
-          >
+        <Card className="mt-10">
+          <h2 className="text-3xl font-black">
             Actions rapides
           </h2>
 
-          <div
-            className="
-              mt-6
-              grid
-              gap-4
-              md:grid-cols-2
-              lg:grid-cols-3
-              xl:grid-cols-6
-            "
-          >
-            {/* UTILISATEURS */}
-
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Button
               onClick={() =>
                 router.push(
@@ -1155,8 +726,6 @@ export default function AdminDashboardPage() {
             >
               Gérer les utilisateurs
             </Button>
-
-            {/* ANIMAUX */}
 
             <Button
               variant="secondary"
@@ -1169,8 +738,6 @@ export default function AdminDashboardPage() {
               Voir les animaux
             </Button>
 
-            {/* SIGNALEMENTS */}
-
             <Button
               variant="secondary"
               onClick={() =>
@@ -1181,8 +748,6 @@ export default function AdminDashboardPage() {
             >
               Voir les signalements
             </Button>
-
-            {/* VETERINAIRES */}
 
             <button
               type="button"
@@ -1208,14 +773,9 @@ export default function AdminDashboardPage() {
                 active:scale-[0.98]
               "
             >
-              <Stethoscope
-                size={20}
-              />
-
+              <Stethoscope size={20} />
               Vétérinaires
             </button>
-
-            {/* PUBLICITES */}
 
             <button
               type="button"
@@ -1241,14 +801,9 @@ export default function AdminDashboardPage() {
                 active:scale-[0.98]
               "
             >
-              <BarChart3
-                size={20}
-              />
-
+              <BarChart3 size={20} />
               Publicités
             </button>
-
-            {/* GESTION DES PAGES */}
 
             <button
               type="button"
@@ -1274,36 +829,13 @@ export default function AdminDashboardPage() {
                 active:scale-[0.98]
               "
             >
-              <FileText
-                size={20}
-              />
-
+              <FileText size={20} />
               Gestion des pages
             </button>
           </div>
 
-          {/* ===================================================
-              RETOUR SITE / DECONNEXION
-          ==================================================== */}
-
-          <div
-            className="
-              mt-8
-              border-t
-              border-[#eadfd8]
-              pt-6
-            "
-          >
-            <div
-              className="
-                ml-auto
-                flex
-                w-full
-                max-w-sm
-                flex-col
-                gap-3
-              "
-            >
+          <div className="mt-8 border-t border-[#eadfd8] pt-6">
+            <div className="ml-auto flex w-full max-w-sm flex-col gap-3">
               <Button
                 variant="secondary"
                 onClick={() =>
@@ -1317,12 +849,8 @@ export default function AdminDashboardPage() {
 
               <button
                 type="button"
-                onClick={
-                  handleLogout
-                }
-                disabled={
-                  loggingOut
-                }
+                onClick={handleLogout}
+                disabled={loggingOut}
                 className="
                   flex
                   min-h-[48px]
@@ -1345,9 +873,7 @@ export default function AdminDashboardPage() {
                   disabled:opacity-60
                 "
               >
-                <LogOut
-                  size={19}
-                />
+                <LogOut size={19} />
 
                 {loggingOut
                   ? "Déconnexion..."
