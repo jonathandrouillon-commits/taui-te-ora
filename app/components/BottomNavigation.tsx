@@ -55,19 +55,24 @@ export default function BottomNavigation() {
       label: "Vétérinaires",
       icon: "🩺",
     },
+
+    // CONSEILS SANTE
+    {
+      href: "/conseils-sante",
+      label: "Conseils santé",
+      icon: "❤️‍🩹",
+    },
+
     {
       href: "/association",
       label: "Les Veilleurs de Kali",
       icon: "❤️",
     },
-
-    // NOUVEL ESPACE BOUTIQUE
     {
       href: "/boutique",
       label: "Boutique",
       icon: "🛍️",
     },
-
     {
       href: "/toilettage",
       label: "Toilettage",
@@ -119,15 +124,11 @@ export default function BottomNavigation() {
           />
 
           <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
-            {/* Petite poignée */}
-
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
 
             <div className="relative px-5 pb-5 pt-4">
-              {/* Fermer */}
-
               <button
                 type="button"
                 onClick={closeMenu}
@@ -140,8 +141,6 @@ export default function BottomNavigation() {
               <h2 className="mb-5 text-center text-xl font-black text-[#064b42]">
                 Menu
               </h2>
-
-              {/* Liste */}
 
               <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
                 {menuItems.map((item) => {
@@ -164,13 +163,7 @@ export default function BottomNavigation() {
                         {item.icon}
                       </span>
 
-                      <span
-                        className={`text-base font-black ${
-                          isMenuItemActive
-                            ? "text-[#064b42]"
-                            : "text-[#064b42]"
-                        }`}
-                      >
+                      <span className="text-base font-black text-[#064b42]">
                         {item.label}
                       </span>
                     </Link>
@@ -194,8 +187,6 @@ export default function BottomNavigation() {
               (pathname === item.href ||
                 (item.href !== "/" &&
                   pathname.startsWith(`${item.href}/`)));
-
-            /* MENU */
 
             if (item.menu) {
               return (
@@ -234,8 +225,6 @@ export default function BottomNavigation() {
               );
             }
 
-            /* SOS */
-
             if (item.sos) {
               return (
                 <Link
@@ -254,8 +243,6 @@ export default function BottomNavigation() {
                 </Link>
               );
             }
-
-            /* AUTRES BOUTONS */
 
             return (
               <Link
