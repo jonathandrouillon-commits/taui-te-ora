@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { animalService } from "../../services/animal.service";
 import { photoService } from "../../services/photo.service";
+import { videoService } from "../../services/video.service";
 import { supabase } from "../../lib/supabase";
 
 import ProgressBar from "./ProgressBar";
@@ -46,6 +47,7 @@ export default function AddAnimalPage() {
   const [checkingAccess, setCheckingAccess] = useState(true);
 
   const [photos, setPhotos] = useState<File[]>([]);
+  const [video, setVideo] = useState<File | null>(null);
 
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<PublisherRole | null>(null);
@@ -411,6 +413,13 @@ export default function AddAnimalPage() {
         );
       }
 
+      if (video) {
+        await videoService.upload(
+          video,
+          createdAnimal.id
+        );
+      }
+
       alert(
         publish
           ? "Animal publié avec succès."
@@ -510,6 +519,8 @@ export default function AddAnimalPage() {
             <Step2Photos
               photos={photos}
               setPhotos={setPhotos}
+              video={video}
+              setVideo={setVideo}
             />
           )}
 
