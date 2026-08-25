@@ -1001,20 +1001,20 @@ export default function RegisterPage() {
                 avatar_url:
                   avatarUrl,
 
-                can_publish_animals:
-                  canPublishAnimals,
+can_publish_animals:
+  canPublishAnimals,
 
-                approval_status:
-                  "approved",
+approval_status:
+  "pending",
 
-                is_active:
-                  true,
+is_active:
+  true,
 
-                is_verified:
-                  true,
+is_verified:
+  false,
 
-                approved_at:
-                  new Date().toISOString(),
+approved_at:
+  null,
               },
             },
           }

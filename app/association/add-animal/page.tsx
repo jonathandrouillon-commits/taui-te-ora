@@ -99,71 +99,93 @@ export default function AddAnimalPage() {
         return;
       }
 
-      let userRole =
-        String(user.user_metadata?.role || "")
-          .trim()
-          .toLowerCase();
-
-      let profileData: any = null;
-
       /*
-       * Le rôle n'est pas toujours présent dans user_metadata,
-       * notamment pour certains comptes administrateurs.
-       * On vérifie donc aussi la table profiles.
+       * La source de vérité pour les droits est la table profiles.
+       * On ne se base plus sur user_metadata pour autoriser l'accès.
        */
-      if (!userRole || !ALLOWED_ROLES.includes(userRole as PublisherRole)) {
-        const {
-          data,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select(
-            "id, role, full_name, first_name, last_name, organization_name, email"
-          )
-          .eq("id", user.id)
-          .maybeSingle();
+      const {
+        data: profileData,
+        error: profileError,
+      } = await supabase
+        .from("profiles")
+        .select(
+          "id, role, full_name, first_name, last_name, organization_name, email, approval_status, is_active, is_verified"
+        )
+        .eq("id", user.id)
+        .maybeSingle();
 
-        if (profileError) {
-          console.error(
-            "Erreur lecture profil pour ajout animal :",
-            profileError
-          );
-        }
-
-        profileData = data;
-
-        userRole =
-          String(profileData?.role || "")
-            .trim()
-            .toLowerCase();
+      if (profileError) {
+        throw profileError;
       }
 
-      if (!ALLOWED_ROLES.includes(userRole as PublisherRole)) {
+      if (!profileData) {
         alert(
-          "Votre type de compte ne permet pas d'ajouter des animaux."
+          "Votre profil utilisateur est introuvable."
         );
 
         router.replace("/");
         return;
       }
 
-      const validRole = userRole as PublisherRole;
+      const userRole =
+        String(profileData.role || "")
+          .trim()
+          .toLowerCase();
+
+      const approvalStatus =
+        String(
+          profileData.approval_status ||
+            "pending"
+        )
+          .trim()
+          .toLowerCase();
+
+      /*
+       * Fonctionnement Taui Te Ora :
+       *
+       * - pending   : accès autorisé
+       * - approved  : accès autorisé + structure vérifiée
+       * - rejected  : accès refusé
+       * - suspended : accès refusé
+       * - is_active false : accès refusé
+       *
+       * is_verified est uniquement un indicateur de vérification.
+       * Il ne bloque pas l'utilisation de la plateforme.
+       */
+      if (
+        !ALLOWED_ROLES.includes(
+          userRole as PublisherRole
+        ) ||
+        profileData.is_active !== true ||
+        approvalStatus === "rejected" ||
+        approvalStatus === "suspended"
+      ) {
+        alert(
+          "Votre compte ne permet pas actuellement d'ajouter des animaux."
+        );
+
+        router.replace("/");
+        return;
+      }
+
+      const validRole =
+        userRole as PublisherRole;
 
       setUserId(user.id);
       setRole(validRole);
 
       const organizationName =
-        profileData?.organization_name ||
+        profileData.organization_name ||
         user.user_metadata?.organization_name ||
         "";
 
       const fullName =
-        profileData?.full_name ||
+        profileData.full_name ||
         user.user_metadata?.full_name ||
         [
-          profileData?.first_name ||
+          profileData.first_name ||
             user.user_metadata?.first_name,
-          profileData?.last_name ||
+          profileData.last_name ||
             user.user_metadata?.last_name,
         ]
           .filter(Boolean)
@@ -172,7 +194,7 @@ export default function AddAnimalPage() {
       setPublisherName(
         organizationName ||
           fullName ||
-          profileData?.email ||
+          profileData.email ||
           user.email ||
           ROLE_LABELS[validRole]
       );

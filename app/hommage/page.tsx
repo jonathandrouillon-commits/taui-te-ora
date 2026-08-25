@@ -283,7 +283,9 @@ export default function HommagePage() {
     setFormOpen(false);
   }
 
-  async function uploadPhoto() {
+  async function uploadPhoto(
+    userId: string
+  ) {
     if (!photo) {
       return null;
     }
@@ -301,7 +303,7 @@ export default function HommagePage() {
             .slice(2)}`;
 
     const filePath =
-      `${randomId}.${extension}`;
+      `${userId}/${randomId}.${extension}`;
 
     const {
       error: uploadError,
@@ -363,8 +365,19 @@ export default function HommagePage() {
       } =
         await supabase.auth.getUser();
 
+      if (photo && !user) {
+        alert(
+          "Connectez-vous pour joindre une photo à votre hommage. Vous pouvez envoyer un hommage sans photo en restant déconnecté."
+        );
+        return;
+      }
+
       const photoUrl =
-        await uploadPhoto();
+        user
+          ? await uploadPhoto(
+              user.id
+            )
+          : null;
 
       const {
         error,
