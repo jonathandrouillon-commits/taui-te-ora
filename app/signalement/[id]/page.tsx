@@ -155,6 +155,18 @@ export default function SignalementDetailPage() {
   ] =
     useState("");
 
+  const [
+    selectedStatus,
+    setSelectedStatus,
+  ] =
+    useState("nouveau");
+
+  const [
+    reporterMessage,
+    setReporterMessage,
+  ] =
+    useState("");
+
   useEffect(() => {
     if (
       signalementId
@@ -277,6 +289,20 @@ export default function SignalementDetailPage() {
       );
 
       setResolutionNote(
+        signalementData
+          ?.resolution_note ||
+          ""
+      );
+
+      setSelectedStatus(
+        normalizeStatus(
+          signalementData
+            ?.status ||
+            "nouveau"
+        )
+      );
+
+      setReporterMessage(
         signalementData
           ?.resolution_note ||
           ""
@@ -428,6 +454,166 @@ export default function SignalementDetailPage() {
     }
   }
 
+  async function notifyReporter(
+    nextStatus: string,
+    customMessage?: string
+  ) {
+    if (
+      !signalement?.user_id
+    ) {
+      return;
+    }
+
+    const label =
+      statusLabel(
+        nextStatus
+      );
+
+    const message =
+      customMessage?.trim() ||
+      `Le statut de votre signalement est maintenant : ${label}.`;
+
+    const {
+      error,
+    } =
+      await supabase
+        .from(
+          "notifications"
+        )
+        .insert({
+          user_id:
+            signalement.user_id,
+
+          recipient_id:
+            signalement.user_id,
+
+          signalement_id:
+            signalement.id,
+
+          type:
+            "signalement_status",
+
+          title:
+            `Mise à jour de votre signalement : ${label}`,
+
+          message,
+
+          is_read:
+            false,
+        });
+
+    if (error) {
+      console.error(
+        "Erreur notification déclarant :",
+        error
+      );
+    }
+  }
+
+  async function saveSignalementStatus() {
+    if (
+      !signalement ||
+      !currentProfile
+    ) {
+      return;
+    }
+
+    try {
+      setActionLoading(
+        true
+      );
+
+      const now =
+        new Date()
+          .toISOString();
+
+      const payload: Record<
+        string,
+        any
+      > = {
+        status:
+          selectedStatus,
+
+        resolution_note:
+          reporterMessage.trim() ||
+          null,
+
+        updated_at:
+          now,
+      };
+
+      if (
+        selectedStatus ===
+        "en_cours"
+      ) {
+        payload.intervention_started_at =
+          signalement.intervention_started_at ||
+          now;
+      }
+
+      if (
+        selectedStatus ===
+          "animal_retrouve" ||
+        selectedStatus ===
+          "cloture"
+      ) {
+        payload.resolved_at =
+          now;
+      }
+
+      const {
+        error,
+      } =
+        await supabase
+          .from(
+            "signalements"
+          )
+          .update(
+            payload
+          )
+          .eq(
+            "id",
+            signalement.id
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      await logAction(
+        selectedStatus,
+        reporterMessage.trim()
+      );
+
+      await notifyReporter(
+        selectedStatus,
+        reporterMessage
+      );
+
+      alert(
+        "Signalement sauvegardé. Le statut a été mis à jour."
+      );
+
+      await loadData();
+    } catch (
+      error: any
+    ) {
+      console.error(
+        "Erreur sauvegarde signalement :",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Impossible de sauvegarder le signalement."
+      );
+    } finally {
+      setActionLoading(
+        false
+      );
+    }
+  }
+
   async function takeIntervention() {
     if (
       !currentProfile ||
@@ -463,7 +649,7 @@ export default function SignalementDetailPage() {
                 .toISOString(),
 
             status:
-              "pris_en_charge",
+              "en_cours",
 
             updated_at:
               new Date()
@@ -495,7 +681,11 @@ export default function SignalementDetailPage() {
       }
 
       await logAction(
-        "pris_en_charge"
+        "en_cours"
+      );
+
+      await notifyReporter(
+        "en_cours"
       );
 
       await loadData();
@@ -535,7 +725,7 @@ export default function SignalementDetailPage() {
           )
           .update({
             status:
-              "en_intervention",
+              "en_cours",
 
             intervention_started_at:
               new Date()
@@ -559,7 +749,11 @@ export default function SignalementDetailPage() {
       }
 
       await logAction(
-        "en_intervention"
+        "en_cours"
+      );
+
+      await notifyReporter(
+        "en_cours"
       );
 
       await loadData();
@@ -610,7 +804,7 @@ export default function SignalementDetailPage() {
           )
           .update({
             status:
-              "regle",
+              "cloture",
 
             resolved_at:
               new Date()
@@ -638,7 +832,12 @@ export default function SignalementDetailPage() {
       }
 
       await logAction(
-        "regle",
+        "cloture",
+        resolutionNote.trim()
+      );
+
+      await notifyReporter(
+        "cloture",
         resolutionNote.trim()
       );
 
@@ -706,8 +905,10 @@ export default function SignalementDetailPage() {
     );
 
   const status =
-    signalement.status ||
-    "nouveau";
+    normalizeStatus(
+      signalement.status ||
+        "nouveau"
+    );
 
   return (
     <main className="min-h-[100dvh] bg-[#f8f4ec] px-4 py-8 pb-24">
@@ -983,9 +1184,23 @@ export default function SignalementDetailPage() {
         </section>
 
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
-          <h2 className="text-xl font-black text-[#064b42]">
-            Intervention
-          </h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-[#064b42]">
+                Traitement du signalement
+              </h2>
+
+              <p className="mt-1 text-sm text-[#6f5a47]">
+                Modifiez le statut, ajoutez un message pour le déclarant puis sauvegardez.
+              </p>
+            </div>
+
+            <StatusBadge
+              status={
+                selectedStatus
+              }
+            />
+          </div>
 
           {!signalement.assigned_to &&
             status ===
@@ -998,14 +1213,16 @@ export default function SignalementDetailPage() {
                 onClick={
                   takeIntervention
                 }
-                className="mt-5 w-full rounded-full bg-red-600 px-6 py-4 text-lg font-black text-white disabled:opacity-50"
+                className="mt-5 w-full rounded-full bg-orange-500 px-6 py-4 text-lg font-black text-white disabled:opacity-50"
               >
-                🚨 Je prends l&apos;intervention
+                🚨 Prendre en charge
               </button>
             )}
 
           {signalement.assigned_to &&
-            !mine && (
+            !mine &&
+            currentProfile?.role !==
+              "admin" && (
               <div className="mt-5 rounded-[22px] bg-[#f8f4ec] p-5">
                 <p className="font-black text-[#064b42]">
                   Intervention déjà prise en charge
@@ -1017,69 +1234,129 @@ export default function SignalementDetailPage() {
               </div>
             )}
 
-          {mine &&
-            status ===
-              "pris_en_charge" && (
+          {(mine ||
+            currentProfile?.role ===
+              "admin") && (
+            <div className="mt-6 space-y-5">
+              <div>
+                <label className="mb-2 block font-black text-[#064b42]">
+                  Statut du signalement
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedStatus(
+                        "en_cours"
+                      )
+                    }
+                    className={`rounded-[18px] border-2 px-4 py-4 text-sm font-black transition ${
+                      selectedStatus ===
+                      "en_cours"
+                        ? "border-orange-500 bg-orange-100 text-orange-800"
+                        : "border-orange-100 bg-white text-orange-700"
+                    }`}
+                  >
+                    🟠 En cours
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedStatus(
+                        "animal_retrouve"
+                      )
+                    }
+                    className={`rounded-[18px] border-2 px-4 py-4 text-sm font-black transition ${
+                      selectedStatus ===
+                      "animal_retrouve"
+                        ? "border-green-400 bg-green-100 text-green-800"
+                        : "border-green-100 bg-white text-green-700"
+                    }`}
+                  >
+                    🟢 Animal retrouvé
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedStatus(
+                        "cloture"
+                      )
+                    }
+                    className={`rounded-[18px] border-2 px-4 py-4 text-sm font-black transition ${
+                      selectedStatus ===
+                      "cloture"
+                        ? "border-green-800 bg-green-800 text-white"
+                        : "border-green-200 bg-white text-green-900"
+                    }`}
+                  >
+                    ✅ Clôturé
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block font-black text-[#064b42]">
+                  Message envoyé au déclarant
+                </label>
+
+                <textarea
+                  value={
+                    reporterMessage
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setReporterMessage(
+                      event.target.value
+                    )
+                  }
+                  rows={5}
+                  placeholder="Exemple : Nous avons pris en charge votre signalement. L'animal a été retrouvé et mis en sécurité..."
+                  className="w-full rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-4 outline-none focus:border-[#064b42]"
+                />
+
+                <p className="mt-2 text-xs text-[#7a7068]">
+                  Si le déclarant possède un compte TAUI TE ORA, il recevra cette mise à jour dans ses notifications avec le nouveau statut.
+                </p>
+              </div>
+
               <button
                 type="button"
                 disabled={
                   actionLoading
                 }
                 onClick={
-                  startIntervention
+                  saveSignalementStatus
                 }
-                className="mt-5 w-full rounded-full bg-orange-500 px-6 py-4 text-lg font-black text-white disabled:opacity-50"
+                className="w-full rounded-full bg-[#064b42] px-6 py-4 text-lg font-black text-white shadow-lg transition hover:bg-[#08695d] disabled:opacity-50"
               >
-                ▶ Démarrer l&apos;intervention
+                {actionLoading
+                  ? "Sauvegarde..."
+                  : "💾 Sauvegarder le signalement"}
               </button>
-            )}
+            </div>
+          )}
 
-          {mine &&
+          {(status ===
+              "animal_retrouve" ||
             status ===
-              "en_intervention" && (
-              <div className="mt-5">
-                <label className="mb-2 block font-black text-[#064b42]">
-                  Note de résolution
-                </label>
-
-                <textarea
-                  value={
-                    resolutionNote
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setResolutionNote(
-                      event
-                        .target
-                        .value
-                    )
-                  }
-                  rows={4}
-                  placeholder="Exemple : animal récupéré, confié au vétérinaire..."
-                  className="w-full rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-4 outline-none"
-                />
-
-                <button
-                  type="button"
-                  disabled={
-                    actionLoading
-                  }
-                  onClick={
-                    resolveIntervention
-                  }
-                  className="mt-4 w-full rounded-full bg-green-600 px-6 py-4 text-lg font-black text-white disabled:opacity-50"
-                >
-                  ✅ Intervention réglée
-                </button>
-              </div>
-            )}
-
-          {status ===
-            "regle" && (
-            <div className="mt-5 rounded-[22px] bg-green-50 p-5 text-green-800">
+              "cloture") && (
+            <div
+              className={`mt-5 rounded-[22px] p-5 ${
+                status ===
+                "animal_retrouve"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-green-800 text-white"
+              }`}
+            >
               <p className="text-lg font-black">
-                ✅ Intervention réglée
+                {status ===
+                "animal_retrouve"
+                  ? "🟢 Animal retrouvé"
+                  : "✅ Signalement clôturé"}
               </p>
 
               {signalement.resolution_note && (
@@ -1091,8 +1368,8 @@ export default function SignalementDetailPage() {
               )}
 
               {signalement.resolved_at && (
-                <p className="mt-3 text-sm">
-                  Clôturée le{" "}
+                <p className="mt-3 text-sm opacity-80">
+                  Mis à jour le{" "}
                   {new Date(
                     signalement.resolved_at
                   ).toLocaleString(
@@ -1102,6 +1379,16 @@ export default function SignalementDetailPage() {
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() =>
+              router.back()
+            }
+            className="mt-6 w-full rounded-full border-2 border-[#064b42] bg-white px-6 py-3 font-black text-[#064b42]"
+          >
+            ← Retour
+          </button>
         </section>
       </div>
     </main>
@@ -1134,11 +1421,70 @@ function getProfileName(
   );
 }
 
+function normalizeStatus(
+  status?: string | null
+) {
+  switch (
+    String(
+      status ||
+        "nouveau"
+    )
+      .trim()
+      .toLowerCase()
+  ) {
+    case "pris_en_charge":
+    case "en_intervention":
+    case "en_cours":
+      return "en_cours";
+
+    case "animal_retrouve":
+    case "retrouve":
+      return "animal_retrouve";
+
+    case "regle":
+    case "resolu":
+    case "cloture":
+      return "cloture";
+
+    case "nouveau":
+    default:
+      return "nouveau";
+  }
+}
+
+function statusLabel(
+  status?: string | null
+) {
+  switch (
+    normalizeStatus(
+      status
+    )
+  ) {
+    case "en_cours":
+      return "En cours";
+
+    case "animal_retrouve":
+      return "Animal retrouvé";
+
+    case "cloture":
+      return "Clôturé";
+
+    case "nouveau":
+    default:
+      return "Nouveau";
+  }
+}
+
 function StatusBadge({
   status,
 }: {
   status: string;
 }) {
+  const normalized =
+    normalizeStatus(
+      status
+    );
+
   const config: Record<
     string,
     {
@@ -1153,30 +1499,30 @@ function StatusBadge({
         "bg-red-100 text-red-700",
     },
 
-    pris_en_charge: {
+    en_cours: {
       label:
-        "Pris en charge",
+        "En cours",
       classes:
-        "bg-orange-100 text-orange-700",
+        "bg-orange-100 text-orange-800",
     },
 
-    en_intervention: {
+    animal_retrouve: {
       label:
-        "Intervention en cours",
+        "Animal retrouvé",
       classes:
-        "bg-yellow-100 text-yellow-800",
+        "bg-green-100 text-green-800",
     },
 
-    regle: {
+    cloture: {
       label:
-        "Réglé",
+        "Clôturé",
       classes:
-        "bg-green-100 text-green-700",
+        "bg-green-800 text-white",
     },
   };
 
   const item =
-    config[status] ||
+    config[normalized] ||
     config.nouveau;
 
   return (
