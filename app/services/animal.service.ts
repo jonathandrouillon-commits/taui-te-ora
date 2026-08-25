@@ -62,8 +62,8 @@ export type Animal = {
   } | null;
 
   /*
-   * Anciens champs conservés
-   * pour compatibilité avec les
+   * Anciens champs conserv├®s
+   * pour compatibilit├® avec les
    * anciennes pages.
    */
   nom?: string | null;
@@ -99,17 +99,19 @@ type PublisherRole =
   | "association"
   | "refuge"
   | "benevole"
-  | "fourriere";
+  | "fourriere"
+  | "admin";
 
 const PUBLISHER_ROLES: PublisherRole[] = [
   "association",
   "refuge",
   "benevole",
   "fourriere",
+  "admin",
 ];
 
 /* =========================================================
-   PROFILS CRÉATEURS
+   PROFILS CR├ëATEURS
 ========================================================= */
 
 async function attachOwnerProfiles(
@@ -177,7 +179,7 @@ async function attachOwnerProfiles(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECTÉ
+   UTILISATEUR CONNECT├ë
 ========================================================= */
 
 async function getCurrentUser() {
@@ -192,7 +194,7 @@ async function getCurrentUser() {
     !user
   ) {
     throw new Error(
-      "Utilisateur non connecté."
+      "Utilisateur non connect├®."
     );
   }
 
@@ -200,17 +202,40 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   VÉRIFICATION DROIT DE PUBLICATION
+   V├ëRIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getPublisherUser() {
   const user =
     await getCurrentUser();
 
+  const {
+    data: profile,
+    error,
+  } = await supabase
+    .from("profiles")
+    .select(
+      "role, approval_status, is_active"
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
   const role =
     String(
-      user.user_metadata
-        ?.role || ""
+      profile?.role ||
+        ""
+    )
+      .toLowerCase()
+      .trim();
+
+  const approvalStatus =
+    String(
+      profile?.approval_status ||
+        "pending"
     )
       .toLowerCase()
       .trim();
@@ -218,10 +243,13 @@ async function getPublisherUser() {
   if (
     !PUBLISHER_ROLES.includes(
       role as PublisherRole
-    )
+    ) ||
+    profile?.is_active === false ||
+    approvalStatus === "rejected" ||
+    approvalStatus === "suspended"
   ) {
     throw new Error(
-      "Votre type de compte ne permet pas de créer des fiches d'animaux."
+      "Votre compte ne permet pas actuellement de créer des fiches d'animaux."
     );
   }
 
@@ -233,7 +261,7 @@ async function getPublisherUser() {
 }
 
 /* =========================================================
-   NOM DU CRÉATEUR / STRUCTURE
+   NOM DU CR├ëATEUR / STRUCTURE
 ========================================================= */
 
 function getPublisherName(
@@ -397,7 +425,7 @@ async function getById(
 }
 
 /* =========================================================
-   ANIMAUX PUBLIÉS POUR SWIPE CARD
+   ANIMAUX PUBLI├ëS POUR SWIPE CARD
 ========================================================= */
 
 async function getPublishedWithPhotos() {
@@ -465,7 +493,7 @@ async function getAllWithPhotos() {
 }
 
 /* =========================================================
-   CRÉER UN ANIMAL
+   CR├ëER UN ANIMAL
 ========================================================= */
 
 async function create(
@@ -485,10 +513,10 @@ async function create(
    * IMPORTANT :
    *
    * owner_id est TOUJOURS
-   * l'utilisateur connecté.
+   * l'utilisateur connect├®.
    *
    * On ignore volontairement
-   * animal.owner_id envoyé
+   * animal.owner_id envoy├®
    * depuis le navigateur.
    */
   const animalToCreate = {
@@ -499,9 +527,9 @@ async function create(
 
     /*
      * Si association_name
-     * n'a pas été fourni,
+     * n'a pas ├®t├® fourni,
      * on utilise automatiquement
-     * le nom du créateur.
+     * le nom du cr├®ateur.
      *
      * Association :
      * Les Veilleurs de Kali
@@ -509,10 +537,10 @@ async function create(
      * Refuge :
      * SIGFA
      *
-     * Bénévole :
+     * B├®n├®vole :
      * Jonathan Drouillon
      *
-     * Fourrière :
+     * Fourri├¿re :
      * nom de la structure
      */
     association_name:
@@ -591,7 +619,7 @@ async function update(
 }
 
 /* =========================================================
-   PUBLIER / DÉPUBLIER
+   PUBLIER / D├ëPUBLIER
 ========================================================= */
 
 async function togglePublished(
