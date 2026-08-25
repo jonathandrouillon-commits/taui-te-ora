@@ -6,6 +6,7 @@ import type {
 import "./globals.css";
 
 import PwaRegister from "./components/PwaRegister";
+import AnalyticsTracker from "./components/AnalyticsTracker";
 
 export const metadata: Metadata = {
   title: "Taui Te Ora",
@@ -62,6 +63,9 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         <PwaRegister />
+
+        <AnalyticsTracker />
+
         {children}
       </body>
     </html>

@@ -18,6 +18,9 @@ import {
   Stethoscope,
   BarChart3,
   FileText,
+  Eye,
+  MousePointerClick,
+  Activity,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
@@ -63,6 +66,18 @@ export default function AdminDashboardPage() {
     setAnimals,
   ] = useState<any[]>([]);
 
+  const [
+    analytics,
+    setAnalytics,
+  ] = useState({
+    visitors_today: 0,
+    visitors_total: 0,
+    page_views_today: 0,
+    page_views_total: 0,
+    ad_impressions: 0,
+    ad_clicks: 0,
+  });
+
   useEffect(() => {
     void loadDashboard();
   }, []);
@@ -97,6 +112,27 @@ export default function AdminDashboardPage() {
       setAnimals(
         allAnimals
       );
+
+      const {
+        data: analyticsData,
+        error: analyticsError,
+      } = await supabase.rpc("get_admin_analytics");
+
+      if (analyticsError) {
+        console.error(
+          "Erreur statistiques analytics :",
+          analyticsError
+        );
+      } else if (analyticsData) {
+        setAnalytics({
+          visitors_today: Number(analyticsData.visitors_today || 0),
+          visitors_total: Number(analyticsData.visitors_total || 0),
+          page_views_today: Number(analyticsData.page_views_today || 0),
+          page_views_total: Number(analyticsData.page_views_total || 0),
+          ad_impressions: Number(analyticsData.ad_impressions || 0),
+          ad_clicks: Number(analyticsData.ad_clicks || 0),
+        });
+      }
     } catch (
       error: any
     ) {
@@ -406,6 +442,92 @@ export default function AdminDashboardPage() {
               Signalements
             </p>
           </Card>
+        </div>
+
+        {/* =====================================================
+            ANALYTICS
+        ====================================================== */}
+
+        <div className="mt-10">
+          <div className="mb-5">
+            <h2 className="text-3xl font-black">
+              Statistiques du site
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Suivi des visites et des performances publicitaires depuis
+              l’activation des statistiques.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="text-center">
+              <Users className="mx-auto text-blue-600" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.visitors_today.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Visiteurs aujourd’hui</p>
+            </Card>
+
+            <Card className="text-center">
+              <Users className="mx-auto text-[#064b42]" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.visitors_total.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Visiteurs cumulés</p>
+            </Card>
+
+            <Card className="text-center">
+              <Eye className="mx-auto text-violet-600" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.page_views_today.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Pages vues aujourd’hui</p>
+            </Card>
+
+            <Card className="text-center">
+              <Activity className="mx-auto text-indigo-600" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.page_views_total.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Pages vues cumulées</p>
+            </Card>
+          </div>
+
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            <Card className="text-center">
+              <Eye className="mx-auto text-[#c76d7b]" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.ad_impressions.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Affichages publicitaires</p>
+            </Card>
+
+            <Card className="text-center">
+              <MousePointerClick
+                className="mx-auto text-[#c76d7b]"
+                size={38}
+              />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.ad_clicks.toLocaleString("fr-FR")}
+              </h3>
+              <p className="text-gray-500">Clics publicitaires</p>
+            </Card>
+
+            <Card className="text-center">
+              <BarChart3 className="mx-auto text-[#c76d7b]" size={38} />
+              <h3 className="mt-3 text-4xl font-black">
+                {analytics.ad_impressions > 0
+                  ? (
+                      (analytics.ad_clicks / analytics.ad_impressions) *
+                      100
+                    ).toFixed(2)
+                  : "0.00"}
+                %
+              </h3>
+              <p className="text-gray-500">CTR publicitaire global</p>
+            </Card>
+          </div>
         </div>
 
         {/* =====================================================
