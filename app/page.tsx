@@ -1101,6 +1101,7 @@ function BottomMenu() {
 
   const menuPages = [
     { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
+    { label: "Conseils santé", href: "/conseils-sante", icon: "❤️‍🩹" },
     { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
     { label: "Boutique", href: "/boutique", icon: "🛍️" },
     { label: "Toilettage", href: "/toilettage", icon: "✂️" },
