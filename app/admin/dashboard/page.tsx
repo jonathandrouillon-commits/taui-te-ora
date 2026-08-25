@@ -17,6 +17,7 @@ import {
   LogOut,
   Stethoscope,
   BarChart3,
+  FileText,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
@@ -79,18 +80,26 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      setProfile(currentProfile);
+      setProfile(
+        currentProfile
+      );
 
       const allUsers =
         await profileService.getAllProfiles();
 
-      setUsers(allUsers);
+      setUsers(
+        allUsers
+      );
 
       const allAnimals =
         await animalService.getAllWithPhotos();
 
-      setAnimals(allAnimals);
-    } catch (error: any) {
+      setAnimals(
+        allAnimals
+      );
+    } catch (
+      error: any
+    ) {
       console.error(
         "Erreur dashboard admin :",
         error
@@ -101,28 +110,43 @@ export default function AdminDashboardPage() {
           "Impossible de charger le dashboard."
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
   async function handleLogout() {
-    if (loggingOut) {
+    if (
+      loggingOut
+    ) {
       return;
     }
 
     try {
-      setLoggingOut(true);
+      setLoggingOut(
+        true
+      );
 
-      const { error } =
+      const {
+        error,
+      } =
         await supabase.auth.signOut();
 
-      if (error) {
+      if (
+        error
+      ) {
         throw error;
       }
 
-      router.replace("/login");
+      router.replace(
+        "/login"
+      );
+
       router.refresh();
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "Erreur déconnexion admin :",
         error
@@ -133,11 +157,15 @@ export default function AdminDashboardPage() {
           "Impossible de vous déconnecter."
       );
 
-      setLoggingOut(false);
+      setLoggingOut(
+        false
+      );
     }
   }
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <main
         className="
@@ -157,11 +185,14 @@ export default function AdminDashboardPage() {
 
   const pendingUsers =
     users.filter(
-      (user) =>
+      (
+        user
+      ) =>
         (
           user.approval_status ||
           "pending"
-        ) === "pending"
+        ) ===
+        "pending"
     );
 
   return (
@@ -180,7 +211,9 @@ export default function AdminDashboardPage() {
           max-w-7xl
         "
       >
-        {/* HEADER */}
+        {/* =====================================================
+            HEADER
+        ====================================================== */}
 
         <div
           className="
@@ -227,7 +260,9 @@ export default function AdminDashboardPage() {
           </Button>
         </div>
 
-        {/* STATISTIQUES */}
+        {/* =====================================================
+            STATISTIQUES
+        ====================================================== */}
 
         <div
           className="
@@ -238,7 +273,11 @@ export default function AdminDashboardPage() {
             lg:grid-cols-4
           "
         >
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <Users
               className="
                 mx-auto
@@ -254,15 +293,25 @@ export default function AdminDashboardPage() {
                 font-black
               "
             >
-              {users.length}
+              {
+                users.length
+              }
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Utilisateurs
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <ShieldCheck
               className="
                 mx-auto
@@ -278,15 +327,25 @@ export default function AdminDashboardPage() {
                 font-black
               "
             >
-              {pendingUsers.length}
+              {
+                pendingUsers.length
+              }
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               En attente
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <PawPrint
               className="
                 mx-auto
@@ -302,15 +361,25 @@ export default function AdminDashboardPage() {
                 font-black
               "
             >
-              {animals.length}
+              {
+                animals.length
+              }
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Animaux
             </p>
           </Card>
 
-          <Card className="text-center">
+          <Card
+            className="
+              text-center
+            "
+          >
             <Siren
               className="
                 mx-auto
@@ -329,13 +398,19 @@ export default function AdminDashboardPage() {
               🚨
             </h2>
 
-            <p className="text-gray-500">
+            <p
+              className="
+                text-gray-500
+              "
+            >
               Signalements
             </p>
           </Card>
         </div>
 
-        {/* ACTIONS RAPIDES */}
+        {/* =====================================================
+            ACTIONS RAPIDES
+        ====================================================== */}
 
         <Card
           className="
@@ -357,7 +432,8 @@ export default function AdminDashboardPage() {
               grid
               gap-4
               md:grid-cols-2
-              lg:grid-cols-5
+              lg:grid-cols-3
+              xl:grid-cols-6
             "
           >
             {/* UTILISATEURS */}
@@ -428,7 +504,7 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Gérer les vétérinaires
+              Vétérinaires
             </button>
 
             {/* PUBLICITES */}
@@ -461,11 +537,46 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Publicités & Partenaires
+              Publicités
+            </button>
+
+            {/* GESTION DES PAGES */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/admin/pages"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#f3ecdf]
+                px-4
+                py-3
+                font-black
+                text-[#8b653c]
+                transition
+                hover:bg-[#eadfcf]
+                active:scale-[0.98]
+              "
+            >
+              <FileText
+                size={20}
+              />
+
+              Gestion des pages
             </button>
           </div>
 
-          {/* NAVIGATION / DECONNEXION */}
+          {/* ===================================================
+              RETOUR SITE / DECONNEXION
+          ==================================================== */}
 
           <div
             className="
@@ -488,7 +599,9 @@ export default function AdminDashboardPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  router.push("/")
+                  router.push(
+                    "/"
+                  )
                 }
               >
                 Retour au site
