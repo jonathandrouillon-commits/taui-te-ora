@@ -33,6 +33,297 @@ type Veterinaire = {
   is_active?: boolean | null;
 };
 
+type Ad = {
+  id: string;
+  advertiser_name: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  logo_url: string | null;
+  button_text: string | null;
+  target_url: string | null;
+  placement: string;
+  priority: number;
+};
+
+function VeterinaireAdCard({
+  ad,
+}: {
+  ad: Ad;
+}) {
+  const [
+    impressionSent,
+    setImpressionSent,
+  ] = useState(false);
+
+  useEffect(() => {
+    if (impressionSent) {
+      return;
+    }
+
+    setImpressionSent(true);
+
+    void supabase
+      .rpc(
+        "track_ad_impression",
+        {
+          p_ad_id: ad.id,
+        }
+      )
+      .then(
+        ({ error }) => {
+          if (error) {
+            console.error(
+              "Erreur impression publicité :",
+              error
+            );
+          }
+        }
+      );
+  }, [
+    ad.id,
+    impressionSent,
+  ]);
+
+  async function handleAdClick() {
+    const { error } =
+      await supabase.rpc(
+        "track_ad_click",
+        {
+          p_ad_id: ad.id,
+        }
+      );
+
+    if (error) {
+      console.error(
+        "Erreur clic publicité :",
+        error
+      );
+    }
+
+    if (ad.target_url) {
+      window.open(
+        ad.target_url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+  }
+
+  return (
+    <article
+      className="
+        mt-6
+        overflow-hidden
+        rounded-[28px]
+        border
+        border-white/80
+        bg-white/95
+        shadow-xl
+        backdrop-blur-md
+      "
+    >
+      <div
+        className="
+          grid
+          md:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]
+        "
+      >
+        {ad.image_url ? (
+          <div
+            className="
+              relative
+              min-h-[230px]
+              overflow-hidden
+              bg-[#efe7df]
+              md:min-h-[300px]
+            "
+          >
+            <img
+              src={ad.image_url}
+              alt={ad.title}
+              className="
+                absolute
+                inset-0
+                h-full
+                w-full
+                object-cover
+              "
+            />
+
+            <div
+              className="
+                absolute
+                left-4
+                top-4
+                rounded-full
+                bg-white/95
+                px-3
+                py-1.5
+                text-[10px]
+                font-black
+                uppercase
+                tracking-[0.18em]
+                text-[#064b42]
+                shadow
+              "
+            >
+              Sponsorisé
+            </div>
+          </div>
+        ) : (
+          <div
+            className="
+              flex
+              min-h-[230px]
+              items-center
+              justify-center
+              bg-[#064b42]
+              p-8
+              text-center
+              text-white
+              md:min-h-[300px]
+            "
+          >
+            <div>
+              <p
+                className="
+                  text-xs
+                  font-black
+                  uppercase
+                  tracking-[0.25em]
+                  text-white/70
+                "
+              >
+                Sponsorisé
+              </p>
+
+              <p
+                className="
+                  mt-4
+                  text-3xl
+                  font-black
+                "
+              >
+                {ad.advertiser_name}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div
+          className="
+            flex
+            flex-col
+            justify-center
+            p-6
+            md:p-8
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-3
+            "
+          >
+            {ad.logo_url && (
+              <img
+                src={ad.logo_url}
+                alt={ad.advertiser_name}
+                className="
+                  h-14
+                  w-14
+                  rounded-full
+                  border
+                  border-[#eee2da]
+                  bg-white
+                  object-contain
+                  p-1
+                  shadow
+                "
+              />
+            )}
+
+            <div>
+              <p
+                className="
+                  text-[10px]
+                  font-black
+                  uppercase
+                  tracking-[0.2em]
+                  text-[#b58b5b]
+                "
+              >
+                Partenaire
+              </p>
+
+              <p
+                className="
+                  mt-1
+                  font-black
+                  text-[#064b42]
+                "
+              >
+                {ad.advertiser_name}
+              </p>
+            </div>
+          </div>
+
+          <h2
+            className="
+              mt-5
+              text-2xl
+              font-black
+              leading-tight
+              text-[#064b42]
+              md:text-3xl
+            "
+          >
+            {ad.title}
+          </h2>
+
+          {ad.description && (
+            <p
+              className="
+                mt-3
+                leading-6
+                text-gray-700
+              "
+            >
+              {ad.description}
+            </p>
+          )}
+
+          {ad.target_url && (
+            <button
+              type="button"
+              onClick={
+                handleAdClick
+              }
+              className="
+                mt-6
+                rounded-full
+                bg-[#df8995]
+                px-6
+                py-3.5
+                font-black
+                text-white
+                shadow-lg
+                transition
+                hover:bg-[#c76d7b]
+              "
+            >
+              {ad.button_text ||
+                "Découvrir"}
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function VeterinairesPage() {
   const [
     veterinaires,
@@ -66,8 +357,15 @@ export default function VeterinairesPage() {
   ] =
     useState("");
 
+  const [
+    ads,
+    setAds,
+  ] =
+    useState<Ad[]>([]);
+
   useEffect(() => {
     void loadVeterinaires();
+    void loadAds();
   }, []);
 
   async function loadVeterinaires() {
@@ -150,6 +448,59 @@ export default function VeterinairesPage() {
       setLoading(
         false
       );
+    }
+  }
+
+  async function loadAds() {
+    try {
+      const { data, error: adsError } =
+        await supabase
+          .from("ads")
+          .select(
+            `
+              id,
+              advertiser_name,
+              title,
+              description,
+              image_url,
+              logo_url,
+              button_text,
+              target_url,
+              placement,
+              priority
+            `
+          )
+          .eq(
+            "placement",
+            "veterinaires"
+          )
+          .order(
+            "priority",
+            {
+              ascending: false,
+            }
+          )
+          .order(
+            "created_at",
+            {
+              ascending: false,
+            }
+          );
+
+      if (adsError) {
+        throw adsError;
+      }
+
+      setAds(
+        (data || []) as Ad[]
+      );
+    } catch (err) {
+      console.error(
+        "Erreur chargement publicités vétérinaires :",
+        err
+      );
+
+      setAds([]);
     }
   }
 
@@ -447,6 +798,14 @@ export default function VeterinairesPage() {
             </select>
           </label>
         </div>
+
+        {/* PUBLICITÉ VÉTÉRINAIRES */}
+
+        {ads.length > 0 && (
+          <VeterinaireAdCard
+            ad={ads[0]}
+          />
+        )}
 
         {/* LOADING */}
 
