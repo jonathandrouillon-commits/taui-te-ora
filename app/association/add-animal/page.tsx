@@ -19,13 +19,15 @@ type PublisherRole =
   | "association"
   | "refuge"
   | "benevole"
-  | "fourriere";
+  | "fourriere"
+  | "admin";
 
 const ALLOWED_ROLES: PublisherRole[] = [
   "association",
   "refuge",
   "benevole",
   "fourriere",
+  "admin",
 ];
 
 const ROLE_LABELS: Record<PublisherRole, string> = {
@@ -33,6 +35,7 @@ const ROLE_LABELS: Record<PublisherRole, string> = {
   refuge: "Refuge / SIGFA",
   benevole: "Bénévole indépendant",
   fourriere: "Fourrière",
+  admin: "Administration",
 };
 
 export default function AddAnimalPage() {
@@ -96,8 +99,44 @@ export default function AddAnimalPage() {
         return;
       }
 
-      const userRole =
-        String(user.user_metadata?.role || "").toLowerCase();
+      let userRole =
+        String(user.user_metadata?.role || "")
+          .trim()
+          .toLowerCase();
+
+      let profileData: any = null;
+
+      /*
+       * Le rôle n'est pas toujours présent dans user_metadata,
+       * notamment pour certains comptes administrateurs.
+       * On vérifie donc aussi la table profiles.
+       */
+      if (!userRole || !ALLOWED_ROLES.includes(userRole as PublisherRole)) {
+        const {
+          data,
+          error: profileError,
+        } = await supabase
+          .from("profiles")
+          .select(
+            "id, role, full_name, first_name, last_name, organization_name, email"
+          )
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error(
+            "Erreur lecture profil pour ajout animal :",
+            profileError
+          );
+        }
+
+        profileData = data;
+
+        userRole =
+          String(profileData?.role || "")
+            .trim()
+            .toLowerCase();
+      }
 
       if (!ALLOWED_ROLES.includes(userRole as PublisherRole)) {
         alert(
@@ -114,13 +153,18 @@ export default function AddAnimalPage() {
       setRole(validRole);
 
       const organizationName =
-        user.user_metadata?.organization_name || "";
+        profileData?.organization_name ||
+        user.user_metadata?.organization_name ||
+        "";
 
       const fullName =
+        profileData?.full_name ||
         user.user_metadata?.full_name ||
         [
-          user.user_metadata?.first_name,
-          user.user_metadata?.last_name,
+          profileData?.first_name ||
+            user.user_metadata?.first_name,
+          profileData?.last_name ||
+            user.user_metadata?.last_name,
         ]
           .filter(Boolean)
           .join(" ");
@@ -128,6 +172,7 @@ export default function AddAnimalPage() {
       setPublisherName(
         organizationName ||
           fullName ||
+          profileData?.email ||
           user.email ||
           ROLE_LABELS[validRole]
       );
@@ -210,6 +255,9 @@ export default function AddAnimalPage() {
 
       case "fourriere":
         return "/fourriere/dashboard";
+
+      case "admin":
+        return "/admin/dashboard";
 
       default:
         return "/";
