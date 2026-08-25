@@ -1100,16 +1100,61 @@ function BottomMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuPages = [
-    { label: "Vétérinaires", href: "/veterinaires", icon: "🩺" },
-    { label: "Conseils santé", href: "/conseils-sante", icon: "❤️‍🩹" },
-    { label: "Les Veilleurs de Kali", href: "/association/lesveilleursdekali", icon: "🐾" },
-    { label: "Boutique", href: "/boutique", icon: "🛍️" },
-    { label: "Toilettage", href: "/toilettage", icon: "✂️" },
-    { label: "Gardiennage", href: "/gardiennage", icon: "🏡" },
-    { label: "Éducation", href: "/education", icon: "🎓" },
-    { label: "Alimentation", href: "/alimentation", icon: "🥣" },
-    { label: "Pension", href: "/pension", icon: "🛏️" },
-    { label: "Hommage", href: "/hommage", icon: "🕯️" },
+    {
+      label: "Vétérinaires",
+      href: "/veterinaires",
+      icon: "🩺",
+    },
+    {
+      label: "Associations",
+      href: "/associations",
+      icon: "🤝",
+    },
+    {
+      label: "Conseils santé",
+      href: "/conseils-sante",
+      icon: "❤️‍🩹",
+    },
+    {
+      label: "Les Veilleurs de Kali",
+      href: "/association/lesveilleursdekali",
+      icon: "🐾",
+    },
+    {
+      label: "Boutique",
+      href: "/boutique",
+      icon: "🛍️",
+    },
+    {
+      label: "Toilettage",
+      href: "/toilettage",
+      icon: "✂️",
+    },
+    {
+      label: "Gardiennage",
+      href: "/gardiennage",
+      icon: "🏡",
+    },
+    {
+      label: "Éducation",
+      href: "/education",
+      icon: "🎓",
+    },
+    {
+      label: "Alimentation",
+      href: "/alimentation",
+      icon: "🥣",
+    },
+    {
+      label: "Pension",
+      href: "/pension",
+      icon: "🛏️",
+    },
+    {
+      label: "Hommage",
+      href: "/hommage",
+      icon: "🕯️",
+    },
   ];
 
   function closeMenu() {
@@ -1157,8 +1202,13 @@ function BottomMenu() {
                   onClick={closeMenu}
                   className="flex min-h-[92px] flex-col items-center justify-center rounded-[22px] border border-[#eadfd8] bg-white px-3 py-4 text-center shadow-sm transition active:scale-[.98]"
                 >
-                  <span className="text-3xl leading-none">{page.icon}</span>
-                  <span className="mt-2 text-[12px] font-black text-[#064b42]">{page.label}</span>
+                  <span className="text-3xl leading-none">
+                    {page.icon}
+                  </span>
+
+                  <span className="mt-2 text-[12px] font-black text-[#064b42]">
+                    {page.label}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -1175,7 +1225,10 @@ function BottomMenu() {
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde7e9]">
               <HomeIcon />
             </div>
-            <span className="text-[10px] font-bold">Accueil</span>
+
+            <span className="text-[10px] font-bold">
+              Accueil
+            </span>
           </Link>
 
           <Link
@@ -1185,7 +1238,10 @@ function BottomMenu() {
             <div className="flex h-9 w-9 items-center justify-center">
               <SearchIcon />
             </div>
-            <span className="text-[10px] font-semibold">Recherche</span>
+
+            <span className="text-[10px] font-semibold">
+              Recherche
+            </span>
           </Link>
 
           <Link
@@ -1205,20 +1261,32 @@ function BottomMenu() {
 
           <button
             type="button"
-            onClick={() => setMenuOpen((previous) => !previous)}
+            onClick={() =>
+              setMenuOpen(
+                (previous) =>
+                  !previous
+              )
+            }
             aria-label="Ouvrir le menu"
             className={`flex flex-col items-center justify-center gap-1 ${
-              menuOpen ? "text-[#ee8f9b]" : "text-[#5d655f]"
+              menuOpen
+                ? "text-[#ee8f9b]"
+                : "text-[#5d655f]"
             }`}
           >
             <div
               className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                menuOpen ? "bg-[#fde7e9]" : ""
+                menuOpen
+                  ? "bg-[#fde7e9]"
+                  : ""
               }`}
             >
               <MenuIcon />
             </div>
-            <span className="text-[10px] font-semibold">Menu</span>
+
+            <span className="text-[10px] font-semibold">
+              Menu
+            </span>
           </button>
 
           <Link
@@ -1228,7 +1296,10 @@ function BottomMenu() {
             <div className="flex h-9 w-9 items-center justify-center">
               <ProfileIcon />
             </div>
-            <span className="text-[10px] font-semibold">Profil</span>
+
+            <span className="text-[10px] font-semibold">
+              Profil
+            </span>
           </Link>
         </div>
       </nav>
