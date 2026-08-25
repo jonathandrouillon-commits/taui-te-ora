@@ -346,13 +346,18 @@ export default function AdminPublicitesPage() {
 
   async function toggleActive(ad: Ad) {
     try {
-      const { error } = await supabase
-        .from("ads")
-        .update({
-          is_active: !ad.is_active,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", ad.id);
+      const nextIsActive =
+        !ad.is_active;
+
+      const { error } =
+        await supabase.rpc(
+          "admin_set_ad_active",
+          {
+            p_ad_id: ad.id,
+            p_is_active:
+              nextIsActive,
+          }
+        );
 
       if (error) {
         throw error;
@@ -363,13 +368,17 @@ export default function AdminPublicitesPage() {
           item.id === ad.id
             ? {
                 ...item,
-                is_active: !item.is_active,
+                is_active:
+                  nextIsActive,
               }
             : item
         )
       );
     } catch (error: any) {
-      console.error("Erreur changement statut publicité :", error);
+      console.error(
+        "Erreur changement statut publicité :",
+        error
+      );
 
       alert(
         error?.message ||
