@@ -4,6 +4,55 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const SAFE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function validateFile(file: File) {
+  if (!ALLOWED_FILE_TYPES.has(file.type)) {
+    throw new Error(
+      `Le fichier "${file.name}" n'est pas autorisé. Formats acceptés : JPG, PNG et WEBP.`
+    );
+  }
+
+  if (file.size <= 0) {
+    throw new Error(`Le fichier "${file.name}" est vide.`);
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(
+      `Le fichier "${file.name}" dépasse la taille maximale de 8 Mo.`
+    );
+  }
+}
+
+function buildSafeFilePath(signalementId: string, file: File) {
+  const extension = SAFE_EXTENSIONS[file.type];
+
+  if (!extension) {
+    throw new Error("Type de fichier non autorisé.");
+  }
+
+  const randomId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return `${signalementId}/${randomId}.${extension}`;
+}
+
+
 export default function SignalementPage() {
   const router = useRouter();
 
@@ -66,8 +115,22 @@ export default function SignalementPage() {
   }
 
   function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(event.target.files || []);
-    setFiles(selectedFiles);
+    try {
+      const selectedFiles = Array.from(event.target.files || []);
+
+      if (selectedFiles.length > MAX_FILES) {
+        throw new Error(
+          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
+        );
+      }
+
+      selectedFiles.forEach(validateFile);
+      setFiles(selectedFiles);
+    } catch (error: any) {
+      event.target.value = "";
+      setFiles([]);
+      alert(error?.message || "Fichier non autorisé.");
+    }
   }
 
   function setPosition(lat: number, lng: number) {
@@ -139,6 +202,14 @@ export default function SignalementPage() {
         return;
       }
 
+      if (files.length > MAX_FILES) {
+        throw new Error(
+          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
+        );
+      }
+
+      files.forEach(validateFile);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -175,14 +246,18 @@ export default function SignalementPage() {
 
       if (files.length > 0 && signalement?.id) {
         for (const file of files) {
-          const fileExt = file.name.split(".").pop();
-          const filePath = `${signalement.id}/${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2)}.${fileExt}`;
+          validateFile(file);
+
+          const filePath =
+            buildSafeFilePath(signalement.id, file);
 
           const { error: uploadError } = await supabase.storage
             .from("signalements")
-            .upload(filePath, file);
+            .upload(filePath, file, {
+              cacheControl: "3600",
+              upsert: false,
+              contentType: file.type,
+            });
 
           if (uploadError) throw uploadError;
 
@@ -367,20 +442,20 @@ export default function SignalementPage() {
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            📸 Photos / vidéos
+            📸 Photos
           </h2>
 
           <input
             type="file"
             multiple
-            accept="image/*,video/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleFilesChange}
             className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
           />
 
           <p className="mt-3 text-sm text-gray-500">
-            Vous pouvez ajouter plusieurs photos ou vidéos pour aider les
-            associations à identifier l'animal.
+            Vous pouvez ajouter jusqu'à 5 photos (JPG, PNG ou WEBP),
+            8 Mo maximum par photo, pour aider les associations à identifier l'animal.
           </p>
 
           {files.length > 0 && (

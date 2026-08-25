@@ -20,6 +20,49 @@ import {
 import TauiPageBackground from "../components/ui/TauiPageBackground";
 import { supabase } from "../lib/supabase";
 
+const MAX_PHOTO_SIZE = 8 * 1024 * 1024;
+
+const ALLOWED_PHOTO_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const SAFE_PHOTO_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function validateHommagePhoto(file: File) {
+  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+    throw new Error(
+      `Le fichier "${file.name}" n'est pas autorisé. Formats acceptés : JPG, PNG et WEBP.`
+    );
+  }
+
+  if (file.size <= 0) {
+    throw new Error(`Le fichier "${file.name}" est vide.`);
+  }
+
+  if (file.size > MAX_PHOTO_SIZE) {
+    throw new Error(
+      `Le fichier "${file.name}" dépasse la taille maximale de 8 Mo.`
+    );
+  }
+}
+
+function getSafePhotoExtension(file: File) {
+  const extension = SAFE_PHOTO_EXTENSIONS[file.type];
+
+  if (!extension) {
+    throw new Error("Type de fichier non autorisé.");
+  }
+
+  return extension;
+}
+
+
 const KALI_DISAPPEARANCE_DATE = "2025-03-19";
 
 type Hommage = {
@@ -226,20 +269,18 @@ export default function HommagePage() {
   ) {
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert(
-        "Merci de sélectionner une image."
-      );
-      return;
-    }
+    try {
+      validateHommagePhoto(file);
+    } catch (error: any) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
-    if (
-      file.size >
-      8 * 1024 * 1024
-    ) {
       alert(
-        "La photo ne doit pas dépasser 8 Mo."
+        error?.message ||
+          "Photo non autorisée."
       );
+
       return;
     }
 
@@ -290,9 +331,10 @@ export default function HommagePage() {
       return null;
     }
 
+    validateHommagePhoto(photo);
+
     const extension =
-      photo.name.split(".").pop() ||
-      "jpg";
+      getSafePhotoExtension(photo);
 
     const randomId =
       typeof crypto !== "undefined" &&
@@ -315,6 +357,7 @@ export default function HommagePage() {
         {
           cacheControl: "3600",
           upsert: false,
+          contentType: photo.type,
         }
       );
 
@@ -370,6 +413,10 @@ export default function HommagePage() {
           "Connectez-vous pour joindre une photo à votre hommage. Vous pouvez envoyer un hommage sans photo en restant déconnecté."
         );
         return;
+      }
+
+      if (photo) {
+        validateHommagePhoto(photo);
       }
 
       const photoUrl =
@@ -821,7 +868,7 @@ export default function HommagePage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={(event) =>
                     selectPhoto(
                       event.target.files?.[0] ||

@@ -2,12 +2,16 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 import { supabase } from "../lib/supabase";
+import { animalService } from "../services/animal.service";
 
 export function getRoleDestination(
   roleValue: unknown
 ) {
-  const role = String(roleValue || "")
+  const role = String(
+    roleValue || ""
+  )
     .trim()
     .toLowerCase();
 
@@ -43,42 +47,93 @@ export default function NonAdoptantGuard({
   const router = useRouter();
 
   useEffect(() => {
-    checkRole();
+    void checkRole();
   }, []);
 
   async function checkRole() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      /* =====================================================
+         1. UTILISATEUR CONNECTÉ
+      ===================================================== */
 
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+      const {
+        data: { user },
+        error: userError,
+      } =
+        await supabase.auth.getUser();
 
-    let role =
-      String(
-        user.user_metadata?.role || ""
-      )
-        .trim()
-        .toLowerCase();
+      if (userError) {
+        throw userError;
+      }
 
-    if (!role) {
-      const { data: profile } =
-        await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
 
-      role =
-        String(profile?.role || "")
-          .trim()
-          .toLowerCase();
-    }
+      /* =====================================================
+         2. PROFIL / RÔLE
+         SOURCE UNIQUE : profiles
+      ===================================================== */
 
-    if (role === "adoptant") {
-      router.replace("/profile");
+      const access =
+        await animalService.getCurrentUserAccess();
+
+      /* =====================================================
+         3. PAS DE RÔLE
+      ===================================================== */
+
+      if (!access.role) {
+        router.replace(
+          "/choose-role"
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         4. COMPTE INACTIF
+      ===================================================== */
+
+      if (!access.isActive) {
+        router.replace("/");
+        return;
+      }
+
+      /* =====================================================
+         5. COMPTE REFUSÉ / SUSPENDU
+      ===================================================== */
+
+      if (
+        access.approvalStatus ===
+          "rejected" ||
+        access.approvalStatus ===
+          "suspended"
+      ) {
+        router.replace("/");
+        return;
+      }
+
+      /* =====================================================
+         6. ADOPTANT INTERDIT ICI
+      ===================================================== */
+
+      if (
+        access.role === "adoptant"
+      ) {
+        router.replace(
+          "/profile"
+        );
+
+        return;
+      }
+    } catch (error) {
+      console.error(
+        "Erreur vérification rôle :",
+        error
+      );
+
+      router.replace("/");
     }
   }
 

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { compatibilityService } from "../../../services/compatibility.service";
+import { animalService } from "../../../services/animal.service";
 
 /* =========================================================
    ADMIN TAUI TE ORA
@@ -806,46 +807,47 @@ export default function AdoptionQuestionnairePage() {
         return;
       }
 
-      /* PROFIL ADOPTANT */
+      /* PROFIL ADOPTANT
+         SOURCE UNIQUE : profiles
+      */
 
-      let role =
-        String(
-          user.user_metadata
-            ?.role || ""
-        )
-          .toLowerCase()
-          .trim();
+      const access =
+        await animalService.getCurrentUserAccess();
 
-      if (!role) {
-        const {
-          data: profile,
-          error: profileError,
-        } =
-          await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .maybeSingle();
+      if (!access.role) {
+        router.push(
+          "/choose-role?redirect=" +
+            encodeURIComponent(
+              `/adoption/questionnaire/${animalId}`
+            )
+        );
 
-        if (profileError) {
-          console.error(
-            "Erreur profil :",
-            profileError
-          );
-        }
+        return;
+      }
 
-        role =
-          String(
-            profile?.role ||
-              ""
-          )
-            .toLowerCase()
-            .trim();
+      if (!access.isActive) {
+        alert(
+          "Votre compte est actuellement désactivé."
+        );
+
+        return;
       }
 
       if (
-        role &&
-        role !== "adoptant"
+        access.approvalStatus ===
+          "rejected" ||
+        access.approvalStatus ===
+          "suspended"
+      ) {
+        alert(
+          "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+        );
+
+        return;
+      }
+
+      if (
+        access.role !== "adoptant"
       ) {
         alert(
           "La demande d'adoption doit être effectuée avec un compte Adoptant."
@@ -861,7 +863,7 @@ export default function AdoptionQuestionnairePage() {
       );
 
       await saveQuestionnaire(
-        user.id
+        access.userId
       );
 
       /* 2 — DEMANDE */
@@ -873,7 +875,7 @@ export default function AdoptionQuestionnairePage() {
         match,
       } =
         await getOrCreateAdoptionRequest(
-          user.id
+          access.userId
         );
 
       console.log(
@@ -897,7 +899,7 @@ export default function AdoptionQuestionnairePage() {
         await getOrCreateConversation(
           request.id,
           request.owner_id,
-          user.id
+          access.userId
         );
 
       /* 4 — MESSAGE INITIAL */
@@ -906,7 +908,7 @@ export default function AdoptionQuestionnairePage() {
         conversationId,
 
         requesterId:
-          user.id,
+          access.userId,
 
         animalName:
           animal.animal_name ||

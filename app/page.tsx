@@ -1405,64 +1405,182 @@ function WelcomeModal({
 
 function BottomMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const menuPages = [
+  const [
+    dynamicMenuPages,
+    setDynamicMenuPages,
+  ] = useState<
     {
+      label: string;
+      href: string;
+      icon: string;
+      sortOrder: number;
+    }[]
+  >([]);
+
+  const systemMenuPages = [
+    {
+      slug: "veterinaires",
       label: "Vétérinaires",
       href: "/veterinaires",
       icon: "🩺",
+      sortOrder: 10,
     },
     {
+      slug: "associations",
       label: "Associations",
       href: "/associations",
       icon: "🤝",
+      sortOrder: 20,
     },
     {
+      slug: "conseils-sante",
       label: "Conseils santé",
       href: "/conseils-sante",
       icon: "❤️‍🩹",
+      sortOrder: 30,
     },
     {
+      slug: "les-veilleurs-de-kali",
       label: "Les Veilleurs de Kali",
       href: "/association/lesveilleursdekali",
       icon: "🐾",
+      sortOrder: 40,
     },
     {
+      slug: "boutique",
       label: "Boutique",
       href: "/boutique",
       icon: "🛍️",
+      sortOrder: 50,
     },
     {
+      slug: "toilettage",
       label: "Toilettage",
       href: "/toilettage",
       icon: "✂️",
+      sortOrder: 60,
     },
     {
+      slug: "gardiennage",
       label: "Gardiennage",
       href: "/gardiennage",
       icon: "🏡",
+      sortOrder: 70,
     },
     {
+      slug: "education",
       label: "Éducation",
       href: "/education",
       icon: "🎓",
+      sortOrder: 80,
     },
     {
+      slug: "alimentation",
       label: "Alimentation",
       href: "/alimentation",
       icon: "🥣",
+      sortOrder: 90,
     },
     {
+      slug: "pension",
       label: "Pension",
       href: "/pension",
       icon: "🛏️",
+      sortOrder: 100,
     },
     {
+      slug: "hommage",
       label: "Hommage",
       href: "/hommage",
       icon: "🕯️",
+      sortOrder: 110,
     },
   ];
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDynamicMenuPages() {
+      const { data, error } = await supabase
+        .from("site_pages")
+        .select(
+          "slug, menu_label, menu_icon, sort_order"
+        )
+        .eq("is_published", true)
+        .eq("show_in_menu", true)
+        .order("sort_order", {
+          ascending: true,
+        });
+
+      if (error) {
+        console.error(
+          "Erreur chargement menu dynamique :",
+          error
+        );
+        return;
+      }
+
+      if (!active) {
+        return;
+      }
+
+      const systemSlugs = new Set(
+        systemMenuPages.map(
+          (page) => page.slug
+        )
+      );
+
+      const pages = (data || [])
+        .filter(
+          (page) =>
+            page.slug &&
+            !systemSlugs.has(
+              String(page.slug)
+                .trim()
+                .toLowerCase()
+            )
+        )
+        .map((page) => ({
+          label:
+            String(
+              page.menu_label ||
+                page.slug
+            ).trim(),
+          href:
+            `/pages/${encodeURIComponent(
+              String(page.slug).trim()
+            )}`,
+          icon:
+            String(
+              page.menu_icon || "📄"
+            ).trim() || "📄",
+          sortOrder:
+            Number(page.sort_order) ||
+            1000,
+        }));
+
+      setDynamicMenuPages(pages);
+    }
+
+    void loadDynamicMenuPages();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const menuPages = [
+    ...systemMenuPages.map(
+      ({
+        slug: _slug,
+        ...page
+      }) => page
+    ),
+    ...dynamicMenuPages,
+  ].sort(
+    (a, b) =>
+      a.sortOrder - b.sortOrder
+  );
 
   function closeMenu() {
     setMenuOpen(false);

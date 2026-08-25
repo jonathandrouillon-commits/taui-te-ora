@@ -12,6 +12,7 @@ import {
 } from "next/navigation";
 
 import { supabase } from "../../lib/supabase";
+import { animalService } from "../../services/animal.service";
 
 /* =========================================================
    TYPES
@@ -257,19 +258,19 @@ export default function ConversationPage() {
         return;
       }
 
-      setCurrentUserId(
-        user.id
-      );
+      const access =
+        await animalService.getCurrentUserAccess();
 
       const role =
-        String(
-          user.user_metadata?.role ||
-            ""
-        )
-          .toLowerCase()
-          .trim();
+        access.role || "";
 
-      setCurrentUserRole(role);
+      setCurrentUserId(
+        access.userId
+      );
+
+      setCurrentUserRole(
+        role
+      );
 
       /* ---------------------------------------------------
          CONVERSATION
@@ -322,9 +323,9 @@ export default function ConversationPage() {
 
       const isParticipant =
         conversationData.requester_id ===
-          user.id ||
+          access.userId ||
         conversationData.owner_id ===
-          user.id;
+          access.userId;
 
       const isAdmin =
         role === "admin";
@@ -440,7 +441,7 @@ export default function ConversationPage() {
       );
 
       const otherUserId =
-        user.id ===
+        access.userId ===
         conversationData.requester_id
           ? conversationData.owner_id
           : conversationData.requester_id;
@@ -557,7 +558,7 @@ export default function ConversationPage() {
           .filter(
             (message) =>
               message.sender_id !==
-                user.id &&
+                access.userId &&
               !message.read_at
           )
           .map(
@@ -596,7 +597,7 @@ export default function ConversationPage() {
         })
         .eq(
           "recipient_id",
-          user.id
+          access.userId
         )
         .eq(
           "conversation_id",

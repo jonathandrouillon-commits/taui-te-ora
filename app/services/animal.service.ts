@@ -95,14 +95,23 @@ export type Animal = {
   created_by?: string | null;
 };
 
-type PublisherRole =
+export type AppRole =
+  | "adoptant"
   | "association"
   | "refuge"
   | "benevole"
   | "fourriere"
   | "admin";
 
-const PUBLISHER_ROLES: PublisherRole[] = [
+export type CurrentUserAccess = {
+  userId: string;
+  role: AppRole | null;
+  isActive: boolean;
+  approvalStatus: string;
+  canPublishAnimals: boolean;
+};
+
+const PUBLISHER_ROLES: AppRole[] = [
   "association",
   "refuge",
   "benevole",
@@ -205,9 +214,8 @@ async function getCurrentUser() {
    V├ëRIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
-async function getPublisherUser() {
-  const user =
-    await getCurrentUser();
+async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
+  const user = await getCurrentUser();
 
   const {
     data: profile,
@@ -224,13 +232,17 @@ async function getPublisherUser() {
     throw error;
   }
 
-  const role =
+  const normalizedRole =
     String(
-      profile?.role ||
-        ""
+      profile?.role || ""
     )
       .toLowerCase()
       .trim();
+
+  const role =
+    normalizedRole
+      ? (normalizedRole as AppRole)
+      : null;
 
   const approvalStatus =
     String(
@@ -240,14 +252,37 @@ async function getPublisherUser() {
       .toLowerCase()
       .trim();
 
-  if (
-    !PUBLISHER_ROLES.includes(
-      role as PublisherRole
-    ) ||
-    profile?.is_active === false ||
-    approvalStatus === "rejected" ||
-    approvalStatus === "suspended"
-  ) {
+  const isActive =
+    profile?.is_active !== false;
+
+  const canPublishAnimals =
+    role !== null &&
+    PUBLISHER_ROLES.includes(role) &&
+    isActive &&
+    approvalStatus !== "rejected" &&
+    approvalStatus !== "suspended";
+
+  return {
+    userId: user.id,
+    role,
+    isActive,
+    approvalStatus,
+    canPublishAnimals,
+  };
+}
+
+/* =========================================================
+   VÉRIFICATION DROIT DE PUBLICATION
+========================================================= */
+
+async function getPublisherUser() {
+  const user =
+    await getCurrentUser();
+
+  const access =
+    await getCurrentUserAccess();
+
+  if (!access.canPublishAnimals) {
     throw new Error(
       "Votre compte ne permet pas actuellement de créer des fiches d'animaux."
     );
@@ -255,8 +290,7 @@ async function getPublisherUser() {
 
   return {
     user,
-    role:
-      role as PublisherRole,
+    role: access.role,
   };
 }
 
@@ -671,6 +705,8 @@ async function remove(
 ========================================================= */
 
 export const animalService = {
+  getCurrentUserAccess,
+
   getAll,
 
   getMyAnimals,

@@ -2,19 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+
 import { supabase } from "../../../lib/supabase";
+import { animalService } from "../../../services/animal.service";
 
 export default function AdoptionStartPage() {
   const router = useRouter();
   const params = useParams();
 
-  const animalId = Array.isArray(params.animalId)
+  const animalId = Array.isArray(
+    params.animalId
+  )
     ? params.animalId[0]
-    : String(params.animalId || "");
+    : String(
+        params.animalId || ""
+      );
 
-  const [message, setMessage] = useState(
-    "Vérification de votre profil..."
-  );
+  const [message, setMessage] =
+    useState(
+      "Vérification de votre profil..."
+    );
 
   useEffect(() => {
     if (!animalId) {
@@ -22,7 +29,7 @@ export default function AdoptionStartPage() {
       return;
     }
 
-    startAdoption();
+    void startAdoption();
   }, [animalId]);
 
   async function startAdoption() {
@@ -34,7 +41,8 @@ export default function AdoptionStartPage() {
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } =
+        await supabase.auth.getSession();
 
       if (sessionError) {
         console.error(
@@ -43,59 +51,45 @@ export default function AdoptionStartPage() {
         );
       }
 
-      const user = session?.user;
+      const user =
+        session?.user;
 
       /* =====================================================
          2. NON CONNECTÉ
       ===================================================== */
 
       if (!user) {
-        setMessage("Connexion nécessaire...");
+        setMessage(
+          "Connexion nécessaire..."
+        );
 
         const redirect =
           `/adoption/start/${animalId}`;
 
         router.replace(
           "/login?redirect=" +
-            encodeURIComponent(redirect)
+            encodeURIComponent(
+              redirect
+            )
         );
 
         return;
       }
 
       /* =====================================================
-         3. RÔLE
+         3. PROFIL / AUTORISATIONS
+         SOURCE UNIQUE : profiles
       ===================================================== */
 
-      let role = String(
-        user.user_metadata?.role || ""
-      )
-        .toLowerCase()
-        .trim();
+      setMessage(
+        "Vérification de votre profil..."
+      );
 
-      if (!role) {
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
+      const access =
+        await animalService.getCurrentUserAccess();
 
-        if (profileError) {
-          console.error(
-            "Erreur lecture profil :",
-            profileError
-          );
-        }
-
-        role = String(
-          profile?.role || ""
-        )
-          .toLowerCase()
-          .trim();
-      }
+      const role =
+        access.role;
 
       /* =====================================================
          4. PAS DE RÔLE
@@ -117,7 +111,34 @@ export default function AdoptionStartPage() {
       }
 
       /* =====================================================
-         5. ADOPTANT UNIQUEMENT
+         5. COMPTE ACTIF
+      ===================================================== */
+
+      if (!access.isActive) {
+        alert(
+          "Votre compte est actuellement désactivé."
+        );
+
+        router.replace("/");
+        return;
+      }
+
+      if (
+        access.approvalStatus ===
+          "rejected" ||
+        access.approvalStatus ===
+          "suspended"
+      ) {
+        alert(
+          "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+        );
+
+        router.replace("/");
+        return;
+      }
+
+      /* =====================================================
+         6. ADOPTANT UNIQUEMENT
       ===================================================== */
 
       if (role !== "adoptant") {
@@ -130,7 +151,7 @@ export default function AdoptionStartPage() {
       }
 
       /* =====================================================
-         6. DEMANDE EXISTANTE ?
+         7. DEMANDE EXISTANTE ?
       ===================================================== */
 
       setMessage(
@@ -140,20 +161,29 @@ export default function AdoptionStartPage() {
       const {
         data: existingRequest,
         error: requestError,
-      } = await supabase
-        .from("adoption_requests")
-        .select(
-          `
-            id,
-            animal_id,
-            requester_id,
-            owner_id,
-            status
-          `
-        )
-        .eq("animal_id", animalId)
-        .eq("requester_id", user.id)
-        .maybeSingle();
+      } =
+        await supabase
+          .from(
+            "adoption_requests"
+          )
+          .select(
+            `
+              id,
+              animal_id,
+              requester_id,
+              owner_id,
+              status
+            `
+          )
+          .eq(
+            "animal_id",
+            animalId
+          )
+          .eq(
+            "requester_id",
+            access.userId
+          )
+          .maybeSingle();
 
       if (requestError) {
         console.error(
@@ -163,7 +193,7 @@ export default function AdoptionStartPage() {
       }
 
       /* =====================================================
-         7. CONVERSATION EXISTANTE ?
+         8. CONVERSATION EXISTANTE ?
       ===================================================== */
 
       if (existingRequest) {
@@ -171,45 +201,41 @@ export default function AdoptionStartPage() {
           "Ouverture de votre demande..."
         );
 
-        /*
-         * Structure réelle de conversations :
-         *
-         * id
-         * animal_id
-         * requester_id
-         * owner_id
-         * adoption_request_id
-         * updated_at
-         */
-
         const {
           data: conversation,
           error: conversationError,
-        } = await supabase
-          .from("conversations")
-          .select("id")
-          .eq(
-            "adoption_request_id",
-            existingRequest.id
-          )
-          .eq(
-            "requester_id",
-            user.id
-          )
-          .eq(
-            "owner_id",
-            existingRequest.owner_id
-          )
-          .maybeSingle();
+        } =
+          await supabase
+            .from(
+              "conversations"
+            )
+            .select("id")
+            .eq(
+              "adoption_request_id",
+              existingRequest.id
+            )
+            .eq(
+              "requester_id",
+              access.userId
+            )
+            .eq(
+              "owner_id",
+              existingRequest.owner_id
+            )
+            .maybeSingle();
 
-        if (conversationError) {
+        if (
+          conversationError
+        ) {
           console.error(
             "Erreur recherche conversation :",
             conversationError
           );
         }
 
-        if (conversation?.id) {
+        if (
+          conversation?.id
+        ) {
           router.replace(
             `/messages/${conversation.id}`
           );
@@ -219,7 +245,7 @@ export default function AdoptionStartPage() {
       }
 
       /* =====================================================
-         8. QUESTIONNAIRE
+         9. QUESTIONNAIRE
       ===================================================== */
 
       setMessage(

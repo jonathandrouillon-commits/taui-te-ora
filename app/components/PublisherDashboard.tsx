@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { animalService } from "../services/animal.service";
 import SupportButton from "./SupportButton";
 
 export type PublisherRole =
@@ -144,16 +145,42 @@ export default function PublisherDashboard({
 
       if (profileError) throw profileError;
 
-      const role = String(
-        profile?.role ||
-          user.user_metadata?.role ||
-          ""
-      )
-        .trim()
-        .toLowerCase();
+      const access =
+        await animalService.getCurrentUserAccess();
+
+      const role =
+        access.role || "";
+
+      if (!access.role) {
+        router.replace("/choose-role");
+        return;
+      }
+
+      if (!access.isActive) {
+        router.replace("/");
+        return;
+      }
+
+      if (
+        access.approvalStatus === "rejected" ||
+        access.approvalStatus === "suspended"
+      ) {
+        router.replace("/");
+        return;
+      }
 
       if (role === "adoptant") {
         router.replace("/profile");
+        return;
+      }
+
+      if (
+        role !== "admin" &&
+        role !== expectedRole
+      ) {
+        router.replace(
+          getPublisherDestination(role)
+        );
         return;
       }
 
@@ -185,7 +212,7 @@ export default function PublisherDashboard({
               sort_order
             )
           `)
-          .eq("owner_id", user.id)
+          .eq("owner_id", access.userId)
           .order("created_at", {
             ascending: false,
           });
@@ -225,7 +252,7 @@ export default function PublisherDashboard({
           match_score,
           match_level
         `)
-        .eq("owner_id", user.id)
+        .eq("owner_id", access.userId)
         .order("created_at", {
           ascending: false,
         });
@@ -299,7 +326,7 @@ export default function PublisherDashboard({
         .select(
           "id, animal_id, requester_id, owner_id, adoption_request_id, updated_at"
         )
-        .eq("owner_id", user.id)
+        .eq("owner_id", access.userId)
         .order("updated_at", {
           ascending: false,
         });
@@ -310,7 +337,7 @@ export default function PublisherDashboard({
 
       setData({
         profile: {
-          id: user.id,
+          id: access.userId,
           role,
           first_name: profile?.first_name || "",
           last_name: profile?.last_name || "",
@@ -1362,6 +1389,33 @@ export default function PublisherDashboard({
   );
 }
 
+
+function getPublisherDestination(
+  role: string
+) {
+  switch (role) {
+    case "association":
+      return "/association/dashboard";
+
+    case "refuge":
+      return "/refuge/dashboard";
+
+    case "fourriere":
+      return "/fourriere/dashboard";
+
+    case "benevole":
+      return "/benevole/dashboard";
+
+    case "admin":
+      return "/admin/dashboard";
+
+    case "adoptant":
+      return "/profile";
+
+    default:
+      return "/";
+  }
+}
 
 function getRequestStatusLabel(
   status: string
