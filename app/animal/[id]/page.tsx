@@ -27,6 +27,14 @@ import {
 } from "../../services/animal.service";
 
 import {
+  compatibilityService,
+} from "../../services/compatibility.service";
+
+import {
+  supabase,
+} from "../../lib/supabase";
+
+import {
   videoService,
 } from "../../services/video.service";
 
@@ -37,6 +45,26 @@ type AnimalVideo = {
   sort_order: number;
   created_at?: string;
 };
+
+type QuestionnaireData = {
+  proprietaire_animal: string;
+  animal_actuel: string;
+  adoption_pour: string;
+  enfants: string;
+  jardin: string;
+  age_souhaite: string;
+  sexe_souhaite: string;
+  taille_souhaitee: string;
+  activite_souhaitee: string;
+  hypoallergenique: string;
+  proprete: string;
+  besoins_speciaux: string;
+  race_souhaitee: string;
+};
+
+type MatchResult = ReturnType<
+  typeof compatibilityService.calculate
+>;
 
 export default function AnimalPublicPage() {
   const router =
@@ -75,6 +103,28 @@ export default function AnimalPublicPage() {
     setErrorMessage,
   ] =
     useState("");
+
+  const [
+    adoptionMode,
+    setAdoptionMode,
+  ] = useState(false);
+
+  const [
+    matchLoading,
+    setMatchLoading,
+  ] = useState(false);
+
+  const [
+    matchResult,
+    setMatchResult,
+  ] = useState<MatchResult | null>(
+    null
+  );
+
+  const [
+    matchError,
+    setMatchError,
+  ] = useState("");
 
   const loadAnimal = useCallback(async () => {
     try {
@@ -134,6 +184,198 @@ export default function AnimalPublicPage() {
   useEffect(() => {
     queueMicrotask(() => void loadAnimal());
   }, [id, loadAnimal]);
+
+  const loadCompatibility =
+    useCallback(async () => {
+      if (!animal) return;
+
+      try {
+        setMatchLoading(true);
+        setMatchError("");
+
+        const {
+          data: { user },
+          error: userError,
+        } =
+          await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace(
+            "/login?redirect=" +
+              encodeURIComponent(
+                `/adoption/start/${id}`
+              )
+          );
+          return;
+        }
+
+        const access =
+          await animalService.getCurrentUserAccess();
+
+        if (
+          access.role !==
+          "adoptant"
+        ) {
+          throw new Error(
+            "La demande d'adoption doit être effectuée avec un compte Adoptant."
+          );
+        }
+
+        if (!access.isActive) {
+          throw new Error(
+            "Votre compte est actuellement désactivé."
+          );
+        }
+
+        if (
+          access.approvalStatus ===
+            "rejected" ||
+          access.approvalStatus ===
+            "suspended"
+        ) {
+          throw new Error(
+            "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+          );
+        }
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("profiles")
+          .select(
+            `
+              adopter_experience,
+              current_animals,
+              adoption_for,
+              children_age,
+              garden_type,
+              ideal_age,
+              ideal_sex,
+              ideal_size,
+              ideal_activity,
+              ideal_breed,
+              hypoallergenic,
+              cleanliness,
+              special_needs
+            `
+          )
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (
+          !data ||
+          !data.adopter_experience ||
+          !data.garden_type ||
+          !data.ideal_age ||
+          !data.ideal_sex ||
+          !data.ideal_size ||
+          !data.ideal_activity
+        ) {
+          router.replace(
+            "/adoptant/questionnaire?redirect=" +
+              encodeURIComponent(
+                `/adoption/start/${id}`
+              )
+          );
+          return;
+        }
+
+        const questionnaire: QuestionnaireData = {
+          proprietaire_animal:
+            data.adopter_experience ||
+            "",
+          animal_actuel:
+            data.current_animals ||
+            "Aucun",
+          adoption_pour:
+            data.adoption_for ||
+            "Moi / Ma famille",
+          enfants:
+            data.children_age ||
+            "Non",
+          jardin:
+            data.garden_type ||
+            "Pas de jardin",
+          age_souhaite:
+            data.ideal_age || "",
+          sexe_souhaite:
+            data.ideal_sex || "",
+          taille_souhaitee:
+            data.ideal_size || "",
+          activite_souhaitee:
+            data.ideal_activity ||
+            "Pas de préférence",
+          hypoallergenique:
+            data.hypoallergenic ||
+            "Pas de préférence",
+          proprete:
+            data.cleanliness ||
+            "Pas de préférence",
+          besoins_speciaux:
+            data.special_needs ||
+            "Non",
+          race_souhaitee:
+            data.ideal_breed || "",
+        };
+
+        setMatchResult(
+          compatibilityService.calculate(
+            questionnaire,
+            animal
+          )
+        );
+      } catch (error: unknown) {
+        console.error(
+          "Erreur calcul compatibilité :",
+          error
+        );
+
+        setMatchError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de calculer la compatibilité."
+        );
+      } finally {
+        setMatchLoading(false);
+      }
+    }, [animal, id, router]);
+
+  useEffect(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
+
+    const shouldShowAdoption =
+      new URLSearchParams(
+        window.location.search
+      ).get("adoption") === "1";
+
+    setAdoptionMode(
+      shouldShowAdoption
+    );
+
+    if (
+      shouldShowAdoption &&
+      animal
+    ) {
+      queueMicrotask(
+        () =>
+          void loadCompatibility()
+      );
+    }
+  }, [animal, loadCompatibility]);
 
   /* =========================================================
      CHARGEMENT
@@ -395,6 +637,92 @@ export default function AnimalPublicPage() {
                 ownerProfileId
               }
             />
+
+            {adoptionMode && (
+              <section className="mt-5 rounded-[28px] border-2 border-[#df8995] bg-[#fff8f8] p-5 shadow-lg">
+                <h2 className="text-center text-2xl font-black text-[#064b42]">
+                  Votre compatibilité avec {name}
+                </h2>
+
+                {matchLoading && (
+                  <div className="py-8 text-center">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
+                    <p className="mt-4 font-bold">
+                      Calcul de votre compatibilité...
+                    </p>
+                  </div>
+                )}
+
+                {!matchLoading &&
+                  matchError && (
+                    <div className="mt-5 rounded-2xl bg-red-50 p-4 text-center font-bold text-red-700">
+                      {matchError}
+                    </div>
+                  )}
+
+                {!matchLoading &&
+                  matchResult && (
+                    <>
+                      <div className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full bg-[#064b42] text-white shadow-xl">
+                        <div className="text-center">
+                          <div className="text-4xl font-black">
+                            {Math.round(
+                              matchResult.score
+                            )}
+                            %
+                          </div>
+                          <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white/80">
+                            compatibilité
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-center text-lg font-black text-[#df8995]">
+                        {matchResult.level}
+                      </p>
+
+                      <p className="mt-3 text-center text-sm leading-6 text-gray-600">
+                        Ce taux est indicatif. L’association reste la mieux placée pour confirmer si votre foyer correspond aux besoins de {name}.
+                      </p>
+
+                      <div className="mt-6 rounded-2xl bg-white p-4 text-center shadow-sm">
+                        <p className="font-black text-[#064b42]">
+                          Souhaitez-vous confirmer votre intérêt et entrer en contact avec {association || "l’association"} ?
+                        </p>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdoptionMode(
+                              false
+                            );
+                            router.replace(
+                              `/animal/${id}`
+                            );
+                          }}
+                          className="rounded-full bg-gray-100 px-5 py-4 font-black text-gray-700"
+                        >
+                          Pas maintenant
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/adoption/start/${id}?confirm=1`
+                            )
+                          }
+                          className="rounded-full bg-[#df8995] px-5 py-4 font-black text-white shadow-lg transition hover:bg-[#cf7481]"
+                        >
+                          Confirmer et contacter
+                        </button>
+                      </div>
+                    </>
+                  )}
+              </section>
+            )}
           </div>
         </section>
 

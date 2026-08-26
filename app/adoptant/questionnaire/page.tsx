@@ -72,6 +72,30 @@ const initialForm: FormData = {
   preference_libre: "",
 };
 
+function getQuestionnaireUrl() {
+  if (
+    typeof window === "undefined"
+  ) {
+    return "/adoptant/questionnaire";
+  }
+
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function getRedirectAfterSave() {
+  if (
+    typeof window === "undefined"
+  ) {
+    return "";
+  }
+
+  return (
+    new URLSearchParams(
+      window.location.search
+    ).get("redirect") || ""
+  );
+}
+
 export default function AdoptantQuestionnairePage() {
   const router = useRouter();
 
@@ -103,7 +127,10 @@ export default function AdoptantQuestionnairePage() {
 
       if (!user) {
         router.replace(
-          "/login?redirect=/adoptant/questionnaire"
+          "/login?redirect=" +
+            encodeURIComponent(
+              getQuestionnaireUrl()
+            )
         );
         return;
       }
@@ -319,7 +346,10 @@ export default function AdoptantQuestionnairePage() {
 
       if (!user) {
         router.push(
-          "/login?redirect=/adoptant/questionnaire"
+          "/login?redirect=" +
+            encodeURIComponent(
+              getQuestionnaireUrl()
+            )
         );
         return;
       }
@@ -493,15 +523,6 @@ export default function AdoptantQuestionnairePage() {
 
         special_needs:
           getSpecialNeedsLabel(),
-
-        approval_status:
-          "approved",
-
-        is_verified:
-          true,
-
-        is_active:
-          true,
       };
 
       const {
@@ -580,7 +601,8 @@ export default function AdoptantQuestionnairePage() {
       );
 
       router.push(
-        "/dashboard"
+        getRedirectAfterSave() ||
+          "/dashboard"
       );
 
       router.refresh();
