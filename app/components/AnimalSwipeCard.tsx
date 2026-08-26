@@ -307,7 +307,7 @@ export default function AnimalSwipeCard({
   }
 
   const isMale =
-    sex.includes("mÃ¢le") ||
+    sex.includes("mâle") ||
     sex.includes("male");
 
   const isFemale =
@@ -425,7 +425,7 @@ export default function AnimalSwipeCard({
       }
 
       alert(
-        "Impossible d'enregistrer ce coup de cÅ“ur."
+        "Impossible d'enregistrer ce coup de cœur."
       );
     } finally {
       setActionLoading(false);
@@ -557,11 +557,11 @@ export default function AnimalSwipeCard({
 
     /*
      * TAP TYPE TINDER :
-     * - moitiÃ© gauche = photo prÃ©cÃ©dente
-     * - moitiÃ© droite = photo suivante
+     * - moitié gauche = photo précédente
+     * - moitié droite = photo suivante
      *
-     * Un petit dÃ©placement est tolÃ©rÃ© pour
-     * ne pas dÃ©clencher une photo pendant un swipe.
+     * Un petit déplacement est toléré pour
+     * ne pas déclencher une photo pendant un swipe.
      */
     if (
       Math.abs(movement) <= 12 &&
@@ -705,7 +705,7 @@ export default function AnimalSwipeCard({
               text-7xl
             "
           >
-            ðŸ¾
+            🐾
           </div>
         )}
 
@@ -815,8 +815,8 @@ export default function AnimalSwipeCard({
             sm:right-4
             sm:top-4
           "
-          title={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cÅ“ur`}
-          aria-label={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cÅ“ur`}
+          title={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
+          aria-label={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
         >
           <span
             className="
@@ -826,7 +826,7 @@ export default function AnimalSwipeCard({
             "
             aria-hidden="true"
           >
-            â™¥
+            ♥
           </span>
 
           <span
@@ -842,7 +842,7 @@ export default function AnimalSwipeCard({
           </span>
         </div>
 
-        {/* INFOS GAUCHE - REPOSITIONNÃ‰ES */}
+        {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
           className="
@@ -859,7 +859,7 @@ export default function AnimalSwipeCard({
         >
           {age && (
             <InfoBox
-              icon="ðŸ¾"
+              icon="🐾"
               value={age}
               iconColor="#3988d1"
             />
@@ -869,10 +869,10 @@ export default function AnimalSwipeCard({
             <InfoBox
               icon={
                 isMale
-                  ? "â™‚"
+                  ? "♂"
                   : isFemale
-                    ? "â™€"
-                    : "âš¥"
+                    ? "♀"
+                    : "⚥"
               }
               value={sexRaw}
               iconColor={
@@ -883,24 +883,24 @@ export default function AnimalSwipeCard({
 
           {vaccinated && (
             <InfoBox
-              icon="âœ“"
-              value="VaccinÃ©"
+              icon="✓"
+              value="Vacciné"
               iconColor="#df8995"
             />
           )}
 
           {microchipped && (
             <InfoBox
-              icon="âœ“"
-              value="IdentifiÃ©"
+              icon="✓"
+              value="Identifié"
               iconColor="#df8995"
             />
           )}
 
           {sterilized && (
             <InfoBox
-              icon="âœ¿"
-              value="StÃ©rilisÃ©"
+              icon="✿"
+              value="Stérilisé"
               iconColor="#df8995"
             />
           )}
@@ -933,7 +933,7 @@ export default function AnimalSwipeCard({
                 drop-shadow-lg
               "
             >
-              â™¥ COUP DE CÅ’UR
+              ♥ COUP DE CŒUR
             </div>
           )}
 
@@ -964,7 +964,7 @@ export default function AnimalSwipeCard({
                 drop-shadow-lg
               "
             >
-              âœ• NEXT TIME
+              ✕ NEXT TIME
             </div>
           )}
 
@@ -992,7 +992,7 @@ export default function AnimalSwipeCard({
                     drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
                   "
                 >
-                  â™¥
+                  ♥
                 </div>
 
                 <div
@@ -1010,7 +1010,7 @@ export default function AnimalSwipeCard({
                     backdrop-blur
                   "
                 >
-                  Coup de cÅ“ur
+                  Coup de cœur
                 </div>
               </div>
             </div>
@@ -1040,7 +1040,7 @@ export default function AnimalSwipeCard({
                     drop-shadow-[0_6px_15px_rgba(0,0,0,.4)]
                   "
                 >
-                  Ã—
+                  ×
                 </div>
 
                 <div
@@ -1187,10 +1187,10 @@ export default function AnimalSwipeCard({
                 text-white/95
               "
             >
-              ðŸ“{" "}
+              📍{" "}
               {[city, island]
                 .filter(Boolean)
-                .join(" Â· ")}
+                .join(" · ")}
             </p>
           )}
 
@@ -1276,7 +1276,7 @@ export default function AnimalSwipeCard({
               disabled:opacity-60
             "
           >
-            Ã—
+            ×
           </button>
 
           <span
@@ -1360,7 +1360,7 @@ export default function AnimalSwipeCard({
             onClick={
               handleFavorite
             }
-            aria-label="Coup de cÅ“ur"
+            aria-label="Coup de cœur"
             className="
               flex
               h-[58px]
@@ -1381,7 +1381,7 @@ export default function AnimalSwipeCard({
               disabled:opacity-60
             "
           >
-            â™¥
+            ♥
           </button>
 
           <span
@@ -1393,7 +1393,7 @@ export default function AnimalSwipeCard({
               text-[#3e3a37]
             "
           >
-            Coup de cÅ“ur
+            Coup de cœur
           </span>
         </div>
       </div>
