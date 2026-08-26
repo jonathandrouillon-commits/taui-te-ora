@@ -774,7 +774,7 @@ export default function RegisterPage() {
      RATE LIMIT
   ======================================================= */
 
-  function isRateLimitError(
+function isRateLimitError(
     error: any
   ) {
     const message =
@@ -796,6 +796,133 @@ export default function RegisterPage() {
         "exceeded"
       )
     );
+  }
+
+  function getRegistrationErrorMessage(
+    error: unknown
+  ) {
+    const details =
+      error &&
+      typeof error === "object"
+        ? (error as Record<
+            string,
+            unknown
+          >)
+        : {};
+
+    const rawMessage =
+      typeof details.message ===
+      "string"
+        ? details.message.trim()
+        : error instanceof Error
+          ? error.message.trim()
+          : "";
+
+    const code =
+      typeof details.code ===
+      "string"
+        ? details.code.trim()
+        : "";
+
+    const status =
+      typeof details.status ===
+        "number" ||
+      typeof details.status ===
+        "string"
+        ? String(details.status)
+        : "";
+
+    const searchable =
+      `${rawMessage} ${code}`
+        .toLowerCase();
+
+    if (
+      searchable.includes(
+        "user_already_exists"
+      ) ||
+      searchable.includes(
+        "already registered"
+      ) ||
+      searchable.includes(
+        "already been registered"
+      )
+    ) {
+      return "Cette adresse e-mail possède déjà un compte. Utilisez la page de connexion ou la fonction « Mot de passe oublié ».";
+    }
+
+    if (
+      searchable.includes(
+        "signup_disabled"
+      ) ||
+      searchable.includes(
+        "signups not allowed"
+      )
+    ) {
+      return "La création de nouveaux comptes est momentanément désactivée dans Supabase.";
+    }
+
+    if (
+      searchable.includes(
+        "invalid api key"
+      ) ||
+      searchable.includes(
+        "apikey"
+      ) ||
+      status === "401"
+    ) {
+      return "La connexion à Supabase est invalide. Vérifiez que l'URL et la clé publique appartiennent au même projet.";
+    }
+
+    if (
+      searchable.includes(
+        "database error"
+      ) ||
+      searchable.includes(
+        "unexpected_failure"
+      ) ||
+      status === "500"
+    ) {
+      return "Supabase n'a pas pu enregistrer le profil dans la base de données. La configuration de création des profils doit être vérifiée.";
+    }
+
+    if (
+      rawMessage &&
+      rawMessage !== "{}" &&
+      rawMessage !==
+        "[object Object]"
+    ) {
+      const technicalDetails =
+        [
+          code
+            ? `code ${code}`
+            : "",
+          status
+            ? `statut ${status}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+      return technicalDetails
+        ? `${rawMessage} (${technicalDetails})`
+        : rawMessage;
+    }
+
+    const technicalDetails =
+      [
+        code
+          ? `code ${code}`
+          : "",
+        status
+          ? `statut ${status}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+    return technicalDetails
+      ? `Supabase a refusé la création du compte (${technicalDetails}).`
+      : "Supabase a refusé la création du compte sans fournir de détail. Vérifiez que cette adresse e-mail n'est pas déjà enregistrée.";
   }
 
   /* =======================================================
@@ -1053,6 +1180,21 @@ approved_at:
         throw error;
       }
 
+      if (
+        data.user &&
+        Array.isArray(
+          data.user.identities
+        ) &&
+        data.user.identities
+          .length === 0
+      ) {
+        alert(
+          "Cette adresse e-mail possède déjà un compte. Utilisez la page de connexion ou la fonction « Mot de passe oublié »."
+        );
+
+        return;
+      }
+
       if (data.session?.access_token) {
         await notifyAdmin({
           firstName,
@@ -1101,8 +1243,9 @@ approved_at:
       );
 
       alert(
-        error?.message ||
-          "Erreur inconnue lors de la création du compte."
+        getRegistrationErrorMessage(
+          error
+        )
       );
     } finally {
       setLoading(false);
