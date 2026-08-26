@@ -48,6 +48,7 @@ export default function AddAnimalPage() {
 
   const [photos, setPhotos] = useState<File[]>([]);
   const [video, setVideo] = useState<File | null>(null);
+  const [vigilancePoints, setVigilancePoints] = useState<string[]>([]);
 
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<PublisherRole | null>(null);
@@ -70,6 +71,14 @@ export default function AddAnimalPage() {
     compatible_chiens: "",
     compatible_chats: "",
     compatible_enfants: "",
+    energy_level: "",
+    housing_need: "",
+    alone_tolerance: "",
+    adopter_experience_required: "",
+    education_level: "",
+    human_contact: "",
+    daily_activity_need: "",
+    ideal_family: "",
     story: "",
     health_status: "",
     vaccinated: false,
@@ -215,6 +224,20 @@ export default function AddAnimalPage() {
       ...previousAnimal,
       [field]: value,
     }));
+  }
+
+  function updateCharacterField(
+    field: string,
+    value: string | string[]
+  ) {
+    if (field === "vigilance_points") {
+      setVigilancePoints(
+        Array.isArray(value) ? value : []
+      );
+      return;
+    }
+
+    updateField(field, value);
   }
 
   function validateAnimal() {
@@ -383,6 +406,33 @@ export default function AddAnimalPage() {
             animal.compatible_enfants ||
             null,
 
+          energy_level:
+            animal.energy_level || null,
+
+          housing_need:
+            animal.housing_need || null,
+
+          alone_tolerance:
+            animal.alone_tolerance || null,
+
+          adopter_experience_required:
+            animal.adopter_experience_required || null,
+
+          education_level:
+            animal.education_level || null,
+
+          human_contact:
+            animal.human_contact || null,
+
+          daily_activity_need:
+            animal.daily_activity_need || null,
+
+          vigilance_points:
+            vigilancePoints,
+
+          ideal_family:
+            animal.ideal_family || null,
+
           story:
             animal.story || null,
 
@@ -533,8 +583,11 @@ export default function AddAnimalPage() {
 
           {step === 4 && (
             <Step4Character
-              animal={animal}
-              updateField={updateField}
+              animal={{
+                ...animal,
+                vigilance_points: vigilancePoints,
+              }}
+              updateField={updateCharacterField}
             />
           )}
 

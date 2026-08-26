@@ -62,6 +62,16 @@ export type Animal = {
   compatible_chats?: string | null;
   compatible_enfants?: string | null;
 
+  energy_level?: string | null;
+  housing_need?: string | null;
+  alone_tolerance?: string | null;
+  adopter_experience_required?: string | null;
+  education_level?: string | null;
+  human_contact?: string | null;
+  daily_activity_need?: string | null;
+  vigilance_points?: string[] | null;
+  ideal_family?: string | null;
+
   animal_photos?: AnimalPhoto[];
 
   owner_profile?: {
