@@ -13,6 +13,7 @@ import {
   CirclePause,
   RotateCcw,
   ShieldCheck,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -427,6 +428,120 @@ export default function AdminUsersPage() {
     }
 
     await approveUser(id);
+  }
+
+  /* =========================================================
+     SUPPRESSION DÉFINITIVE D'UN COMPTE ADOPTANT
+  ========================================================= */
+
+  async function deleteUser(
+    user: Profile
+  ) {
+    if (actionId) return;
+
+    if (
+      String(user.role || "")
+        .trim()
+        .toLowerCase() !==
+      "adoptant"
+    ) {
+      alert(
+        "Seuls les comptes adoptants peuvent être supprimés depuis cette page."
+      );
+      return;
+    }
+
+    const displayName =
+      getDisplayName(user);
+
+    const confirmed =
+      window.confirm(
+        `Supprimer définitivement le compte de ${displayName} ?\n\nLes éventuelles fiches animales seront transférées à votre compte administrateur. Cette action est irréversible.`
+      );
+
+    if (!confirmed) return;
+
+    const verification =
+      window.prompt(
+        'Pour confirmer, écrivez exactement : SUPPRIMER'
+      );
+
+    if (verification !== "SUPPRIMER") {
+      alert(
+        "Suppression annulée : le mot de confirmation est incorrect."
+      );
+      return;
+    }
+
+    try {
+      setActionId(user.id);
+
+      const {
+        data: { session },
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
+
+      if (
+        sessionError ||
+        !session?.access_token
+      ) {
+        throw new Error(
+          "Session administrateur introuvable."
+        );
+      }
+
+      const response =
+        await fetch(
+          "/api/admin/users",
+          {
+            method: "DELETE",
+            headers: {
+              Authorization:
+                `Bearer ${session.access_token}`,
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              userId: user.id,
+            }),
+          }
+        );
+
+      const result =
+        (await response
+          .json()
+          .catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+            "Impossible de supprimer ce compte."
+        );
+      }
+
+      alert(
+        result.message ||
+          "Compte supprimé définitivement."
+      );
+
+      await loadUsers();
+    } catch (error: unknown) {
+      console.error(
+        "Erreur suppression utilisateur :",
+        error
+      );
+
+      alert(
+        getErrorMessage(error) ||
+          "Impossible de supprimer ce compte."
+      );
+    } finally {
+      setActionId(null);
+    }
   }
 
   /* =========================================================
@@ -1006,6 +1121,34 @@ export default function AdminUsersPage() {
                             Réactiver
                           </button>
                         </>
+                      )}
+
+                      {String(
+                        user.role || ""
+                      )
+                        .trim()
+                        .toLowerCase() ===
+                        "adoptant" && (
+                        <button
+                          type="button"
+                          disabled={
+                            isProcessing
+                          }
+                          onClick={() =>
+                            deleteUser(
+                              user
+                            )
+                          }
+                          className="flex items-center gap-2 rounded-2xl border-2 border-red-600 bg-white px-5 py-3 font-black text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Trash2
+                            size={18}
+                          />
+
+                          {isProcessing
+                            ? "Suppression..."
+                            : "Supprimer définitivement"}
+                        </button>
                       )}
                     </div>
                   </article>
