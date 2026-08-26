@@ -13,6 +13,7 @@ import {
   Building2,
   Camera,
   CheckCircle2,
+  LogOut,
   Save,
   ShieldCheck,
   Trash2,
@@ -392,6 +393,31 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleLogout() {
+    try {
+      const { error } =
+        await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch (error: unknown) {
+      console.error(
+        "Erreur déconnexion :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de se déconnecter."
+      );
+    }
+  }
+
   async function saveProfile() {
     if (saving || !profileId) return;
 
@@ -710,6 +736,15 @@ export default function ProfilePage() {
                 {saving
                   ? "Enregistrement..."
                   : "Enregistrer mon profil"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-[#df8995] bg-white px-8 py-4 font-black text-[#c75f70] transition hover:bg-[#fff1f3]"
+              >
+                <LogOut size={19} />
+                Déconnexion
               </button>
 
               {saved && (
