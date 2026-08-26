@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Bell,
   Home,
   PawPrint,
@@ -23,14 +22,6 @@ export default function AppTopBar({ mode = "public" }: Props) {
   return (
     <header className="sticky top-0 z-50 bg-[#f4eee3]/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between bg-white px-4 py-3 shadow-lg">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5ead8] text-[#064b42] transition hover:bg-[#ead9bb]"
-          title="Retour"
-        >
-          <ArrowLeft size={22} />
-        </button>
 
         <button
           type="button"
@@ -41,8 +32,13 @@ export default function AppTopBar({ mode = "public" }: Props) {
           <PawPrint size={28} className="text-[#064b42]" />
 
           <div className="text-left">
-            <div className="font-black text-[#064b42]">TAUI TE ORA</div>
-            <div className="text-xs text-gray-500">Changer une vie</div>
+            <div className="font-black text-[#064b42]">
+              TAUI TE ORA
+            </div>
+
+            <div className="text-xs text-gray-500">
+              Changer une vie
+            </div>
           </div>
         </button>
 

@@ -93,11 +93,28 @@ const ROLE_LABELS: Record<PublisherRole, string> = {
   benevole: "Bénévole indépendant",
 };
 
+function getAddAnimalPath(_role: PublisherRole) {
+  return "/association/add-animal";
+}
+
+function getAnimalsManagementPath(_role: PublisherRole) {
+  return "/association/animals";
+}
+
+function getEditAnimalPath(
+  _role: PublisherRole,
+  animalId: string
+) {
+  return `/association/edit-animal/${animalId}`;
+}
+
+type PublisherDashboardProps = {
+  expectedRole: PublisherRole;
+};
+
 export default function PublisherDashboard({
   expectedRole,
-}: {
-  expectedRole: PublisherRole;
-}) {
+}: PublisherDashboardProps) {
   const router = useRouter();
 
   const [data, setData] =
@@ -653,17 +670,37 @@ export default function PublisherDashboard({
 
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/association/add-animal"
+                href={getAddAnimalPath(expectedRole)}
                 className="rounded-full bg-[#ef8196] px-6 py-3 font-black text-white shadow"
               >
                 + Déposer un animal
               </Link>
 
               <Link
-                href="/association/animals"
+                href={getAnimalsManagementPath(expectedRole)}
                 className="rounded-full bg-[#064b42] px-6 py-3 font-black text-white shadow"
               >
                 Gérer mes animaux
+              </Link>
+
+              <Link
+                href="/profile"
+                className="
+                  rounded-full
+                  border-2
+                  border-[#064b42]
+                  bg-white
+                  px-6
+                  py-3
+                  font-black
+                  text-[#064b42]
+                  shadow
+                  transition
+                  hover:bg-[#e8f5f1]
+                  active:scale-[0.98]
+                "
+              >
+                Modifier mon profil
               </Link>
 
               <button
@@ -710,7 +747,7 @@ export default function PublisherDashboard({
             </div>
 
             <Link
-              href="/association/add-animal"
+              href={getAddAnimalPath(expectedRole)}
               className="rounded-full bg-[#ef8196] px-5 py-2.5 text-sm font-black text-white"
             >
               + Ajouter
@@ -791,7 +828,7 @@ export default function PublisherDashboard({
                         </Link>
 
                         <Link
-                          href={`/association/edit-animal/${animal.id}`}
+                          href={getEditAnimalPath(expectedRole, animal.id)}
                           className="rounded-full bg-[#9c7b54] px-4 py-2.5 text-center text-sm font-black text-white"
                         >
                           Modifier

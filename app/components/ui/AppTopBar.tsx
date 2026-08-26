@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 
 import {
-  ArrowLeft,
   Heart,
   Home,
   PawPrint,
@@ -12,6 +11,7 @@ import {
   User,
   Users,
   Building2,
+  ArrowLeft,
 } from "lucide-react";
 
 import NotificationBell from "./NotificationBell";
@@ -28,11 +28,13 @@ export default function AppTopBar({
   return (
     <header className="sticky top-0 z-50 bg-white/95 shadow-lg backdrop-blur">
       <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4">
+
         {/* =====================================================
             MOBILE
         ====================================================== */}
 
         <div className="flex flex-col gap-3 md:hidden">
+
           {/* PREMIERE LIGNE : RETOUR + LOGO */}
 
           <div className="flex items-center justify-between gap-3">
@@ -178,35 +180,6 @@ export default function AppTopBar({
         ====================================================== */}
 
         <div className="hidden items-center justify-between gap-4 md:flex">
-          {/* RETOUR */}
-
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Retour"
-            className="
-              flex
-              h-12
-              shrink-0
-              items-center
-              justify-center
-              gap-2
-              rounded-full
-              bg-[#f5ead8]
-              px-4
-              font-black
-              text-[#064b42]
-              transition
-              hover:bg-[#ead9bb]
-              active:scale-95
-            "
-          >
-            <ArrowLeft size={22} />
-
-            <span>
-              Retour
-            </span>
-          </button>
 
           {/* LOGO */}
 
