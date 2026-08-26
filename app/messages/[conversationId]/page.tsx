@@ -36,6 +36,8 @@ type Message = {
   message: string;
   created_at: string;
   read_at?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 };
 
 type Animal = {
@@ -89,6 +91,12 @@ export default function ConversationPage() {
     useState(true);
 
   const [sending, setSending] =
+    useState(false);
+
+  const [deletingMessageId, setDeletingMessageId] =
+    useState<string | null>(null);
+
+  const [archiving, setArchiving] =
     useState(false);
 
   const [currentUserId, setCurrentUserId] =
@@ -478,7 +486,9 @@ export default function ConversationPage() {
               sender_id,
               message,
               created_at,
-              read_at
+              read_at,
+              deleted_at,
+              deleted_by
             `
           )
           .eq(
@@ -507,21 +517,16 @@ export default function ConversationPage() {
          MARQUER MESSAGES LUS
       --------------------------------------------------- */
 
-      const unreadIds =
-        (
-          messagesData ||
-          []
-        )
-          .filter(
-            (message) =>
-              message.sender_id !==
-                access.userId &&
-              !message.read_at
-          )
-          .map(
-            (message) =>
-              message.id
-          );
+      const unreadIds = isParticipant
+        ? (messagesData || [])
+            .filter(
+              (message) =>
+                message.sender_id !== access.userId &&
+                !message.read_at &&
+                !message.deleted_at
+            )
+            .map((message) => message.id)
+        : [];
 
       if (
         unreadIds.length >
@@ -659,14 +664,36 @@ export default function ConversationPage() {
               }
             );
 
+            const isParticipant =
+              currentUserId === conversation?.requester_id ||
+              currentUserId === conversation?.owner_id;
+
             if (
-              incoming.sender_id !==
-              currentUserId
+              isParticipant &&
+              incoming.sender_id !== currentUserId
             ) {
               markMessageAsRead(
                 incoming.id
               );
             }
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "conversation_messages",
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const updated = payload.new as Message;
+
+            setMessages((previousMessages) =>
+              previousMessages.map((message) =>
+                message.id === updated.id ? updated : message
+              )
+            );
           }
         )
         .subscribe();
@@ -678,6 +705,7 @@ export default function ConversationPage() {
     };
   }, [
     conversationId,
+    conversation,
     currentUserId,
     markMessageAsRead,
   ]);
@@ -885,6 +913,129 @@ export default function ConversationPage() {
       );
     } finally {
       setSending(false);
+    }
+  }
+
+  /* =======================================================
+     SUPPRIMER UN MESSAGE
+  ======================================================= */
+
+  async function deleteMessage(message: Message) {
+    const canDelete =
+      message.sender_id === currentUserId ||
+      currentUserRole === "admin";
+
+    if (
+      !canDelete ||
+      message.deleted_at ||
+      deletingMessageId
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Supprimer ce message ? Il restera indiqué comme message supprimé."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingMessageId(message.id);
+
+      const deletedAt = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("conversation_messages")
+        .update({
+          deleted_at: deletedAt,
+          deleted_by: currentUserId,
+        })
+        .eq("id", message.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setMessages((previousMessages) =>
+        previousMessages.map((item) =>
+          item.id === message.id
+            ? {
+                ...item,
+                deleted_at: deletedAt,
+                deleted_by: currentUserId,
+              }
+            : item
+        )
+      );
+    } catch (error: unknown) {
+      console.error("Erreur suppression message :", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer ce message."
+      );
+    } finally {
+      setDeletingMessageId(null);
+    }
+  }
+
+  /* =======================================================
+     ARCHIVER LA CONVERSATION
+  ======================================================= */
+
+  async function archiveConversation() {
+    if (
+      !conversation ||
+      !currentUserId ||
+      archiving
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Archiver cette conversation ? Vous pourrez la retrouver dans les conversations archivées."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setArchiving(true);
+
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("conversation_preferences")
+        .upsert(
+          {
+            conversation_id: conversation.id,
+            user_id: currentUserId,
+            is_archived: true,
+            archived_at: now,
+            updated_at: now,
+          },
+          {
+            onConflict: "conversation_id,user_id",
+          }
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      router.push("/messages");
+    } catch (error: unknown) {
+      console.error("Erreur archivage conversation :", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'archiver cette conversation."
+      );
+    } finally {
+      setArchiving(false);
     }
   }
 
@@ -1379,6 +1530,17 @@ export default function ConversationPage() {
               🐾
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => void archiveConversation()}
+            disabled={archiving}
+            title="Archiver la conversation"
+            aria-label="Archiver la conversation"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f3ebe5] text-lg shadow-sm transition active:scale-95 disabled:opacity-50"
+          >
+            {archiving ? "…" : "📥"}
+          </button>
         </div>
       </header>
 
@@ -1603,16 +1765,17 @@ export default function ConversationPage() {
                     </p>
 
                     <p
-                      className="
+                      className={`
                         whitespace-pre-wrap
                         break-words
                         text-[14px]
                         leading-relaxed
-                      "
+                        ${message.deleted_at ? "italic opacity-75" : ""}
+                      `}
                     >
-                      {
-                        message.message
-                      }
+                      {message.deleted_at
+                        ? "Ce message a été supprimé."
+                        : message.message}
                     </p>
 
                     <div
@@ -1644,6 +1807,22 @@ export default function ConversationPage() {
                         </span>
                       )}
                     </div>
+
+                    {(mine || currentUserRole === "admin") &&
+                      !message.deleted_at && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteMessage(message)}
+                          disabled={deletingMessageId === message.id}
+                          className={`mt-2 text-[10px] font-bold underline underline-offset-2 disabled:opacity-50 ${
+                            mine ? "text-white/80" : "text-red-500"
+                          }`}
+                        >
+                          {deletingMessageId === message.id
+                            ? "Suppression..."
+                            : "Supprimer"}
+                        </button>
+                      )}
                   </div>
 
                   {mine && (

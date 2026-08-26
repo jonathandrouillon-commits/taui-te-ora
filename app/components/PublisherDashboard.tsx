@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { animalService } from "../services/animal.service";
 import SupportButton from "./SupportButton";
+import DashboardMessages from "./dashboard/DashboardMessages";
 
 export type PublisherRole =
   | "association"
@@ -183,7 +184,7 @@ export default function PublisherDashboard({
       }
 
       if (role === "adoptant") {
-        router.replace("/profile");
+        router.replace("/dashboard");
         return;
       }
 
@@ -727,12 +728,15 @@ export default function PublisherDashboard({
           </div>
         </header>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Stat label="Animaux" value={data.animals.length} icon="🐾" />
           <Stat label="Publiés" value={published} icon="✅" />
           <Stat label="Adoptés" value={adopted} icon="🏡" />
           <Stat label="Coups de cœur" value={data.favorites.length} icon="❤️" />
           <Stat label="Demandes en attente" value={pendingRequests} icon="📩" />
+          <Link href="/messages" className="block">
+            <Stat label="Messages" value={data.conversations.length} icon="💬" />
+          </Link>
         </div>
 
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
@@ -1356,53 +1360,9 @@ export default function PublisherDashboard({
           </div>
         </section>
 
-        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-black">
-                Messagerie
-              </h2>
-
-              <p className="mt-1 text-sm text-[#6f5a47]">
-                Conversations liées uniquement à vos animaux.
-              </p>
-            </div>
-
-            <span className="rounded-full bg-[#f8f4ec] px-4 py-2 font-black">
-              💬 {data.conversations.length}
-            </span>
-          </div>
-
-          <div className="mt-5 space-y-2">
-            {data.conversations.length === 0 ? (
-              <div className="rounded-3xl bg-[#f8f4ec] p-6 text-center">
-                Aucun message.
-              </div>
-            ) : (
-              data.conversations.slice(0, 10).map((conversation) => {
-                const animal =
-                  data.animals.find(
-                    (item) =>
-                      item.id === conversation.animal_id
-                  );
-
-                return (
-                  <Link
-                    key={conversation.id}
-                    href={`/messages/${conversation.id}`}
-                    className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 font-bold text-[#064b42]"
-                  >
-                    <span>
-                      💬 {animal?.animal_name || "Animal"}
-                    </span>
-
-                    <span>Ouvrir →</span>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </section>
+        <div className="mt-7">
+          <DashboardMessages />
+        </div>
 
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

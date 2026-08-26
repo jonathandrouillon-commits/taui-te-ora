@@ -26,6 +26,7 @@ import {
 
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import DashboardMessages from "../../components/dashboard/DashboardMessages";
 
 import {
   profileService,
@@ -803,6 +804,10 @@ export default function AdminDashboardPage() {
           )}
         </div>
 
+        <div className="mt-10">
+          <DashboardMessages />
+        </div>
+
         {/* =====================================================
             ACTIONS RAPIDES
         ====================================================== */}
@@ -828,7 +833,7 @@ export default function AdminDashboardPage() {
               gap-4
               md:grid-cols-2
               lg:grid-cols-3
-              xl:grid-cols-6
+              xl:grid-cols-7
             "
           >
             {/* UTILISATEURS */}
@@ -841,6 +846,19 @@ export default function AdminDashboardPage() {
               }
             >
               Gérer les utilisateurs
+            </Button>
+
+            {/* MESSAGES */}
+
+            <Button
+              variant="secondary"
+              onClick={() =>
+                router.push(
+                  "/messages"
+                )
+              }
+            >
+              Voir les messages
             </Button>
 
             {/* ANIMAUX */}
