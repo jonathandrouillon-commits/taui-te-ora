@@ -38,7 +38,7 @@ export default function BottomNavigation() {
       menu: true,
     },
     {
-      href: "/profile",
+      href: "/dashboard",
       label: "Profil",
       icon: "👤",
     },
