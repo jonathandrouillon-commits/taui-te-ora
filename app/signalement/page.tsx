@@ -79,6 +79,12 @@ export default function SignalementPage() {
     address_details: "",
     latitude: "",
     longitude: "",
+    disappearance_date: "",
+    disappearance_time: "",
+    disappearance_time_unknown: false,
+    found_date: "",
+    found_time: "",
+    found_time_unknown: false,
     situation: "",
     description: "",
     reporter_name: "",
@@ -202,6 +208,16 @@ export default function SignalementPage() {
         return;
       }
 
+      if (form.type_signalement === "Animal perdu" && !form.disappearance_date) {
+        alert("Merci d'indiquer la date approximative de disparition.");
+        return;
+      }
+
+      if (form.type_signalement === "Animal trouvé" && !form.found_date) {
+        alert("Merci d'indiquer la date approximative de découverte.");
+        return;
+      }
+
       if (files.length > MAX_FILES) {
         throw new Error(
           `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
@@ -230,6 +246,14 @@ export default function SignalementPage() {
           address: form.address,
           latitude: form.latitude ? Number(form.latitude) : null,
           longitude: form.longitude ? Number(form.longitude) : null,
+          disappearance_at:
+            form.type_signalement === "Animal perdu" && form.disappearance_date
+              ? new Date(`${form.disappearance_date}T${form.disappearance_time_unknown || !form.disappearance_time ? "12:00" : form.disappearance_time}:00`).toISOString()
+              : null,
+          found_at:
+            form.type_signalement === "Animal trouvé" && form.found_date
+              ? new Date(`${form.found_date}T${form.found_time_unknown || !form.found_time ? "12:00" : form.found_time}:00`).toISOString()
+              : null,
           situation: form.situation,
           description: `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
           reporter_name: form.anonymous ? "" : form.reporter_name,
@@ -419,6 +443,73 @@ export default function SignalementPage() {
             />
           </div>
         </section>
+
+        {form.type_signalement === "Animal perdu" && (
+          <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
+            <h2 className="mb-2 text-2xl font-black text-[#064b42]">🕒 Disparition</h2>
+            <p className="mb-6 text-sm text-[#6f5a47]">
+              Indiquez le moment où l&apos;animal a été vu pour la dernière fois. Une heure approximative suffit.
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block font-bold text-[#064b42]">Date de disparition</label>
+                <input type="date" value={form.disappearance_date}
+                  onChange={(e) => updateField("disappearance_date", e.target.value)}
+                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+              </div>
+              <div>
+                <label className="mb-2 block font-bold text-[#064b42]">Heure approximative</label>
+                <input type="time" value={form.disappearance_time}
+                  disabled={form.disappearance_time_unknown}
+                  onChange={(e) => updateField("disappearance_time", e.target.value)}
+                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 disabled:opacity-50" />
+              </div>
+            </div>
+            <label className="mt-5 flex items-center gap-3 font-semibold text-[#064b42]">
+              <input type="checkbox" checked={form.disappearance_time_unknown}
+                onChange={(e) => updateField("disappearance_time_unknown", e.target.checked)} />
+              Heure inconnue
+            </label>
+            <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
+              Le point GPS placé sur la carte ci-dessus correspond au <strong>dernier lieu connu de disparition</strong>.
+            </div>
+          </section>
+        )}
+
+        {form.type_signalement === "Animal trouvé" && (
+          <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
+            <h2 className="mb-2 text-2xl font-black text-[#064b42]">
+              🕒 Découverte de l&apos;animal
+            </h2>
+            <p className="mb-6 text-sm text-[#6f5a47]">
+              Indiquez le moment où l&apos;animal a été découvert. Une heure approximative suffit.
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block font-bold text-[#064b42]">Date de découverte</label>
+                <input type="date" value={form.found_date}
+                  onChange={(e) => updateField("found_date", e.target.value)}
+                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+              </div>
+              <div>
+                <label className="mb-2 block font-bold text-[#064b42]">Heure approximative</label>
+                <input type="time" value={form.found_time}
+                  disabled={form.found_time_unknown}
+                  onChange={(e) => updateField("found_time", e.target.value)}
+                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 disabled:opacity-50" />
+              </div>
+            </div>
+            <label className="mt-5 flex items-center gap-3 font-semibold text-[#064b42]">
+              <input type="checkbox" checked={form.found_time_unknown}
+                onChange={(e) => updateField("found_time_unknown", e.target.checked)} />
+              Heure inconnue
+            </label>
+            <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
+              Le point GPS placé sur la carte ci-dessus sera utilisé comme
+              <strong> lieu de découverte de l&apos;animal</strong>.
+            </div>
+          </section>
+        )}
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">

@@ -36,6 +36,8 @@ type Signalement = {
 
   latitude?: number | null;
   longitude?: number | null;
+  disappearance_at?: string | null;
+  found_at?: string | null;
 
   situation?: string | null;
   description?: string | null;
@@ -74,6 +76,20 @@ type Profile = {
   avatar_url?: string | null;
 };
 
+type SignalementUpdate = {
+  id: string;
+  created_at?: string | null;
+  signalement_id: string;
+  created_by: string;
+  message: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  observation_at?: string | null;
+  is_verified?: boolean | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+};
+
 const ALLOWED_ROLES =
   new Set([
     "admin",
@@ -81,6 +97,7 @@ const ALLOWED_ROLES =
     "refuge",
     "benevole",
     "fourriere",
+    "adoptant",
   ]);
 
 export default function SignalementDetailPage() {
@@ -168,6 +185,12 @@ export default function SignalementDetailPage() {
   ] =
     useState("");
 
+  const [updates, setUpdates] = useState<SignalementUpdate[]>([]);
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [updateObservationAt, setUpdateObservationAt] = useState("");
+  const [updateLatitude, setUpdateLatitude] = useState("");
+  const [updateLongitude, setUpdateLongitude] = useState("");
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -244,7 +267,7 @@ export default function SignalementDetailPage() {
         )
       ) {
         throw new Error(
-          "Cette alerte est réservée aux associations, refuges, bénévoles, fourrières et administrateurs."
+          "Vous devez être connecté à TAUI TE ORA pour consulter cette alerte."
         );
       }
 
@@ -335,6 +358,15 @@ export default function SignalementDetailPage() {
         (mediaData ||
           []) as Media[]
       );
+
+      const { data: updateData, error: updateError } = await supabase
+        .from("signalement_updates")
+        .select("*")
+        .eq("signalement_id", signalementId)
+        .order("created_at", { ascending: false });
+
+      if (updateError) console.error("Erreur informations supplémentaires :", updateError);
+      setUpdates((updateData || []) as SignalementUpdate[]);
 
       if (
         signalementData
@@ -503,6 +535,22 @@ export default function SignalementDetailPage() {
       !signalement ||
       !currentProfile
     ) {
+      return;
+    }
+
+    const signalementType =
+      String(signalement.type_signalement || "").trim().toLowerCase();
+
+    const lostOrFoundAnimal =
+      signalementType === "animal perdu" ||
+      signalementType === "animal trouvé";
+
+    if (
+      lostOrFoundAnimal &&
+      currentProfile.role !== "admin" &&
+      signalement.user_id !== currentProfile.id
+    ) {
+      alert("Seul l'auteur du signalement ou un administrateur peut modifier le statut de cet animal.");
       return;
     }
 
@@ -844,6 +892,47 @@ export default function SignalementDetailPage() {
     }
   }
 
+  async function addSignalementUpdate() {
+    if (!currentProfile || !signalement || !updateMessage.trim()) return;
+    try {
+      setActionLoading(true);
+      const isAdmin = currentProfile.role === "admin";
+      const { error } = await supabase.from("signalement_updates").insert({
+        signalement_id: signalement.id,
+        created_by: currentProfile.id,
+        message: updateMessage.trim(),
+        latitude: updateLatitude.trim() ? Number(updateLatitude) : null,
+        longitude: updateLongitude.trim() ? Number(updateLongitude) : null,
+        observation_at: updateObservationAt ? new Date(updateObservationAt).toISOString() : null,
+        is_verified: isAdmin,
+        verified_by: isAdmin ? currentProfile.id : null,
+        verified_at: isAdmin ? new Date().toISOString() : null,
+      });
+      if (error) throw error;
+      setUpdateMessage(""); setUpdateObservationAt(""); setUpdateLatitude(""); setUpdateLongitude("");
+      alert(isAdmin ? "Information ajoutée et vérifiée." : "Information envoyée. Elle sera publiée après vérification par un administrateur.");
+      await loadData();
+    } catch (error: any) {
+      alert(error?.message || "Impossible d'ajouter cette information.");
+    } finally { setActionLoading(false); }
+  }
+
+  async function verifySignalementUpdate(updateId: string) {
+    if (currentProfile?.role !== "admin") return;
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.from("signalement_updates").update({
+        is_verified: true,
+        verified_by: currentProfile.id,
+        verified_at: new Date().toISOString(),
+      }).eq("id", updateId);
+      if (error) throw error;
+      await loadData();
+    } catch (error: any) {
+      alert(error?.message || "Impossible de vérifier cette information.");
+    } finally { setActionLoading(false); }
+  }
+
   useEffect(() => {
     if (signalementId) {
       queueMicrotask(() => void loadData());
@@ -892,6 +981,26 @@ export default function SignalementDetailPage() {
   const mine =
     signalement.assigned_to ===
     currentProfile?.id;
+
+  const canIntervene =
+    currentProfile?.role === "admin" ||
+    currentProfile?.role === "association" ||
+    currentProfile?.role === "refuge" ||
+    currentProfile?.role === "benevole" ||
+    currentProfile?.role === "fourriere";
+
+  const signalementType =
+    String(signalement.type_signalement || "").trim().toLowerCase();
+  const isLostAnimal = signalementType === "animal perdu";
+  const isFoundAnimal = signalementType === "animal trouvé";
+  const isLostOrFoundAnimal = isLostAnimal || isFoundAnimal;
+  const isReporter = signalement.user_id === currentProfile?.id;
+  const canManageLostOrFoundAnimal =
+    isLostOrFoundAnimal && (currentProfile?.role === "admin" || isReporter);
+  const canAddUpdate =
+    isLostOrFoundAnimal && (currentProfile?.role === "admin" || isReporter);
+  const visibleUpdates =
+    currentProfile?.role === "admin" ? updates : updates.filter((item) => item.is_verified);
 
   const assignedName =
     getProfileName(
@@ -1119,6 +1228,24 @@ export default function SignalementDetailPage() {
                 }
               />
 
+              {isLostAnimal && (
+                <Info
+                  title="Date / heure approximative de disparition"
+                  value={signalement.disappearance_at
+                    ? new Date(signalement.disappearance_at).toLocaleString("fr-FR")
+                    : "Non renseigné"}
+                />
+              )}
+
+              {isFoundAnimal && (
+                <Info
+                  title="Date / heure approximative de découverte"
+                  value={signalement.found_at
+                    ? new Date(signalement.found_at).toLocaleString("fr-FR")
+                    : "Non renseigné"}
+                />
+              )}
+
               {typeof signalement.latitude ===
                 "number" &&
                 typeof signalement.longitude ===
@@ -1136,6 +1263,70 @@ export default function SignalementDetailPage() {
           </div>
         </section>
 
+        {isLostOrFoundAnimal && (
+          <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
+            <h2 className="text-xl font-black text-[#064b42]">Informations vérifiées</h2>
+            <p className="mt-1 text-sm text-[#6f5a47]">
+              Les observations vérifiées sont visibles par tous. L&apos;administrateur valide les nouvelles informations.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              {visibleUpdates.length === 0 && (
+                <div className="rounded-[22px] bg-[#faf7f2] p-5 text-[#6f5a47]">
+                  Aucune information supplémentaire vérifiée pour le moment.
+                </div>
+              )}
+              {visibleUpdates.map((item) => (
+                <div key={item.id} className="rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-5">
+                  <span className={`rounded-full px-3 py-1 text-xs font-black ${item.is_verified ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}>
+                    {item.is_verified ? "✓ Information vérifiée" : "En attente de vérification"}
+                  </span>
+                  <p className="mt-4 whitespace-pre-wrap font-semibold text-[#064b42]">{item.message}</p>
+                  {item.observation_at && (
+                    <p className="mt-3 text-sm text-[#6f5a47]">🕒 Observation : {new Date(item.observation_at).toLocaleString("fr-FR")}</p>
+                  )}
+                  {typeof item.latitude === "number" && typeof item.longitude === "number" && (
+                    <a href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`} target="_blank" rel="noreferrer"
+                      className="mt-3 inline-block rounded-full bg-white px-4 py-2 text-sm font-black text-[#064b42] shadow-sm">
+                      📍 Voir le point d&apos;observation
+                    </a>
+                  )}
+                  {currentProfile?.role === "admin" && !item.is_verified && (
+                    <button type="button" disabled={actionLoading}
+                      onClick={() => void verifySignalementUpdate(item.id)}
+                      className="mt-4 block rounded-full bg-green-700 px-5 py-3 font-black text-white disabled:opacity-50">
+                      ✓ Vérifier et publier
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {canAddUpdate && (
+              <div className="mt-7 border-t border-[#eadfce] pt-6">
+                <h3 className="font-black text-[#064b42]">Ajouter une information</h3>
+                <textarea value={updateMessage} onChange={(e) => setUpdateMessage(e.target.value)} rows={4}
+                  placeholder="Exemple : aperçu près de la mairie, direction Paea..."
+                  className="mt-4 w-full rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-4" />
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <input type="datetime-local" value={updateObservationAt} onChange={(e) => setUpdateObservationAt(e.target.value)}
+                    className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+                  <input placeholder="Latitude" value={updateLatitude} onChange={(e) => setUpdateLatitude(e.target.value)}
+                    className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+                  <input placeholder="Longitude" value={updateLongitude} onChange={(e) => setUpdateLongitude(e.target.value)}
+                    className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+                </div>
+                <button type="button" disabled={actionLoading || !updateMessage.trim()}
+                  onClick={() => void addSignalementUpdate()}
+                  className="mt-5 w-full rounded-full bg-[#064b42] px-6 py-4 font-black text-white disabled:opacity-50">
+                  Ajouter l&apos;information
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {canIntervene && (
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
           <h2 className="text-xl font-black text-[#064b42]">
             Déclarant
@@ -1176,7 +1367,9 @@ export default function SignalementDetailPage() {
             </div>
           )}
         </section>
+        )}
 
+        {((isLostOrFoundAnimal && canManageLostOrFoundAnimal) || (!isLostOrFoundAnimal && canIntervene)) && (
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1196,7 +1389,8 @@ export default function SignalementDetailPage() {
             />
           </div>
 
-          {!signalement.assigned_to &&
+          {!isLostOrFoundAnimal &&
+            !signalement.assigned_to &&
             status ===
               "nouveau" && (
               <button
@@ -1228,9 +1422,8 @@ export default function SignalementDetailPage() {
               </div>
             )}
 
-          {(mine ||
-            currentProfile?.role ===
-              "admin") && (
+          {((isLostOrFoundAnimal && canManageLostOrFoundAnimal) ||
+            (!isLostOrFoundAnimal && (mine || currentProfile?.role === "admin"))) && (
             <div className="mt-6 space-y-5">
               <div>
                 <label className="mb-2 block font-black text-[#064b42]">
@@ -1384,6 +1577,7 @@ export default function SignalementDetailPage() {
             ← Retour
           </button>
         </section>
+        )}
       </div>
     </main>
   );

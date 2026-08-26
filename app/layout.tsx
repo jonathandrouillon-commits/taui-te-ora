@@ -8,6 +8,7 @@ import "./globals.css";
 import PwaRegister from "./components/PwaRegister";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import GlobalBackButton from "./components/GlobalBackButton";
+import LostAnimalAlert from "./components/LostAnimalAlert";
 
 export const metadata: Metadata = {
   title: "Taui Te Ora",
@@ -68,6 +69,8 @@ export default function RootLayout({
         <AnalyticsTracker />
 
         <GlobalBackButton />
+
+        <LostAnimalAlert />
 
         {children}
       </body>
