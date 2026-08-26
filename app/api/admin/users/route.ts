@@ -10,6 +10,12 @@ type Profile = {
   is_active: boolean | null;
 };
 
+const DELETABLE_ROLES =
+  new Set([
+    "adoptant",
+    "association",
+  ]);
+
 function getBearerToken(
   request: Request
 ) {
@@ -259,18 +265,22 @@ export async function DELETE(
       );
     }
 
-    if (
+    const targetRole =
       String(
         targetProfile.role || ""
       )
         .trim()
-        .toLowerCase() !==
-      "adoptant"
+        .toLowerCase();
+
+    if (
+      !DELETABLE_ROLES.has(
+        targetRole
+      )
     ) {
       return NextResponse.json(
         {
           error:
-            "Seuls les comptes adoptants peuvent être supprimés."
+            "Seuls les comptes adoptants et associations peuvent être supprimés."
         },
         { status: 403 }
       );
@@ -356,7 +366,7 @@ export async function DELETE(
       {
         success: true,
         message:
-          "Compte adoptant supprimé définitivement. Les éventuels animaux ont été transférés à votre compte administrateur."
+          "Compte supprimé définitivement. Les éventuels animaux ont été transférés à votre compte administrateur."
       },
       { status: 200 }
     );

@@ -61,6 +61,22 @@ function getErrorMessage(error: unknown): string {
   return "Erreur inconnue";
 }
 
+function canDeleteAccount(
+  role: string | null
+) {
+  const normalizedRole =
+    String(role || "")
+      .trim()
+      .toLowerCase();
+
+  return (
+    normalizedRole ===
+      "adoptant" ||
+    normalizedRole ===
+      "association"
+  );
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
 
@@ -431,7 +447,7 @@ export default function AdminUsersPage() {
   }
 
   /* =========================================================
-     SUPPRESSION DÉFINITIVE D'UN COMPTE ADOPTANT
+     SUPPRESSION DÉFINITIVE D'UN COMPTE
   ========================================================= */
 
   async function deleteUser(
@@ -439,14 +455,9 @@ export default function AdminUsersPage() {
   ) {
     if (actionId) return;
 
-    if (
-      String(user.role || "")
-        .trim()
-        .toLowerCase() !==
-      "adoptant"
-    ) {
+    if (!canDeleteAccount(user.role)) {
       alert(
-        "Seuls les comptes adoptants peuvent être supprimés depuis cette page."
+        "Seuls les comptes adoptants et associations peuvent être supprimés depuis cette page."
       );
       return;
     }
@@ -1123,12 +1134,9 @@ export default function AdminUsersPage() {
                         </>
                       )}
 
-                      {String(
-                        user.role || ""
-                      )
-                        .trim()
-                        .toLowerCase() ===
-                        "adoptant" && (
+                      {canDeleteAccount(
+                        user.role
+                      ) && (
                         <button
                           type="button"
                           disabled={
