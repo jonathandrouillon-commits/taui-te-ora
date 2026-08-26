@@ -1,12 +1,101 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { supabase } from "../lib/supabase";
+
+function getProfileDestination(role: unknown) {
+  const normalizedRole = String(role || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s-]+/g, "_");
+
+  switch (normalizedRole) {
+    case "admin":
+    case "administrateur":
+      return "/admin/dashboard";
+
+    case "association":
+      return "/association/dashboard";
+
+    case "refuge":
+      return "/refuge/dashboard";
+
+    case "fourriere":
+    case "sigfa":
+      return "/fourriere/dashboard";
+
+    case "benevole":
+    case "famille_accueil":
+    case "famille_d_accueil":
+      return "/benevole/dashboard";
+
+    case "adoptant":
+    case "utilisateur":
+      return "/dashboard";
+
+    default:
+      return "/profile";
+  }
+}
 
 export default function BottomNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileHref, setProfileHref] =
+    useState("/profile");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfileDestination() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!active || !user) {
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error(
+            "Erreur chargement destination profil :",
+            error
+          );
+        }
+
+        if (active) {
+          setProfileHref(
+            getProfileDestination(
+              data?.role ?? user.user_metadata?.role
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Erreur destination profil :",
+          error
+        );
+      }
+    }
+
+    void loadProfileDestination();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Sur l'accueil, on masque cette navigation
   // car la barre principale est directement intégrée dans app/page.tsx
@@ -38,7 +127,7 @@ export default function BottomNavigation() {
       menu: true,
     },
     {
-      href: "/dashboard",
+      href: profileHref,
       label: "Profil",
       icon: "👤",
     },

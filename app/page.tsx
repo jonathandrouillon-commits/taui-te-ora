@@ -1412,8 +1412,47 @@ function WelcomeModal({
    MENU BAS
 ========================================================= */
 
+function getProfileDestination(role: unknown) {
+  const normalizedRole = String(role || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s-]+/g, "_");
+
+  switch (normalizedRole) {
+    case "admin":
+    case "administrateur":
+      return "/admin/dashboard";
+
+    case "association":
+      return "/association/dashboard";
+
+    case "refuge":
+      return "/refuge/dashboard";
+
+    case "fourriere":
+    case "sigfa":
+      return "/fourriere/dashboard";
+
+    case "benevole":
+    case "famille_accueil":
+    case "famille_d_accueil":
+      return "/benevole/dashboard";
+
+    case "adoptant":
+    case "utilisateur":
+      return "/dashboard";
+
+    default:
+      return "/profile";
+  }
+}
+
 function BottomMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileHref, setProfileHref] =
+    useState("/profile");
   const [
     dynamicMenuPages,
     setDynamicMenuPages,
@@ -1505,6 +1544,54 @@ function BottomMenu() {
       sortOrder: 110,
     },
   ], []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfileDestination() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!active || !user) {
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error(
+            "Erreur chargement destination profil :",
+            error
+          );
+        }
+
+        if (active) {
+          setProfileHref(
+            getProfileDestination(
+              data?.role ?? user.user_metadata?.role
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Erreur destination profil :",
+          error
+        );
+      }
+    }
+
+    void loadProfileDestination();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -1724,7 +1811,7 @@ function BottomMenu() {
           </button>
 
           <Link
-            href="/profile"
+            href={profileHref}
             className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
           >
             <div className="flex h-9 w-9 items-center justify-center">
