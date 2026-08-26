@@ -14,6 +14,7 @@ import {
   Save,
   Search,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -96,6 +97,9 @@ const placements = [
   },
 ];
 
+const ADS_MEDIA_BUCKET = "ads-media";
+const MAX_MEDIA_SIZE = 5 * 1024 * 1024;
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
@@ -115,6 +119,8 @@ export default function AdminPublicitesPage() {
 
   const [form, setForm] = useState<AdForm>(emptyForm);
   const [search, setSearch] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const initialize = useCallback(async () => {
     try {
@@ -188,6 +194,113 @@ export default function AdminPublicitesPage() {
       ...previous,
       [field]: value,
     }));
+  }
+
+  async function uploadAdMedia(
+    file: File,
+    kind: "image" | "logo"
+  ) {
+    if (!file.type.startsWith("image/")) {
+      alert("Choisis un fichier image.");
+      return;
+    }
+
+    if (file.size > MAX_MEDIA_SIZE) {
+      alert("L'image ne doit pas dépasser 5 Mo.");
+      return;
+    }
+
+    const setUploading =
+      kind === "image"
+        ? setUploadingImage
+        : setUploadingLogo;
+
+    try {
+      setUploading(true);
+
+      const extension =
+        file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+      const safeExtension = extension.replace(
+        /[^a-z0-9]/g,
+        ""
+      );
+
+      const fileName =
+        `${Date.now()}-${crypto.randomUUID()}.${safeExtension || "jpg"}`;
+
+      const storagePath =
+        `${kind}/${fileName}`;
+
+      const { error: uploadError } =
+        await supabase.storage
+          .from(ADS_MEDIA_BUCKET)
+          .upload(
+            storagePath,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: false,
+              contentType: file.type,
+            }
+          );
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } =
+        supabase.storage
+          .from(ADS_MEDIA_BUCKET)
+          .getPublicUrl(storagePath);
+
+      const publicUrl =
+        publicUrlData.publicUrl;
+
+      if (!publicUrl) {
+        throw new Error(
+          "Impossible de récupérer l'URL publique du fichier."
+        );
+      }
+
+      updateField(
+        kind === "image"
+          ? "image_url"
+          : "logo_url",
+        `${publicUrl}?v=${Date.now()}`
+      );
+    } catch (error: unknown) {
+      console.error(
+        `Erreur upload ${kind} publicité :`,
+        error
+      );
+
+      alert(
+        getErrorMessage(error) ||
+          "Impossible d'envoyer l'image."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleMediaChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+    kind: "image" | "logo"
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    void uploadAdMedia(
+      file,
+      kind
+    );
+
+    event.target.value = "";
   }
 
   function openAddForm() {
@@ -624,22 +737,56 @@ export default function AdminPublicitesPage() {
                 </label>
               </div>
 
-              <Input
-                label="URL de l'image"
+              <MediaUploadField
+                label="Image principale"
                 value={form.image_url}
-                onChange={(value) =>
-                  updateField("image_url", value)
+                uploading={uploadingImage}
+                onFileChange={(event) =>
+                  handleMediaChange(
+                    event,
+                    "image"
+                  )
                 }
-                placeholder="https://..."
+                onUrlChange={(value) =>
+                  updateField(
+                    "image_url",
+                    value
+                  )
+                }
+                onRemove={() =>
+                  updateField(
+                    "image_url",
+                    ""
+                  )
+                }
+                accept="image/*"
+                previewMode="cover"
               />
 
-              <Input
-                label="URL du logo"
+              <MediaUploadField
+                label="Logo partenaire"
                 value={form.logo_url}
-                onChange={(value) =>
-                  updateField("logo_url", value)
+                uploading={uploadingLogo}
+                onFileChange={(event) =>
+                  handleMediaChange(
+                    event,
+                    "logo"
+                  )
                 }
-                placeholder="https://..."
+                onUrlChange={(value) =>
+                  updateField(
+                    "logo_url",
+                    value
+                  )
+                }
+                onRemove={() =>
+                  updateField(
+                    "logo_url",
+                    ""
+                  )
+                }
+                accept="image/*"
+                previewMode="contain"
               />
 
               <Input
@@ -764,16 +911,22 @@ export default function AdminPublicitesPage() {
               <button
                 type="button"
                 onClick={saveAd}
-                disabled={saving}
+                disabled={
+                  saving ||
+                  uploadingImage ||
+                  uploadingLogo
+                }
                 className="flex items-center justify-center gap-2 rounded-full bg-[#064b42] px-7 py-3 font-black text-white shadow-lg disabled:opacity-60"
               >
                 <Save size={18} />
 
-                {saving
-                  ? "Enregistrement..."
-                  : editingId
-                    ? "Enregistrer"
-                    : "Créer la publicité"}
+                {uploadingImage || uploadingLogo
+                  ? "Envoi du média..."
+                  : saving
+                    ? "Enregistrement..."
+                    : editingId
+                      ? "Enregistrer"
+                      : "Créer la publicité"}
               </button>
             </div>
           </section>
@@ -993,6 +1146,121 @@ export default function AdminPublicitesPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function MediaUploadField({
+  label,
+  value,
+  uploading,
+  onFileChange,
+  onUrlChange,
+  onRemove,
+  accept,
+  previewMode,
+}: {
+  label: string;
+  value: string;
+  uploading: boolean;
+  onFileChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+  onUrlChange: (value: string) => void;
+  onRemove: () => void;
+  accept: string;
+  previewMode: "cover" | "contain";
+}) {
+  const inputId = `media-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
+
+  return (
+    <div className="rounded-[22px] border border-[#e5d9cf] bg-[#fffaf7] p-4">
+      <p className="text-sm font-black text-[#064b42]">
+        {label}
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label
+          htmlFor={inputId}
+          className={`flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#064b42] px-5 py-3 text-sm font-black text-white shadow-sm transition ${
+            uploading
+              ? "pointer-events-none opacity-60"
+              : ""
+          }`}
+        >
+          <Upload size={17} />
+
+          {uploading
+            ? "Envoi..."
+            : "Choisir une image"}
+        </label>
+
+        <input
+          id={inputId}
+          type="file"
+          accept={accept}
+          onChange={onFileChange}
+          disabled={uploading}
+          className="hidden"
+        />
+
+        {value && (
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={uploading}
+            className="rounded-full bg-red-50 px-4 py-3 text-sm font-black text-red-600 disabled:opacity-50"
+          >
+            Retirer
+          </button>
+        )}
+      </div>
+
+      <div className="my-4 flex items-center gap-3">
+        <div className="h-px flex-1 bg-[#e5d9cf]" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-[#a4978d]">
+          ou URL
+        </span>
+        <div className="h-px flex-1 bg-[#e5d9cf]" />
+      </div>
+
+      <input
+        type="url"
+        value={value}
+        placeholder="https://..."
+        onChange={(event) =>
+          onUrlChange(
+            event.target.value
+          )
+        }
+        className="w-full rounded-[16px] border border-[#ded4c5] bg-white px-4 py-3 text-sm outline-none focus:border-[#064b42]"
+      />
+
+      {value && (
+        <div
+          className={`mt-4 overflow-hidden rounded-[18px] border border-[#eadfd5] bg-white ${
+            previewMode === "cover"
+              ? "h-40"
+              : "flex h-32 items-center justify-center p-4"
+          }`}
+        >
+          <img
+            src={value}
+            alt={label}
+            className={
+              previewMode === "cover"
+                ? "h-full w-full object-cover"
+                : "max-h-full max-w-full object-contain"
+            }
+          />
+        </div>
+      )}
+
+      <p className="mt-3 text-xs leading-5 text-[#8a7d72]">
+        JPG, PNG, WEBP ou autre format image. Maximum 5 Mo.
+      </p>
+    </div>
   );
 }
 
