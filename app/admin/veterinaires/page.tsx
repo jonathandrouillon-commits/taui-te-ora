@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -57,6 +58,12 @@ const emptyForm: FormData = {
   email: "",
 };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Erreur inconnue";
+}
+
 export default function AdminVeterinairesPage() {
   const router = useRouter();
 
@@ -106,11 +113,7 @@ export default function AdminVeterinairesPage() {
     setSearch,
   ] = useState("");
 
-  useEffect(() => {
-    void initialize();
-  }, []);
-
-  async function initialize() {
+  const initialize = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -161,20 +164,20 @@ export default function AdminVeterinairesPage() {
       }
 
       await loadVeterinaires();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur admin vétérinaires :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de charger les vétérinaires."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   async function loadVeterinaires() {
     const {
@@ -375,14 +378,14 @@ export default function AdminVeterinairesPage() {
       await loadVeterinaires();
 
       closeForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur sauvegarde vétérinaire :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible d'enregistrer le contact."
       );
     } finally {
@@ -445,14 +448,14 @@ export default function AdminVeterinairesPage() {
       alert(
         "Contact vétérinaire supprimé."
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur suppression vétérinaire :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de supprimer le contact."
       );
     } finally {
@@ -495,6 +498,10 @@ export default function AdminVeterinairesPage() {
       veterinaires,
       search,
     ]);
+
+  useEffect(() => {
+    queueMicrotask(() => void initialize());
+  }, [initialize]);
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -41,11 +41,16 @@ export default function EditAnimalPage() {
         photoService.getByAnimalId(id),
       ]);
 
-      setAnimal(animalData);
+      setAnimal(
+        animalData as unknown as Record<
+          string,
+          string | number | boolean | null | undefined
+        >
+      );
       setPhotos(photosData || []);
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Impossible de charger l’animal.");
+      alert(error.message || "Impossible de charger lâ€™animal.");
       router.push("/association/animals");
     } finally {
       setLoading(false);
@@ -93,7 +98,7 @@ export default function EditAnimalPage() {
         is_published: !!animal.is_published,
       });
 
-      alert("Animal sauvegardé.");
+      alert("Animal sauvegardÃ©.");
       await loadAnimal();
     } catch (error: any) {
       console.error(error);
@@ -104,12 +109,12 @@ export default function EditAnimalPage() {
   }
 
   async function deleteAnimal() {
-    if (!confirm("Supprimer définitivement cet animal ?")) return;
+    if (!confirm("Supprimer dÃ©finitivement cet animal ?")) return;
 
     try {
       setSaving(true);
       await animalService.delete(id);
-      alert("Animal supprimé.");
+      alert("Animal supprimÃ©.");
       router.push("/association/animals");
     } catch (error: any) {
       console.error(error);
@@ -134,7 +139,7 @@ export default function EditAnimalPage() {
         is_published: nextValue,
       }));
 
-      alert(nextValue ? "Animal publié." : "Animal passé en brouillon.");
+      alert(nextValue ? "Animal publiÃ©." : "Animal passÃ© en brouillon.");
     } catch (error: any) {
       alert(error.message || "Erreur lors du changement de statut.");
     } finally {
@@ -145,7 +150,7 @@ export default function EditAnimalPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] text-[#064b42]">
-        <p className="text-xl font-black">Chargement de l’éditeur...</p>
+        <p className="text-xl font-black">Chargement de lâ€™Ã©diteur...</p>
       </main>
     );
   }
@@ -168,11 +173,11 @@ export default function EditAnimalPage() {
               onClick={() => router.push("/association/animals")}
               className="mb-3 rounded-2xl bg-white px-4 py-2 font-bold shadow"
             >
-              ← Retour aux animaux
+              â† Retour aux animaux
             </button>
 
             <p className="text-sm font-black uppercase tracking-[0.3em] text-[#b68b2f]">
-              Édition animal
+              Ã‰dition animal
             </p>
 
             <h1 className="mt-2 text-4xl font-black">
@@ -180,7 +185,7 @@ export default function EditAnimalPage() {
             </h1>
 
             <p className="mt-2 text-gray-500">
-              {animal.is_published ? "Publié" : "Brouillon"}
+              {animal.is_published ? "PubliÃ©" : "Brouillon"}
             </p>
           </div>
 
@@ -202,7 +207,7 @@ export default function EditAnimalPage() {
                 animal.is_published ? "bg-orange-600" : "bg-green-700"
               }`}
             >
-              {animal.is_published ? "Dépublier" : "Publier"}
+              {animal.is_published ? "DÃ©publier" : "Publier"}
             </button>
 
             <button

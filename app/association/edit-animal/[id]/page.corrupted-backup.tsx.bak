@@ -1,0 +1,116 @@
+﻿$ErrorActionPreference = "Stop"
+
+$path = "app\association\edit-animal\[id]\page.tsx"
+
+Write-Host ""
+Write-Host "========================================"
+Write-Host " TAUI TE ORA - Correction edit-animal"
+Write-Host "========================================"
+Write-Host ""
+
+if (-not (Test-Path -LiteralPath $path)) {
+    Write-Host "ERREUR : fichier introuvable : $path"
+    exit 1
+}
+
+# Sauvegarde automatique
+$backup = "app\association\edit-animal\[id]\page.backup-before-type-fix.tsx"
+
+Copy-Item `
+    -LiteralPath $path `
+    -Destination $backup `
+    -Force
+
+Write-Host "Sauvegarde crÃ©Ã©e :"
+Write-Host $backup
+Write-Host ""
+
+$content = Get-Content `
+    -LiteralPath $path `
+    -Raw
+
+# ---------------------------------------------------------
+# CORRECTION DU setAnimal(animalData)
+# ---------------------------------------------------------
+
+$old = 'setAnimal(
+        animalData as unknown as Record<
+          string,
+          string | number | boolean | null | undefined
+        >
+      );'
+
+$new = @'
+setAnimal(
+        animalData as unknown as Record<
+          string,
+          string | number | boolean | null | undefined
+        >
+      );
+'@
+
+if ($content.Contains($old)) {
+
+    $content = $content.Replace(
+        $old,
+        $new
+    )
+
+    Write-Host "Correction setAnimal appliquÃ©e."
+
+} elseif (
+    $content.Contains(
+        "animalData as unknown as Record<"
+    )
+) {
+
+    Write-Host "La correction setAnimal est dÃ©jÃ  prÃ©sente."
+
+} else {
+
+    Write-Host ""
+    Write-Host "ERREUR : impossible de trouver :"
+    Write-Host "setAnimal(
+        animalData as unknown as Record<
+          string,
+          string | number | boolean | null | undefined
+        >
+      );"
+    Write-Host ""
+    Write-Host "Aucune modification effectuÃ©e."
+    exit 1
+}
+
+# ---------------------------------------------------------
+# SAUVEGARDE UTF-8
+# ---------------------------------------------------------
+
+Set-Content `
+    -LiteralPath $path `
+    -Value $content `
+    -Encoding utf8
+
+Write-Host ""
+Write-Host "Fichier corrigÃ© :"
+Write-Host $path
+Write-Host ""
+
+# ---------------------------------------------------------
+# VERIFICATION
+# ---------------------------------------------------------
+
+Write-Host "VÃ©rification de la correction :"
+Write-Host ""
+
+Select-String `
+    -LiteralPath $path `
+    -Pattern "setAnimal|animalData as unknown"
+
+Write-Host ""
+Write-Host "========================================"
+Write-Host " Lancement du build"
+Write-Host "========================================"
+Write-Host ""
+
+
+

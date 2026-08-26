@@ -1,5 +1,10 @@
 import { supabase } from "../lib/supabase";
 
+type ProfileName = {
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
 export const profileService = {
   async getCurrentProfile() {
     const {
@@ -54,7 +59,7 @@ export const profileService = {
     if (error) throw error;
   },
 
-  getDisplayName(profile: any) {
+  getDisplayName(profile: ProfileName | null | undefined) {
     return `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim();
   },
 };

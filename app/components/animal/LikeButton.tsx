@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 type LikeButtonProps = {
@@ -13,11 +13,7 @@ export default function LikeButton({ animalId }: LikeButtonProps) {
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkLike();
-  }, [animalId]);
-
-  async function checkLike() {
+  const checkLike = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -44,7 +40,11 @@ export default function LikeButton({ animalId }: LikeButtonProps) {
       setLikeId(null);
       setLiked(false);
     }
-  }
+  }, [animalId]);
+
+  useEffect(() => {
+    queueMicrotask(() => void checkLike());
+  }, [animalId, checkLike]);
 
   async function toggleLike() {
     if (loading) return;

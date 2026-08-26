@@ -44,16 +44,20 @@ export default function InstallAppButton() {
       standalone ||
       iosStandalone
     ) {
-      setInstalled(true);
+      window.setTimeout(() => setInstalled(true), 0);
     }
 
     const userAgent =
       window.navigator.userAgent.toLowerCase();
 
-    setIsIos(
-      /iphone|ipad|ipod/.test(
-        userAgent
-      )
+    window.setTimeout(
+      () =>
+        setIsIos(
+          /iphone|ipad|ipod/.test(
+            userAgent
+          )
+        ),
+      0
     );
 
     function handleBeforeInstallPrompt(

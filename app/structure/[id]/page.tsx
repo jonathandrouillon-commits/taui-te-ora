@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -40,13 +41,7 @@ export default function StructurePage() {
     setErrorMessage,
   ] = useState("");
 
-  useEffect(() => {
-    if (structureId) {
-      loadStructure();
-    }
-  }, [structureId]);
-
-  async function loadStructure() {
+  const loadStructure = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage("");
@@ -115,7 +110,7 @@ export default function StructurePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [structureId]);
 
   const structureName =
     profile?.organization_name ||
@@ -182,6 +177,12 @@ export default function StructurePage() {
         ).length,
       [animals]
     );
+
+  useEffect(() => {
+    if (structureId) {
+      queueMicrotask(() => void loadStructure());
+    }
+  }, [structureId, loadStructure]);
 
   if (loading) {
     return (

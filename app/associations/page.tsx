@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -51,11 +52,7 @@ export default function AssociationsPage() {
     setSelectedArchipel,
   ] = useState("");
 
-  useEffect(() => {
-    void loadAssociations();
-  }, []);
-
-  async function loadAssociations() {
+  const loadAssociations = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -131,7 +128,11 @@ export default function AssociationsPage() {
         false
       );
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadAssociations());
+  }, [loadAssociations]);
 
   const archipels =
     useMemo(() => {

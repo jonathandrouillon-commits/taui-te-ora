@@ -1,54 +1,47 @@
 "use client";
 
-type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+type AnimalValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+type AnimalData = Record<string, AnimalValue>;
+
+type StoryTabProps = {
+  animal: AnimalData;
+
+  updateField: (
+    field: string,
+    value: string | number | boolean
+  ) => void;
 };
 
-export default function StoryTab({ animal, updateField }: Props) {
+export default function StoryTab({
+  animal,
+  updateField,
+}: StoryTabProps) {
   return (
-    <div className="space-y-5">
-      <h2 className="text-3xl font-black text-[#064b42]">
-        Histoire de l’animal
-      </h2>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[#064b42]">
+          Son histoire
+        </h2>
+
+        <p className="mt-1 text-sm text-[#746c64]">
+          Racontez son parcours, sa découverte et les éléments
+          importants de son histoire.
+        </p>
+      </div>
 
       <Textarea
         label="Son histoire"
-        value={animal.story || ""}
-        onChange={(v) => updateField("story", v)}
-      />
-
-      <Input
-        label="Lieu de capture / sauvetage"
-        value={animal.capture_location || ""}
-        onChange={(v) => updateField("capture_location", v)}
-      />
-
-      <Input
-        label="Temps passé dans la rue"
-        value={animal.street_duration || ""}
-        onChange={(v) => updateField("street_duration", v)}
-      />
-    </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        value={String(animal.story ?? "")}
+        onChange={(value) =>
+          updateField("story", value)
+        }
+        placeholder="Ex : Trouvé dans la rue, recueilli par une famille d’accueil..."
       />
     </div>
   );
@@ -58,20 +51,44 @@ function Textarea({
   label,
   value,
   onChange,
+  placeholder = "",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
+    <label className="block">
+      <span className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </span>
+
       <textarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={6}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        placeholder={placeholder}
+        rows={10}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        className="
+          w-full
+          resize-none
+          rounded-[20px]
+          border
+          border-[#ded4c5]
+          bg-[#fffaf7]
+          px-4
+          py-3
+          text-[#2f241c]
+          outline-none
+          transition
+          placeholder:text-gray-400
+          focus:border-[#064b42]
+          focus:ring-2
+          focus:ring-[#064b42]/10
+        "
       />
-    </div>
+    </label>
   );
 }

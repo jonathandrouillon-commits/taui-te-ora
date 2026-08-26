@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+﻿import { supabase } from "./supabase";
 
 /* =========================================================
    TYPES
@@ -110,7 +110,7 @@ export type Animal = {
   On garde le nom Like pour ne pas casser
   les composants existants du dashboard.
 
-  MAIS les données sont maintenant lues
+  MAIS les donnÃ©es sont maintenant lues
   depuis la table "favorites".
 */
 
@@ -136,7 +136,7 @@ export type AdoptionRequest = {
 
   match_score?: number | null;
   match_level?: string | null;
-  match_details?: any;
+  match_details?: Record<string, unknown> | null;
   match_calculated_at?: string | null;
 
   animals?: Animal | null;
@@ -158,6 +158,14 @@ export type Notification = {
   conversation_id?: string;
 
   is_read?: boolean;
+};
+
+type FavoriteRow = {
+  id: string;
+  profile_id: string;
+  animal_id: string;
+  created_at?: string;
+  animals: Animal | null;
 };
 
 /* =========================================================
@@ -201,7 +209,7 @@ export function isQuestionnaireFilled(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECTÉ
+   UTILISATEUR CONNECTÃ‰
 ========================================================= */
 
 export async function getCurrentUser() {
@@ -216,7 +224,7 @@ export async function getCurrentUser() {
 }
 
 /* =========================================================
-   RÉCUPÉRER LE PROFIL
+   RÃ‰CUPÃ‰RER LE PROFIL
 ========================================================= */
 
 export async function getProfile(
@@ -335,7 +343,7 @@ export async function getProfile(
 }
 
 /* =========================================================
-   COUPS DE CŒUR
+   COUPS DE CÅ’UR
 ========================================================= */
 
 export async function getLikes(
@@ -374,7 +382,7 @@ export async function getLikes(
   return (
     data || []
   ).map(
-    (favorite: any) => ({
+    (favorite) => ({
       id:
         favorite.id,
 
@@ -387,11 +395,9 @@ export async function getLikes(
       created_at:
         favorite.created_at,
 
-      animals:
-        favorite.animals ||
-        null,
+      animals: Array.isArray(favorite.animals) ? (favorite.animals[0] || null) : (favorite.animals || null),
     })
-  ) as Like[];
+  ) as unknown as Like[];
 }
 
 /* =========================================================
@@ -477,7 +483,7 @@ export async function getAdoptionRequests(
   }
 
   return requests.map(
-    (request: any) => ({
+    (request: AdoptionRequest) => ({
       ...request,
 
       animals:
@@ -560,7 +566,7 @@ export async function getNotifications(
 }
 
 /* =========================================================
-   DÉCONNEXION
+   DÃ‰CONNEXION
 ========================================================= */
 
 export async function logoutUser() {
@@ -621,3 +627,4 @@ export async function getDashboardData() {
     notifications,
   };
 }
+

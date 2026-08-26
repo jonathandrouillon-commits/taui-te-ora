@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -90,17 +91,7 @@ export default function HomePage() {
     setSelectedTypes,
   ] = useState<AnimalFilter[]>([]);
 
-  useEffect(() => {
-    void loadAnimals();
-    void loadAds();
-    void loadWelcomePreferences();
-  }, []);
-
-  useEffect(() => {
-    restoreFavoriteAfterLogin();
-  }, []);
-
-  async function loadWelcomePreferences() {
+  const loadWelcomePreferences = useCallback(async () => {
     try {
       const alreadySeen =
         sessionStorage.getItem(
@@ -162,7 +153,7 @@ export default function HomePage() {
     } finally {
       setWelcomeReady(true);
     }
-  }
+  }, []);
 
   function toggleAnimalType(
     type: AnimalFilter
@@ -228,7 +219,7 @@ export default function HomePage() {
     setWelcomeOpen(false);
   }
 
-  async function restoreFavoriteAfterLogin() {
+  const restoreFavoriteAfterLogin = useCallback(async () => {
     try {
       const params =
         new URLSearchParams(
@@ -268,9 +259,9 @@ export default function HomePage() {
         error
       );
     }
-  }
+  }, [router]);
 
-  async function loadAnimals() {
+  const loadAnimals = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -292,9 +283,9 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function loadAds() {
+  const loadAds = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("ads")
@@ -335,7 +326,25 @@ export default function HomePage() {
 
       setAds([]);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadAnimals();
+      void loadAds();
+      void loadWelcomePreferences();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadAnimals, loadAds, loadWelcomePreferences]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void restoreFavoriteAfterLogin();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [restoreFavoriteAfterLogin]);
 
   const filteredAnimals =
     useMemo(() => {
@@ -762,7 +771,7 @@ function SwipeAdCard({
       return;
     }
 
-    setImpressionSent(true);
+    window.setTimeout(() => setImpressionSent(true), 0);
 
     void supabase.rpc(
       "track_ad_impression",
@@ -1417,7 +1426,7 @@ function BottomMenu() {
     }[]
   >([]);
 
-  const systemMenuPages = [
+  const systemMenuPages = useMemo(() => [
     {
       slug: "veterinaires",
       label: "Vétérinaires",
@@ -1495,7 +1504,7 @@ function BottomMenu() {
       icon: "🕯️",
       sortOrder: 110,
     },
-  ];
+  ], []);
 
   useEffect(() => {
     let active = true;
@@ -1567,7 +1576,7 @@ function BottomMenu() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [systemMenuPages]);
 
   const menuPages = [
     ...systemMenuPages.map(

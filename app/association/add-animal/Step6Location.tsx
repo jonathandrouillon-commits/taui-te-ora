@@ -60,7 +60,14 @@ const cities = [
   "Autre",
 ];
 
-export default function Step6Location({ animal, updateField }: any) {
+type AnimalForm = Record<string, string | number | boolean | undefined>;
+
+type StepProps = {
+  animal: AnimalForm;
+  updateField: (field: string, value: string | number) => void;
+};
+
+export default function Step6Location({ animal, updateField }: StepProps) {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black">Localisation</h2>
@@ -68,7 +75,7 @@ export default function Step6Location({ animal, updateField }: any) {
       <div className="grid gap-5 md:grid-cols-2">
         <select
           className="input"
-          value={animal.island}
+          value={String(animal.island ?? "")}
           onChange={(e) => updateField("island", e.target.value)}
         >
           <option value="">Île</option>
@@ -79,7 +86,7 @@ export default function Step6Location({ animal, updateField }: any) {
 
         <select
           className="input"
-          value={animal.city}
+          value={String(animal.city ?? "")}
           onChange={(e) => updateField("city", e.target.value)}
         >
           <option value="">Ville / commune</option>

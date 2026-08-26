@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -38,17 +38,13 @@ export default function AdoptantProfilePage() {
     special_needs: "",
   });
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
-      setLoading(true);
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
+      setLoading(true);
 
       if (!user) {
         router.push("/login?redirect=/adoptant/profile");
@@ -95,7 +91,11 @@ export default function AdoptantProfilePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadProfile());
+  }, [loadProfile]);
 
   function updateField(name: string, value: string) {
     setForm((prev) => ({

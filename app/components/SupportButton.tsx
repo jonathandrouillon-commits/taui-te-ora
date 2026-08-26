@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   Send,
@@ -87,30 +87,7 @@ export default function SupportButton({
     setErrorMessage,
   ] = useState("");
 
-  useEffect(() => {
-    void loadUser();
-
-    const {
-      data: authListener,
-    } =
-      supabase.auth.onAuthStateChange(
-        (
-          _event,
-          session
-        ) => {
-          setUserId(
-            session?.user?.id ||
-              null
-          );
-        }
-      );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  async function loadUser() {
+  const loadUser = useCallback(async () => {
     try {
       const {
         data: {
@@ -130,7 +107,33 @@ export default function SupportButton({
         error
       );
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadUser();
+    }, 0);
+
+    const {
+      data: authListener,
+    } =
+      supabase.auth.onAuthStateChange(
+        (
+          _event,
+          session
+        ) => {
+          setUserId(
+            session?.user?.id ||
+              null
+          );
+        }
+      );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      authListener.subscription.unsubscribe();
+    };
+  }, [loadUser]);
 
   function openModal() {
     setSuccess(false);

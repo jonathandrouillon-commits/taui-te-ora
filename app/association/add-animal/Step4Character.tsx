@@ -1,8 +1,8 @@
 "use client";
 
 type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+  animal: Record<string, string | number | boolean | undefined>;
+  updateField: (field: string, value: string) => void;
 };
 
 export default function Step4Character({ animal, updateField }: Props) {
@@ -19,7 +19,7 @@ export default function Step4Character({ animal, updateField }: Props) {
 
         <textarea
           placeholder="Décrivez le caractère de l'animal..."
-          value={animal.description_character || ""}
+          value={String(animal.description_character ?? "")}
           onChange={(e) =>
             updateField("description_character", e.target.value)
           }
@@ -30,19 +30,19 @@ export default function Step4Character({ animal, updateField }: Props) {
       <div className="grid gap-6 md:grid-cols-3">
         <CompatibilitySelect
           title="Compatibilité avec les chiens"
-          value={animal.compatible_chiens || ""}
+          value={String(animal.compatible_chiens ?? "")}
           onChange={(value) => updateField("compatible_chiens", value)}
         />
 
         <CompatibilitySelect
           title="Compatibilité avec les chats"
-          value={animal.compatible_chats || ""}
+          value={String(animal.compatible_chats ?? "")}
           onChange={(value) => updateField("compatible_chats", value)}
         />
 
         <CompatibilitySelect
           title="Compatibilité avec les enfants"
-          value={animal.compatible_enfants || ""}
+          value={String(animal.compatible_enfants ?? "")}
           onChange={(value) => updateField("compatible_enfants", value)}
         />
       </div>

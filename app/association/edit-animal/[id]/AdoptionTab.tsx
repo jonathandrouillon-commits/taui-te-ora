@@ -1,8 +1,8 @@
 "use client";
 
 type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+  animal: Record<string, string | number | boolean | null | undefined>;
+  updateField: (field: string, value: string | boolean) => void;
 };
 
 export default function AdoptionTab({ animal, updateField }: Props) {
@@ -24,7 +24,7 @@ export default function AdoptionTab({ animal, updateField }: Props) {
 
       <Textarea
         label="Notes internes"
-        value={animal.internal_notes || ""}
+        value={String(animal.internal_notes ?? "")}
         onChange={(v) => updateField("internal_notes", v)}
       />
     </div>

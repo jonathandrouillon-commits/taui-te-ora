@@ -1,67 +1,128 @@
 "use client";
 
-type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+type AnimalValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+type AnimalData = Record<string, AnimalValue>;
+
+type HealthTabProps = {
+  animal: AnimalData;
+
+  updateField: (
+    field: string,
+    value: string | number | boolean
+  ) => void;
 };
 
-export default function HealthTab({ animal, updateField }: Props) {
+export default function HealthTab({
+  animal,
+  updateField,
+}: HealthTabProps) {
   return (
-    <div className="space-y-5">
-      <h2 className="text-3xl font-black text-[#064b42]">Santé</h2>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[#064b42]">
+          Santé
+        </h2>
 
-      <Checkbox
-        label="Vacciné"
-        checked={!!animal.vaccinated}
-        onChange={(v) => updateField("vaccinated", v)}
-      />
+        <p className="mt-1 text-sm text-[#746c64]">
+          Renseignez les informations de santé de
+          l&apos;animal.
+        </p>
+      </div>
 
-      <Checkbox
-        label="Stérilisé"
-        checked={!!animal.sterilized}
-        onChange={(v) => updateField("sterilized", v)}
-      />
+      <div className="grid gap-4 md:grid-cols-3">
+        <BooleanCard
+          label="Vacciné"
+          value={Boolean(animal.vaccinated)}
+          onChange={(value) =>
+            updateField("vaccinated", value)
+          }
+        />
 
-      <Checkbox
-        label="Identifié / pucé"
-        checked={!!animal.microchipped}
-        onChange={(v) => updateField("microchipped", v)}
-      />
+        <BooleanCard
+          label="Stérilisé"
+          value={Boolean(animal.sterilized)}
+          onChange={(value) =>
+            updateField("sterilized", value)
+          }
+        />
+
+        <BooleanCard
+          label="Identifié / Pucé"
+          value={Boolean(animal.microchipped)}
+          onChange={(value) =>
+            updateField("microchipped", value)
+          }
+        />
+      </div>
 
       <Textarea
         label="État de santé"
-        value={animal.health_status || ""}
-        onChange={(v) => updateField("health_status", v)}
+        value={String(animal.health_status ?? "")}
+        onChange={(value) =>
+          updateField("health_status", value)
+        }
+        placeholder="Ex : Bon état général, suivi vétérinaire à jour..."
       />
 
       <Textarea
-        label="Besoins spécifiques"
-        value={animal.special_needs || ""}
-        onChange={(v) => updateField("special_needs", v)}
+        label="Besoins particuliers"
+        value={String(animal.special_needs ?? "")}
+        onChange={(value) =>
+          updateField("special_needs", value)
+        }
+        placeholder="Ex : Traitement, alimentation spécifique, handicap..."
       />
     </div>
   );
 }
 
-function Checkbox({
+function BooleanCard({
   label,
-  checked,
+  value,
   onChange,
 }: {
   label: string;
-  checked: boolean;
+  value: boolean;
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-2xl bg-[#f4eee3] p-4 font-bold text-[#064b42]">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5"
-      />
-      {label}
-    </label>
+    <div className="rounded-[20px] border border-[#ded4c5] bg-[#fffaf7] p-4">
+      <p className="font-black text-[#064b42]">
+        {label}
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          className={`rounded-2xl px-4 py-3 font-black transition ${
+            value
+              ? "bg-[#064b42] text-white"
+              : "bg-white text-[#064b42]"
+          }`}
+        >
+          Oui
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          className={`rounded-2xl px-4 py-3 font-black transition ${
+            !value
+              ? "bg-[#df8995] text-white"
+              : "bg-white text-[#064b42]"
+          }`}
+        >
+          Non
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -69,20 +130,44 @@ function Textarea({
   label,
   value,
   onChange,
+  placeholder = "",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
+    <label className="block">
+      <span className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </span>
+
       <textarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        placeholder={placeholder}
+        rows={5}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        className="
+          w-full
+          resize-none
+          rounded-[20px]
+          border
+          border-[#ded4c5]
+          bg-[#fffaf7]
+          px-4
+          py-3
+          text-[#2f241c]
+          outline-none
+          transition
+          placeholder:text-gray-400
+          focus:border-[#064b42]
+          focus:ring-2
+          focus:ring-[#064b42]/10
+        "
       />
-    </div>
+    </label>
   );
 }

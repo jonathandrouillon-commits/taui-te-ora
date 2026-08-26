@@ -2,8 +2,13 @@
 
 import { Trash2 } from "lucide-react";
 
+type AnimalVideo = {
+  id: string;
+  video_url: string;
+};
+
 type Props = {
-  videos: any[];
+  videos: AnimalVideo[];
   onDelete: (videoId: string) => void;
 };
 

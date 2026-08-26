@@ -1,4 +1,14 @@
+﻿import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+
+export type AnimalPhoto = {
+  id: string;
+  animal_id: string;
+  photo_url: string;
+  sort_order?: number | null;
+  is_cover?: boolean | null;
+  created_at?: string | null;
+};
 
 export type Animal = {
   id: string;
@@ -52,7 +62,7 @@ export type Animal = {
   compatible_chats?: string | null;
   compatible_enfants?: string | null;
 
-  animal_photos?: any[];
+  animal_photos?: AnimalPhoto[];
 
   owner_profile?: {
     id: string;
@@ -62,8 +72,8 @@ export type Animal = {
   } | null;
 
   /*
-   * Anciens champs conserv├®s
-   * pour compatibilit├® avec les
+   * Anciens champs conservâ”œÂ®s
+   * pour compatibilitâ”œÂ® avec les
    * anciennes pages.
    */
   nom?: string | null;
@@ -120,11 +130,11 @@ const PUBLISHER_ROLES: AppRole[] = [
 ];
 
 /* =========================================================
-   PROFILS CR├ëATEURS
+   PROFILS CRâ”œÃ«ATEURS
 ========================================================= */
 
 async function attachOwnerProfiles(
-  animals: any[]
+  animals: Animal[]
 ) {
   const ownerIds = Array.from(
     new Set(
@@ -188,7 +198,7 @@ async function attachOwnerProfiles(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECT├ë
+   UTILISATEUR CONNECTâ”œÃ«
 ========================================================= */
 
 async function getCurrentUser() {
@@ -203,7 +213,7 @@ async function getCurrentUser() {
     !user
   ) {
     throw new Error(
-      "Utilisateur non connect├®."
+      "Utilisateur non connectâ”œÂ®."
     );
   }
 
@@ -211,7 +221,7 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   V├ëRIFICATION DROIT DE PUBLICATION
+   Vâ”œÃ«RIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
@@ -272,7 +282,7 @@ async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
 }
 
 /* =========================================================
-   VÉRIFICATION DROIT DE PUBLICATION
+   VÃ‰RIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getPublisherUser() {
@@ -284,7 +294,7 @@ async function getPublisherUser() {
 
   if (!access.canPublishAnimals) {
     throw new Error(
-      "Votre compte ne permet pas actuellement de créer des fiches d'animaux."
+      "Votre compte ne permet pas actuellement de crÃ©er des fiches d'animaux."
     );
   }
 
@@ -295,11 +305,11 @@ async function getPublisherUser() {
 }
 
 /* =========================================================
-   NOM DU CR├ëATEUR / STRUCTURE
+   NOM DU CRâ”œÃ«ATEUR / STRUCTURE
 ========================================================= */
 
 function getPublisherName(
-  user: any
+  user: User
 ) {
   const organizationName =
     String(
@@ -459,7 +469,7 @@ async function getById(
 }
 
 /* =========================================================
-   ANIMAUX PUBLI├ëS POUR SWIPE CARD
+   ANIMAUX PUBLIâ”œÃ«S POUR SWIPE CARD
 ========================================================= */
 
 async function getPublishedWithPhotos() {
@@ -527,7 +537,7 @@ async function getAllWithPhotos() {
 }
 
 /* =========================================================
-   CR├ëER UN ANIMAL
+   CRâ”œÃ«ER UN ANIMAL
 ========================================================= */
 
 async function create(
@@ -547,10 +557,10 @@ async function create(
    * IMPORTANT :
    *
    * owner_id est TOUJOURS
-   * l'utilisateur connect├®.
+   * l'utilisateur connectâ”œÂ®.
    *
    * On ignore volontairement
-   * animal.owner_id envoy├®
+   * animal.owner_id envoyâ”œÂ®
    * depuis le navigateur.
    */
   const animalToCreate = {
@@ -561,9 +571,9 @@ async function create(
 
     /*
      * Si association_name
-     * n'a pas ├®t├® fourni,
+     * n'a pas â”œÂ®tâ”œÂ® fourni,
      * on utilise automatiquement
-     * le nom du cr├®ateur.
+     * le nom du crâ”œÂ®ateur.
      *
      * Association :
      * Les Veilleurs de Kali
@@ -571,10 +581,10 @@ async function create(
      * Refuge :
      * SIGFA
      *
-     * B├®n├®vole :
+     * Bâ”œÂ®nâ”œÂ®vole :
      * Jonathan Drouillon
      *
-     * Fourri├¿re :
+     * Fourriâ”œÂ¿re :
      * nom de la structure
      */
     association_name:
@@ -653,7 +663,7 @@ async function update(
 }
 
 /* =========================================================
-   PUBLIER / D├ëPUBLIER
+   PUBLIER / Dâ”œÃ«PUBLIER
 ========================================================= */
 
 async function togglePublished(

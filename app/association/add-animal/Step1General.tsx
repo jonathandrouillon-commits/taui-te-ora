@@ -36,7 +36,14 @@ const ages = [
 
 const weights = Array.from({ length: 81 }, (_, i) => `${i}`);
 
-export default function Step1General({ animal, updateField }: any) {
+type AnimalForm = Record<string, string | number | boolean | undefined>;
+
+type StepProps = {
+  animal: AnimalForm;
+  updateField: (field: string, value: string) => void;
+};
+
+export default function Step1General({ animal, updateField }: StepProps) {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black">Informations générales</h2>
@@ -46,13 +53,13 @@ export default function Step1General({ animal, updateField }: any) {
         <input
           className="input"
           placeholder="Nom de l'animal"
-          value={animal.animal_name}
+          value={String(animal.animal_name ?? "")}
           onChange={(e) => updateField("animal_name", e.target.value)}
         />
 
         <select
           className="input"
-          value={animal.animal_type}
+          value={String(animal.animal_type ?? "")}
           onChange={(e) => updateField("animal_type", e.target.value)}
         >
           <option value="">Catégorie de l'animal</option>
@@ -67,13 +74,13 @@ export default function Step1General({ animal, updateField }: any) {
         <input
           className="input"
           placeholder="Race"
-          value={animal.breed}
+          value={String(animal.breed ?? "")}
           onChange={(e) => updateField("breed", e.target.value)}
         />
 
         <select
           className="input"
-          value={animal.sex}
+          value={String(animal.sex ?? "")}
           onChange={(e) => updateField("sex", e.target.value)}
         >
           <option value="">Sexe</option>
@@ -84,7 +91,7 @@ export default function Step1General({ animal, updateField }: any) {
 
         <select
           className="input"
-          value={animal.age_label}
+          value={String(animal.age_label ?? "")}
           onChange={(e) => updateField("age_label", e.target.value)}
         >
           <option value="">Âge de l'animal</option>
@@ -98,7 +105,7 @@ export default function Step1General({ animal, updateField }: any) {
 
         <select
           className="input"
-          value={animal.size_label}
+          value={String(animal.size_label ?? "")}
           onChange={(e) => updateField("size_label", e.target.value)}
         >
           <option value="">Taille de l'animal</option>
@@ -110,7 +117,7 @@ export default function Step1General({ animal, updateField }: any) {
 
         <select
           className="input"
-          value={animal.weight_kg}
+          value={String(animal.weight_kg ?? "")}
           onChange={(e) => updateField("weight_kg", e.target.value)}
         >
           <option value="">Poids en kg</option>

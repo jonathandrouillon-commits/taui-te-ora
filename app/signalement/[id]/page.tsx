@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -167,17 +168,7 @@ export default function SignalementDetailPage() {
   ] =
     useState("");
 
-  useEffect(() => {
-    if (
-      signalementId
-    ) {
-      loadData();
-    }
-  }, [
-    signalementId,
-  ]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage("");
@@ -414,7 +405,7 @@ export default function SignalementDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [signalementId, router]);
 
   async function logAction(
     action: string,
@@ -852,6 +843,12 @@ export default function SignalementDetailPage() {
       );
     }
   }
+
+  useEffect(() => {
+    if (signalementId) {
+      queueMicrotask(() => void loadData());
+    }
+  }, [signalementId, loadData]);
 
   if (
     loading

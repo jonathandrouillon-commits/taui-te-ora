@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { notificationService } from "../services/notification.service";
@@ -9,11 +9,7 @@ export default function NotificationBadge() {
   const [count, setCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    void initNotifications();
-  }, []);
-
-  async function initNotifications() {
+  const initNotifications = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -28,7 +24,11 @@ export default function NotificationBadge() {
     setCount(
       notifications.filter((notification) => !notification.is_read).length
     );
-  }
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => void initNotifications());
+  }, [initNotifications]);
 
   useEffect(() => {
     if (!userId) return;

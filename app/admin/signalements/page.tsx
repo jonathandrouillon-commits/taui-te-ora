@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -227,11 +228,7 @@ export default function AdminSignalementsPage() {
       >
     >({});
 
-  useEffect(() => {
-    void loadSignalements();
-  }, []);
-
-  async function loadSignalements() {
+  const loadSignalements = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -374,7 +371,15 @@ export default function AdminSignalementsPage() {
         false
       );
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadSignalements();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadSignalements]);
 
   const filteredSignalements =
     useMemo(() => {

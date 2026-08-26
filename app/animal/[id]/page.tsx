@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -75,11 +76,7 @@ export default function AnimalPublicPage() {
   ] =
     useState("");
 
-  useEffect(() => {
-    void loadAnimal();
-  }, [id]);
-
-  async function loadAnimal() {
+  const loadAnimal = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage("");
@@ -132,7 +129,11 @@ export default function AnimalPublicPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadAnimal());
+  }, [id, loadAnimal]);
 
   /* =========================================================
      CHARGEMENT

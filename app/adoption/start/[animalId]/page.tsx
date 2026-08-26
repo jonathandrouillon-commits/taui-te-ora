@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { supabase } from "../../../lib/supabase";
@@ -23,16 +23,7 @@ export default function AdoptionStartPage() {
       "Vérification de votre profil..."
     );
 
-  useEffect(() => {
-    if (!animalId) {
-      router.replace("/");
-      return;
-    }
-
-    void startAdoption();
-  }, [animalId]);
-
-  async function startAdoption() {
+  const startAdoption = useCallback(async () => {
     try {
       /* =====================================================
          1. SESSION
@@ -269,7 +260,16 @@ export default function AdoptionStartPage() {
 
       router.replace("/");
     }
-  }
+  }, [animalId, router]);
+
+  useEffect(() => {
+    if (!animalId) {
+      router.replace("/");
+      return;
+    }
+
+    queueMicrotask(() => void startAdoption());
+  }, [animalId, router, startAdoption]);
 
   return (
     <main

@@ -1,8 +1,8 @@
 "use client";
 
 type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+  animal: Record<string, string | number | boolean | undefined>;
+  updateField: (field: string, value: string) => void;
 };
 
 const villes = [
@@ -43,7 +43,7 @@ export default function Step5Story({ animal, updateField }: Props) {
         <label className="mb-2 block text-lg font-bold">Lieu de capture</label>
 
         <select
-          value={animal.capture_location || ""}
+            value={String(animal.capture_location ?? "")}
           onChange={(e) => updateField("capture_location", e.target.value)}
           className="w-full rounded-2xl border bg-white p-4 text-lg outline-none"
         >
@@ -66,7 +66,7 @@ export default function Step5Story({ animal, updateField }: Props) {
             type="number"
             min="0"
             placeholder="Ex : 3"
-            value={animal.street_duration_number || ""}
+            value={String(animal.street_duration_number ?? "")}
             onChange={(e) =>
               updateField("street_duration_number", e.target.value)
             }
@@ -78,7 +78,7 @@ export default function Step5Story({ animal, updateField }: Props) {
           <label className="mb-2 block text-lg font-bold">Unité</label>
 
           <select
-            value={animal.street_duration_unit || "jours"}
+            value={String(animal.street_duration_unit ?? "jours")}
             onChange={(e) =>
               updateField("street_duration_unit", e.target.value)
             }
@@ -98,7 +98,7 @@ export default function Step5Story({ animal, updateField }: Props) {
 
         <textarea
           placeholder="Racontez son histoire..."
-          value={animal.story || ""}
+          value={String(animal.story ?? "")}
           onChange={(e) => updateField("story", e.target.value)}
           className="min-h-52 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
         />

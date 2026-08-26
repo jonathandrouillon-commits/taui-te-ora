@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -96,6 +96,12 @@ const placements = [
   },
 ];
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Erreur inconnue";
+}
+
 export default function AdminPublicitesPage() {
   const router = useRouter();
 
@@ -110,11 +116,7 @@ export default function AdminPublicitesPage() {
   const [form, setForm] = useState<AdForm>(emptyForm);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    void initialize();
-  }, []);
-
-  async function initialize() {
+  const initialize = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -148,17 +150,17 @@ export default function AdminPublicitesPage() {
       }
 
       await loadAds();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur administration publicités :", error);
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de charger la gestion des publicités."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   async function loadAds() {
     const { data, error } = await supabase
@@ -332,11 +334,11 @@ export default function AdminPublicitesPage() {
 
       await loadAds();
       closeForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur sauvegarde publicité :", error);
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible d'enregistrer la publicité."
       );
     } finally {
@@ -374,14 +376,14 @@ export default function AdminPublicitesPage() {
             : item
         )
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur changement statut publicité :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de modifier le statut."
       );
     }
@@ -419,11 +421,11 @@ export default function AdminPublicitesPage() {
       setAds((previous) =>
         previous.filter((item) => item.id !== ad.id)
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur suppression publicité :", error);
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de supprimer la publicité."
       );
     } finally {
@@ -467,6 +469,10 @@ export default function AdminPublicitesPage() {
     (total, ad) => total + Number(ad.clicks || 0),
     0
   );
+
+  useEffect(() => {
+    queueMicrotask(() => void initialize());
+  }, [initialize]);
 
   if (loading) {
     return (

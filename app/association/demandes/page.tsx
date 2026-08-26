@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -19,11 +19,7 @@ export default function AssociationDemandesPage() {
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDemandes();
-  }, []);
-
-  async function loadDemandes() {
+  const loadDemandes = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -51,7 +47,11 @@ export default function AssociationDemandesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadDemandes());
+  }, [loadDemandes]);
 
   function getStatusLabel(status: string) {
     if (status === "pending") return "Nouvelle";

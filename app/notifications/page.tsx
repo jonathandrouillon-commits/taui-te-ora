@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
   notificationService,
@@ -12,11 +12,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [recipientId, setRecipientId] = useState<string | null>(null);
 
-  useEffect(() => {
-    void initNotifications();
-  }, []);
-
-  async function initNotifications() {
+  const initNotifications = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -29,7 +25,15 @@ export default function NotificationsPage() {
     setRecipientId(user.id);
     await loadNotifications(user.id);
     setLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void initNotifications();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initNotifications]);
 
   async function loadNotifications(id: string) {
     const data =

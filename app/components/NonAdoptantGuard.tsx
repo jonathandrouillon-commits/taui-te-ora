@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "../lib/supabase";
@@ -46,11 +46,7 @@ export default function NonAdoptantGuard({
 }) {
   const router = useRouter();
 
-  useEffect(() => {
-    void checkRole();
-  }, []);
-
-  async function checkRole() {
+  const checkRole = useCallback(async () => {
     try {
       /* =====================================================
          1. UTILISATEUR CONNECTÉ
@@ -135,7 +131,11 @@ export default function NonAdoptantGuard({
 
       router.replace("/");
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void checkRole());
+  }, [checkRole]);
 
   return <>{children}</>;
 }

@@ -401,13 +401,15 @@ export default function RegisterPage() {
         requestedRole as UserRole
       )
     ) {
-      setRole(
-        requestedRole as UserRole
+      window.setTimeout(
+        () => setRole(requestedRole as UserRole),
+        0
       );
     }
 
-    setRedirectAfterAuth(
-      redirect
+    window.setTimeout(
+      () => setRedirectAfterAuth(redirect),
+      0
     );
   }, []);
 
@@ -417,7 +419,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!logoFile) {
-      setLogoPreview("");
+      window.setTimeout(() => setLogoPreview(""), 0);
       return;
     }
 
@@ -426,7 +428,10 @@ export default function RegisterPage() {
         logoFile
       );
 
-    setLogoPreview(preview);
+    window.setTimeout(
+      () => setLogoPreview(preview),
+      0
+    );
 
     return () => {
       URL.revokeObjectURL(

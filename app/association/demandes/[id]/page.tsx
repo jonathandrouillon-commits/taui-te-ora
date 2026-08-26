@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { notificationService } from "../../../services/notification.service";
@@ -24,11 +24,7 @@ export default function AssociationDemandeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    loadDemande();
-  }, []);
-
-  async function loadDemande() {
+  const loadDemande = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -47,7 +43,11 @@ export default function AssociationDemandeDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadDemande());
+  }, [loadDemande]);
 
   async function updateStatus(status: "accepted" | "refused") {
     if (!demande) return;

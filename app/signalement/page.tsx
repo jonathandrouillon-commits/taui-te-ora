@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
@@ -88,52 +88,11 @@ export default function SignalementPage() {
     wants_contact: true,
   });
 
-  useEffect(() => {
-    async function initMap() {
-      if (!mapRef.current || leafletMap.current) return;
-
-      const L = await import("leaflet");
-      leafletRef.current = L;
-
-      const map = L.map(mapRef.current).setView([-17.5516, -149.5585], 10);
-      leafletMap.current = map;
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-      }).addTo(map);
-
-      map.on("click", (e: any) => {
-        setPosition(e.latlng.lat, e.latlng.lng);
-      });
-    }
-
-    initMap();
+  const updateField = useCallback((name: string, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  function updateField(name: string, value: string | boolean) {
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
-    try {
-      const selectedFiles = Array.from(event.target.files || []);
-
-      if (selectedFiles.length > MAX_FILES) {
-        throw new Error(
-          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
-        );
-      }
-
-      selectedFiles.forEach(validateFile);
-      setFiles(selectedFiles);
-    } catch (error: any) {
-      event.target.value = "";
-      setFiles([]);
-      alert(error?.message || "Fichier non autorisé.");
-    }
-  }
-
-  function setPosition(lat: number, lng: number) {
+  const setPosition = useCallback((lat: number, lng: number) => {
     updateField("latitude", String(lat));
     updateField("longitude", String(lng));
 
@@ -164,6 +123,47 @@ export default function SignalementPage() {
     }
 
     leafletMap.current.setView([lat, lng], 16);
+  }, [updateField]);
+
+  useEffect(() => {
+    async function initMap() {
+      if (!mapRef.current || leafletMap.current) return;
+
+      const L = await import("leaflet");
+      leafletRef.current = L;
+
+      const map = L.map(mapRef.current).setView([-17.5516, -149.5585], 10);
+      leafletMap.current = map;
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
+      }).addTo(map);
+
+      map.on("click", (e: any) => {
+        setPosition(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    initMap();
+  }, [setPosition]);
+
+  function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      const selectedFiles = Array.from(event.target.files || []);
+
+      if (selectedFiles.length > MAX_FILES) {
+        throw new Error(
+          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
+        );
+      }
+
+      selectedFiles.forEach(validateFile);
+      setFiles(selectedFiles);
+    } catch (error: any) {
+      event.target.value = "";
+      setFiles([]);
+      alert(error?.message || "Fichier non autorisé.");
+    }
   }
 
   function useMyLocation() {

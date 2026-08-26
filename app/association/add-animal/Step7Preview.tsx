@@ -1,4 +1,11 @@
-export default function Step7Preview({ animal, photos }: any) {
+type AnimalForm = Record<string, string | number | boolean | undefined>;
+
+type StepProps = {
+  animal: AnimalForm;
+  photos: File[];
+};
+
+export default function Step7Preview({ animal, photos }: StepProps) {
   const preview =
     photos.length > 0
       ? URL.createObjectURL(photos[0])

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -53,6 +54,12 @@ type UserFilter =
   | "suspended"
   | "all";
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Erreur inconnue";
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
 
@@ -68,15 +75,11 @@ export default function AdminUsersPage() {
   const [filter, setFilter] =
     useState<UserFilter>("pending");
 
-  useEffect(() => {
-    void loadUsers();
-  }, []);
-
   /* =========================================================
      CHARGEMENT
   ========================================================= */
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -174,20 +177,20 @@ export default function AdminUsersPage() {
       setUsers(
         (data || []) as Profile[]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur chargement utilisateurs :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Erreur lors du chargement des utilisateurs."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   /* =========================================================
      VALIDATION
@@ -248,14 +251,14 @@ export default function AdminUsersPage() {
       }
 
       await loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur validation utilisateur :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de valider ce compte."
       );
     } finally {
@@ -330,14 +333,14 @@ export default function AdminUsersPage() {
       );
 
       await loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur refus utilisateur :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de refuser ce compte."
       );
     } finally {
@@ -390,14 +393,14 @@ export default function AdminUsersPage() {
       }
 
       await loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur suspension utilisateur :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de suspendre ce compte."
       );
     } finally {
@@ -581,6 +584,10 @@ export default function AdminUsersPage() {
   /* =========================================================
      CHARGEMENT
   ========================================================= */
+
+  useEffect(() => {
+    queueMicrotask(() => void loadUsers());
+  }, [loadUsers]);
 
   if (loading) {
     return (

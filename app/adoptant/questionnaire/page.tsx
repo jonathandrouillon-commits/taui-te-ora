@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -87,11 +87,7 @@ export default function AdoptantQuestionnairePage() {
   const [showOptional, setShowOptional] =
     useState(false);
 
-  useEffect(() => {
-    loadQuestionnaire();
-  }, []);
-
-  async function loadQuestionnaire() {
+  const loadQuestionnaire = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -251,7 +247,11 @@ export default function AdoptantQuestionnairePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadQuestionnaire());
+  }, [loadQuestionnaire]);
 
   function updateField(
     field: keyof FormData,

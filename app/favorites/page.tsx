@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { favoriteService } from "../services/favorite.service";
@@ -26,11 +26,7 @@ export default function FavoritesPage() {
   const [removingId, setRemovingId] =
     useState<string | null>(null);
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  async function loadFavorites() {
+  const loadFavorites = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -66,7 +62,11 @@ export default function FavoritesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadFavorites());
+  }, [loadFavorites]);
 
   async function removeFavorite(
     animalId: string
@@ -344,20 +344,16 @@ function FavoriteCard({
       ? animal.animal_photos
       : [];
 
-  const coverPhoto =
-    useMemo(() => {
-      const cover =
-        photos.find(
-          (photo: any) =>
-            photo?.is_cover
-        );
+  const cover =
+    photos.find(
+      (photo: any) =>
+        photo?.is_cover
+    );
 
-      return (
-        cover?.photo_url ||
-        photos[0]?.photo_url ||
-        ""
-      );
-    }, [photos]);
+  const coverPhoto =
+    cover?.photo_url ||
+    photos[0]?.photo_url ||
+    "";
 
   const animalName =
     animal?.animal_name ||

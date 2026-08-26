@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { animalService } from "../services/animal.service";
@@ -109,11 +109,7 @@ export default function PublisherDashboard({
   const [actionId, setActionId] =
     useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -361,7 +357,15 @@ export default function PublisherDashboard({
     } finally {
       setLoading(false);
     }
-  }
+  }, [expectedRole, router]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadDashboard]);
 
   async function handleLogout() {
     try {

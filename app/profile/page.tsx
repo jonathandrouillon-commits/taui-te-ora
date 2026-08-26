@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -23,11 +24,7 @@ export default function ProfileRedirectPage() {
   ] =
     useState(true);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  async function checkUser() {
+  const checkUser = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -151,7 +148,11 @@ export default function ProfileRedirectPage() {
         false
       );
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    queueMicrotask(() => void checkUser());
+  }, [checkUser]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec]">

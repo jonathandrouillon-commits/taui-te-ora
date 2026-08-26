@@ -19,8 +19,8 @@ export default function ForgotPasswordPage() {
       if (error) throw error;
 
       alert("Un email de réinitialisation a été envoyé.");
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error: unknown) {
+        alert(error instanceof Error ? error.message : String(error));
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -71,8 +72,10 @@ export default function AdminHommagesPage() {
       HommageStatus | ""
     >("pending");
 
+  const loadHommagesRef = useRef<(() => Promise<void>) | null>(null);
+
   useEffect(() => {
-    void loadHommages();
+    queueMicrotask(() => void loadHommagesRef.current?.());
   }, []);
 
   async function checkAdmin() {
@@ -161,7 +164,7 @@ export default function AdminHommagesPage() {
           []) as EditableHommage[]
       );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur chargement hommages :",
@@ -169,13 +172,18 @@ export default function AdminHommagesPage() {
       );
 
       alert(
-        error?.message ||
-          "Impossible de charger les hommages."
+        error instanceof Error
+          ? error.message
+          : "Impossible de charger les hommages."
       );
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    loadHommagesRef.current = loadHommages;
+  });
 
   const filtered =
     useMemo(() => {
@@ -384,11 +392,12 @@ export default function AdminHommagesPage() {
 
       await loadHommages();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
-          "Impossible d'enregistrer les modifications."
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer les modifications."
       );
     } finally {
       setSaving(
@@ -445,11 +454,12 @@ export default function AdminHommagesPage() {
 
       await loadHommages();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
-          "Impossible de modifier le statut."
+        error instanceof Error
+          ? error.message
+          : "Impossible de modifier le statut."
       );
     } finally {
       setSaving(
@@ -494,11 +504,12 @@ export default function AdminHommagesPage() {
 
       await loadHommages();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
-          "Impossible de supprimer l'hommage."
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer l'hommage."
       );
     } finally {
       setSaving(

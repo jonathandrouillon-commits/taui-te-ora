@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -63,6 +64,59 @@ export default function NotificationBell() {
     useRef<number | null>(
       null
     );
+
+  const loadUnreadCount = useCallback(async (
+    currentUserId: string
+  ) => {
+    const {
+      count,
+      error,
+    } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_id", currentUserId)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("Erreur compteur notifications :", error);
+      return;
+    }
+
+    setUnreadCount(count || 0);
+  }, []);
+
+  const showToast = useCallback((notification: NotificationRow) => {
+    setToast(notification);
+
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = window.setTimeout(() => {
+      setToast(null);
+    }, 7000);
+  }, []);
+
+  const showBrowserNotification = useCallback(async (
+    notification: NotificationRow
+  ) => {
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window) ||
+      Notification.permission !== "granted"
+    ) {
+      return;
+    }
+
+    try {
+      new Notification(notification.title || "Taui Te Ora", {
+        body: notification.message || "Vous avez une nouvelle notification.",
+        icon: "/logo-taui-te-ora.png",
+      });
+    } catch (error) {
+      console.error("Notification navigateur :", error);
+    }
+  }, []);
 
   useEffect(() => {
     let active =
@@ -221,124 +275,11 @@ export default function NotificationBell() {
         );
       }
     };
-  }, []);
-
-  async function loadUnreadCount(
-    currentUserId: string
-  ) {
-    const {
-      count,
-      error,
-    } =
-      await supabase
-        .from(
-          "notifications"
-        )
-        .select(
-          "id",
-          {
-            count:
-              "exact",
-            head:
-              true,
-          }
-        )
-        .eq(
-          "recipient_id",
-          currentUserId
-        )
-        .eq(
-          "is_read",
-          false
-        );
-
-    if (
-      error
-    ) {
-      console.error(
-        "Erreur compteur notifications :",
-        error
-      );
-
-      return;
-    }
-
-    setUnreadCount(
-      count || 0
-    );
-  }
-
-  function showToast(
-    notification: NotificationRow
-  ) {
-    setToast(
-      notification
-    );
-
-    if (
-      timeoutRef.current
-    ) {
-      window.clearTimeout(
-        timeoutRef.current
-      );
-    }
-
-    timeoutRef.current =
-      window.setTimeout(
-        () => {
-          setToast(
-            null
-          );
-        },
-        7000
-      );
-  }
-
-  async function showBrowserNotification(
-    notification: NotificationRow
-  ) {
-    /*
-     * Cette partie ne demande PAS automatiquement
-     * l'autorisation au navigateur.
-     *
-     * Si l'autorisation existe déjà,
-     * la notification apparaît également
-     * sur l'appareil.
-     */
-    if (
-      typeof window ===
-        "undefined" ||
-      !(
-        "Notification" in
-        window
-      ) ||
-      Notification.permission !==
-        "granted"
-    ) {
-      return;
-    }
-
-    try {
-      new Notification(
-        notification.title ||
-          "Taui Te Ora",
-        {
-          body:
-            notification.message ||
-            "Vous avez une nouvelle notification.",
-          icon:
-            "/logo-taui-te-ora.png",
-        }
-      );
-    } catch (
-      error
-    ) {
-      console.error(
-        "Notification navigateur :",
-        error
-      );
-    }
-  }
+  }, [
+    loadUnreadCount,
+    showToast,
+    showBrowserNotification,
+  ]);
 
   function openNotifications() {
     setToast(

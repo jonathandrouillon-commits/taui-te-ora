@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -217,22 +218,11 @@ export default function AdoptantPublicProfilePage() {
       null
     );
 
-  useEffect(() => {
-    if (
-      adoptantId
-    ) {
-      loadProfile();
-    }
-  }, [
-    adoptantId,
-    requestId,
-  ]);
-
   /* =======================================================
      CHARGEMENT
   ======================================================= */
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -573,7 +563,7 @@ export default function AdoptantPublicProfilePage() {
         false
       );
     }
-  }
+  }, [adoptantId, requestId, router]);
 
   /* =======================================================
      NOM
@@ -596,6 +586,12 @@ export default function AdoptantPublicProfilePage() {
     }, [
       profile,
     ]);
+
+  useEffect(() => {
+    if (adoptantId) {
+      queueMicrotask(() => void loadProfile());
+    }
+  }, [adoptantId, requestId, loadProfile]);
 
   /* =======================================================
      LOADING

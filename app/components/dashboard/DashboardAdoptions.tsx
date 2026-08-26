@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -57,20 +58,14 @@ export default function DashboardAdoptions({
     );
 
   useEffect(() => {
-    setRequests(
-      adoptionRequests
-    );
+    window.setTimeout(() => {
+      setRequests(adoptionRequests);
+    }, 0);
   }, [
     adoptionRequests,
   ]);
 
-  useEffect(() => {
-    loadConversations();
-  }, [
-    adoptionRequests,
-  ]);
-
-  async function loadConversations() {
+  const loadConversations = useCallback(async () => {
     try {
       const requestIds =
         adoptionRequests
@@ -150,7 +145,15 @@ export default function DashboardAdoptions({
         error
       );
     }
-  }
+  }, [adoptionRequests]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadConversations();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadConversations]);
 
   async function handleCancel(
     request: AdoptionRequest

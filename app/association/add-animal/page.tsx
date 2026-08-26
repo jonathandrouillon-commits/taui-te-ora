@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { animalService } from "../../services/animal.service";
 import { photoService } from "../../services/photo.service";
@@ -78,11 +78,7 @@ export default function AddAnimalPage() {
     is_published: false,
   });
 
-  useEffect(() => {
-    checkAccess();
-  }, []);
-
-  async function checkAccess() {
+  const checkAccess = useCallback(async () => {
     try {
       setCheckingAccess(true);
 
@@ -209,7 +205,7 @@ export default function AddAnimalPage() {
     } finally {
       setCheckingAccess(false);
     }
-  }
+  }, [router]);
 
   function updateField(
     field: string,
@@ -443,6 +439,10 @@ export default function AddAnimalPage() {
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    queueMicrotask(() => void checkAccess());
+  }, [checkAccess]);
 
   if (checkingAccess) {
     return (

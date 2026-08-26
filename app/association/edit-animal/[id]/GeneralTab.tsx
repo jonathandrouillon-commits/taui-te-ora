@@ -1,60 +1,199 @@
-"use client";
+﻿"use client";
 
-type Props = {
-  animal: any;
-  updateField: (field: string, value: any) => void;
+type AnimalValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+type AnimalData = Record<
+  string,
+  AnimalValue
+>;
+
+type GeneralTabProps = {
+  animal: AnimalData;
+
+  updateField: (
+    field: string,
+    value:
+      | string
+      | number
+      | boolean
+  ) => void;
 };
 
-export default function GeneralTab({ animal, updateField }: Props) {
+export default function GeneralTab({
+  animal,
+  updateField,
+}: GeneralTabProps) {
   return (
-    <div className="space-y-5">
-      <h2 className="text-3xl font-black text-[#064b42]">
-        Informations générales
-      </h2>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[#064b42]">
+          Informations générales
+        </h2>
 
-      <Input
-        label="Nom de l’animal"
-        value={animal.animal_name || ""}
-        onChange={(v) => updateField("animal_name", v)}
-      />
+        <p className="mt-1 text-sm text-[#746c64]">
+          Renseignez les informations
+          principales de l&apos;animal.
+        </p>
+      </div>
 
-      <Select
-        label="Type"
-        value={animal.animal_type || ""}
-        onChange={(v) => updateField("animal_type", v)}
-        options={["Chien", "Chat", "Autre"]}
-      />
+      <div className="grid gap-5 md:grid-cols-2">
+        <Input
+          label="Nom de l’animal"
+          value={String(
+            animal.animal_name ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "animal_name",
+              value
+            )
+          }
+        />
 
-      <Input
-        label="Race"
-        value={animal.breed || ""}
-        onChange={(v) => updateField("breed", v)}
-      />
+        <Select
+          label="Type d’animal"
+          value={String(
+            animal.animal_type ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "animal_type",
+              value
+            )
+          }
+          options={[
+            {
+              value: "",
+              label: "Sélectionner",
+            },
+            {
+              value: "Chien",
+              label: "Chien",
+            },
+            {
+              value: "Chat",
+              label: "Chat",
+            },
+            {
+              value: "Cheval",
+              label: "Cheval",
+            },
+            {
+              value: "Autre",
+              label: "Autre",
+            },
+          ]}
+        />
 
-      <Select
-        label="Sexe"
-        value={animal.sex || ""}
-        onChange={(v) => updateField("sex", v)}
-        options={["Mâle", "Femelle", "Inconnu"]}
-      />
+        <Input
+          label="Race"
+          value={String(
+            animal.breed ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "breed",
+              value
+            )
+          }
+        />
 
-      <Input
-        label="Âge"
-        value={animal.age_label || ""}
-        onChange={(v) => updateField("age_label", v)}
-      />
+        <Select
+          label="Sexe"
+          value={String(
+            animal.sex ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "sex",
+              value
+            )
+          }
+          options={[
+            {
+              value: "",
+              label: "Sélectionner",
+            },
+            {
+              value: "Mâle",
+              label: "Mâle",
+            },
+            {
+              value: "Femelle",
+              label: "Femelle",
+            },
+          ]}
+        />
 
-      <Input
-        label="Taille"
-        value={animal.size_label || ""}
-        onChange={(v) => updateField("size_label", v)}
-      />
+        <Input
+          label="Âge"
+          value={String(
+            animal.age_label ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "age_label",
+              value
+            )
+          }
+          placeholder="Ex : 2 ans"
+        />
 
-      <Input
-        label="Poids en kg"
-        value={animal.weight_kg || ""}
-        onChange={(v) => updateField("weight_kg", v)}
-      />
+        <Select
+          label="Taille"
+          value={String(
+            animal.size_label ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "size_label",
+              value
+            )
+          }
+          options={[
+            {
+              value: "",
+              label: "Sélectionner",
+            },
+            {
+              value: "Petit",
+              label: "Petit",
+            },
+            {
+              value: "Moyen",
+              label: "Moyen",
+            },
+            {
+              value: "Grand",
+              label: "Grand",
+            },
+            {
+              value: "XL",
+              label: "XL",
+            },
+          ]}
+        />
+
+        <Input
+          label="Poids (kg)"
+          type="number"
+          value={String(
+            animal.weight_kg ?? ""
+          )}
+          onChange={(value) =>
+            updateField(
+              "weight_kg",
+              value
+            )
+          }
+          placeholder="Ex : 18"
+        />
+      </div>
     </div>
   );
 }
@@ -63,20 +202,57 @@ function Input({
   label,
   value,
   onChange,
+  type = "text",
+  placeholder = "",
 }: {
   label: string;
-  value: any;
-  onChange: (value: string) => void;
+
+  value:
+    | string
+    | number
+    | null
+    | undefined;
+
+  onChange: (
+    value: string
+  ) => void;
+
+  type?: string;
+
+  placeholder?: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
+    <label className="block">
+      <span className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </span>
+
       <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        type={type}
+        value={value ?? ""}
+        placeholder={placeholder}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        className="
+          w-full
+          rounded-2xl
+          border
+          border-gray-300
+          bg-white
+          p-4
+          text-[#2f241c]
+          outline-none
+          transition
+          placeholder:text-gray-400
+          focus:border-[#064b42]
+          focus:ring-2
+          focus:ring-[#064b42]/10
+        "
       />
-    </div>
+    </label>
   );
 }
 
@@ -87,25 +263,67 @@ function Select({
   options,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
+
+  value:
+    | string
+    | number
+    | null
+    | undefined;
+
+  onChange: (
+    value: string
+  ) => void;
+
+  options: {
+    value: string;
+    label: string;
+  }[];
 }) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
+    <label className="block">
+      <span className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </span>
+
       <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-300 p-4 outline-none focus:border-[#064b42]"
+        value={String(
+          value ?? ""
+        )}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        className="
+          w-full
+          rounded-2xl
+          border
+          border-gray-300
+          bg-white
+          p-4
+          text-[#2f241c]
+          outline-none
+          transition
+          focus:border-[#064b42]
+          focus:ring-2
+          focus:ring-[#064b42]/10
+        "
       >
-        <option value="">Sélectionner</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {options.map(
+          (option) => (
+            <option
+              key={
+                option.value
+              }
+              value={
+                option.value
+              }
+            >
+              {option.label}
+            </option>
+          )
+        )}
       </select>
-    </div>
+    </label>
   );
 }

@@ -1,660 +1,412 @@
-"use client";
+﻿"use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { photoService } from "../../../services/photo.service";
 
-import {
-  Star,
-  Trash2,
-  Upload,
-  Video,
-  X,
-} from "lucide-react";
-
-import {
-  photoService,
-} from "../../../services/photo.service";
-
-import {
-  videoService,
-} from "../../../services/video.service";
-
-type Props = {
-  animalId: string;
-  photos: any[];
-  setPhotos: (
-    photos: any[]
-  ) => void;
-};
-
-type AnimalVideo = {
+type AnimalPhoto = {
   id: string;
   animal_id: string;
-  video_url: string;
-  sort_order: number;
-  created_at?: string;
+  photo_url: string;
+  sort_order?: number | null;
+  is_cover?: boolean | null;
 };
 
-const MAX_VIDEO_SIZE =
-  100 * 1024 * 1024;
+type PhotosTabProps = {
+  animalId: string;
+  photos: AnimalPhoto[];
+  setPhotos: React.Dispatch<React.SetStateAction<AnimalPhoto[]>>;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error
+  ) {
+    const possibleMessage = (
+      error as {
+        message?: unknown;
+      }
+    ).message;
+
+    if (typeof possibleMessage === "string") {
+      return possibleMessage;
+    }
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "";
+}
 
 export default function PhotosTab({
   animalId,
   photos,
   setPhotos,
-}: Props) {
-  const [
-    uploading,
-    setUploading,
-  ] =
-    useState(false);
+}: PhotosTabProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [
-    video,
-    setVideo,
-  ] =
-    useState<AnimalVideo | null>(
-      null
-    );
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(
+    null
+  );
+  const [coverLoadingId, setCoverLoadingId] = useState<
+    string | null
+  >(null);
 
-  const [
-    loadingVideo,
-    setLoadingVideo,
-  ] =
-    useState(true);
+  async function refreshPhotos() {
+    const refreshedPhotos =
+      await photoService.getByAnimalId(animalId);
 
-  const [
-    uploadingVideo,
-    setUploadingVideo,
-  ] =
-    useState(false);
-
-  const [
-    deletingVideo,
-    setDeletingVideo,
-  ] =
-    useState(false);
-
-  /* =========================================================
-     CHARGEMENT VIDEO
-  ========================================================= */
-
-  useEffect(() => {
-    void loadVideo();
-  }, [animalId]);
-
-  async function loadVideo() {
-    try {
-      setLoadingVideo(
-        true
-      );
-
-      const videos =
-        await videoService.getByAnimal(
-          animalId
-        );
-
-      setVideo(
-        videos.length > 0
-          ? (videos[0] as AnimalVideo)
-          : null
-      );
-    } catch (
-      error: any
-    ) {
-      console.error(
-        "Erreur chargement vidéo :",
-        error
-      );
-    } finally {
-      setLoadingVideo(
-        false
-      );
-    }
+    setPhotos(refreshedPhotos || []);
   }
 
-  /* =========================================================
-     PHOTOS
-  ========================================================= */
-
-  async function addPhotos(
-    files: FileList | null
+  async function handleFiles(
+    event: React.ChangeEvent<HTMLInputElement>
   ) {
-    if (!files) {
+    const files = Array.from(
+      event.target.files || []
+    );
+
+    if (files.length === 0) {
       return;
     }
 
     try {
-      setUploading(
-        true
-      );
+      setUploading(true);
 
-      const uploaded =
-        await photoService.uploadMany(
-          Array.from(
-            files
-          ),
-          animalId
-        );
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+          throw new Error(
+            `Le fichier "${file.name}" n'est pas une image valide.`
+          );
+        }
 
-      setPhotos([
-        ...photos,
-        ...uploaded,
-      ]);
-    } catch (
-      error: any
-    ) {
+        if (file.size > 8 * 1024 * 1024) {
+          throw new Error(
+            `Le fichier "${file.name}" dÃ©passe 8 Mo.`
+          );
+        }
+
+        await photoService.upload(file, animalId);
+      }
+
+      await refreshPhotos();
+    } catch (error: unknown) {
       console.error(
+        "Erreur upload photos :",
         error
       );
 
       alert(
-        error?.message ||
-          "Erreur lors de l’upload des photos."
+        getErrorMessage(error) ||
+          "Erreur lors de lâ€™upload des photos."
       );
     } finally {
-      setUploading(
-        false
-      );
+      setUploading(false);
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     }
   }
 
-  async function removePhoto(
+  async function handleDelete(
     photoId: string
   ) {
-    const confirmed =
-      window.confirm(
-        "Supprimer cette photo ?"
-      );
+    const confirmed = window.confirm(
+      "Supprimer cette photo ?"
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      await photoService.delete(
-        photoId
-      );
+      setDeletingId(photoId);
 
-      setPhotos(
-        photos.filter(
-          (
-            photo
-          ) =>
-            photo.id !==
-            photoId
+      await photoService.delete(photoId);
+
+      setPhotos((currentPhotos) =>
+        currentPhotos.filter(
+          (photo) =>
+            photo.id !== photoId
         )
       );
-    } catch (
-      error: any
-    ) {
-      alert(
-        error?.message ||
-          "Impossible de supprimer la photo."
+    } catch (error: unknown) {
+      console.error(
+        "Erreur suppression photo :",
+        error
       );
+
+      alert(
+        getErrorMessage(error) ||
+          "Erreur lors de la suppression de la photo."
+      );
+    } finally {
+      setDeletingId(null);
     }
   }
 
-  async function setCover(
+  async function handleSetCover(
     photoId: string
   ) {
     try {
+      setCoverLoadingId(photoId);
+
       await photoService.setCover(
         photoId,
         animalId
       );
 
-      setPhotos(
-        photos.map(
-          (
-            photo
-          ) => ({
-            ...photo,
+      setPhotos((currentPhotos) =>
+        currentPhotos.map((photo) => ({
+          ...photo,
+          is_cover:
+            photo.id === photoId,
+        }))
+      );
+    } catch (error: unknown) {
+      console.error(
+        "Erreur photo principale :",
+        error
+      );
 
-            is_cover:
-              photo.id ===
-              photoId,
-          })
-        )
-      );
-    } catch (
-      error: any
-    ) {
       alert(
-        error?.message ||
-          "Impossible de modifier la photo principale."
+        getErrorMessage(error) ||
+          "Erreur lors de la modification de la photo principale."
       );
+    } finally {
+      setCoverLoadingId(null);
     }
   }
 
-  /* =========================================================
-     VIDEO
-  ========================================================= */
-
-  async function addVideo(
-    file: File | null
-  ) {
-    if (!file) {
-      return;
-    }
-
-    if (
-      !file.type.startsWith(
-        "video/"
-      )
-    ) {
-      alert(
-        "Merci de sélectionner un fichier vidéo."
-      );
-
-      return;
-    }
-
-    if (
-      file.size >
-      MAX_VIDEO_SIZE
-    ) {
-      alert(
-        "La vidéo ne doit pas dépasser 100 Mo."
-      );
-
-      return;
-    }
-
-    try {
-      setUploadingVideo(
-        true
-      );
-
-      /*
-       * Une seule vidéo par animal.
-       * Si une vidéo existe déjà,
-       * on supprime son enregistrement
-       * avant d'ajouter la nouvelle.
-       */
-
-      if (video?.id) {
-        await videoService.delete(
-          video.id
-        );
+  const sortedPhotos = [...photos].sort(
+    (a, b) => {
+      if (a.is_cover && !b.is_cover) {
+        return -1;
       }
 
-      await videoService.upload(
-        file,
-        animalId
-      );
+      if (!a.is_cover && b.is_cover) {
+        return 1;
+      }
 
-      await loadVideo();
-
-      alert(
-        video
-          ? "Vidéo remplacée avec succès."
-          : "Vidéo ajoutée avec succès."
-      );
-    } catch (
-      error: any
-    ) {
-      console.error(
-        "Erreur upload vidéo :",
-        error
-      );
-
-      alert(
-        error?.message ||
-          "Impossible d'ajouter la vidéo."
-      );
-    } finally {
-      setUploadingVideo(
-        false
+      return (
+        Number(a.sort_order || 0) -
+        Number(b.sort_order || 0)
       );
     }
-  }
-
-  async function removeVideo() {
-    if (!video?.id) {
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        "Supprimer la vidéo de cet animal ?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setDeletingVideo(
-        true
-      );
-
-      await videoService.delete(
-        video.id
-      );
-
-      setVideo(
-        null
-      );
-    } catch (
-      error: any
-    ) {
-      console.error(
-        "Erreur suppression vidéo :",
-        error
-      );
-
-      alert(
-        error?.message ||
-          "Impossible de supprimer la vidéo."
-      );
-    } finally {
-      setDeletingVideo(
-        false
-      );
-    }
-  }
-
-  function formatFileSize(
-    size: number
-  ) {
-    if (
-      size <
-      1024 * 1024
-    ) {
-      return `${Math.round(
-        size / 1024
-      )} Ko`;
-    }
-
-    return `${(
-      size /
-      (1024 * 1024)
-    ).toFixed(1)} Mo`;
-  }
-
-  /* =========================================================
-     PAGE
-  ========================================================= */
+  );
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[#064b42]">
+          Photos
+        </h2>
 
-      {/* =====================================================
-          PHOTOS
-      ====================================================== */}
+        <p className="mt-1 text-sm text-[#746c64]">
+          Ajoutez plusieurs photos de l&apos;animal et
+          choisissez sa photo principale.
+        </p>
+      </div>
 
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-black text-[#064b42]">
-            Photos
-          </h2>
+      <div className="rounded-[24px] border border-dashed border-[#cfc4b5] bg-[#fffaf7] p-6">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFiles}
+        />
 
-          <p className="mt-2 text-gray-500">
-            Ajoutez plusieurs photos et choisissez la photo principale.
+        <button
+          type="button"
+          onClick={() =>
+            inputRef.current?.click()
+          }
+          disabled={uploading}
+          className="
+            flex
+            w-full
+            items-center
+            justify-center
+            gap-3
+            rounded-[20px]
+            bg-[#064b42]
+            px-6
+            py-4
+            font-black
+            text-white
+            transition
+            hover:opacity-90
+            disabled:cursor-not-allowed
+            disabled:opacity-60
+          "
+        >
+          {uploading ? (
+            <>
+              <Loader2
+                size={20}
+                className="animate-spin"
+              />
+
+              Upload en cours...
+            </>
+          ) : (
+            <>
+              <ImagePlus size={20} />
+
+              Ajouter des photos
+            </>
+          )}
+        </button>
+
+        <p className="mt-3 text-center text-xs text-[#746c64]">
+          JPG, PNG, WEBP â€” 8 Mo maximum par photo
+        </p>
+      </div>
+
+      {sortedPhotos.length === 0 ? (
+        <div className="rounded-[24px] bg-white p-8 text-center shadow-sm">
+          <ImagePlus
+            size={36}
+            className="mx-auto text-[#b6aca3]"
+          />
+
+          <p className="mt-3 font-bold text-[#746c64]">
+            Aucune photo pour le moment.
           </p>
         </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedPhotos.map(
+            (photo) => {
+              const deleting =
+                deletingId ===
+                photo.id;
 
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[#064b42] bg-[#f8f4ec] p-10 text-center transition hover:bg-[#efe5d4]">
-          <Upload
-            size={48}
-            className="text-[#064b42]"
-          />
+              const coverLoading =
+                coverLoadingId ===
+                photo.id;
 
-          <p className="mt-3 text-xl font-black">
-            {uploading
-              ? "Upload en cours..."
-              : "Ajouter des photos"}
-          </p>
-
-          <p className="mt-2 text-sm text-gray-500">
-            JPG • PNG • WEBP
-          </p>
-
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={
-              uploading
-            }
-            onChange={(
-              event
-            ) =>
-              addPhotos(
-                event.target
-                  .files
-              )
-            }
-            className="hidden"
-          />
-        </label>
-
-        {photos.length ===
-        0 ? (
-          <div className="rounded-3xl bg-white p-8 text-center shadow">
-            Aucune photo pour le moment.
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {photos.map(
-              (
-                photo
-              ) => (
+              return (
                 <div
-                  key={
-                    photo.id
-                  }
-                  className="overflow-hidden rounded-3xl bg-white shadow"
+                  key={photo.id}
+                  className="overflow-hidden rounded-[24px] bg-white shadow-sm"
                 >
-                  <div className="relative">
+                  <div className="relative aspect-square overflow-hidden bg-gray-100">
                     <img
                       src={
                         photo.photo_url
                       }
-                      alt="Animal"
-                      className="h-64 w-full object-cover"
+                      alt="Photo de lâ€™animal"
+                      className="h-full w-full object-cover"
                     />
 
                     {photo.is_cover && (
-                      <div className="absolute left-3 top-3 rounded-full bg-yellow-400 p-2 shadow">
-                        <Star
-                          size={
-                            20
-                          }
-                          fill="white"
-                          className="text-white"
-                        />
+                      <div className="absolute left-3 top-3 rounded-full bg-[#064b42] px-3 py-1.5 text-xs font-black text-white shadow">
+                        Photo principale
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2 p-4">
+                  <div className="space-y-3 p-4">
                     {!photo.is_cover && (
                       <button
                         type="button"
+                        disabled={
+                          coverLoading
+                        }
                         onClick={() =>
-                          setCover(
+                          handleSetCover(
                             photo.id
                           )
                         }
-                        className="flex-1 rounded-xl bg-[#064b42] py-3 font-black text-white"
+                        className="
+                          flex
+                          w-full
+                          items-center
+                          justify-center
+                          gap-2
+                          rounded-2xl
+                          border
+                          border-[#064b42]
+                          px-4
+                          py-3
+                          font-black
+                          text-[#064b42]
+                          transition
+                          hover:bg-[#064b42]
+                          hover:text-white
+                          disabled:opacity-60
+                        "
                       >
-                        Principale
-                      </button>
-                    )}
+                        {coverLoading && (
+                          <Loader2
+                            size={18}
+                            className="animate-spin"
+                          />
+                        )}
 
-                    {photo.is_cover && (
-                      <div className="flex-1 rounded-xl bg-[#064b42] py-3 text-center font-black text-white">
-                        Principale
-                      </div>
+                        DÃ©finir comme principale
+                      </button>
                     )}
 
                     <button
                       type="button"
+                      disabled={deleting}
                       onClick={() =>
-                        removePhoto(
+                        handleDelete(
                           photo.id
                         )
                       }
-                      className="rounded-xl bg-red-100 p-3 text-red-600"
-                      aria-label="Supprimer la photo"
+                      className="
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-2xl
+                        bg-[#fff1f2]
+                        px-4
+                        py-3
+                        font-black
+                        text-[#b42336]
+                        transition
+                        hover:bg-[#b42336]
+                        hover:text-white
+                        disabled:opacity-60
+                      "
                     >
-                      <Trash2
-                        size={
-                          20
-                        }
-                      />
+                      {deleting ? (
+                        <Loader2
+                          size={18}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Trash2
+                          size={18}
+                        />
+                      )}
+
+                      Supprimer
                     </button>
                   </div>
                 </div>
-              )
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* =====================================================
-          VIDEO
-      ====================================================== */}
-
-      <section className="border-t border-[#eadfce] pt-10">
-        <div className="flex items-center gap-3">
-          <Video
-            size={30}
-            className="text-[#064b42]"
-          />
-
-          <h2 className="text-3xl font-black text-[#064b42]">
-            Vidéo
-          </h2>
+              );
+            }
+          )}
         </div>
-
-        <p className="mt-2 text-gray-500">
-          Ajoutez une courte vidéo pour montrer le caractère,
-          la démarche ou le comportement de l&apos;animal.
-        </p>
-
-        {loadingVideo ? (
-          <div className="mt-6 rounded-3xl bg-white p-8 text-center shadow">
-            Chargement de la vidéo...
-          </div>
-        ) : video ? (
-          <div className="mt-6 overflow-hidden rounded-3xl bg-white shadow-lg">
-            <video
-              src={
-                video.video_url
-              }
-              controls
-              preload="metadata"
-              className="max-h-[520px] w-full bg-black object-contain"
-            />
-
-            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-black text-[#064b42]">
-                  Vidéo actuelle
-                </p>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Une seule vidéo peut être associée à cet animal.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <label className="cursor-pointer rounded-2xl bg-[#064b42] px-5 py-3 text-center font-black text-white">
-                  {uploadingVideo
-                    ? "Remplacement..."
-                    : "Remplacer"}
-
-                  <input
-                    type="file"
-                    accept="video/mp4,video/quicktime,video/webm,video/*"
-                    disabled={
-                      uploadingVideo ||
-                      deletingVideo
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      addVideo(
-                        event
-                          .target
-                          .files?.[0] ||
-                          null
-                      )
-                    }
-                    className="hidden"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  disabled={
-                    uploadingVideo ||
-                    deletingVideo
-                  }
-                  onClick={
-                    removeVideo
-                  }
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-100 px-5 py-3 font-black text-red-600 disabled:opacity-50"
-                >
-                  <Trash2
-                    size={
-                      18
-                    }
-                  />
-
-                  {deletingVideo
-                    ? "Suppression..."
-                    : "Supprimer"}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[#df8995] bg-[#fff7f8] p-10 text-center transition hover:bg-[#fdebed]">
-            <Video
-              size={54}
-              className="text-[#df8995]"
-            />
-
-            <p className="mt-4 text-xl font-black text-[#064b42]">
-              {uploadingVideo
-                ? "Upload en cours..."
-                : "Ajouter une vidéo"}
-            </p>
-
-            <p className="mt-2 text-gray-500">
-              MP4 • MOV • WEBM
-            </p>
-
-            <p className="mt-1 text-sm text-gray-400">
-              100 Mo maximum
-            </p>
-
-            <input
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm,video/*"
-              disabled={
-                uploadingVideo
-              }
-              onChange={(
-                event
-              ) =>
-                addVideo(
-                  event.target
-                    .files?.[0] ||
-                    null
-                )
-              }
-              className="hidden"
-            />
-          </label>
-        )}
-      </section>
+      )}
     </div>
   );
 }

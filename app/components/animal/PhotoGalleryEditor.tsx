@@ -1,9 +1,10 @@
 "use client";
 
 import { Star, Trash2 } from "lucide-react";
+import type { AnimalPhoto } from "../../services/photo.service";
 
 type Props = {
-  photos: any[];
+  photos: AnimalPhoto[];
   onSetCover: (photoId: string) => void;
   onDelete: (photoId: string) => void;
 };

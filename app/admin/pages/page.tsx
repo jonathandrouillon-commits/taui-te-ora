@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
@@ -60,6 +60,12 @@ const emptyForm: PageForm = {
   sort_order: "100",
 };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Erreur inconnue";
+}
+
 export default function AdminPagesPage() {
   const router = useRouter();
 
@@ -79,11 +85,7 @@ export default function AdminPagesPage() {
 
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    void initialize();
-  }, []);
-
-  async function initialize() {
+  const initialize = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -124,20 +126,20 @@ export default function AdminPagesPage() {
       }
 
       await loadPages();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur gestion des pages :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de charger les pages."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   async function loadPages() {
     const { data, error } = await supabase
@@ -361,14 +363,14 @@ export default function AdminPagesPage() {
 
       await loadPages();
       closeForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur sauvegarde page :",
         error
       );
 
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible d'enregistrer la page."
       );
     } finally {
@@ -396,9 +398,9 @@ export default function AdminPagesPage() {
       }
 
       await loadPages();
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de modifier la page."
       );
     }
@@ -445,9 +447,9 @@ export default function AdminPagesPage() {
       }
 
       await loadPages();
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de supprimer la page."
       );
     } finally {
@@ -528,9 +530,9 @@ export default function AdminPagesPage() {
       }
 
       await loadPages();
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert(
-        error?.message ||
+        getErrorMessage(error) ||
           "Impossible de changer l'ordre."
       );
     }
@@ -563,6 +565,10 @@ export default function AdminPagesPage() {
       pages,
       search,
     ]);
+
+  useEffect(() => {
+    queueMicrotask(() => void initialize());
+  }, [initialize]);
 
   if (loading) {
     return (
