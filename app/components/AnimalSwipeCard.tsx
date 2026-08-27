@@ -1138,12 +1138,14 @@ export default function AnimalSwipeCard({
 
             <div
               className="
+                mt-5
                 flex
                 shrink-0
                 flex-col
                 items-center
                 justify-end
                 gap-2
+                sm:mt-5
                 sm:flex-row
                 sm:items-end
               "
