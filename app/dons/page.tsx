@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { supabase } from "../lib/supabase";
@@ -105,7 +105,11 @@ export default function DonationPage() {
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [publicNameConsent, setPublicNameConsent] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [signatureData, setSignatureData] = useState("");
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const signingRef = useRef(false);
   const [website, setWebsite] = useState("");
 
   useEffect(() => {
@@ -226,6 +230,11 @@ export default function DonationPage() {
       return;
     }
 
+    if (!signatureData) {
+      setErrorMessage("Signe la promesse de don avant de l’enregistrer.");
+      return;
+    }
+
     if (!consent) {
       setErrorMessage("Tu dois accepter l’enregistrement de cette promesse.");
       return;
@@ -250,6 +259,8 @@ export default function DonationPage() {
           allocation,
           message: message.trim() || null,
           is_anonymous: isAnonymous,
+          public_name_consent: !isAnonymous && publicNameConsent,
+          signature_data: signatureData,
           consent: true,
         });
 
@@ -271,8 +282,67 @@ export default function DonationPage() {
     setMessage("");
     setConsent(false);
     setIsAnonymous(false);
+    setPublicNameConsent(false);
+    clearSignature();
     setCustomAmount("");
     setSelectedAmount(String(settings?.preset_amounts[0] || ""));
+  }
+
+  function signaturePoint(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  }
+
+  function startSignature(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    event.preventDefault();
+    signingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const point = signaturePoint(event);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function drawSignature(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!signingRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    event.preventDefault();
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const point = signaturePoint(event);
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "#2f241c";
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  }
+
+  function finishSignature(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!signingRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    signingRef.current = false;
+    if (!canvas) return;
+    event.preventDefault();
+    setSignatureData(canvas.toDataURL("image/png"));
+  }
+
+  function clearSignature() {
+    const canvas = signatureCanvasRef.current;
+    if (canvas) {
+      const context = canvas.getContext("2d");
+      context?.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setSignatureData("");
   }
 
   if (loading) {
@@ -583,11 +653,62 @@ export default function DonationPage() {
                   <input
                     type="checkbox"
                     checked={isAnonymous}
-                    onChange={(event) => setIsAnonymous(event.target.checked)}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setIsAnonymous(checked);
+                      if (checked) setPublicNameConsent(false);
+                    }}
                     className="mt-1 h-5 w-5 accent-[#064b42]"
                   />
                   Je souhaite rester anonyme dans les éventuels remerciements publics.
                 </label>
+
+                {!isAnonymous && (
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#f5fbf8] p-4 text-sm leading-6 text-[#4f625c]">
+                    <input
+                      type="checkbox"
+                      checked={publicNameConsent}
+                      onChange={(event) => setPublicNameConsent(event.target.checked)}
+                      className="mt-1 h-5 w-5 accent-[#064b42]"
+                    />
+                    J’autorise l’affichage public de mon nom complet dans les remerciements. Sans cette autorisation, mon nom ne sera pas publié.
+                  </label>
+                )}
+
+                <div className="rounded-2xl border border-[#ded5cb] bg-[#fbf7ef] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-[#43382f]">Signature du donateur *</p>
+                      <p className="mt-1 text-xs leading-5 text-[#81766d]">
+                        Signez avec le doigt, la souris ou un stylet. Cette signature reste privée et n’est visible que par l’administration.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearSignature}
+                      className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-black text-[#064b42] shadow-sm"
+                    >
+                      Effacer
+                    </button>
+                  </div>
+                  <canvas
+                    ref={signatureCanvasRef}
+                    width={900}
+                    height={260}
+                    onPointerDown={startSignature}
+                    onPointerMove={drawSignature}
+                    onPointerUp={finishSignature}
+                    onPointerCancel={finishSignature}
+                    onPointerLeave={(event) => {
+                      if (signingRef.current && event.buttons === 0) finishSignature(event);
+                    }}
+                    className="mt-3 h-40 w-full touch-none rounded-xl border-2 border-dashed border-[#cfc4ba] bg-white"
+                    aria-label="Zone de signature"
+                  />
+                  <p className="mt-2 text-xs font-bold text-[#81766d]">
+                    {signatureData ? "✓ Signature enregistrée" : "Signature obligatoire avant validation"}
+                  </p>
+                </div>
 
                 <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#fbf7ef] p-4 text-sm leading-6 text-[#665b52]">
                   <input

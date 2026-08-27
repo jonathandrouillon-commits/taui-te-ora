@@ -47,6 +47,8 @@ type DonationPledge = {
   allocation: string;
   message: string | null;
   is_anonymous: boolean;
+  public_name_consent: boolean;
+  signature_data: string | null;
   status: "nouvelle" | "contactee" | "confirmee" | "annulee";
   created_at: string;
 };
@@ -470,6 +472,7 @@ export default function AdminDonationPage() {
       allocationLabel(item.allocation, settings.impact_items),
       pledgeStatusLabel(item.status),
       item.is_anonymous ? "Oui" : "Non",
+      item.public_name_consent ? "Oui" : "Non",
       item.message || "",
     ]);
 
@@ -485,6 +488,7 @@ export default function AdminDonationPage() {
         "Affectation",
         "Statut",
         "Anonyme",
+        "Nom public autorisé",
         "Message",
       ],
       rows
@@ -932,6 +936,11 @@ export default function AdminDonationPage() {
                                 Anonyme publiquement
                               </span>
                             )}
+                            {!item.is_anonymous && item.public_name_consent && (
+                              <span className="rounded-full bg-[#e7f4ef] px-2.5 py-1 text-xs font-black text-[#087261]">
+                                Nom public autorisé
+                              </span>
+                            )}
                           </div>
                           <p className="mt-1 text-sm text-[#756a61]">
                             {item.email}{item.phone ? ` · ${item.phone}` : ""}
@@ -982,6 +991,18 @@ export default function AdminDonationPage() {
                           </select>
                         </div>
                       </div>
+                      {item.signature_data && (
+                        <div className="mt-4 rounded-xl border border-[#eadfd8] bg-white p-4">
+                          <p className="mb-2 text-xs font-black uppercase tracking-wider text-[#81766d]">
+                            Signature privée du donateur
+                          </p>
+                          <img
+                            src={item.signature_data}
+                            alt={`Signature de ${item.full_name}`}
+                            className="max-h-32 max-w-full rounded-lg object-contain"
+                          />
+                        </div>
+                      )}
                       {item.message && (
                         <p className="mt-4 whitespace-pre-line rounded-xl bg-white p-4 text-sm leading-6 text-[#655a51]">
                           {item.message}
