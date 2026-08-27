@@ -155,6 +155,11 @@ export default function BottomNavigation() {
 
   const menuItems = [
     {
+      href: "/arpap",
+      label: "ARPAP",
+      icon: "🐾",
+    },
+    {
       href: "/info",
       label: "Info",
       icon: "ℹ️",

@@ -1212,14 +1212,16 @@ approved_at:
       const destination =
         getDestinationAfterSignup();
 
+      const notificationDestination =
+        "/notifications/setup?next=" +
+        encodeURIComponent(destination);
+
       if (data.session) {
         alert(
           "Votre compte a été créé. Vous êtes maintenant connecté."
         );
 
-        router.push(
-          destination
-        );
+        router.push(notificationDestination);
 
         router.refresh();
 
@@ -1233,7 +1235,7 @@ approved_at:
       router.push(
         "/login?redirect=" +
           encodeURIComponent(
-            destination
+            notificationDestination
           )
       );
     } catch (error: any) {

@@ -1620,6 +1620,13 @@ function BottomMenu() {
       sortOrder: 10,
     },
     {
+      slug: "arpap",
+      label: "ARPAP",
+      href: "/arpap",
+      icon: "🐾",
+      sortOrder: 15,
+    },
+    {
       slug: "associations",
       label: "Associations",
       href: "/associations",
