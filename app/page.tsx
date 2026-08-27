@@ -672,47 +672,7 @@ export default function HomePage() {
             md:py-8
           "
         >
-          {!loading && animals.length > 0 && (
-            <div className="w-full px-3 pb-3 md:px-0">
-              <div className="mx-auto flex w-full max-w-[470px] items-center gap-2 overflow-x-auto rounded-[24px] bg-white/85 p-2 shadow-lg backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {quickCategories
-                  .filter((category) => category.visible)
-                  .map((category) => {
-                    const active =
-                      category.type === "tous"
-                        ? selectedTypes.length === 0
-                        : selectedTypes.length === 1 &&
-                          selectedTypes[0] === category.type;
-
-                    return (
-                      <button
-                        key={category.type}
-                        type="button"
-                        onClick={() =>
-                          selectQuickCategory(category.type)
-                        }
-                        aria-pressed={active}
-                        className={`flex min-w-[64px] shrink-0 flex-col items-center justify-center rounded-[18px] border px-2 py-2 transition active:scale-[.97] ${
-                          active
-                            ? "border-[#ef8196] bg-[#fff0f2] text-[#d96f81] shadow-sm"
-                            : "border-[#eadfd8] bg-white text-[#5d5955]"
-                        }`}
-                      >
-                        <span className="text-[24px] leading-none">
-                          {category.icon}
-                        </span>
-
-                        <span className="mt-1 text-[10px] font-black">
-                          {category.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {loading && (
+           {loading && (
             <div
               className="
                 flex
