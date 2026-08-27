@@ -38,6 +38,8 @@ export default function AnimalSwipeCard({
   animal,
   onPass,
   onFavorite,
+  onOpenFilter,
+  filterCount = 0,
 }: AnimalSwipeCardProps) {
   const router = useRouter();
 
@@ -1125,56 +1127,99 @@ export default function AnimalSwipeCard({
               </button>
             </div>
 
-            {creatorId && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleStructure();
-                }}
-                aria-label={
-                  creatorName
-                    ? `Voir ${creatorName}`
-                    : "Voir la structure"
-                }
-                className="
-                  flex
-                  h-[52px]
-                  w-[52px]
-                  shrink-0
-                  items-center
-                  justify-center
-                  overflow-hidden
-                  rounded-full
-                  border-[3px]
-                  border-white
-                  bg-white
-                  shadow-xl
-                  transition
-                  active:scale-95
-                  sm:h-[58px]
-                  sm:w-[58px]
-                  md:h-[62px]
-                  md:w-[62px]
-                "
-              >
-                {creatorLogo ? (
-                  <img
-                    src={creatorLogo}
-                    alt={creatorName || "Structure"}
-                    draggable={false}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span
-                    aria-hidden="true"
-                    className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
-                  >
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              {creatorId && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleStructure();
+                  }}
+                  aria-label={
+                    creatorName
+                      ? `Voir ${creatorName}`
+                      : "Voir la structure"
+                  }
+                  className="
+                    flex
+                    h-[52px]
+                    w-[52px]
+                    shrink-0
+                    items-center
+                    justify-center
+                    overflow-hidden
+                    rounded-full
+                    border-[3px]
+                    border-white
+                    bg-white
+                    shadow-xl
+                    transition
+                    active:scale-95
+                    sm:h-[58px]
+                    sm:w-[58px]
+                    md:h-[62px]
+                    md:w-[62px]
+                  "
+                >
+                  {creatorLogo ? (
+                    <img
+                      src={creatorLogo}
+                      alt={creatorName || "Structure"}
+                      draggable={false}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
+                    >
+                      🐾
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onOpenFilter && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenFilter();
+                  }}
+                  aria-label="Choisir les animaux à afficher"
+                  className="
+                    flex
+                    min-h-[38px]
+                    items-center
+                    justify-center
+                    gap-1.5
+                    rounded-full
+                    border-2
+                    border-white
+                    bg-white/95
+                    px-3
+                    py-2
+                    text-[11px]
+                    font-black
+                    text-[#064b42]
+                    shadow-lg
+                    backdrop-blur
+                    transition
+                    active:scale-95
+                  "
+                >
+                  <span aria-hidden="true" className="text-base leading-none">
                     🐾
                   </span>
-                )}
-              </button>
-            )}
+
+                  <span>
+                    {filterCount > 0
+                      ? `Filtres (${filterCount})`
+                      : "Choisir"}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
           {creatorName && (

@@ -1,84 +1,101 @@
-const CACHE_NAME = "taui-te-ora-v1";
+const CACHE_NAME =
+  "taui-te-ora-v1";
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
-});
+self.addEventListener(
+  "install",
+  () => {
+    self.skipWaiting();
+  }
+);
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
-});
+self.addEventListener(
+  "activate",
+  (event) => {
+    event.waitUntil(
+      self.clients.claim()
+    );
+  }
+);
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
-  event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request)
-    )
-  );
-});
 self.addEventListener(
   "push",
   (event) => {
-    let payload = {};
+    let data = {};
 
     try {
-      payload =
+      if (
         event.data
-          ? event.data.json()
-          : {};
+      ) {
+        data =
+          event.data.json();
+      }
     } catch {
-      payload = {
-        title:
-          "Taui Te Ora",
-
-        body:
-          event.data
-            ? event.data.text()
-            : "Nouvelle alerte animale",
-      };
+      try {
+        data = {
+          body:
+            event.data
+              ? event.data.text()
+              : "",
+        };
+      } catch {
+        data = {};
+      }
     }
 
     const title =
-      payload.title ||
+      data.title ||
       "Taui Te Ora";
 
+    const body =
+      data.body ||
+      data.message ||
+      "Nouvelle alerte animal.";
+
     const url =
-      payload.url ||
+      data.url ||
+      data.link ||
       "/signalement";
 
-    const signalementId =
-      payload.signalementId ||
-      "";
+    const options = {
+      body,
+
+      icon:
+        "/logo.png",
+
+      badge:
+        "/logo.png",
+
+      tag:
+        data.tag ||
+        "taui-te-ora-alert",
+
+      renotify:
+        true,
+
+      requireInteraction:
+        false,
+
+      data: {
+        url,
+
+        animalId:
+          data.animalId ||
+          data.animal_id ||
+          null,
+
+        signalementId:
+          data.signalementId ||
+          data.signalement_id ||
+          null,
+      },
+    };
 
     event.waitUntil(
-      self.registration.showNotification(
-        title,
-        {
-          body:
-            payload.body ||
-            "Une nouvelle alerte animale vient d'être publiée.",
-
-          icon:
-            "/icon-192.png",
-
-          badge:
-            "/icon-192.png",
-
-          tag:
-            signalementId
-              ? `taui-signalement-${signalementId}`
-              : "taui-signalement",
-
-          renotify:
-            true,
-
-          data: {
-            url,
-            signalementId,
-          },
-        }
-      )
+      self.registration
+        .showNotification(
+          title,
+          options
+        )
     );
   }
 );
@@ -86,51 +103,79 @@ self.addEventListener(
 self.addEventListener(
   "notificationclick",
   (event) => {
-    event.notification.close();
+    event.notification
+      .close();
 
-    const url =
+    const targetUrl =
       event.notification
-        ?.data?.url ||
-      "/signalement";
+        .data?.url ||
+      "/";
 
     event.waitUntil(
-      clients
+      self.clients
         .matchAll({
-          type: "window",
+          type:
+            "window",
+
           includeUncontrolled:
             true,
         })
         .then(
-          (
+          async (
             clientList
           ) => {
             for (
-              const client
-              of clientList
+              const client of
+              clientList
             ) {
               if (
+                "navigate" in
+                  client &&
                 "focus" in
-                client
+                  client
               ) {
-                client.navigate(
-                  url
-                );
+                await client
+                  .navigate(
+                    targetUrl
+                  );
 
-                return client.focus();
+                return client
+                  .focus();
               }
             }
 
             if (
-              clients.openWindow
+              self.clients
+                .openWindow
             ) {
-              return clients.openWindow(
-                url
-              );
+              return self.clients
+                .openWindow(
+                  targetUrl
+                );
             }
 
             return undefined;
           }
         )
     );
+  }
+);
+
+self.addEventListener(
+  "notificationclose",
+  () => {
+    // Rien à faire.
+  }
+);
+
+self.addEventListener(
+  "fetch",
+  () => {
+    /*
+     * On laisse Next.js gérer
+     * normalement les requêtes.
+     *
+     * Aucun cache forcé ici.
+     */
   }
 );

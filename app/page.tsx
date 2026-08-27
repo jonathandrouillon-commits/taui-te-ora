@@ -20,6 +20,7 @@ import { supabase } from "./lib/supabase";
 type AnimalFilter =
   | "chien"
   | "chat"
+  | "oiseau"
   | "cheval"
   | "autre";
 
@@ -116,6 +117,7 @@ export default function HomePage() {
                 [
                   "chien",
                   "chat",
+                  "oiseau",
                   "cheval",
                   "autre",
                 ].includes(value)
@@ -217,6 +219,32 @@ export default function HomePage() {
 
     setCurrentIndex(0);
     setWelcomeOpen(false);
+  }
+
+  function selectQuickCategory(
+    type: AnimalFilter | "tous"
+  ) {
+    const nextTypes: AnimalFilter[] =
+      type === "tous"
+        ? []
+        : [type];
+
+    setSelectedTypes(nextTypes);
+    setCurrentIndex(0);
+
+    try {
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify(nextTypes)
+      );
+
+      sessionStorage.setItem(
+        WELCOME_STORAGE_KEY,
+        "yes"
+      );
+    } catch {
+      // rien
+    }
   }
 
   const restoreFavoriteAfterLogin = useCallback(async () => {
@@ -373,6 +401,13 @@ export default function HomePage() {
             type.includes("chat") ||
             type.includes("cat");
 
+          const isBird =
+            type.includes("oiseau") ||
+            type.includes("bird") ||
+            type.includes("perroquet") ||
+            type.includes("perruche") ||
+            type.includes("canari");
+
           const isHorse =
             type.includes("cheval") ||
             type.includes("horse");
@@ -392,6 +427,12 @@ export default function HomePage() {
               }
 
               if (
+                selected === "oiseau"
+              ) {
+                return isBird;
+              }
+
+              if (
                 selected === "cheval"
               ) {
                 return isHorse;
@@ -403,6 +444,7 @@ export default function HomePage() {
                 return (
                   !isDog &&
                   !isCat &&
+                  !isBird &&
                   !isHorse
                 );
               }
@@ -416,6 +458,102 @@ export default function HomePage() {
       animals,
       selectedTypes,
     ]);
+
+  const categoryAvailability =
+    useMemo(() => {
+      const availability = {
+        chien: false,
+        chat: false,
+        oiseau: false,
+        cheval: false,
+        autre: false,
+      };
+
+      for (const animal of animals) {
+        const type = String(
+          animal?.animal_type ||
+            animal?.type ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+        const isDog =
+          type.includes("chien") ||
+          type.includes("dog");
+
+        const isCat =
+          type.includes("chat") ||
+          type.includes("cat");
+
+        const isBird =
+          type.includes("oiseau") ||
+          type.includes("bird") ||
+          type.includes("perroquet") ||
+          type.includes("perruche") ||
+          type.includes("canari");
+
+        const isHorse =
+          type.includes("cheval") ||
+          type.includes("horse");
+
+        if (isDog) {
+          availability.chien = true;
+        } else if (isCat) {
+          availability.chat = true;
+        } else if (isBird) {
+          availability.oiseau = true;
+        } else if (isHorse) {
+          availability.cheval = true;
+        } else {
+          availability.autre = true;
+        }
+      }
+
+      return availability;
+    }, [animals]);
+
+  const quickCategories = useMemo(
+    () => [
+      {
+        type: "tous" as const,
+        icon: "🐾",
+        label: "Tous",
+        visible: true,
+      },
+      {
+        type: "chien" as const,
+        icon: "🐶",
+        label: "Chiens",
+        visible: categoryAvailability.chien,
+      },
+      {
+        type: "chat" as const,
+        icon: "🐱",
+        label: "Chats",
+        visible: categoryAvailability.chat,
+      },
+      {
+        type: "oiseau" as const,
+        icon: "🐦",
+        label: "Oiseaux",
+        visible: categoryAvailability.oiseau,
+      },
+      {
+        type: "cheval" as const,
+        icon: "🐴",
+        label: "Chevaux",
+        visible: categoryAvailability.cheval,
+      },
+      {
+        type: "autre" as const,
+        icon: "🐰",
+        label: "Autres",
+        visible: categoryAvailability.autre,
+      },
+    ],
+    [categoryAvailability]
+  );
 
   const swipeItems =
     useMemo<SwipeItem[]>(() => {
@@ -526,13 +664,54 @@ export default function HomePage() {
             flex
             min-h-[calc(100dvh-74px)]
             w-full
-            items-start
-            justify-center
+            flex-col
+            items-center
+            justify-start
             p-0
             md:px-6
             md:py-8
           "
         >
+          {!loading && animals.length > 0 && (
+            <div className="w-full px-3 pb-3 md:px-0">
+              <div className="mx-auto flex w-full max-w-[470px] items-center gap-2 overflow-x-auto rounded-[24px] bg-white/85 p-2 shadow-lg backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {quickCategories
+                  .filter((category) => category.visible)
+                  .map((category) => {
+                    const active =
+                      category.type === "tous"
+                        ? selectedTypes.length === 0
+                        : selectedTypes.length === 1 &&
+                          selectedTypes[0] === category.type;
+
+                    return (
+                      <button
+                        key={category.type}
+                        type="button"
+                        onClick={() =>
+                          selectQuickCategory(category.type)
+                        }
+                        aria-pressed={active}
+                        className={`flex min-w-[64px] shrink-0 flex-col items-center justify-center rounded-[18px] border px-2 py-2 transition active:scale-[.97] ${
+                          active
+                            ? "border-[#ef8196] bg-[#fff0f2] text-[#d96f81] shadow-sm"
+                            : "border-[#eadfd8] bg-white text-[#5d5955]"
+                        }`}
+                      >
+                        <span className="text-[24px] leading-none">
+                          {category.icon}
+                        </span>
+
+                        <span className="mt-1 text-[10px] font-black">
+                          {category.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div
               className="
@@ -949,6 +1128,11 @@ function WelcomeModal({
       type: "chat",
       icon: "🐱",
       title: "Chat",
+    },
+    {
+      type: "oiseau",
+      icon: "🐦",
+      title: "Oiseau",
     },
     {
       type: "cheval",

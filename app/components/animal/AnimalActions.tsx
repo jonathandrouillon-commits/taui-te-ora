@@ -39,15 +39,27 @@ export default function AnimalActions({
 
       const {
         data: { user },
+        error,
       } = await supabase.auth.getUser();
 
+      if (error) {
+        console.error(
+          "Erreur vérification utilisateur :",
+          error
+        );
+      }
+
       if (!user) {
+        const destination =
+          `/animal/${animalId}`;
+
         router.push(
           "/login?redirect=" +
             encodeURIComponent(
-              `/animal/${animalId}`
+              destination
             )
         );
+
         return;
       }
 
@@ -84,21 +96,15 @@ export default function AnimalActions({
       const {
         data: { user },
         error,
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
       if (error) {
-        throw error;
+        console.error(
+          "Erreur vérification utilisateur :",
+          error
+        );
       }
 
-      /*
-       * Si l'utilisateur n'est pas connecté,
-       * on l'envoie vers la connexion.
-       *
-       * Après connexion il reviendra
-       * directement sur la fiche animal
-       * en mode adoption.
-       */
       if (!user) {
         const destination =
           `/animal/${animalId}?adoption=1`;
@@ -113,24 +119,6 @@ export default function AnimalActions({
         return;
       }
 
-      /*
-       * IMPORTANT :
-       *
-       * On ne crée PAS encore la demande.
-       *
-       * On ouvre la fiche en mode adoption
-       * afin d'afficher :
-       *
-       * - les détails de l'animal
-       * - le questionnaire / profil adoptant
-       * - le calcul de compatibilité
-       * - le bouton de confirmation
-       *
-       * La vraie création de demande
-       * sera faite ensuite par :
-       *
-       * /adoption/start/[animalId]?confirm=1
-       */
       router.push(
         `/animal/${animalId}?adoption=1`
       );
@@ -143,7 +131,7 @@ export default function AnimalActions({
       setMessage(
         "Impossible d'ouvrir le parcours d'adoption."
       );
-
+    } finally {
       setLoadingAdopt(false);
     }
   }
@@ -175,11 +163,6 @@ export default function AnimalActions({
         "🔗 Lien copié."
       );
     } catch (error) {
-      /*
-       * Une fermeture volontaire
-       * de la fenêtre de partage
-       * ne doit pas afficher une erreur.
-       */
       if (
         error instanceof Error &&
         error.name ===
@@ -202,18 +185,10 @@ export default function AnimalActions({
   return (
     <div className="mt-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {/* =========================
-            COUP DE COEUR
-        ========================== */}
-
         <button
           type="button"
-          onClick={
-            handleFavorite
-          }
-          disabled={
-            loadingFavorite
-          }
+          onClick={handleFavorite}
+          disabled={loadingFavorite}
           className="rounded-2xl bg-[#064b42] px-5 py-3 font-bold text-white shadow transition active:scale-[0.98] disabled:opacity-60"
         >
           {loadingFavorite
@@ -221,28 +196,16 @@ export default function AnimalActions({
             : "❤️ Coup de cœur"}
         </button>
 
-        {/* =========================
-            JE VEUX ADOPTER
-        ========================== */}
-
         <button
           type="button"
-          onClick={
-            handleAdopt
-          }
-          disabled={
-            loadingAdopt
-          }
+          onClick={handleAdopt}
+          disabled={loadingAdopt}
           className="rounded-2xl bg-[#b68b2f] px-5 py-3 font-black text-white shadow transition active:scale-[0.98] disabled:opacity-60"
         >
           {loadingAdopt
             ? "Ouverture..."
             : "🐾 Je veux adopter"}
         </button>
-
-        {/* =========================
-            PARTAGER
-        ========================== */}
 
         <button
           type="button"

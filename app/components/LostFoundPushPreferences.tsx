@@ -38,12 +38,16 @@ function urlBase64ToUint8Array(
       .replace(/_/g, "/");
 
   const rawData =
-    window.atob(base64);
+    window.atob(
+      base64
+    );
 
   return Uint8Array.from(
     [...rawData].map(
       (character) =>
-        character.charCodeAt(0)
+        character.charCodeAt(
+          0
+        )
     )
   );
 }
@@ -53,13 +57,32 @@ function preferenceToValues(
 ) {
   return {
     alertLost:
-      preference === "lost" ||
-      preference === "both",
+      preference ===
+        "lost" ||
+      preference ===
+        "both",
 
     alertFound:
-      preference === "found" ||
-      preference === "both",
+      preference ===
+        "found" ||
+      preference ===
+        "both",
   };
+}
+
+function getPermissionState() {
+  if (
+    typeof window ===
+      "undefined" ||
+    !(
+      "Notification" in
+      window
+    )
+  ) {
+    return null;
+  }
+
+  return Notification.permission;
 }
 
 export default function LostFoundPushPreferences() {
@@ -96,7 +119,12 @@ export default function LostFoundPushPreferences() {
   useEffect(() => {
     if (
       typeof window ===
-        "undefined" ||
+      "undefined"
+    ) {
+      return;
+    }
+
+    if (
       !(
         "serviceWorker" in
         navigator
@@ -117,39 +145,116 @@ export default function LostFoundPushPreferences() {
       return;
     }
 
+    const permission =
+      Notification.permission;
+
     if (
-      Notification.permission ===
+      permission ===
       "denied"
     ) {
-      setState("denied");
-
-      return;
+      setState(
+        "denied"
+      );
+    } else if (
+      permission ===
+      "granted"
+    ) {
+      setState(
+        "enabled"
+      );
+    } else {
+      setState(
+        "ready"
+      );
     }
 
     const stored =
-      window.localStorage.getItem(
-        "taui-push-preference"
-      );
+      window.localStorage
+        .getItem(
+          "taui-push-preference"
+        );
 
     if (
-      stored === "lost" ||
-      stored === "found" ||
-      stored === "both"
+      stored ===
+        "lost" ||
+      stored ===
+        "found" ||
+      stored ===
+        "both"
     ) {
-      setSelected(stored);
+      setSelected(
+        stored
+      );
+    }
+  }, []);
+
+  async function getServiceWorkerRegistration() {
+    if (
+      !(
+        "serviceWorker" in
+        navigator
+      )
+    ) {
+      throw new Error(
+        "Service Worker non disponible."
+      );
     }
 
-    setState(
-      Notification.permission ===
-        "granted"
-        ? "enabled"
-        : "ready"
+    /*
+     * On cherche d'abord
+     * un worker déjà installé.
+     */
+
+    let registration =
+      await navigator
+        .serviceWorker
+        .getRegistration(
+          "/"
+        );
+
+    /*
+     * Sinon on installe le
+     * Service Worker Taui Te Ora.
+     */
+
+    if (!registration) {
+      registration =
+        await navigator
+          .serviceWorker
+          .register(
+            "/sw.js",
+            {
+              scope: "/",
+            }
+          );
+    }
+
+    /*
+     * Attend qu'un Service Worker
+     * soit réellement actif.
+     */
+
+    const readyRegistration =
+      await navigator
+        .serviceWorker
+        .ready;
+
+    return (
+      readyRegistration ||
+      registration
     );
-  }, []);
+  }
 
   async function activate(
     preference: AlertPreference
   ) {
+    if (
+      activating !==
+      null
+    ) {
+      return;
+    }
+
     setActivating(
       preference
     );
@@ -157,7 +262,13 @@ export default function LostFoundPushPreferences() {
     setMessage("");
 
     try {
+      /*
+       * Vérification navigateur
+       */
+
       if (
+        typeof window ===
+          "undefined" ||
         !(
           "serviceWorker" in
           navigator
@@ -171,10 +282,18 @@ export default function LostFoundPushPreferences() {
           window
         )
       ) {
+        setState(
+          "unsupported"
+        );
+
         throw new Error(
-          "Les notifications push ne sont pas disponibles sur cet appareil."
+          "Les notifications push ne sont pas disponibles sur cet appareil ou ce navigateur."
         );
       }
+
+      /*
+       * Vérification clé VAPID
+       */
 
       const publicKey =
         process.env
@@ -182,15 +301,18 @@ export default function LostFoundPushPreferences() {
 
       if (!publicKey) {
         throw new Error(
-          "La clé publique VAPID n'est pas configurée."
+          "La clé NEXT_PUBLIC_VAPID_PUBLIC_KEY n'est pas configurée."
         );
       }
 
       /*
+       * Demande d'autorisation.
+       *
        * IMPORTANT :
-       * cette demande apparaît directement
-       * après le clic de l'utilisateur.
+       * elle est déclenchée directement
+       * suite au clic utilisateur.
        */
+
       let permission =
         Notification.permission;
 
@@ -199,64 +321,60 @@ export default function LostFoundPushPreferences() {
         "default"
       ) {
         permission =
-          await Notification.requestPermission();
+          await Notification
+            .requestPermission();
+      }
+
+      if (
+        permission ===
+        "denied"
+      ) {
+        setState(
+          "denied"
+        );
+
+        throw new Error(
+          "Les notifications sont bloquées. Autorisez-les dans les réglages de votre navigateur ou téléphone."
+        );
       }
 
       if (
         permission !==
         "granted"
       ) {
-        if (
-          permission ===
-          "denied"
-        ) {
-          setState(
-            "denied"
-          );
-
-          throw new Error(
-            "Les notifications ont été refusées. Vous pouvez les réactiver dans les réglages de votre téléphone ou navigateur."
-          );
-        }
-
         throw new Error(
           "L'autorisation de notification n'a pas été accordée."
         );
       }
 
       /*
-       * On utilise le service worker
-       * PWA existant de Taui Te Ora.
+       * Service Worker
        */
-      let registration =
-        await navigator
-          .serviceWorker
-          .getRegistration(
-            "/"
-          );
+
+      const registration =
+        await getServiceWorkerRegistration();
 
       if (
         !registration
+          .pushManager
       ) {
-        registration =
-          await navigator
-            .serviceWorker
-            .register(
-              "/sw.js",
-              {
-                scope: "/",
-              }
-            );
+        throw new Error(
+          "PushManager indisponible."
+        );
       }
 
-      await navigator
-        .serviceWorker
-        .ready;
+      /*
+       * Cherche abonnement existant
+       */
 
       let subscription =
         await registration
           .pushManager
           .getSubscription();
+
+      /*
+       * Sinon crée l'abonnement
+       */
 
       if (
         !subscription
@@ -275,22 +393,45 @@ export default function LostFoundPushPreferences() {
             });
       }
 
+      if (
+        !subscription
+      ) {
+        throw new Error(
+          "Impossible de créer l'abonnement push."
+        );
+      }
+
       const json =
         subscription.toJSON();
 
+      const p256dh =
+        json.keys?.p256dh;
+
+      const auth =
+        json.keys?.auth;
+
       if (
-        !json.keys?.p256dh ||
-        !json.keys?.auth
+        !subscription.endpoint ||
+        !p256dh ||
+        !auth
       ) {
         throw new Error(
-          "L'abonnement push est incomplet."
+          "L'abonnement push généré par le navigateur est incomplet."
         );
       }
+
+      /*
+       * Préférences utilisateur
+       */
 
       const values =
         preferenceToValues(
           preference
         );
+
+      /*
+       * Enregistrement serveur
+       */
 
       const response =
         await fetch(
@@ -309,13 +450,9 @@ export default function LostFoundPushPreferences() {
                 endpoint:
                   subscription.endpoint,
 
-                p256dh:
-                  json.keys
-                    .p256dh,
+                p256dh,
 
-                auth:
-                  json.keys
-                    .auth,
+                auth,
 
                 alertLost:
                   values.alertLost,
@@ -326,22 +463,40 @@ export default function LostFoundPushPreferences() {
           }
         );
 
-      const result =
-        await response.json();
+      let result:
+        | {
+            ok?: boolean;
+            error?: string;
+          }
+        | null =
+        null;
+
+      try {
+        result =
+          await response.json();
+      } catch {
+        result =
+          null;
+      }
 
       if (
         !response.ok
       ) {
         throw new Error(
           result?.error ||
-            "Impossible d'enregistrer les notifications."
+            `Erreur serveur ${response.status}.`
         );
       }
 
-      window.localStorage.setItem(
-        "taui-push-preference",
-        preference
-      );
+      /*
+       * Sauvegarde préférence locale
+       */
+
+      window.localStorage
+        .setItem(
+          "taui-push-preference",
+          preference
+        );
 
       setSelected(
         preference
@@ -356,18 +511,18 @@ export default function LostFoundPushPreferences() {
         "lost"
       ) {
         setMessage(
-          "Alertes animaux perdus activées."
+          "✅ Notifications pour les animaux perdus activées."
         );
       } else if (
         preference ===
         "found"
       ) {
         setMessage(
-          "Alertes animaux trouvés activées."
+          "✅ Notifications pour les animaux trouvés activées."
         );
       } else {
         setMessage(
-          "Alertes animaux perdus et trouvés activées."
+          "✅ Notifications animaux perdus et trouvés activées."
         );
       }
     } catch (
@@ -378,12 +533,21 @@ export default function LostFoundPushPreferences() {
         caughtError
       );
 
-      setState(
-        Notification.permission ===
+      const permission =
+        getPermissionState();
+
+      if (
+        permission ===
+        "denied"
+      ) {
+        setState(
           "denied"
-          ? "denied"
-          : "error"
-      );
+        );
+      } else {
+        setState(
+          "error"
+        );
+      }
 
       setMessage(
         caughtError instanceof
@@ -404,17 +568,19 @@ export default function LostFoundPushPreferences() {
   ) {
     return (
       <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-lg sm:p-8">
-        <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
-          🔔 Alertes animaux
-        </h2>
+        <div className="text-center">
+          <div className="text-4xl">
+            🔕
+          </div>
 
-        <p className="mt-3 text-sm text-[#6f5a47]">
-          Les notifications
-          push ne sont pas
-          disponibles sur cet
-          appareil ou ce
-          navigateur.
-        </p>
+          <h2 className="mt-3 text-xl font-black text-[#064b42] sm:text-2xl">
+            Notifications non disponibles
+          </h2>
+
+          <p className="mt-3 text-sm leading-6 text-[#6f5a47]">
+            Ce navigateur ou cet appareil ne permet pas encore les notifications push.
+          </p>
+        </div>
       </section>
     );
   }
@@ -431,11 +597,7 @@ export default function LostFoundPushPreferences() {
         </h2>
 
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6f5a47]">
-          Soyez prévenu
-          immédiatement
-          lorsqu&apos;un animal
-          est signalé perdu ou
-          trouvé.
+          Soyez prévenu immédiatement lorsqu&apos;un animal est signalé perdu ou trouvé.
         </p>
       </div>
 
@@ -454,7 +616,7 @@ export default function LostFoundPushPreferences() {
             null
           }
           onClick={() =>
-            activate(
+            void activate(
               "lost"
             )
           }
@@ -476,7 +638,7 @@ export default function LostFoundPushPreferences() {
             null
           }
           onClick={() =>
-            activate(
+            void activate(
               "found"
             )
           }
@@ -498,7 +660,7 @@ export default function LostFoundPushPreferences() {
             null
           }
           onClick={() =>
-            activate(
+            void activate(
               "both"
             )
           }
@@ -509,19 +671,18 @@ export default function LostFoundPushPreferences() {
 
       {state ===
         "denied" && (
-        <div className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
-          Les notifications
-          sont actuellement
-          bloquées sur cet
-          appareil.
+        <div className="mt-5 rounded-2xl bg-red-50 px-4 py-4 text-center text-sm font-semibold text-red-700">
+          🔕 Les notifications sont actuellement bloquées sur cet appareil.
+          <br />
+          Autorisez les notifications pour Taui Te Ora dans les réglages du navigateur.
         </div>
       )}
 
       {message && (
         <div
-          className={`mt-5 rounded-2xl px-4 py-3 text-center text-sm font-semibold ${
+          className={`mt-5 rounded-2xl px-4 py-4 text-center text-sm font-semibold ${
             state ===
-              "enabled"
+            "enabled"
               ? "bg-green-50 text-green-800"
               : "bg-amber-50 text-amber-800"
           }`}
@@ -531,12 +692,7 @@ export default function LostFoundPushPreferences() {
       )}
 
       <p className="mt-5 text-center text-xs leading-5 text-gray-500">
-        Lors du premier
-        choix, votre téléphone
-        vous demandera
-        l&apos;autorisation
-        d&apos;envoyer des
-        notifications.
+        Lors du premier choix, votre téléphone ou navigateur vous demandera l&apos;autorisation d&apos;envoyer des notifications.
       </p>
     </section>
   );
@@ -566,11 +722,11 @@ function PushButton({
       disabled={
         disabled
       }
-      className={`rounded-[22px] border-2 px-4 py-5 text-center transition ${
+      className={`rounded-[22px] border-2 px-4 py-5 text-center transition active:scale-[0.98] ${
         active
           ? "border-[#064b42] bg-[#064b42] text-white"
           : "border-[#eadfce] bg-[#faf7f2] text-[#064b42]"
-      } disabled:opacity-60`}
+      } disabled:cursor-not-allowed disabled:opacity-60`}
     >
       <div className="text-3xl">
         {icon}

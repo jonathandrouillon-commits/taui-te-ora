@@ -9,10 +9,14 @@ import {
 export const runtime =
   "nodejs";
 
+export const dynamic =
+  "force-dynamic";
+
 type SubscribeBody = {
   endpoint?: string;
   p256dh?: string;
   auth?: string;
+
   alertLost?: boolean;
   alertFound?: boolean;
 };
@@ -42,6 +46,7 @@ function getAdmin() {
       auth: {
         persistSession:
           false,
+
         autoRefreshToken:
           false,
       },
@@ -53,17 +58,51 @@ export async function POST(
   request: Request
 ) {
   try {
-    const body =
-      (await request.json()) as SubscribeBody;
+    let body:
+      SubscribeBody;
+
+    try {
+      body =
+        (await request.json()) as SubscribeBody;
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Corps de requête invalide.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const endpoint =
-      body.endpoint?.trim();
+      String(
+        body.endpoint ||
+          ""
+      ).trim();
 
     const p256dh =
-      body.p256dh?.trim();
+      String(
+        body.p256dh ||
+          ""
+      ).trim();
 
     const auth =
-      body.auth?.trim();
+      String(
+        body.auth ||
+          ""
+      ).trim();
+
+    const alertLost =
+      Boolean(
+        body.alertLost
+      );
+
+    const alertFound =
+      Boolean(
+        body.alertFound
+      );
 
     if (
       !endpoint ||
@@ -82,8 +121,8 @@ export async function POST(
     }
 
     if (
-      !body.alertLost &&
-      !body.alertFound
+      !alertLost &&
+      !alertFound
     ) {
       return NextResponse.json(
         {
@@ -125,18 +164,16 @@ export async function POST(
         .upsert(
           {
             endpoint,
+
             p256dh,
+
             auth,
 
             alert_lost:
-              Boolean(
-                body.alertLost
-              ),
+              alertLost,
 
             alert_found:
-              Boolean(
-                body.alertFound
-              ),
+              alertFound,
 
             updated_at:
               new Date()
@@ -150,13 +187,14 @@ export async function POST(
 
     if (error) {
       console.error(
-        "push subscribe:",
+        "Erreur Supabase push_subscriptions :",
         error
       );
 
       return NextResponse.json(
         {
           error:
+            error.message ||
             "Impossible d'enregistrer ce téléphone.",
         },
         {
@@ -165,21 +203,33 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+
+        alertLost,
+
+        alertFound,
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (
     caughtError
   ) {
     console.error(
-      "push subscribe:",
+      "POST /api/push/subscribe :",
       caughtError
     );
 
     return NextResponse.json(
       {
         error:
-          "Erreur serveur lors de l'activation des notifications.",
+          caughtError instanceof
+            Error
+            ? caughtError.message
+            : "Erreur serveur lors de l'activation des notifications.",
       },
       {
         status: 500,
