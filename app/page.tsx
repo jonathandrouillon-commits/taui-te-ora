@@ -1453,6 +1453,8 @@ function BottomMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileHref, setProfileHref] =
     useState("/profile");
+  const [profilePhoto, setProfilePhoto] =
+    useState<string | null>(null);
   const [
     dynamicMenuPages,
     setDynamicMenuPages,
@@ -1560,7 +1562,7 @@ function BottomMenu() {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, avatar_url")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -1576,6 +1578,18 @@ function BottomMenu() {
             getProfileDestination(
               data?.role ?? user.user_metadata?.role
             )
+          );
+
+          const avatar =
+            data?.avatar_url ||
+            user.user_metadata?.avatar_url ||
+            user.user_metadata?.picture ||
+            null;
+
+          setProfilePhoto(
+            typeof avatar === "string" && avatar.trim()
+              ? avatar.trim()
+              : null
           );
         }
       } catch (error) {
@@ -1814,9 +1828,19 @@ function BottomMenu() {
             href={profileHref}
             className="flex flex-col items-center justify-center gap-1 text-[#5d655f]"
           >
-            <div className="flex h-9 w-9 items-center justify-center">
-              <ProfileIcon />
-            </div>
+            {profilePhoto ? (
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#eadfd8] bg-white shadow-sm">
+                <img
+                  src={profilePhoto}
+                  alt="Photo de profil"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center">
+                <ProfileIcon />
+              </div>
+            )}
 
             <span className="text-[10px] font-semibold">
               Profil
