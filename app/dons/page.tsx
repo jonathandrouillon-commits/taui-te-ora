@@ -275,13 +275,6 @@ export default function DonationPage() {
         <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#f5cf79]/20 blur-2xl" />
 
         <div className="relative mx-auto max-w-5xl text-center">
-          <Link
-            href="/"
-            className="mb-10 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold backdrop-blur"
-          >
-            ← Retour
-          </Link>
-
           <p className="text-xs font-black uppercase tracking-[0.24em] text-[#f6c4cc]">
             {settings.hero_badge}
           </p>
@@ -402,7 +395,7 @@ export default function DonationPage() {
                           : "border-[#e8e0d8] bg-white text-[#064b42]"
                       }`}
                     >
-                      Autre
+                      Don libre
                     </button>
                   </div>
                   {selectedAmount === "other" && (
@@ -799,7 +792,7 @@ function normalizeSettings(data: Record<string, unknown>): DonationSettings {
     adopted_label: String(data.adopted_label || "Chiens adoptés via l’application"),
     rescued_label: String(data.rescued_label || "Chiens sauvés de la rue"),
     rescued_dogs_count: Number(data.rescued_dogs_count || 0),
-    preset_amounts: amounts.length ? amounts : [1000, 2500, 5000, 10000],
+    preset_amounts: [100, 500, 1000, 2000],
     impact_items: impacts.length
       ? impacts
       : [
