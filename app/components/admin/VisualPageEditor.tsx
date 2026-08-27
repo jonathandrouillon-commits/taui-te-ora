@@ -180,56 +180,117 @@ export default function VisualPageEditor() {
 
     observerRef.current?.disconnect();
 
-    const elements = collectEditableElements();
-    const mapped = buildOccurrenceMap(elements);
+    const cleanupMap = new Map<HTMLElement, () => void>();
+    let scheduled = false;
 
-    const cleanups: Array<() => void> = [];
+    function makePageEditable() {
+      scheduled = false;
 
-    mapped.forEach(({ element, original, occurrence }) => {
-      if (!element.dataset.tauiOriginalText) {
-        element.dataset.tauiOriginalText = original;
-      }
+      const elements = collectEditableElements();
+      const mapped = buildOccurrenceMap(elements);
 
-      element.contentEditable = "true";
-      element.spellcheck = true;
-      element.dataset.tauiEditable = "true";
-      element.style.outline = "2px dashed rgba(223,137,149,.75)";
-      element.style.outlineOffset = "3px";
-      element.style.cursor = "text";
+      mapped.forEach(({ element, original, occurrence }) => {
+        if (cleanupMap.has(element)) return;
 
-      const onInput = () => {
-        const replacement = normalizeText(element.textContent || "");
-        const key = `${original}::${occurrence}`;
-
-        if (replacement === original) {
-          changeMapRef.current.delete(key);
-          return;
+        if (!element.dataset.tauiOriginalText) {
+          element.dataset.tauiOriginalText = original;
         }
 
-        changeMapRef.current.set(key, {
-          pathname,
-          original_text: original,
-          occurrence_index: occurrence,
-          replacement_text: replacement,
+        const existingOverride = overrides.find(
+          (item) =>
+            item.original_text === original &&
+            item.occurrence_index === occurrence
+        );
+
+        if (existingOverride && normalizeText(element.textContent || "") !== existingOverride.replacement_text) {
+          element.textContent = existingOverride.replacement_text;
+        }
+
+        element.contentEditable = "true";
+        element.spellcheck = true;
+        element.dataset.tauiEditable = "true";
+        element.style.outline = "2px dashed rgba(223,137,149,.78)";
+        element.style.outlineOffset = "3px";
+        element.style.cursor = "text";
+        element.style.borderRadius = "6px";
+
+        const onFocus = () => {
+          element.style.outline = "3px solid rgba(223,137,149,.95)";
+          element.style.backgroundColor = "rgba(255,245,247,.72)";
+        };
+
+        const onBlur = () => {
+          element.style.outline = "2px dashed rgba(223,137,149,.78)";
+          element.style.backgroundColor = "";
+        };
+
+        const onInput = () => {
+          const replacement = normalizeText(element.textContent || "");
+          const baseOriginal =
+            element.dataset.tauiOriginalText || original;
+          const key = `${baseOriginal}::${occurrence}`;
+
+          if (replacement === baseOriginal) {
+            changeMapRef.current.delete(key);
+            return;
+          }
+
+          changeMapRef.current.set(key, {
+            pathname,
+            original_text: baseOriginal,
+            occurrence_index: occurrence,
+            replacement_text: replacement,
+          });
+        };
+
+        element.addEventListener("focus", onFocus);
+        element.addEventListener("blur", onBlur);
+        element.addEventListener("input", onInput);
+
+        cleanupMap.set(element, () => {
+          element.removeEventListener("focus", onFocus);
+          element.removeEventListener("blur", onBlur);
+          element.removeEventListener("input", onInput);
+          element.contentEditable = "false";
+          delete element.dataset.tauiEditable;
+          element.style.outline = "";
+          element.style.outlineOffset = "";
+          element.style.cursor = "";
+          element.style.borderRadius = "";
+          element.style.backgroundColor = "";
         });
-      };
-
-      element.addEventListener("input", onInput);
-
-      cleanups.push(() => {
-        element.removeEventListener("input", onInput);
-        element.contentEditable = "false";
-        delete element.dataset.tauiEditable;
-        element.style.outline = "";
-        element.style.outlineOffset = "";
-        element.style.cursor = "";
       });
+    }
+
+    function scheduleEditableRefresh() {
+      if (scheduled) return;
+      scheduled = true;
+
+      window.requestAnimationFrame(() => {
+        makePageEditable();
+      });
+    }
+
+    makePageEditable();
+
+    const observer = new MutationObserver(() => {
+      scheduleEditableRefresh();
     });
 
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    observerRef.current = observer;
+
     return () => {
-      cleanups.forEach((cleanup) => cleanup());
+      observer.disconnect();
+      observerRef.current = null;
+      cleanupMap.forEach((cleanup) => cleanup());
+      cleanupMap.clear();
     };
-  }, [editorActive, pathname]);
+  }, [editorActive, overrides, pathname]);
 
   async function saveChanges() {
     if (saving) return;
