@@ -22,6 +22,8 @@ import {
   Eye,
   MousePointerClick,
   Activity,
+  Building2,
+  HeartHandshake,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
@@ -833,7 +835,7 @@ export default function AdminDashboardPage() {
               gap-4
               md:grid-cols-2
               lg:grid-cols-3
-              xl:grid-cols-7
+              xl:grid-cols-9
             "
           >
             {/* UTILISATEURS */}
@@ -886,6 +888,70 @@ export default function AdminDashboardPage() {
             >
               Voir les signalements
             </Button>
+
+            {/* ASSOCIATIONS */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/associations"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#eef1f8]
+                px-4
+                py-3
+                font-black
+                text-[#465b8f]
+                transition
+                hover:bg-[#e1e6f2]
+                active:scale-[0.98]
+              "
+            >
+              <Building2
+                size={20}
+              />
+
+              Associations
+            </button>
+
+            {/* RESEAU D'AIDE */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/reseau-aide"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#e7f3ef]
+                px-4
+                py-3
+                font-black
+                text-[#064b42]
+                transition
+                hover:bg-[#d7eae4]
+                active:scale-[0.98]
+              "
+            >
+              <HeartHandshake size={20} />
+
+              Réseau d’aide
+            </button>
 
             {/* VETERINAIRES */}
 
