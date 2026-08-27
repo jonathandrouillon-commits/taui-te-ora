@@ -63,6 +63,7 @@ type FinanceEntry = {
     | null;
   transaction_date: string;
   internal_label: string | null;
+  pledge_id: string | null;
   created_at: string;
 };
 
@@ -226,6 +227,14 @@ export default function AdminDonationPage() {
     return { received, spent, available: received - spent };
   }, [financeEntries]);
 
+  const pledgeSummary = useMemo(() => {
+    const active = pledges.filter((item) => item.status !== "annulee");
+    return {
+      count: active.length,
+      total: active.reduce((sum, item) => sum + Number(item.amount_xpf || 0), 0),
+    };
+  }, [pledges]);
+
   async function saveSettings() {
     if (saving) return;
 
@@ -359,6 +368,70 @@ export default function AdminDonationPage() {
 
     setFinanceEntries((current) => current.filter((entry) => entry.id !== item.id));
     setNotice("L’écriture a été supprimée et les compteurs ont été recalculés.");
+  }
+
+  async function markPledgeAsReceived(item: DonationPledge) {
+    const alreadyReceived = financeEntries.some(
+      (entry) => entry.entry_type === "donation" && entry.pledge_id === item.id
+    );
+
+    if (alreadyReceived) {
+      setNotice("Cette promesse est déjà liée à un don encaissé.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Confirmer l’encaissement réel de ${formatXpf(item.amount_xpf)} ?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setNotice("");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Session administrateur introuvable.");
+
+      const { data, error } = await supabase
+        .from("donation_financial_entries")
+        .insert({
+          entry_type: "donation",
+          amount_xpf: item.amount_xpf,
+          category: null,
+          transaction_date: today(),
+          internal_label: `Promesse ${item.id.slice(0, 8).toUpperCase()}`,
+          pledge_id: item.id,
+          created_by: user.id,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      const { error: statusError } = await supabase
+        .from("donation_pledges")
+        .update({ status: "confirmee" })
+        .eq("id", item.id);
+
+      if (statusError) throw statusError;
+
+      setFinanceEntries((current) =>
+        [data as FinanceEntry, ...current].sort(compareFinanceEntries)
+      );
+      setPledges((current) =>
+        current.map((pledge) =>
+          pledge.id === item.id ? { ...pledge, status: "confirmee" } : pledge
+        )
+      );
+      setNotice("Le don a été marqué comme réellement encaissé.");
+    } catch (error: unknown) {
+      setNotice(`Erreur : ${getErrorMessage(error)}`);
+    }
   }
 
   async function changePledgeStatus(id: string, status: DonationPledge["status"]) {
@@ -820,7 +893,16 @@ export default function AdminDonationPage() {
         )}
 
         {activeTab === "promesses" && (
-          <div className="mt-6">
+          <div className="mt-6 space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SummaryCard label="Promesses actives" value={pledgeSummary.total} color="pink" />
+              <div className="rounded-[24px] bg-[#064b42] p-5 text-white shadow-lg">
+                <p className="text-xs font-black uppercase tracking-wider text-white/70">
+                  Nombre de promesses
+                </p>
+                <p className="mt-2 text-3xl font-black">{pledgeSummary.count}</p>
+              </div>
+            </div>
             <AdminSection
               title="Promesses enregistrées"
               description="Ces montants ne sont jamais ajoutés au compteur des dons encaissés."
@@ -865,6 +947,24 @@ export default function AdminDonationPage() {
                               {item.frequency === "mensuelle" ? "Chaque mois" : "Une fois"} · {allocationLabel(item.allocation, settings.impact_items)}
                             </p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => void markPledgeAsReceived(item)}
+                            disabled={financeEntries.some(
+                              (entry) =>
+                                entry.entry_type === "donation" &&
+                                entry.pledge_id === item.id
+                            )}
+                            className="rounded-full bg-[#064b42] px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:bg-[#b7b0aa]"
+                          >
+                            {financeEntries.some(
+                              (entry) =>
+                                entry.entry_type === "donation" &&
+                                entry.pledge_id === item.id
+                            )
+                              ? "Déjà encaissé"
+                              : "Marquer encaissé"}
+                          </button>
                           <select
                             value={item.status}
                             onChange={(event) =>

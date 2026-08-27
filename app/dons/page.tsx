@@ -50,6 +50,24 @@ type FinancialSummary = {
   last_updated: string | null;
 };
 
+type PledgeSummary = {
+  total_pledged: number;
+  pledge_count: number;
+};
+
+type PublicThankYou = {
+  id: string;
+  display_name: string;
+  amount_xpf: number;
+  donation_date: string;
+  message: string | null;
+};
+
+const EMPTY_PLEDGE_SUMMARY: PledgeSummary = {
+  total_pledged: 0,
+  pledge_count: 0,
+};
+
 const EMPTY_FINANCIAL_SUMMARY: FinancialSummary = {
   total_received: 0,
   donation_count: 0,
@@ -71,6 +89,9 @@ export default function DonationPage() {
   const [settings, setSettings] = useState<DonationSettings | null>(null);
   const [financialSummary, setFinancialSummary] =
     useState<FinancialSummary>(EMPTY_FINANCIAL_SUMMARY);
+  const [pledgeSummary, setPledgeSummary] =
+    useState<PledgeSummary>(EMPTY_PLEDGE_SUMMARY);
+  const [thankYous, setThankYous] = useState<PublicThankYou[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [reference, setReference] = useState("");
@@ -92,14 +113,17 @@ export default function DonationPage() {
 
     async function loadPage() {
       try {
-        const [settingsResult, financialResult] = await Promise.all([
-          supabase
-            .from("donation_page_settings")
-            .select("*")
-            .eq("singleton_key", true)
-            .maybeSingle(),
-          supabase.rpc("get_public_donation_financial_summary"),
-        ]);
+        const [settingsResult, financialResult, pledgeResult, thankYouResult] =
+          await Promise.all([
+            supabase
+              .from("donation_page_settings")
+              .select("*")
+              .eq("singleton_key", true)
+              .maybeSingle(),
+            supabase.rpc("get_public_donation_financial_summary"),
+            supabase.rpc("get_public_donation_pledge_summary"),
+            supabase.rpc("get_public_donation_thank_yous", { p_limit: 30 }),
+          ]);
 
         const { data, error } = settingsResult;
 
@@ -120,6 +144,20 @@ export default function DonationPage() {
             "Erreur chargement transparence dons :",
             financialResult.error
           );
+        }
+
+        if (!pledgeResult.error && active && pledgeResult.data) {
+          setPledgeSummary(normalizePledgeSummary(pledgeResult.data));
+        } else if (pledgeResult.error) {
+          console.error("Erreur compteur promesses :", pledgeResult.error);
+        }
+
+        if (!thankYouResult.error && active && Array.isArray(thankYouResult.data)) {
+          setThankYous(
+            thankYouResult.data.map((item: unknown) => normalizeThankYou(item))
+          );
+        } else if (thankYouResult.error) {
+          console.error("Erreur mur de remerciements :", thankYouResult.error);
         }
 
         const {
@@ -200,7 +238,7 @@ export default function DonationPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("donation_pledges")
         .insert({
           user_id: user?.id || null,
@@ -213,13 +251,12 @@ export default function DonationPage() {
           message: message.trim() || null,
           is_anonymous: isAnonymous,
           consent: true,
-        })
-        .select("id")
-        .single();
+        });
 
       if (error) throw error;
 
-      setReference(String(data.id).slice(0, 8).toUpperCase());
+      const localReference = crypto.randomUUID().slice(0, 8).toUpperCase();
+      setReference(localReference);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error: unknown) {
       console.error("Erreur promesse de don :", error);
@@ -299,7 +336,7 @@ export default function DonationPage() {
         </div>
       </section>
 
-      <div className="mx-auto -mt-10 grid max-w-6xl gap-7 px-5 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="mx-auto -mt-10 grid max-w-6xl gap-7 px-5 2xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-7">
           <section className="rounded-[30px] border border-white/80 bg-white p-7 shadow-[0_18px_50px_rgba(58,43,35,.09)] sm:p-9">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#df8995]">
@@ -313,7 +350,7 @@ export default function DonationPage() {
             </p>
           </section>
 
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <section className="grid gap-4 sm:grid-cols-2">
             {settings.impact_items.map((item) => (
               <article
                 key={item.id}
@@ -338,7 +375,7 @@ export default function DonationPage() {
           </section>
         </div>
 
-        <section className="h-fit rounded-[32px] border border-white/80 bg-white p-6 shadow-[0_22px_70px_rgba(58,43,35,.13)] sm:p-9 lg:sticky lg:top-5">
+        <section className="h-fit rounded-[32px] border border-white/80 bg-white p-6 shadow-[0_22px_70px_rgba(58,43,35,.13)] sm:p-9 2xl:sticky 2xl:top-5">
           {reference ? (
             <div className="py-8 text-center">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#e4f4ef] text-5xl">
@@ -622,11 +659,17 @@ export default function DonationPage() {
             />
           </div>
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-3">
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <CounterCard
+              label="Promesses de dons"
+              value={pledgeSummary.total_pledged}
+              detail={`${pledgeSummary.pledge_count} promesse${pledgeSummary.pledge_count === 1 ? "" : "s"} enregistrée${pledgeSummary.pledge_count === 1 ? "" : "s"}`}
+              tone="cream"
+            />
             <CounterCard
               label="Dons encaissés"
               value={financialSummary.total_received}
-              detail={`${financialSummary.donation_count} don${financialSummary.donation_count === 1 ? "" : "s"} enregistré${financialSummary.donation_count === 1 ? "" : "s"}`}
+              detail={`${financialSummary.donation_count} don${financialSummary.donation_count === 1 ? "" : "s"} réellement encaissé${financialSummary.donation_count === 1 ? "" : "s"}`}
               tone="pink"
             />
             <CounterCard
@@ -671,6 +714,57 @@ export default function DonationPage() {
           </div>
         </div>
       </section>
+
+      <section className="mx-auto mt-10 max-w-6xl px-5">
+        <div className="rounded-[32px] border border-[#eadfd8] bg-white p-6 shadow-[0_18px_50px_rgba(58,43,35,.08)] sm:p-9">
+          <div className="text-center">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#df8995]">
+              Merci pour votre soutien
+            </p>
+            <h2 className="mt-2 text-3xl font-black text-[#064b42]">
+              Chaque don compte 💗
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#756a61]">
+              Seuls le montant, la date, un libellé public et, s’il existe, le message
+              de remerciement sont affichés ici. Aucune coordonnée personnelle n’est publiée.
+            </p>
+          </div>
+
+          {thankYous.length === 0 ? (
+            <div className="mt-7 rounded-2xl bg-[#fbf7ef] p-7 text-center text-sm font-bold text-[#81766d]">
+              Les premiers dons encaissés apparaîtront bientôt ici.
+            </div>
+          ) : (
+            <div className="mt-7 grid gap-4 md:grid-cols-2">
+              {thankYous.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-[24px] border border-[#eadfd8] bg-[#fffaf7] p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-black text-[#064b42]">
+                        💗 Merci à {item.display_name}
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-[#8c8178]">
+                        {formatDate(item.donation_date)}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-lg font-black text-[#df8995]">
+                      {formatXpf(item.amount_xpf)}
+                    </p>
+                  </div>
+                  {item.message && (
+                    <p className="mt-4 whitespace-pre-line rounded-2xl bg-white p-4 text-sm leading-6 text-[#655a51]">
+                      « {item.message} »
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
@@ -709,12 +803,13 @@ function CounterCard({
   label: string;
   value: number;
   detail: string;
-  tone: "pink" | "gold" | "green";
+  tone: "pink" | "gold" | "green" | "cream";
 }) {
   const colors = {
     pink: "bg-[#df8995]",
     gold: "bg-[#ad7d39]",
     green: "bg-[#0f6659]",
+    cream: "bg-[#8b6b46]",
   };
 
   return (
@@ -775,10 +870,7 @@ function normalizeSettings(data: Record<string, unknown>): DonationSettings {
     })
     .slice(0, 8);
 
-  const amounts = (Array.isArray(data.preset_amounts) ? data.preset_amounts : [])
-    .map(Number)
-    .filter((amount) => Number.isInteger(amount) && amount >= 100)
-    .slice(0, 8);
+  const amounts = [100, 500, 1000, 2000];
 
   return {
     id: String(data.id || ""),
@@ -800,7 +892,7 @@ function normalizeSettings(data: Record<string, unknown>): DonationSettings {
     adopted_label: String(data.adopted_label || "Chiens adoptés via l’application"),
     rescued_label: String(data.rescued_label || "Chiens sauvés de la rue"),
     rescued_dogs_count: Number(data.rescued_dogs_count || 0),
-    preset_amounts: amounts.length ? amounts : [1000, 2500, 5000, 10000],
+    preset_amounts: amounts,
     impact_items: impacts.length
       ? impacts
       : [
@@ -840,6 +932,25 @@ function normalizeFinancialSummary(value: unknown): FinancialSummary {
     soins: Number(data.soins || 0),
     adopted_dogs: Number(data.adopted_dogs || 0),
     last_updated: data.last_updated ? String(data.last_updated) : null,
+  };
+}
+
+function normalizePledgeSummary(value: unknown): PledgeSummary {
+  const data = (value || {}) as Record<string, unknown>;
+  return {
+    total_pledged: Number(data.total_pledged || 0),
+    pledge_count: Number(data.pledge_count || 0),
+  };
+}
+
+function normalizeThankYou(value: unknown): PublicThankYou {
+  const data = (value || {}) as Record<string, unknown>;
+  return {
+    id: String(data.id || crypto.randomUUID()),
+    display_name: String(data.display_name || "Un donateur"),
+    amount_xpf: Number(data.amount_xpf || 0),
+    donation_date: String(data.donation_date || new Date().toISOString()),
+    message: data.message ? String(data.message) : null,
   };
 }
 
