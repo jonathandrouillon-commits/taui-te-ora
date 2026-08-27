@@ -16,7 +16,9 @@ export default function GlobalBackButton() {
     "/choose-role",
   ];
 
-  if (hiddenRoutes.includes(pathname)) {
+  const isWalkPage = pathname.startsWith("/balades");
+
+  if (hiddenRoutes.includes(pathname) || isWalkPage) {
     return null;
   }
 
