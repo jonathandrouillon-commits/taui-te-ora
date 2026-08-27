@@ -1085,64 +1085,69 @@ export default function AnimalSwipeCard({
             sm:pb-6
           "
         >
-          <div className="flex min-w-0 items-center gap-3 pt-2">
-            <h2
-              className="
-                min-w-0
-                truncate
-                text-[30px]
-                font-black
-                leading-none
-                tracking-tight
-                drop-shadow-lg
-                sm:text-[38px]
-                md:text-[42px]
-                lg:text-[46px]
-              "
-            >
-              {animalName}
-            </h2>
-
-            <button
-              type="button"
-              onClick={handleInformation}
-              className="
-                flex
-                h-10
-                w-10
-                shrink-0
-                items-center
-                justify-center
-                rounded-full
-                bg-[#fffaf7]
-                text-lg
-                font-black
-                text-[#60605d]
-                shadow-lg
-              "
-              aria-label="Informations"
-            >
-              i
-            </button>
-          </div>
-
-          <div className="mt-3 flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-end justify-between gap-3 pt-2">
             <div className="min-w-0 flex-1">
-              {creatorName && (
-                <p
+              <div className="flex min-w-0 flex-wrap items-end gap-2">
+                <h2
                   className="
-                    truncate
-                    text-[15px]
-                    font-bold
-                    drop-shadow
+                    min-w-0
+                    max-w-full
+                    break-words
+                    text-[30px]
+                    font-black
+                    leading-[0.95]
+                    tracking-tight
+                    drop-shadow-lg
+                    sm:text-[38px]
+                    md:text-[42px]
+                    lg:text-[46px]
                   "
                 >
-                  {creatorName}
-                </p>
-              )}
+                  {animalName}
+                </h2>
+
+                <button
+                  type="button"
+                  onClick={handleInformation}
+                  className="
+                    mb-0.5
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#fffaf7]
+                    text-base
+                    font-black
+                    text-[#60605d]
+                    shadow-lg
+                    transition
+                    active:scale-95
+                    sm:h-10
+                    sm:w-10
+                    sm:text-lg
+                  "
+                  aria-label="Informations"
+                >
+                  i
+                </button>
+              </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div
+              className="
+                flex
+                shrink-0
+                flex-col
+                items-center
+                justify-end
+                gap-2
+                sm:flex-row
+                sm:items-end
+              "
+            >
               {creatorId && (
                 <button
                   type="button"
@@ -1205,6 +1210,7 @@ export default function AnimalSwipeCard({
                   className="
                     flex
                     min-h-[38px]
+                    shrink-0
                     items-center
                     justify-center
                     gap-1.5
