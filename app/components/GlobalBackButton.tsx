@@ -17,8 +17,9 @@ export default function GlobalBackButton() {
   ];
 
   const isWalkPage = pathname.startsWith("/balades");
+  const isDonationPage = pathname === "/dons";
 
-  if (hiddenRoutes.includes(pathname) || isWalkPage) {
+  if (hiddenRoutes.includes(pathname) || isWalkPage || isDonationPage) {
     return null;
   }
 

@@ -275,6 +275,13 @@ export default function DonationPage() {
         <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#f5cf79]/20 blur-2xl" />
 
         <div className="relative mx-auto max-w-5xl text-center">
+          <Link
+            href="/"
+            className="mb-10 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold backdrop-blur"
+          >
+            ← Retour
+          </Link>
+
           <p className="text-xs font-black uppercase tracking-[0.24em] text-[#f6c4cc]">
             {settings.hero_badge}
           </p>
@@ -291,7 +298,7 @@ export default function DonationPage() {
         </div>
       </section>
 
-      <div className="mx-auto -mt-10 grid max-w-6xl gap-7 px-5 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="relative z-10 mx-auto -mt-10 grid max-w-6xl gap-7 px-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-7">
           <section className="rounded-[30px] border border-white/80 bg-white p-7 shadow-[0_18px_50px_rgba(58,43,35,.09)] sm:p-9">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#df8995]">
@@ -395,7 +402,7 @@ export default function DonationPage() {
                           : "border-[#e8e0d8] bg-white text-[#064b42]"
                       }`}
                     >
-                      Don libre
+                      Autre
                     </button>
                   </div>
                   {selectedAmount === "other" && (
@@ -792,7 +799,7 @@ function normalizeSettings(data: Record<string, unknown>): DonationSettings {
     adopted_label: String(data.adopted_label || "Chiens adoptés via l’application"),
     rescued_label: String(data.rescued_label || "Chiens sauvés de la rue"),
     rescued_dogs_count: Number(data.rescued_dogs_count || 0),
-    preset_amounts: [100, 500, 1000, 2000],
+    preset_amounts: amounts.length ? amounts : [1000, 2500, 5000, 10000],
     impact_items: impacts.length
       ? impacts
       : [
