@@ -202,6 +202,12 @@ export default function AnimalSwipeCard({
     animal?.owner_profile
       ?.organization_name ||
     animal?.association_name ||
+    [
+      animal?.owner_profile?.first_name,
+      animal?.owner_profile?.last_name,
+    ]
+      .filter(Boolean)
+      .join(" ") ||
     "";
 
   const creatorLogo =
@@ -1119,7 +1125,7 @@ export default function AnimalSwipeCard({
               </button>
             </div>
 
-            {creatorLogo && (
+            {creatorId && (
               <button
                 type="button"
                 onClick={(event) => {
@@ -1152,12 +1158,21 @@ export default function AnimalSwipeCard({
                   md:w-[62px]
                 "
               >
-                <img
-                  src={creatorLogo}
-                  alt={creatorName || "Structure"}
-                  draggable={false}
-                  className="h-full w-full object-cover"
-                />
+                {creatorLogo ? (
+                  <img
+                    src={creatorLogo}
+                    alt={creatorName || "Structure"}
+                    draggable={false}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
+                  >
+                    🐾
+                  </span>
+                )}
               </button>
             )}
           </div>

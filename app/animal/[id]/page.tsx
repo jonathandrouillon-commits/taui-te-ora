@@ -483,6 +483,7 @@ export default function AnimalPublicPage() {
 
   const ownerProfileId =
     animal.owner_profile?.id ||
+    animal.owner_id ||
     animal.profile_id ||
     animal.created_by ||
     animal.user_id ||
@@ -562,18 +563,6 @@ export default function AnimalPublicPage() {
   return (
     <main className="min-h-screen bg-[#f4eee3] px-4 py-6 text-[#064b42]">
       <div className="mx-auto max-w-6xl">
-
-        {/* RETOUR */}
-
-        <button
-          type="button"
-          onClick={() =>
-            router.back()
-          }
-          className="mb-6 rounded-xl bg-white px-4 py-2 font-bold shadow"
-        >
-          ← Retour
-        </button>
 
         {/* =====================================================
             GALERIE + INFORMATIONS

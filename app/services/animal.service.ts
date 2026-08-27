@@ -79,6 +79,8 @@ export type Animal = {
     organization_name: string | null;
     avatar_url: string | null;
     role: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
   } | null;
 
   /*
@@ -175,13 +177,15 @@ async function attachOwnerProfiles(
     data: profiles,
     error,
   } = await supabase
-    .from("profiles")
+    .from("public_structure_profiles")
     .select(
       `
         id,
         organization_name,
         avatar_url,
-        role
+        role,
+        first_name,
+        last_name
       `
     )
     .in(

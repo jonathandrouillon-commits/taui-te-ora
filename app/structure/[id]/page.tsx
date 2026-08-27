@@ -51,8 +51,10 @@ export default function StructurePage() {
         error: profileError,
       } =
         await supabase
-          .from("profiles")
-          .select("*")
+          .from("public_structure_profiles")
+          .select(
+            "id, role, organization_name, avatar_url, island, city, first_name, last_name"
+          )
           .eq(
             "id",
             structureId
@@ -114,7 +116,9 @@ export default function StructurePage() {
 
   const structureName =
     profile?.organization_name ||
-    profile?.full_name ||
+    [profile?.first_name, profile?.last_name]
+      .filter(Boolean)
+      .join(" ") ||
     "Structure animale";
 
   const roleLabel =
