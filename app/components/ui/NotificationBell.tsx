@@ -7,17 +7,12 @@ import {
   useState,
 } from "react";
 
-import {
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
-import {
-  supabase,
-} from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 type NotificationRow = {
   id: string;
-
   recipient_id: string;
 
   title?: string | null;
@@ -35,92 +30,114 @@ type NotificationRow = {
 };
 
 export default function NotificationBell() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
-  const [
-    userId,
-    setUserId,
-  ] =
-    useState<string | null>(
-      null
-    );
+  const [userId, setUserId] =
+    useState<string | null>(null);
 
-  const [
-    unreadCount,
-    setUnreadCount,
-  ] =
+  const [unreadCount, setUnreadCount] =
     useState(0);
 
-  const [
-    toast,
-    setToast,
-  ] =
+  const [toast, setToast] =
     useState<NotificationRow | null>(
       null
     );
 
   const timeoutRef =
-    useRef<number | null>(
-      null
+    useRef<number | null>(null);
+
+  const loadUnreadCount = useCallback(
+    async (
+      currentUserId: string
+    ) => {
+      const { count, error } =
+        await supabase
+          .from("notifications")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "recipient_id",
+            currentUserId
+          )
+          .eq("is_read", false);
+
+      if (error) {
+        console.error(
+          "Erreur compteur notifications :",
+          error
+        );
+        return;
+      }
+
+      setUnreadCount(
+        count || 0
+      );
+    },
+    []
+  );
+
+  const showToast = useCallback(
+    (
+      notification: NotificationRow
+    ) => {
+      setToast(notification);
+
+      if (timeoutRef.current) {
+        window.clearTimeout(
+          timeoutRef.current
+        );
+      }
+
+      timeoutRef.current =
+        window.setTimeout(() => {
+          setToast(null);
+        }, 7000);
+    },
+    []
+  );
+
+  const showBrowserNotification =
+    useCallback(
+      async (
+        notification: NotificationRow
+      ) => {
+        if (
+          typeof window ===
+            "undefined" ||
+          !(
+            "Notification" in window
+          ) ||
+          Notification.permission !==
+            "granted"
+        ) {
+          return;
+        }
+
+        try {
+          new Notification(
+            notification.title ||
+              "Taui Te Ora",
+            {
+              body:
+                notification.message ||
+                "Vous avez une nouvelle notification.",
+              icon: "/logo-taui-te-ora.png",
+            }
+          );
+        } catch (error) {
+          console.error(
+            "Notification navigateur :",
+            error
+          );
+        }
+      },
+      []
     );
 
-  const loadUnreadCount = useCallback(async (
-    currentUserId: string
-  ) => {
-    const {
-      count,
-      error,
-    } = await supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("recipient_id", currentUserId)
-      .eq("is_read", false);
-
-    if (error) {
-      console.error("Erreur compteur notifications :", error);
-      return;
-    }
-
-    setUnreadCount(count || 0);
-  }, []);
-
-  const showToast = useCallback((notification: NotificationRow) => {
-    setToast(notification);
-
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = window.setTimeout(() => {
-      setToast(null);
-    }, 7000);
-  }, []);
-
-  const showBrowserNotification = useCallback(async (
-    notification: NotificationRow
-  ) => {
-    if (
-      typeof window === "undefined" ||
-      !("Notification" in window) ||
-      Notification.permission !== "granted"
-    ) {
-      return;
-    }
-
-    try {
-      new Notification(notification.title || "Taui Te Ora", {
-        body: notification.message || "Vous avez une nouvelle notification.",
-        icon: "/logo-taui-te-ora.png",
-      });
-    } catch (error) {
-      console.error("Notification navigateur :", error);
-    }
-  }, []);
-
   useEffect(() => {
-    let active =
-      true;
+    let active = true;
 
     let channel:
       | ReturnType<
@@ -129,135 +146,161 @@ export default function NotificationBell() {
       | null = null;
 
     async function initialize() {
-      const {
-        data: {
-          user,
-        },
-        error,
-      } =
-        await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+          error,
+        } =
+          await supabase.auth
+            .getUser();
 
-      if (
-        error ||
-        !user ||
-        !active
-      ) {
-        return;
+        if (
+          error ||
+          !user ||
+          !active
+        ) {
+          return;
+        }
+
+        setUserId(user.id);
+
+        await loadUnreadCount(
+          user.id
+        );
+
+        if (!active) {
+          return;
+        }
+
+        /*
+         * IMPORTANT
+         *
+         * On crée un identifiant
+         * unique pour chaque instance
+         * du composant.
+         *
+         * Cela évite qu'un ancien
+         * channel conservé pendant
+         * Fast Refresh entre en conflit
+         * avec le nouveau.
+         */
+
+        const channelName =
+          `notifications-${user.id}-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`;
+
+        const newChannel =
+          supabase.channel(
+            channelName
+          );
+
+        /*
+         * INSERT
+         */
+
+        newChannel.on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table:
+              "notifications",
+            filter:
+              `recipient_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (!active) {
+              return;
+            }
+
+            const notification =
+              payload.new as NotificationRow;
+
+            if (
+              notification.recipient_id !==
+              user.id
+            ) {
+              return;
+            }
+
+            if (
+              notification.is_read !==
+              true
+            ) {
+              setUnreadCount(
+                (previous) =>
+                  previous + 1
+              );
+            }
+
+            showToast(
+              notification
+            );
+
+            void showBrowserNotification(
+              notification
+            );
+          }
+        );
+
+        /*
+         * UPDATE
+         */
+
+        newChannel.on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table:
+              "notifications",
+            filter:
+              `recipient_id=eq.${user.id}`,
+          },
+          () => {
+            if (!active) {
+              return;
+            }
+
+            void loadUnreadCount(
+              user.id
+            );
+          }
+        );
+
+        /*
+         * On affecte le channel
+         * AVANT subscribe().
+         */
+
+        channel =
+          newChannel;
+
+        newChannel.subscribe(
+          (status) => {
+            if (
+              status ===
+              "CHANNEL_ERROR"
+            ) {
+              console.error(
+                "Erreur Supabase Realtime notifications."
+              );
+            }
+          }
+        );
+      } catch (error) {
+        console.error(
+          "Erreur initialisation notifications :",
+          error
+        );
       }
-
-      setUserId(
-        user.id
-      );
-
-      await loadUnreadCount(
-        user.id
-      );
-
-      /*
-       * On écoute uniquement les notifications
-       * destinées à l'utilisateur connecté.
-       */
-      channel =
-        supabase
-          .channel(
-            `notifications-${user.id}`
-          )
-          .on(
-            "postgres_changes",
-            {
-              event:
-                "INSERT",
-              schema:
-                "public",
-              table:
-                "notifications",
-              filter:
-                `recipient_id=eq.${user.id}`,
-            },
-            (
-              payload
-            ) => {
-              const notification =
-                payload.new as NotificationRow;
-
-              if (
-                notification.recipient_id !==
-                user.id
-              ) {
-                return;
-              }
-
-              /*
-               * Incrémente le badge rouge.
-               */
-              if (
-                notification.is_read !==
-                true
-              ) {
-                setUnreadCount(
-                  (
-                    previous
-                  ) =>
-                    previous +
-                    1
-                );
-              }
-
-              /*
-               * Affiche le message dans l'application.
-               */
-              showToast(
-                notification
-              );
-
-              /*
-               * Notification navigateur facultative.
-               */
-              showBrowserNotification(
-                notification
-              );
-            }
-          )
-          .on(
-            "postgres_changes",
-            {
-              event:
-                "UPDATE",
-              schema:
-                "public",
-              table:
-                "notifications",
-              filter:
-                `recipient_id=eq.${user.id}`,
-            },
-            (
-              payload
-            ) => {
-              const notification =
-                payload.new as NotificationRow;
-
-              if (
-                notification.recipient_id ===
-                user.id
-              ) {
-                /*
-                 * On recalcule le compteur afin
-                 * de toujours rester juste.
-                 */
-                void loadUnreadCount(
-                  user.id
-                );
-              }
-            }
-          )
-          .subscribe();
     }
 
     void initialize();
 
     return () => {
-      active =
-        false;
+      active = false;
 
       if (
         timeoutRef.current
@@ -265,14 +308,23 @@ export default function NotificationBell() {
         window.clearTimeout(
           timeoutRef.current
         );
+
+        timeoutRef.current =
+          null;
       }
 
-      if (
-        channel
-      ) {
-        void supabase.removeChannel(
-          channel
-        );
+      /*
+       * Supprime complètement
+       * le channel de Supabase.
+       */
+
+      if (channel) {
+        void supabase
+          .removeChannel(
+            channel
+          );
+
+        channel = null;
       }
     };
   }, [
@@ -282,9 +334,7 @@ export default function NotificationBell() {
   ]);
 
   function openNotifications() {
-    setToast(
-      null
-    );
+    setToast(null);
 
     router.push(
       "/notifications"
@@ -299,9 +349,7 @@ export default function NotificationBell() {
         `/messages/${toast.conversation_id}`
       );
 
-      setToast(
-        null
-      );
+      setToast(null);
 
       return;
     }
@@ -313,9 +361,7 @@ export default function NotificationBell() {
         `/animal/${toast.animal_id}`
       );
 
-      setToast(
-        null
-      );
+      setToast(null);
 
       return;
     }
@@ -323,21 +369,15 @@ export default function NotificationBell() {
     openNotifications();
   }
 
-  /*
-   * Pas connecté :
-   * on n'affiche pas la cloche dynamique.
-   */
-  if (
-    !userId
-  ) {
+  if (!userId) {
     return null;
   }
 
   return (
     <>
-      {/* =====================================================
+      {/* ==============================
           CLOCHE
-      ====================================================== */}
+      ============================== */}
 
       <button
         type="button"
@@ -347,13 +387,11 @@ export default function NotificationBell() {
         aria-label={
           unreadCount > 0
             ? `${unreadCount} notification${
-                unreadCount >
-                1
+                unreadCount > 1
                   ? "s"
                   : ""
               } non lue${
-                unreadCount >
-                1
+                unreadCount > 1
                   ? "s"
                   : ""
               }`
@@ -376,10 +414,7 @@ export default function NotificationBell() {
       >
         <BellIcon />
 
-        {/* BADGE ROUGE */}
-
-        {unreadCount >
-          0 && (
+        {unreadCount > 0 && (
           <span
             className="
               absolute
@@ -402,17 +437,16 @@ export default function NotificationBell() {
               shadow
             "
           >
-            {unreadCount >
-            99
+            {unreadCount > 99
               ? "99+"
               : unreadCount}
           </span>
         )}
       </button>
 
-      {/* =====================================================
-          MESSAGE TEMPS RÉEL
-      ====================================================== */}
+      {/* ==============================
+          TOAST TEMPS RÉEL
+      ============================== */}
 
       {toast && (
         <button
@@ -439,13 +473,7 @@ export default function NotificationBell() {
             transition
           "
         >
-          <div
-            className="
-              flex
-              items-start
-              gap-3
-            "
-          >
+          <div className="flex items-start gap-3">
             <div
               className="
                 flex
@@ -462,20 +490,8 @@ export default function NotificationBell() {
               🔔
             </div>
 
-            <div
-              className="
-                min-w-0
-                flex-1
-              "
-            >
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
                 <p
                   className="
                     truncate
@@ -536,10 +552,6 @@ export default function NotificationBell() {
   );
 }
 
-/* =========================================================
-   ICÔNE
-========================================================= */
-
 function BellIcon() {
   return (
     <svg
@@ -553,6 +565,7 @@ function BellIcon() {
       aria-hidden="true"
     >
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   );

@@ -101,8 +101,6 @@ function LoginContent() {
 
       /* =====================================================
          2. LIRE LE VRAI PROFIL
-
-         profiles.role devient la référence principale.
       ===================================================== */
 
       const {
@@ -143,7 +141,7 @@ function LoginContent() {
         );
 
         router.replace(
-          "/dashboard"
+          "/"
         );
 
         router.refresh();
@@ -171,9 +169,6 @@ function LoginContent() {
 
       /* =====================================================
          5. RÔLE
-
-         On prend profiles.role,
-         PAS user_metadata.role.
       ===================================================== */
 
       const role =
@@ -197,14 +192,39 @@ function LoginContent() {
       );
 
       /* =====================================================
-         6. ADMIN
+         6. REDIRECTION SPÉCIALE
+      =====================================================
+
+         Si un utilisateur arrivait depuis :
+         - une adoption
+         - une fiche animal
+         - les favoris
+         - une autre page protégée
+
+         on conserve cette destination.
+      ===================================================== */
+
+      const safeRedirect =
+        redirectTo &&
+        redirectTo.startsWith(
+          "/"
+        ) &&
+        !redirectTo.startsWith(
+          "//"
+        )
+          ? redirectTo
+          : null;
+
+      /* =====================================================
+         7. ADMIN
       ===================================================== */
 
       if (
         role === "admin"
       ) {
         router.replace(
-          "/admin/dashboard"
+          safeRedirect ||
+            "/admin/dashboard"
         );
 
         router.refresh();
@@ -213,7 +233,7 @@ function LoginContent() {
       }
 
       /* =====================================================
-         7. ASSOCIATION
+         8. ASSOCIATION
       ===================================================== */
 
       if (
@@ -221,7 +241,8 @@ function LoginContent() {
         "association"
       ) {
         router.replace(
-          "/association/dashboard"
+          safeRedirect ||
+            "/association/dashboard"
         );
 
         router.refresh();
@@ -230,14 +251,15 @@ function LoginContent() {
       }
 
       /* =====================================================
-         8. REFUGE / SIGFA
+         9. REFUGE
       ===================================================== */
 
       if (
         role === "refuge"
       ) {
         router.replace(
-          "/refuge/dashboard"
+          safeRedirect ||
+            "/refuge/dashboard"
         );
 
         router.refresh();
@@ -246,15 +268,18 @@ function LoginContent() {
       }
 
       /* =====================================================
-         9. FOURRIÈRE
+         10. FOURRIÈRE / SIGFA
       ===================================================== */
 
       if (
         role ===
-        "fourriere"
+          "fourriere" ||
+        role ===
+          "sigfa"
       ) {
         router.replace(
-          "/fourriere/dashboard"
+          safeRedirect ||
+            "/fourriere/dashboard"
         );
 
         router.refresh();
@@ -263,15 +288,20 @@ function LoginContent() {
       }
 
       /* =====================================================
-         10. BÉNÉVOLE
+         11. BÉNÉVOLE
       ===================================================== */
 
       if (
         role ===
-        "benevole"
+          "benevole" ||
+        role ===
+          "famille_accueil" ||
+        role ===
+          "famille_d_accueil"
       ) {
         router.replace(
-          "/benevole/dashboard"
+          safeRedirect ||
+            "/benevole/dashboard"
         );
 
         router.refresh();
@@ -280,40 +310,26 @@ function LoginContent() {
       }
 
       /* =====================================================
-         11. ADOPTANT
+         12. ADOPTANT
+      =====================================================
 
-         SEUL l'adoptant peut utiliser
-         un redirect provenant par exemple de :
+         Connexion normale :
+         → accueil /
+         → swipe card
 
-         /adoption/start/UUID
-         /animal/UUID
-         /favorites
+         Si redirect existe :
+         → on respecte le redirect.
       ===================================================== */
 
       if (
         role ===
-        "adoptant"
+          "adoptant" ||
+        role ===
+          "utilisateur"
       ) {
-        if (
-          redirectTo &&
-          redirectTo.startsWith(
+        router.replace(
+          safeRedirect ||
             "/"
-          ) &&
-          !redirectTo.startsWith(
-            "//"
-          )
-        ) {
-          router.replace(
-            redirectTo
-          );
-
-          router.refresh();
-
-          return;
-        }
-
-        router.replace(
-          "/profile"
         );
 
         router.refresh();
@@ -322,7 +338,7 @@ function LoginContent() {
       }
 
       /* =====================================================
-         12. RÔLE INCONNU
+         13. RÔLE INCONNU
       ===================================================== */
 
       console.warn(
@@ -331,7 +347,8 @@ function LoginContent() {
       );
 
       router.replace(
-        "/dashboard"
+        safeRedirect ||
+          "/"
       );
 
       router.refresh();
@@ -367,7 +384,7 @@ function LoginContent() {
       event.key ===
       "Enter"
     ) {
-      login();
+      void login();
     }
   }
 
@@ -384,7 +401,6 @@ function LoginContent() {
         justify-center
         bg-[#f8f4ec]
         p-4
-
         sm:p-8
       "
     >
@@ -394,7 +410,6 @@ function LoginContent() {
           max-w-lg
           rounded-[32px]
           p-6
-
           sm:p-8
         "
       >
@@ -562,6 +577,33 @@ function LoginContent() {
               ? "Connexion..."
               : "Se connecter"}
           </Button>
+
+          {/* VISITER SANS COMPTE */}
+
+          <Link
+            href="/"
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              rounded-full
+              border-2
+              border-[#064b42]
+              bg-white
+              px-6
+              py-3
+              text-center
+              font-black
+              text-[#064b42]
+              shadow-sm
+              transition
+              hover:bg-[#eef7f4]
+              active:scale-[0.98]
+            "
+          >
+            🐾 Voir les animaux sans se connecter
+          </Link>
 
           {/* INSCRIPTION */}
 
