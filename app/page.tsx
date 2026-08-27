@@ -1627,6 +1627,13 @@ function BottomMenu() {
       sortOrder: 20,
     },
     {
+      slug: "balades",
+      label: "Balades & Copains",
+      href: "/balades",
+      icon: "🐾",
+      sortOrder: 25,
+    },
+    {
       slug: "boutique",
       label: "Boutique",
       href: "/boutique",
