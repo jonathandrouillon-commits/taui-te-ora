@@ -9,6 +9,7 @@ import DashboardLikes from "../components/dashboard/DashboardLikes";
 import DashboardAdoptions from "../components/dashboard/DashboardAdoptions";
 import DashboardMessages from "../components/dashboard/DashboardMessages";
 import DashboardNotifications from "../components/dashboard/DashboardNotifications";
+import DashboardPushNotifications from "../components/dashboard/DashboardPushNotifications";
 import DashboardSettings from "../components/dashboard/DashboardSettings";
 
 import {
@@ -151,6 +152,8 @@ export default function DashboardPage() {
         <DashboardMessages />
 
         <DashboardNotifications notifications={notifications} />
+
+        <DashboardPushNotifications />
 
         <DashboardSettings onLogout={handleLogout} />
       </div>
