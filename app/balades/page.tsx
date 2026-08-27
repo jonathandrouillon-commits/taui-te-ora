@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { listWalks, type Walk } from "../services/walk.service";
 
 const paceLabel = { calme: "Tranquille", moderee: "Modérée", sportive: "Sportive" };
 
 export default function WalksPage() {
+  const router = useRouter();
   const [walks, setWalks] = useState<Walk[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,6 +24,14 @@ export default function WalksPage() {
   return (
     <main className="min-h-[100dvh] bg-[#f4eee3] px-4 py-8 pb-28 text-[#064b42]">
       <section className="mx-auto max-w-4xl">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mb-5 rounded-full bg-white px-5 py-2.5 text-sm font-black text-[#064b42] shadow-sm"
+        >
+          ← Retour
+        </button>
+
         <div className="mb-7 flex items-start justify-between gap-4">
           <div><p className="text-sm font-black uppercase tracking-widest text-[#d96b4c]">Communauté</p><h1 className="text-3xl font-black">🐾 Balades & Copains</h1><p className="mt-2 text-sm text-[#416c66]">Des promenades collectives pour socialiser les chiens, jamais pour la reproduction.</p></div>
           <Link href="/balades/creer" className="shrink-0 rounded-full bg-[#ef7f61] px-5 py-3 text-sm font-black text-white shadow">+ Organiser</Link>
