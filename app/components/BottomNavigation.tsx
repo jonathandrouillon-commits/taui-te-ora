@@ -45,14 +45,19 @@ function getProfileDestination(role: unknown) {
 
 export default function BottomNavigation() {
   const pathname = usePathname();
+
   const [menuOpen, setMenuOpen] = useState(false);
+
   const [profileHref, setProfileHref] =
     useState("/profile");
+
+  const [profilePhoto, setProfilePhoto] =
+    useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    async function loadProfileDestination() {
+    async function loadProfile() {
       try {
         const {
           data: { user },
@@ -64,33 +69,47 @@ export default function BottomNavigation() {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, avatar_url")
           .eq("id", user.id)
           .maybeSingle();
 
         if (error) {
           console.error(
-            "Erreur chargement destination profil :",
+            "Erreur chargement profil bottom navigation :",
             error
           );
         }
 
-        if (active) {
-          setProfileHref(
-            getProfileDestination(
-              data?.role ?? user.user_metadata?.role
-            )
-          );
+        if (!active) {
+          return;
         }
+
+        setProfileHref(
+          getProfileDestination(
+            data?.role ?? user.user_metadata?.role
+          )
+        );
+
+        const avatar =
+          data?.avatar_url ||
+          user.user_metadata?.avatar_url ||
+          user.user_metadata?.picture ||
+          null;
+
+        setProfilePhoto(
+          typeof avatar === "string" && avatar.trim()
+            ? avatar.trim()
+            : null
+        );
       } catch (error) {
         console.error(
-          "Erreur destination profil :",
+          "Erreur chargement profil bottom navigation :",
           error
         );
       }
     }
 
-    void loadProfileDestination();
+    void loadProfile();
 
     return () => {
       active = false;
@@ -130,6 +149,7 @@ export default function BottomNavigation() {
       href: profileHref,
       label: "Profil",
       icon: "👤",
+      profile: true,
     },
   ];
 
@@ -144,14 +164,11 @@ export default function BottomNavigation() {
       label: "Vétérinaires",
       icon: "🩺",
     },
-
-    // CONSEILS SANTE
     {
       href: "/conseils-sante",
       label: "Conseils santé",
       icon: "❤️‍🩹",
     },
-
     {
       href: "/association",
       label: "Les Veilleurs de Kali",
@@ -190,7 +207,9 @@ export default function BottomNavigation() {
   ];
 
   function toggleMenu() {
-    setMenuOpen((previousValue) => !previousValue);
+    setMenuOpen(
+      (previousValue) => !previousValue
+    );
   }
 
   function closeMenu() {
@@ -199,10 +218,6 @@ export default function BottomNavigation() {
 
   return (
     <>
-      {/* =====================================================
-          MENU OUVERT
-      ====================================================== */}
-
       {menuOpen && (
         <>
           <button
@@ -235,7 +250,9 @@ export default function BottomNavigation() {
                 {menuItems.map((item) => {
                   const isMenuItemActive =
                     pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
+                    pathname.startsWith(
+                      `${item.href}/`
+                    );
 
                   return (
                     <Link
@@ -264,10 +281,6 @@ export default function BottomNavigation() {
         </>
       )}
 
-      {/* =====================================================
-          BOTTOM NAVIGATION
-      ====================================================== */}
-
       <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
           {mainItems.map((item) => {
@@ -275,7 +288,9 @@ export default function BottomNavigation() {
               item.href !== "#" &&
               (pathname === item.href ||
                 (item.href !== "/" &&
-                  pathname.startsWith(`${item.href}/`)));
+                  pathname.startsWith(
+                    `${item.href}/`
+                  )));
 
             if (item.menu) {
               return (
@@ -298,7 +313,9 @@ export default function BottomNavigation() {
                         : "text-[#6f7b63]"
                     }`}
                   >
-                    {menuOpen ? "✕" : item.icon}
+                    {menuOpen
+                      ? "✕"
+                      : item.icon}
                   </span>
 
                   <span
@@ -328,6 +345,46 @@ export default function BottomNavigation() {
                       alt="SOS"
                       className="h-11 w-11 object-contain"
                     />
+                  </span>
+                </Link>
+              );
+            }
+
+            if (item.profile) {
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex flex-col items-center justify-center gap-0.5"
+                >
+                  {profilePhoto ? (
+                    <span
+                      className={`flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border-2 ${
+                        isActive
+                          ? "border-[#064b42]"
+                          : "border-[#d9d2c6]"
+                      } bg-[#f8f4ec]`}
+                    >
+                      <img
+                        src={profilePhoto}
+                        alt="Photo de profil"
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+                  ) : (
+                    <span className="text-[24px] leading-none">
+                      👤
+                    </span>
+                  )}
+
+                  <span
+                    className={`text-[9px] font-black uppercase leading-none ${
+                      isActive
+                        ? "text-[#064b42]"
+                        : "text-[#6f7b63]"
+                    }`}
+                  >
+                    Profil
                   </span>
                 </Link>
               );
