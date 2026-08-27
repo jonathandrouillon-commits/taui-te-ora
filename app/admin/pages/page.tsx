@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ExternalLink,
-  FilePlus2,
   Search,
 } from "lucide-react";
 
@@ -30,6 +28,7 @@ type ManagedPage = {
 };
 
 const SYSTEM_PAGES: ManagedPage[] = [
+  { key: "accueil", label: "Accueil", icon: "🏠", href: "/", type: "system" },
   { key: "alimentation", label: "Alimentation", icon: "🥣", href: "/alimentation", type: "system" },
   { key: "arpap", label: "ARPAP", icon: "🐾", href: "/arpap", type: "system" },
   { key: "associations", label: "Associations", icon: "🤝", href: "/associations", type: "system" },
@@ -140,17 +139,8 @@ export default function AdminPagesPage() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 pb-24 pt-6 sm:px-6">
+    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 pb-24 pt-24 sm:px-6 sm:pt-24">
       <section className="mx-auto max-w-7xl">
-        <button
-          type="button"
-          onClick={() => router.push("/admin/dashboard")}
-          className="mb-4 flex items-center gap-2 text-sm font-black text-[#6f665f]"
-        >
-          <ArrowLeft size={18} />
-          Retour administration
-        </button>
-
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.25em] text-[#df8995]">
@@ -165,14 +155,6 @@ export default function AdminPagesPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.push("/admin/pages")}
-            className="hidden items-center justify-center gap-2 rounded-full bg-[#064b42] px-7 py-4 font-black text-white shadow-lg"
-          >
-            <FilePlus2 size={20} />
-            Ajouter une page
-          </button>
         </div>
 
         <div className="relative mt-7">
