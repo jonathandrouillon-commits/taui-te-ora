@@ -10,6 +10,7 @@ import DashboardAdoptions from "../components/dashboard/DashboardAdoptions";
 import DashboardMessages from "../components/dashboard/DashboardMessages";
 import DashboardNotifications from "../components/dashboard/DashboardNotifications";
 import DashboardPushNotifications from "../components/dashboard/DashboardPushNotifications";
+import DashboardHelpVolunteer from "../components/dashboard/DashboardHelpVolunteer";
 import DashboardSettings from "../components/dashboard/DashboardSettings";
 
 import {
@@ -154,6 +155,8 @@ export default function DashboardPage() {
         <DashboardNotifications notifications={notifications} />
 
         <DashboardPushNotifications />
+
+        <DashboardHelpVolunteer />
 
         <DashboardSettings onLogout={handleLogout} />
       </div>
