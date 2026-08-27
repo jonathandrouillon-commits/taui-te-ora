@@ -442,7 +442,7 @@ export default function AnimalSwipeCard({
     if (!animal?.id) return;
 
     router.push(
-      `/adoption/start/${animal.id}`
+      `/animal/${animal.id}?adoption=1`
     );
   }
 

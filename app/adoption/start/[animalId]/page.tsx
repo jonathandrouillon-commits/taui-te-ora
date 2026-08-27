@@ -6,13 +6,13 @@ import {
   useRef,
   useState,
 } from "react";
+
 import {
   useParams,
   useRouter,
 } from "next/navigation";
 
 import { supabase } from "../../../lib/supabase";
-import { animalService } from "../../../services/animal.service";
 import { compatibilityService } from "../../../services/compatibility.service";
 
 const FALLBACK_ADMIN_ID =
@@ -58,6 +58,13 @@ type NotificationRow = {
   is_read: boolean;
 };
 
+type UserAccess = {
+  userId: string;
+  role: string;
+  isActive: boolean;
+  approvalStatus: string;
+};
+
 function getErrorMessage(
   error: unknown
 ) {
@@ -90,6 +97,11 @@ function getErrorMessage(
 export default function AdoptionStartPage() {
   const router = useRouter();
   const params = useParams();
+
+  /*
+   * Empêche le lancement plusieurs fois
+   * du parcours d'adoption sur le même montage.
+   */
   const hasStarted = useRef(false);
 
   const animalId =
@@ -101,10 +113,19 @@ export default function AdoptionStartPage() {
           params.animalId || ""
         );
 
-  const [message, setMessage] =
+  const [
+    message,
+    setMessage,
+  ] =
     useState(
       "Vérification de votre profil..."
     );
+
+  /*
+   * =========================================================
+   * ADMIN
+   * =========================================================
+   */
 
   const getAdminId =
     useCallback(async () => {
@@ -114,7 +135,10 @@ export default function AdoptionStartPage() {
       } = await supabase
         .from("profiles")
         .select("id")
-        .eq("role", "admin")
+        .eq(
+          "role",
+          "admin"
+        )
         .limit(1)
         .maybeSingle();
 
@@ -127,6 +151,71 @@ export default function AdoptionStartPage() {
 
       return FALLBACK_ADMIN_ID;
     }, []);
+
+  /*
+   * =========================================================
+   * PROFIL / ACCÈS UTILISATEUR
+   * =========================================================
+   */
+
+  const getUserAccess =
+    useCallback(
+      async (
+        userId: string
+      ): Promise<UserAccess> => {
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("profiles")
+          .select(
+            `
+              role,
+              approval_status,
+              is_active
+            `
+          )
+          .eq(
+            "id",
+            userId
+          )
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          userId,
+
+          role:
+            String(
+              data?.role || ""
+            )
+              .trim()
+              .toLowerCase(),
+
+          isActive:
+            data?.is_active !==
+            false,
+
+          approvalStatus:
+            String(
+              data?.approval_status ||
+                "pending"
+            )
+              .trim()
+              .toLowerCase(),
+        };
+      },
+      []
+    );
+
+  /*
+   * =========================================================
+   * QUESTIONNAIRE ADOPTANT
+   * =========================================================
+   */
 
   const loadQuestionnaire =
     useCallback(
@@ -157,13 +246,20 @@ export default function AdoptionStartPage() {
               special_needs
             `
           )
-          .eq("id", userId)
+          .eq(
+            "id",
+            userId
+          )
           .maybeSingle();
 
         if (error) {
           throw error;
         }
 
+        /*
+         * Champs indispensables
+         * pour calculer une compatibilité.
+         */
         if (
           !data ||
           !data.adopter_experience ||
@@ -180,42 +276,64 @@ export default function AdoptionStartPage() {
           proprietaire_animal:
             data.adopter_experience ||
             "",
+
           animal_actuel:
             data.current_animals ||
             "Aucun",
+
           adoption_pour:
             data.adoption_for ||
             "Moi / Ma famille",
+
           enfants:
             data.children_age ||
             "Non",
+
           jardin:
             data.garden_type ||
             "Pas de jardin",
+
           age_souhaite:
-            data.ideal_age || "",
+            data.ideal_age ||
+            "",
+
           sexe_souhaite:
-            data.ideal_sex || "",
+            data.ideal_sex ||
+            "",
+
           taille_souhaitee:
-            data.ideal_size || "",
+            data.ideal_size ||
+            "",
+
           activite_souhaitee:
             data.ideal_activity ||
             "Pas de préférence",
+
           hypoallergenique:
             data.hypoallergenic ||
             "Pas de préférence",
+
           proprete:
             data.cleanliness ||
             "Pas de préférence",
+
           besoins_speciaux:
             data.special_needs ||
             "Non",
+
           race_souhaitee:
-            data.ideal_breed || "",
+            data.ideal_breed ||
+            "",
         };
       },
       []
     );
+
+  /*
+   * =========================================================
+   * DEMANDE EXISTANTE
+   * =========================================================
+   */
 
   const findExistingRequest =
     useCallback(
@@ -264,6 +382,12 @@ export default function AdoptionStartPage() {
       [animalId]
     );
 
+  /*
+   * =========================================================
+   * CONVERSATION EXISTANTE
+   * =========================================================
+   */
+
   const findConversation =
     useCallback(
       async (
@@ -273,8 +397,12 @@ export default function AdoptionStartPage() {
           data,
           error,
         } = await supabase
-          .from("conversations")
-          .select("id")
+          .from(
+            "conversations"
+          )
+          .select(
+            "id"
+          )
           .eq(
             "adoption_request_id",
             requestId
@@ -285,10 +413,35 @@ export default function AdoptionStartPage() {
           throw error;
         }
 
-        return data?.id || null;
+        return (
+          data?.id ||
+          null
+        );
       },
       []
     );
+
+  /*
+   * =========================================================
+   * ANIMAL
+   * =========================================================
+   *
+   * IMPORTANT :
+   * On utilise ici les VRAIS noms de colonnes
+   * présents dans ta table animals après migration.
+   *
+   * Les alias permettent de conserver les anciens
+   * noms attendus par compatibilityService.
+   *
+   * Exemple :
+   *
+   * garden_requirement:housing_need
+   *
+   * signifie :
+   * lire housing_need dans Supabase
+   * mais retourner la valeur sous le nom
+   * garden_requirement dans JavaScript.
+   */
 
   const getAnimal =
     useCallback(async () => {
@@ -302,29 +455,39 @@ export default function AdoptionStartPage() {
             id,
             animal_name,
             owner_id,
-            garden_requirement,
+
+            garden_requirement:housing_need,
+
             enfants_moins_8,
             enfants_8_14,
             enfants_15_plus,
-            foyer_chiens,
-            foyer_chats,
-            foyer_autres,
+
+            foyer_chiens:accepte_foyer_chiens,
+            foyer_chats:accepte_foyer_chats,
+            foyer_autres:accepte_foyer_autres,
+
             activity_level,
             experience_recommandee,
+
             handicap,
             traitement_regulier,
             craintif_traumatise,
             education_a_poursuivre
           `
         )
-        .eq("id", animalId)
+        .eq(
+          "id",
+          animalId
+        )
         .single();
 
       if (error) {
         throw error;
       }
 
-      if (!data?.owner_id) {
+      if (
+        !data?.owner_id
+      ) {
         throw new Error(
           "Le créateur de cette fiche animal est introuvable."
         );
@@ -332,6 +495,12 @@ export default function AdoptionStartPage() {
 
       return data;
     }, [animalId]);
+
+  /*
+   * =========================================================
+   * CRÉATION / MISE À JOUR DEMANDE
+   * =========================================================
+   */
 
   const createOrUpdateRequest =
     useCallback(
@@ -341,8 +510,10 @@ export default function AdoptionStartPage() {
         existingRequest,
       }: {
         userId: string;
-        questionnaire: QuestionnaireData;
-        existingRequest: AdoptionRequest | null;
+        questionnaire:
+          QuestionnaireData;
+        existingRequest:
+          AdoptionRequest | null;
       }) => {
         setMessage(
           "Calcul de votre compatibilité..."
@@ -360,7 +531,14 @@ export default function AdoptionStartPage() {
         const matchCalculatedAt =
           new Date().toISOString();
 
-        if (existingRequest) {
+        /*
+         * Une demande existe déjà :
+         * on actualise seulement
+         * les données de matching.
+         */
+        if (
+          existingRequest
+        ) {
           const {
             data,
             error,
@@ -371,10 +549,13 @@ export default function AdoptionStartPage() {
             .update({
               match_score:
                 match.score,
+
               match_level:
                 match.level,
+
               match_details:
                 match.details,
+
               match_calculated_at:
                 matchCalculatedAt,
             })
@@ -396,10 +577,17 @@ export default function AdoptionStartPage() {
           return {
             request:
               data as AdoptionRequest,
+
             animal,
-            isNewRequest: false,
+
+            isNewRequest:
+              false,
           };
         }
+
+        /*
+         * Nouvelle demande.
+         */
 
         setMessage(
           "Création de votre demande d'adoption..."
@@ -409,24 +597,37 @@ export default function AdoptionStartPage() {
           data,
           error,
         } = await supabase
-          .from("adoption_requests")
+          .from(
+            "adoption_requests"
+          )
           .insert({
-            animal_id: animalId,
-            requester_id: userId,
+            animal_id:
+              animalId,
+
+            requester_id:
+              userId,
+
             owner_id:
               animal.owner_id,
-            status: "pending",
+
+            status:
+              "pending",
+
             message:
               `Je souhaite adopter ${
                 animal.animal_name ||
                 "cet animal"
               }.`,
+
             match_score:
               match.score,
+
             match_level:
               match.level,
+
             match_details:
               match.details,
+
             match_calculated_at:
               matchCalculatedAt,
           })
@@ -440,12 +641,24 @@ export default function AdoptionStartPage() {
         return {
           request:
             data as AdoptionRequest,
+
           animal,
-          isNewRequest: true,
+
+          isNewRequest:
+            true,
         };
       },
-      [animalId, getAnimal]
+      [
+        animalId,
+        getAnimal,
+      ]
     );
+
+  /*
+   * =========================================================
+   * CONVERSATION
+   * =========================================================
+   */
 
   const getOrCreateConversation =
     useCallback(
@@ -453,8 +666,11 @@ export default function AdoptionStartPage() {
         request,
         userId,
       }: {
-        request: AdoptionRequest;
-        userId: string;
+        request:
+          AdoptionRequest;
+
+        userId:
+          string;
       }) => {
         setMessage(
           "Préparation de la conversation..."
@@ -465,10 +681,13 @@ export default function AdoptionStartPage() {
             request.id
           );
 
-        if (existingId) {
+        if (
+          existingId
+        ) {
           return {
             conversationId:
               existingId,
+
             isNewConversation:
               false,
           };
@@ -478,18 +697,29 @@ export default function AdoptionStartPage() {
           data,
           error,
         } = await supabase
-          .from("conversations")
+          .from(
+            "conversations"
+          )
           .insert({
-            animal_id: animalId,
-            requester_id: userId,
+            animal_id:
+              animalId,
+
+            requester_id:
+              userId,
+
             owner_id:
               request.owner_id,
+
             adoption_request_id:
               request.id,
+
             updated_at:
-              new Date().toISOString(),
+              new Date()
+                .toISOString(),
           })
-          .select("id")
+          .select(
+            "id"
+          )
           .single();
 
         if (error) {
@@ -499,11 +729,22 @@ export default function AdoptionStartPage() {
         return {
           conversationId:
             data.id,
-          isNewConversation: true,
+
+          isNewConversation:
+            true,
         };
       },
-      [animalId, findConversation]
+      [
+        animalId,
+        findConversation,
+      ]
     );
+
+  /*
+   * =========================================================
+   * PREMIER MESSAGE
+   * =========================================================
+   */
 
   const createInitialMessage =
     useCallback(
@@ -512,18 +753,30 @@ export default function AdoptionStartPage() {
         userId,
         animalName,
       }: {
-        conversationId: string;
-        userId: string;
-        animalName: string;
+        conversationId:
+          string;
+
+        userId:
+          string;
+
+        animalName:
+          string;
       }) => {
+        /*
+         * Vérifie s'il existe déjà
+         * un message dans cette conversation.
+         */
         const {
           data: existing,
-          error: searchError,
+          error:
+            searchError,
         } = await supabase
           .from(
             "conversation_messages"
           )
-          .select("id")
+          .select(
+            "id"
+          )
           .eq(
             "conversation_id",
             conversationId
@@ -531,24 +784,38 @@ export default function AdoptionStartPage() {
           .limit(1)
           .maybeSingle();
 
-        if (searchError) {
+        if (
+          searchError
+        ) {
           throw searchError;
         }
 
-        if (existing) return;
+        /*
+         * Ne crée pas un deuxième
+         * message automatiquement.
+         */
+        if (
+          existing
+        ) {
+          return;
+        }
 
-        const { error } =
-          await supabase
-            .from(
-              "conversation_messages"
-            )
-            .insert({
-              conversation_id:
-                conversationId,
-              sender_id: userId,
-              message:
-                `Bonjour, je suis intéressé(e) par l'adoption de ${animalName}.`,
-            });
+        const {
+          error,
+        } = await supabase
+          .from(
+            "conversation_messages"
+          )
+          .insert({
+            conversation_id:
+              conversationId,
+
+            sender_id:
+              userId,
+
+            message:
+              `Bonjour, je suis intéressé(e) par l'adoption de ${animalName}.`,
+          });
 
         if (error) {
           throw error;
@@ -556,6 +823,12 @@ export default function AdoptionStartPage() {
       },
       []
     );
+
+  /*
+   * =========================================================
+   * NOTIFICATIONS
+   * =========================================================
+   */
 
   const createNotifications =
     useCallback(
@@ -565,10 +838,17 @@ export default function AdoptionStartPage() {
         requestId,
         conversationId,
       }: {
-        animalName: string;
-        ownerId: string;
-        requestId: string;
-        conversationId: string;
+        animalName:
+          string;
+
+        ownerId:
+          string;
+
+        requestId:
+          string;
+
+        conversationId:
+          string;
       }) => {
         setMessage(
           "Envoi des notifications..."
@@ -577,285 +857,516 @@ export default function AdoptionStartPage() {
         const adminId =
           await getAdminId();
 
-        const notifications: NotificationRow[] = [
-          {
-            recipient_id:
-              ownerId,
-            animal_id: animalId,
-            adoption_request_id:
-              requestId,
-            conversation_id:
-              conversationId,
-            type:
-              "adoption_request",
-            title:
-              "Nouvelle demande d'adoption",
-            message:
-              `Une nouvelle demande d'adoption a été envoyée pour ${animalName}.`,
-            is_read: false,
-          },
-        ];
+        const notifications:
+          NotificationRow[] =
+          [
+            {
+              recipient_id:
+                ownerId,
 
+              animal_id:
+                animalId,
+
+              adoption_request_id:
+                requestId,
+
+              conversation_id:
+                conversationId,
+
+              type:
+                "adoption_request",
+
+              title:
+                "Nouvelle demande d'adoption",
+
+              message:
+                `Une nouvelle demande d'adoption a été envoyée pour ${animalName}.`,
+
+              is_read:
+                false,
+            },
+          ];
+
+        /*
+         * Notification admin séparée
+         * uniquement si l'admin n'est pas
+         * déjà le propriétaire.
+         */
         if (
           adminId &&
-          adminId !== ownerId
+          adminId !==
+            ownerId
         ) {
-          notifications.push({
-            recipient_id:
-              adminId,
-            animal_id: animalId,
-            adoption_request_id:
-              requestId,
-            conversation_id:
-              conversationId,
-            type:
-              "adoption_request_admin",
-            title:
-              "Nouvelle demande d'adoption",
-            message:
-              `Nouvelle demande d'adoption pour ${animalName}.`,
-            is_read: false,
-          });
+          notifications.push(
+            {
+              recipient_id:
+                adminId,
+
+              animal_id:
+                animalId,
+
+              adoption_request_id:
+                requestId,
+
+              conversation_id:
+                conversationId,
+
+              type:
+                "adoption_request_admin",
+
+              title:
+                "Nouvelle demande d'adoption",
+
+              message:
+                `Nouvelle demande d'adoption pour ${animalName}.`,
+
+              is_read:
+                false,
+            }
+          );
         }
 
-        const { error } =
-          await supabase
-            .from("notifications")
-            .insert(
-              notifications
-            );
+        const {
+          error,
+        } = await supabase
+          .from(
+            "notifications"
+          )
+          .insert(
+            notifications
+          );
 
         if (error) {
           throw error;
         }
       },
-      [animalId, getAdminId]
+      [
+        animalId,
+        getAdminId,
+      ]
     );
+
+  /*
+   * =========================================================
+   * DÉMARRAGE DU PARCOURS
+   * =========================================================
+   */
 
   const startAdoption =
-    useCallback(async () => {
-      try {
-        const {
-          data: { session },
-          error: sessionError,
-        } =
-          await supabase.auth.getSession();
+    useCallback(
+      async () => {
+        try {
+          /*
+           * Une seule lecture de session.
+           * On ne rappelle plus
+           * animalService.getCurrentUserAccess(),
+           * ce qui évite une deuxième requête auth.
+           */
 
-        if (sessionError) {
-          throw sessionError;
-        }
+          const {
+            data: {
+              session,
+            },
+            error:
+              sessionError,
+          } =
+            await supabase.auth
+              .getSession();
 
-        if (!session?.user) {
-          router.replace(
-            "/login?redirect=" +
-              encodeURIComponent(
-                `/adoption/start/${animalId}`
-              )
-          );
-          return;
-        }
+          if (
+            sessionError
+          ) {
+            throw sessionError;
+          }
 
-        const access =
-          await animalService.getCurrentUserAccess();
-
-        if (!access.role) {
-          router.replace(
-            "/choose-role?redirect=" +
-              encodeURIComponent(
-                `/adoption/start/${animalId}`
-              )
-          );
-          return;
-        }
-
-        if (!access.isActive) {
-          alert(
-            "Votre compte est actuellement désactivé."
-          );
-          router.replace("/");
-          return;
-        }
-
-        if (
-          access.approvalStatus ===
-            "rejected" ||
-          access.approvalStatus ===
-            "suspended"
-        ) {
-          alert(
-            "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
-          );
-          router.replace("/");
-          return;
-        }
-
-        if (
-          access.role !==
-          "adoptant"
-        ) {
-          alert(
-            "Pour faire une demande d'adoption, vous devez utiliser un profil Adoptant."
-          );
-          router.replace("/");
-          return;
-        }
-
-        setMessage(
-          "Vérification de votre demande..."
-        );
-
-        const existingRequest =
-          await findExistingRequest(
-            access.userId
-          );
-
-        if (existingRequest) {
-          const conversationId =
-            await findConversation(
-              existingRequest.id
-            );
-
-          if (conversationId) {
+          /*
+           * Non connecté.
+           */
+          if (
+            !session?.user
+          ) {
             router.replace(
-              `/messages/${conversationId}`
+              "/login?redirect=" +
+                encodeURIComponent(
+                  `/adoption/start/${animalId}`
+                )
             );
+
             return;
           }
-        }
 
-        setMessage(
-          "Lecture de votre profil adoptant..."
-        );
+          /*
+           * Lecture directe du profil.
+           */
+          const access =
+            await getUserAccess(
+              session.user.id
+            );
 
-        const questionnaire =
-          await loadQuestionnaire(
-            access.userId
-          );
+          /*
+           * Aucun rôle.
+           */
+          if (
+            !access.role
+          ) {
+            router.replace(
+              "/choose-role?redirect=" +
+                encodeURIComponent(
+                  `/adoption/start/${animalId}`
+                )
+            );
 
-        if (!questionnaire) {
-          alert(
-            "Complétez une seule fois votre profil adoptant avant d'envoyer votre demande."
-          );
+            return;
+          }
 
-          router.replace(
-            "/adoptant/questionnaire?redirect=" +
-              encodeURIComponent(
-                `/adoption/start/${animalId}`
-              )
-          );
-          return;
-        }
+          /*
+           * Compte désactivé.
+           */
+          if (
+            !access.isActive
+          ) {
+            alert(
+              "Votre compte est actuellement désactivé."
+            );
 
-        const confirmationReceived =
-          new URLSearchParams(
-            window.location.search
-          ).get("confirm") === "1";
+            router.replace(
+              "/"
+            );
 
-        if (!confirmationReceived) {
+            return;
+          }
+
+          /*
+           * Compte refusé / suspendu.
+           */
+          if (
+            access.approvalStatus ===
+              "rejected" ||
+            access.approvalStatus ===
+              "suspended"
+          ) {
+            alert(
+              "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+            );
+
+            router.replace(
+              "/"
+            );
+
+            return;
+          }
+
+          /*
+           * Seul un adoptant peut
+           * envoyer une demande.
+           */
+          if (
+            access.role !==
+            "adoptant"
+          ) {
+            alert(
+              "Pour faire une demande d'adoption, vous devez utiliser un profil Adoptant."
+            );
+
+            router.replace(
+              "/"
+            );
+
+            return;
+          }
+
+          /*
+           * Recherche demande déjà existante.
+           */
+
           setMessage(
-            "Ouverture de la fiche animal..."
+            "Vérification de votre demande..."
           );
 
-          router.replace(
-            `/animal/${encodeURIComponent(
-              animalId
-            )}?adoption=1`
+          const existingRequest =
+            await findExistingRequest(
+              access.userId
+            );
+
+          /*
+           * Si une conversation existe déjà,
+           * on l'ouvre directement.
+           */
+          if (
+            existingRequest
+          ) {
+            const conversationId =
+              await findConversation(
+                existingRequest.id
+              );
+
+            if (
+              conversationId
+            ) {
+              router.replace(
+                `/messages/${conversationId}`
+              );
+
+              return;
+            }
+          }
+
+          /*
+           * Questionnaire adoptant.
+           */
+
+          setMessage(
+            "Lecture de votre profil adoptant..."
           );
-          return;
-        }
 
-        const {
-          request,
-          animal,
-          isNewRequest,
-        } =
-          await createOrUpdateRequest({
-            userId:
-              access.userId,
-            questionnaire,
-            existingRequest,
-          });
+          const questionnaire =
+            await loadQuestionnaire(
+              access.userId
+            );
 
-        const {
-          conversationId,
-          isNewConversation,
-        } =
-          await getOrCreateConversation({
+          /*
+           * Questionnaire incomplet.
+           */
+          if (
+            !questionnaire
+          ) {
+            alert(
+              "Complétez une seule fois votre profil adoptant avant d'envoyer votre demande."
+            );
+
+            router.replace(
+              "/adoptant/questionnaire?redirect=" +
+                encodeURIComponent(
+                  `/adoption/start/${animalId}`
+                )
+            );
+
+            return;
+          }
+
+          /*
+           * =================================================
+           * PREMIER PASSAGE
+           * =================================================
+           *
+           * Sans ?confirm=1 :
+           *
+           * on revient sur la fiche animal
+           * pour afficher la compatibilité
+           * et demander confirmation.
+           */
+
+          const confirmationReceived =
+            new URLSearchParams(
+              window.location
+                .search
+            ).get(
+              "confirm"
+            ) === "1";
+
+          if (
+            !confirmationReceived
+          ) {
+            setMessage(
+              "Ouverture de la fiche animal..."
+            );
+
+            router.replace(
+              `/animal/${encodeURIComponent(
+                animalId
+              )}?adoption=1`
+            );
+
+            return;
+          }
+
+          /*
+           * =================================================
+           * CONFIRMATION
+           * =================================================
+           */
+
+          const {
             request,
-            userId:
-              access.userId,
-          });
+            animal,
+            isNewRequest,
+          } =
+            await createOrUpdateRequest(
+              {
+                userId:
+                  access.userId,
 
-        const animalName =
-          animal.animal_name ||
-          "cet animal";
+                questionnaire,
 
-        await createInitialMessage({
-          conversationId,
-          userId: access.userId,
-          animalName,
-        });
+                existingRequest,
+              }
+            );
 
-        if (
-          isNewRequest ||
-          isNewConversation
-        ) {
-          await createNotifications({
-            animalName,
-            ownerId:
-              request.owner_id,
-            requestId: request.id,
+          /*
+           * Conversation.
+           */
+          const {
             conversationId,
-          });
+            isNewConversation,
+          } =
+            await getOrCreateConversation(
+              {
+                request,
+
+                userId:
+                  access.userId,
+              }
+            );
+
+          const animalName =
+            animal.animal_name ||
+            "cet animal";
+
+          /*
+           * Premier message.
+           */
+          await createInitialMessage(
+            {
+              conversationId,
+
+              userId:
+                access.userId,
+
+              animalName,
+            }
+          );
+
+          /*
+           * Notifications uniquement
+           * pour une nouvelle demande
+           * ou nouvelle conversation.
+           */
+          if (
+            isNewRequest ||
+            isNewConversation
+          ) {
+            await createNotifications(
+              {
+                animalName,
+
+                ownerId:
+                  request.owner_id,
+
+                requestId:
+                  request.id,
+
+                conversationId,
+              }
+            );
+          }
+
+          setMessage(
+            "Ouverture de votre conversation..."
+          );
+
+          /*
+           * IMPORTANT :
+           * pas de router.refresh() ici.
+           *
+           * Le refresh pouvait relancer
+           * inutilement la page d'adoption
+           * pendant la navigation.
+           */
+          router.replace(
+            `/messages/${conversationId}`
+          );
+        } catch (
+          error: unknown
+        ) {
+          console.error(
+            "Erreur démarrage adoption :",
+            error
+          );
+
+          alert(
+            getErrorMessage(
+              error
+            )
+          );
+
+          /*
+           * On revient sur la fiche
+           * plutôt que de renvoyer
+           * systématiquement à l'accueil.
+           */
+          if (
+            animalId
+          ) {
+            router.replace(
+              `/animal/${encodeURIComponent(
+                animalId
+              )}`
+            );
+          } else {
+            router.replace(
+              "/"
+            );
+          }
         }
+      },
+      [
+        animalId,
+        createInitialMessage,
+        createNotifications,
+        createOrUpdateRequest,
+        findConversation,
+        findExistingRequest,
+        getOrCreateConversation,
+        getUserAccess,
+        loadQuestionnaire,
+        router,
+      ]
+    );
 
-        setMessage(
-          "Ouverture de votre conversation..."
-        );
-
-        router.replace(
-          `/messages/${conversationId}`
-        );
-        router.refresh();
-      } catch (error: unknown) {
-        console.error(
-          "Erreur démarrage adoption :",
-          error
-        );
-
-        alert(
-          getErrorMessage(error)
-        );
-
-        router.replace("/");
-      }
-    }, [
-      animalId,
-      createInitialMessage,
-      createNotifications,
-      createOrUpdateRequest,
-      findConversation,
-      findExistingRequest,
-      getOrCreateConversation,
-      loadQuestionnaire,
-      router,
-    ]);
+  /*
+   * =========================================================
+   * LANCEMENT UNIQUE
+   * =========================================================
+   */
 
   useEffect(() => {
-    if (!animalId) {
-      router.replace("/");
+    if (
+      !animalId
+    ) {
+      router.replace(
+        "/"
+      );
+
       return;
     }
 
-    if (hasStarted.current) {
+    /*
+     * React peut exécuter certains effets
+     * plusieurs fois en développement.
+     * Cette ref bloque un deuxième départ
+     * sur le même montage.
+     */
+    if (
+      hasStarted.current
+    ) {
       return;
     }
 
-    hasStarted.current = true;
-    queueMicrotask(
-      () => void startAdoption()
-    );
-  }, [animalId, router, startAdoption]);
+    hasStarted.current =
+      true;
+
+    void startAdoption();
+  }, [
+    animalId,
+    router,
+    startAdoption,
+  ]);
+
+  /*
+   * =========================================================
+   * AFFICHAGE
+   * =========================================================
+   */
 
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-[#f4eee3] px-6 text-[#064b42]">
