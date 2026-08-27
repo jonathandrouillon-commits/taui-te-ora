@@ -1085,7 +1085,7 @@ export default function AnimalSwipeCard({
             sm:pb-6
           "
         >
-          <div className="flex min-w-0 items-end justify-between gap-3 pt-2">
+          <div className="flex min-w-0 flex-col items-stretch gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-end gap-2">
                 <h2
@@ -1138,15 +1138,14 @@ export default function AnimalSwipeCard({
 
             <div
               className="
-                mt-5
+                mt-2
                 flex
                 shrink-0
-                flex-col
+                flex-row
                 items-center
                 justify-end
                 gap-2
-                sm:mt-5
-                sm:flex-row
+                sm:mt-3
                 sm:items-end
               "
             >
@@ -1728,4 +1727,3 @@ function HorseShoeIcon() {
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "";
 }
-
