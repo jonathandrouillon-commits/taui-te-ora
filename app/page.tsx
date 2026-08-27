@@ -1613,10 +1613,10 @@ function BottomMenu() {
 
   const systemMenuPages = useMemo(() => [
     {
-      slug: "veterinaires",
-      label: "Vétérinaires",
-      href: "/veterinaires",
-      icon: "🩺",
+      slug: "alimentation",
+      label: "Alimentation",
+      href: "/alimentation",
+      icon: "🥣",
       sortOrder: 10,
     },
     {
@@ -1627,31 +1627,31 @@ function BottomMenu() {
       sortOrder: 20,
     },
     {
-      slug: "conseils-sante",
-      label: "Conseils santé",
-      href: "/conseils-sante",
-      icon: "❤️‍🩹",
-      sortOrder: 30,
-    },
-    {
-      slug: "les-veilleurs-de-kali",
-      label: "Les Veilleurs de Kali",
-      href: "/association/lesveilleursdekali",
-      icon: "🐾",
-      sortOrder: 40,
-    },
-    {
       slug: "boutique",
       label: "Boutique",
       href: "/boutique",
       icon: "🛍️",
+      sortOrder: 30,
+    },
+    {
+      slug: "conseils-sante",
+      label: "Conseils santé",
+      href: "/conseils-sante",
+      icon: "❤️‍🩹",
+      sortOrder: 40,
+    },
+    {
+      slug: "dons",
+      label: "Dons",
+      href: "/dons",
+      icon: "💝",
       sortOrder: 50,
     },
     {
-      slug: "toilettage",
-      label: "Toilettage",
-      href: "/toilettage",
-      icon: "✂️",
+      slug: "education",
+      label: "Éducation",
+      href: "/education",
+      icon: "🎓",
       sortOrder: 60,
     },
     {
@@ -1662,17 +1662,17 @@ function BottomMenu() {
       sortOrder: 70,
     },
     {
-      slug: "education",
-      label: "Éducation",
-      href: "/education",
-      icon: "🎓",
+      slug: "hommage",
+      label: "Hommage",
+      href: "/hommage",
+      icon: "🕯️",
       sortOrder: 80,
     },
     {
-      slug: "alimentation",
-      label: "Alimentation",
-      href: "/alimentation",
-      icon: "🥣",
+      slug: "les-veilleurs-de-kali",
+      label: "Les Veilleurs de Kali",
+      href: "/association/lesveilleursdekali",
+      icon: "🐾",
       sortOrder: 90,
     },
     {
@@ -1683,11 +1683,18 @@ function BottomMenu() {
       sortOrder: 100,
     },
     {
-      slug: "hommage",
-      label: "Hommage",
-      href: "/hommage",
-      icon: "🕯️",
+      slug: "toilettage",
+      label: "Toilettage",
+      href: "/toilettage",
+      icon: "✂️",
       sortOrder: 110,
+    },
+    {
+      slug: "veterinaires",
+      label: "Vétérinaires",
+      href: "/veterinaires",
+      icon: "🩺",
+      sortOrder: 120,
     },
   ], []);
 
@@ -1831,9 +1838,15 @@ function BottomMenu() {
       }) => page
     ),
     ...dynamicMenuPages,
-  ].sort(
-    (a, b) =>
-      a.sortOrder - b.sortOrder
+  ].sort((a, b) =>
+    a.label.localeCompare(
+      b.label,
+      "fr",
+      {
+        sensitivity: "base",
+        ignorePunctuation: true,
+      }
+    )
   );
 
   function closeMenu() {
