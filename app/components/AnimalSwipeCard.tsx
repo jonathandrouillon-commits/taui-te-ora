@@ -1076,7 +1076,7 @@ export default function AnimalSwipeCard({
           className="
             absolute
             inset-x-0
-            bottom-[138px]
+            bottom-[122px]
             z-40
             px-4
             text-white
@@ -1085,49 +1085,64 @@ export default function AnimalSwipeCard({
             sm:pb-6
           "
         >
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <h2
-                className="
-                  min-w-0
-                  truncate
-                  text-[30px]
-                  font-black
-                  leading-none
-                  tracking-tight
-                  drop-shadow-lg
-                  sm:text-[38px]
-                  md:text-[42px]
-                  lg:text-[46px]
-                "
-              >
-                {animalName}
-              </h2>
+          <div className="flex min-w-0 items-center gap-3 pt-2">
+            <h2
+              className="
+                min-w-0
+                truncate
+                text-[30px]
+                font-black
+                leading-none
+                tracking-tight
+                drop-shadow-lg
+                sm:text-[38px]
+                md:text-[42px]
+                lg:text-[46px]
+              "
+            >
+              {animalName}
+            </h2>
 
-              <button
-                type="button"
-                onClick={handleInformation}
-                className="
-                  flex
-                  h-10
-                  w-10
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#fffaf7]
-                  text-lg
-                  font-black
-                  text-[#60605d]
-                  shadow-lg
-                "
-                aria-label="Informations"
-              >
-                i
-              </button>
+            <button
+              type="button"
+              onClick={handleInformation}
+              className="
+                flex
+                h-10
+                w-10
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                bg-[#fffaf7]
+                text-lg
+                font-black
+                text-[#60605d]
+                shadow-lg
+              "
+              aria-label="Informations"
+            >
+              i
+            </button>
+          </div>
+
+          <div className="mt-3 flex min-w-0 items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {creatorName && (
+                <p
+                  className="
+                    truncate
+                    text-[15px]
+                    font-bold
+                    drop-shadow
+                  "
+                >
+                  {creatorName}
+                </p>
+              )}
             </div>
 
-            <div className="flex shrink-0 flex-col items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               {creatorId && (
                 <button
                   type="button"
@@ -1142,8 +1157,8 @@ export default function AnimalSwipeCard({
                   }
                   className="
                     flex
-                    h-[52px]
-                    w-[52px]
+                    h-[46px]
+                    w-[46px]
                     shrink-0
                     items-center
                     justify-center
@@ -1155,10 +1170,10 @@ export default function AnimalSwipeCard({
                     shadow-xl
                     transition
                     active:scale-95
-                    sm:h-[58px]
-                    sm:w-[58px]
-                    md:h-[62px]
-                    md:w-[62px]
+                    sm:h-[52px]
+                    sm:w-[52px]
+                    md:h-[56px]
+                    md:w-[56px]
                   "
                 >
                   {creatorLogo ? (
@@ -1221,21 +1236,6 @@ export default function AnimalSwipeCard({
               )}
             </div>
           </div>
-
-          {creatorName && (
-            <p
-              className="
-                mt-2
-                max-w-[82%]
-                truncate
-                text-[15px]
-                font-bold
-                drop-shadow
-              "
-            >
-              {creatorName}
-            </p>
-          )}
 
           {(city || island) && (
             <p
