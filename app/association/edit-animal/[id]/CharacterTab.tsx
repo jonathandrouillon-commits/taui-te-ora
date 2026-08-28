@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 type Props = {
   animal: Record<string, string | number | boolean | null | undefined>;
@@ -9,29 +9,29 @@ export default function CharacterTab({ animal, updateField }: Props) {
   return (
     <div className="space-y-5">
       <h2 className="text-3xl font-black text-[#064b42]">
-        CaractÃ¨re & comportement
+        Caractère & comportement
       </h2>
 
       <Textarea
-        label="Description du caractÃ¨re"
+        label="Description du caractère"
         value={String(animal.description_character || "")}
         onChange={(v) => updateField("description_character", v)}
       />
 
       <Textarea
-        label="CompatibilitÃ© chiens"
+        label="Compatibilité chiens"
         value={String(animal.compatible_chiens || "")}
         onChange={(v) => updateField("compatible_chiens", v)}
       />
 
       <Textarea
-        label="CompatibilitÃ© chats"
+        label="Compatibilité chats"
         value={String(animal.compatible_chats || "")}
         onChange={(v) => updateField("compatible_chats", v)}
       />
 
       <Textarea
-        label="CompatibilitÃ© enfants"
+        label="Compatibilité enfants"
         value={String(animal.compatible_enfants || "")}
         onChange={(v) => updateField("compatible_enfants", v)}
       />

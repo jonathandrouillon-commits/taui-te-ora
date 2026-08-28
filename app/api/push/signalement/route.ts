@@ -1,4 +1,4 @@
-﻿import {
+import {
   NextResponse,
 } from "next/server";
 
@@ -117,7 +117,7 @@ function configureWebPush() {
     !privateKey
   ) {
     throw new Error(
-      "ClÃ©s VAPID manquantes."
+      "Clés VAPID manquantes."
     );
   }
 
@@ -188,14 +188,14 @@ function buildBody(
   }
 
   let body =
-    parts.join(" â€¢ ");
+    parts.join(" • ");
 
   if (
     description.length >
     0
   ) {
     body +=
-      ` â€” ${description.join(
+      ` — ${description.join(
         ", "
       )}`;
   }
@@ -286,13 +286,13 @@ export async function POST(
 
     const isFound =
       signalement.type_signalement ===
-      "Animal trouvÃ©";
+      "Animal trouvé";
 
     /*
      * Les autres types :
-     * errant, blessÃ©,
-     * maltraitÃ©, etc.
-     * ne dÃ©clenchent pas
+     * errant, blessé,
+     * maltraité, etc.
+     * ne déclenchent pas
      * cette alerte.
      */
     if (
@@ -307,8 +307,8 @@ export async function POST(
     }
 
     /*
-     * EmpÃªche d'envoyer
-     * plusieurs fois le mÃªme
+     * Empêche d'envoyer
+     * plusieurs fois le même
      * signalement.
      */
     if (
@@ -357,8 +357,8 @@ export async function POST(
     }
 
     /*
-     * Une autre requÃªte a
-     * Ã©ventuellement dÃ©jÃ 
+     * Une autre requête a
+     * éventuellement déjà
      * pris en charge l'alerte.
      */
     if (
@@ -419,8 +419,8 @@ export async function POST(
 
     const title =
       isLost
-        ? "ðŸš¨ Animal perdu"
-        : "ðŸ¾ Animal trouvÃ©";
+        ? "🚨 Animal perdu"
+        : "🐾 Animal trouvé";
 
     const payload =
       JSON.stringify({
@@ -491,8 +491,8 @@ export async function POST(
           };
 
         /*
-         * Le tÃ©lÃ©phone ou
-         * navigateur a supprimÃ©
+         * Le téléphone ou
+         * navigateur a supprimé
          * l'abonnement.
          */
         if (

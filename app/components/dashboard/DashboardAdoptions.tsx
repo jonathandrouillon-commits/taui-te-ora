@@ -185,7 +185,7 @@ export default function DashboardAdoptions({
 
       if (!user) {
         alert(
-          "Vous devez être connecté."
+          "Vous devez �tre connect�."
         );
 
         return;
@@ -243,7 +243,7 @@ export default function DashboardAdoptions({
       0 ? (
         <div className="rounded-2xl bg-[#f8f4ec] p-5">
           <p className="text-[#6f5a47]">
-            Tu n&apos;as pas encore envoyé de demande d&apos;adoption.
+            Tu n&apos;as pas encore envoy� de demande d&apos;adoption.
           </p>
 
           <Link
@@ -272,10 +272,10 @@ export default function DashboardAdoptions({
                   animal
                     ?.animal_type ||
                   "Animal"
-                } · ${
+                } � ${
                   animal
                     ?.age_label ||
-                  "Âge non renseigné"
+                  "�ge non renseign�"
                 }`;
 
               const photos =
@@ -377,7 +377,7 @@ export default function DashboardAdoptions({
                           text-3xl
                         "
                       >
-                        🐾
+                        ??
                       </div>
                     )}
 
@@ -391,7 +391,7 @@ export default function DashboardAdoptions({
                       </p>
 
                       <p className="mt-1 text-sm text-[#6f5a47]">
-                        Demande envoyée le{" "}
+                        Demande envoy�e le{" "}
                         {formatDate(
                           request.created_at
                         )}
@@ -412,7 +412,7 @@ export default function DashboardAdoptions({
                             text-[#064b42]
                           "
                         >
-                          ❤️ Compatibilité{" "}
+                          ?? Compatibilit�{" "}
                           {
                             request.match_score
                           }
@@ -452,7 +452,7 @@ export default function DashboardAdoptions({
                             text-white
                           "
                         >
-                          💬 Messages
+                          ?? Messages
                         </Link>
                       )}
                     </div>
@@ -519,11 +519,11 @@ function AdoptionStatus({
     return (
       <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
         <div className="font-black text-orange-700">
-          🤝 Rencontre proposée
+          ?? Rencontre propos�e
         </div>
 
         <p className="mt-1 text-sm text-orange-700">
-          L&apos;association souhaite passer à l&apos;étape de la rencontre avec vous.
+          L&apos;association souhaite passer � l&apos;�tape de la rencontre avec vous.
         </p>
       </div>
     );
@@ -536,11 +536,11 @@ function AdoptionStatus({
     return (
       <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
         <div className="font-black text-green-700">
-          🎉 Adoption validée
+          ?? Adoption valid�e
         </div>
 
         <p className="mt-1 text-sm text-green-700">
-          Votre demande d&apos;adoption a été acceptée par l&apos;association.
+          Votre demande d&apos;adoption a �t� accept�e par l&apos;association.
         </p>
       </div>
     );
@@ -555,7 +555,7 @@ function AdoptionStatus({
     return (
       <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
         <div className="font-black text-red-700">
-          Adoption refusée
+          Adoption refus�e
         </div>
 
         <p className="mt-1 text-sm text-red-700">
@@ -572,7 +572,7 @@ function AdoptionStatus({
     return (
       <div className="mt-4 rounded-2xl bg-gray-100 p-4">
         <div className="font-black text-gray-600">
-          Demande annulée
+          Demande annul�e
         </div>
       </div>
     );
@@ -581,11 +581,11 @@ function AdoptionStatus({
   return (
     <div className="mt-4 rounded-2xl border border-orange-100 bg-[#fff8ea] p-4">
       <div className="font-black text-[#b87518]">
-        ⏳ Demande en attente
+        ? Demande en attente
       </div>
 
       <p className="mt-1 text-sm text-[#8a6a3c]">
-        L&apos;association étudie actuellement votre demande.
+        L&apos;association �tudie actuellement votre demande.
       </p>
     </div>
   );

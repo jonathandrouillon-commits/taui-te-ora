@@ -302,12 +302,12 @@ export default function AdoptantPublicProfilePage() {
         )
       ) {
         throw new Error(
-          "Vous n'êtes pas autorisé à consulter ce profil adoptant."
+          "Vous n'�tes pas autoris� � consulter ce profil adoptant."
         );
       }
 
       /* ---------------------------------------------------
-         VÉRIFIER QUE CET ADOPTANT A BIEN FAIT
+         V�RIFIER QUE CET ADOPTANT A BIEN FAIT
          UNE DEMANDE POUR UN ANIMAL DU COMPTE
       --------------------------------------------------- */
 
@@ -445,7 +445,7 @@ export default function AdoptantPublicProfilePage() {
 
       /* ---------------------------------------------------
          DERNIER QUESTIONNAIRE ADOPTANT
-         = MÊME SOURCE QUE /adoptant/questionnaire
+         = M�ME SOURCE QUE /adoptant/questionnaire
       --------------------------------------------------- */
 
       const {
@@ -492,7 +492,7 @@ export default function AdoptantPublicProfilePage() {
       );
 
       /* ---------------------------------------------------
-         ANIMAL CONCERNÉ
+         ANIMAL CONCERN�
       --------------------------------------------------- */
 
       if (
@@ -678,7 +678,7 @@ export default function AdoptantPublicProfilePage() {
           }
           className="mb-5 rounded-full bg-white px-5 py-3 font-black text-[#064b42] shadow"
         >
-          ← Retour
+          ? Retour
         </button>
 
         {/* =================================================
@@ -699,7 +699,7 @@ export default function AdoptantPublicProfilePage() {
               />
             ) : (
               <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#f8f4ec] text-5xl">
-                👤
+                ??
               </div>
             )}
 
@@ -721,16 +721,16 @@ export default function AdoptantPublicProfilePage() {
                     Boolean
                   )
                   .join(
-                    " · "
+                    " � "
                   ) ||
-                  "Localisation non renseignée"}
+                  "Localisation non renseign�e"}
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {typeof request.match_score ===
                   "number" && (
                   <span className="rounded-full bg-[#e8f5f1] px-4 py-2 text-sm font-black text-[#064b42]">
-                    ❤️ Compatibilité{" "}
+                    ?? Compatibilit�{" "}
                     {
                       request.match_score
                     }
@@ -757,7 +757,7 @@ export default function AdoptantPublicProfilePage() {
         </section>
 
         {/* =================================================
-            ANIMAL CONCERNÉ
+            ANIMAL CONCERN�
         ================================================== */}
 
         {animal && (
@@ -780,7 +780,7 @@ export default function AdoptantPublicProfilePage() {
                 />
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded-[18px] bg-white text-3xl">
-                  🐾
+                  ??
                 </div>
               )}
 
@@ -799,7 +799,7 @@ export default function AdoptantPublicProfilePage() {
                       Boolean
                     )
                     .join(
-                      " · "
+                      " � "
                     )}
                 </p>
               </div>
@@ -818,14 +818,14 @@ export default function AdoptantPublicProfilePage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Info
-              title="Âge"
+              title="�ge"
               value={formatAge(
                 profile.birth_date
               )}
             />
 
             <Info
-              title="Téléphone"
+              title="T�l�phone"
               value={
                 profile.phone
               }
@@ -850,7 +850,7 @@ export default function AdoptantPublicProfilePage() {
                   Boolean
                 )
                 .join(
-                  " · "
+                  " � "
                 )}
             />
           </div>
@@ -868,13 +868,13 @@ export default function AdoptantPublicProfilePage() {
               </h2>
 
               <p className="mt-1 text-sm text-[#6f5a47]">
-                Réponses actuellement enregistrées dans le profil adoptant.
+                R�ponses actuellement enregistr�es dans le profil adoptant.
               </p>
             </div>
 
             {questionnaire?.updated_at && (
               <span className="rounded-full bg-[#f8f4ec] px-4 py-2 text-xs font-bold text-[#6f5a47]">
-                Mis à jour le{" "}
+                Mis � jour le{" "}
                 {formatDateTime(
                   questionnaire.updated_at
                 )}
@@ -885,11 +885,11 @@ export default function AdoptantPublicProfilePage() {
           {!questionnaire ? (
             <div className="mt-5 rounded-[22px] bg-[#fff6e8] p-5">
               <p className="font-black text-[#a86517]">
-                Questionnaire récent non disponible
+                Questionnaire r�cent non disponible
               </p>
 
               <p className="mt-2 text-sm text-[#8c6b43]">
-                Aucun questionnaire n&apos;a été retrouvé dans la table questionnaires_adoption pour cet adoptant.
+                Aucun questionnaire n&apos;a �t� retrouv� dans la table questionnaires_adoption pour cet adoptant.
               </p>
             </div>
           ) : (
@@ -898,10 +898,10 @@ export default function AdoptantPublicProfilePage() {
 
               <QuestionBlock
                 number="1"
-                title="Expérience avec les animaux"
+                title="Exp�rience avec les animaux"
               >
                 <Answer
-                  label="Avez-vous déjà eu un animal ?"
+                  label="Avez-vous d�j� eu un animal ?"
                   value={
                     questionnaire.proprietaire_animal
                   }
@@ -916,7 +916,7 @@ export default function AdoptantPublicProfilePage() {
               >
                 <div className="grid gap-3 sm:grid-cols-3">
                   <CounterInfo
-                    icon="🐶"
+                    icon="??"
                     label="Chien(s)"
                     value={
                       questionnaire.animaux_chiens_count
@@ -924,7 +924,7 @@ export default function AdoptantPublicProfilePage() {
                   />
 
                   <CounterInfo
-                    icon="🐱"
+                    icon="??"
                     label="Chat(s)"
                     value={
                       questionnaire.animaux_chats_count
@@ -932,7 +932,7 @@ export default function AdoptantPublicProfilePage() {
                   />
 
                   <CounterInfo
-                    icon="🐾"
+                    icon="??"
                     label="Autre(s)"
                     value={
                       questionnaire.animaux_autres_count
@@ -941,7 +941,7 @@ export default function AdoptantPublicProfilePage() {
                 </div>
 
                 <Answer
-                  label="Résumé"
+                  label="R�sum�"
                   value={
                     animalCountLabel
                   }
@@ -956,7 +956,7 @@ export default function AdoptantPublicProfilePage() {
               >
                 <div className="grid gap-3 sm:grid-cols-3">
                   <CounterInfo
-                    icon="👶"
+                    icon="??"
                     label="Moins de 8 ans"
                     value={
                       questionnaire.enfants_moins_8_count
@@ -964,15 +964,15 @@ export default function AdoptantPublicProfilePage() {
                   />
 
                   <CounterInfo
-                    icon="🧒"
-                    label="8 à 14 ans"
+                    icon="??"
+                    label="8 � 14 ans"
                     value={
                       questionnaire.enfants_8_14_count
                     }
                   />
 
                   <CounterInfo
-                    icon="🧑"
+                    icon="??"
                     label="15 ans et +"
                     value={
                       questionnaire.enfants_15_plus_count
@@ -981,7 +981,7 @@ export default function AdoptantPublicProfilePage() {
                 </div>
 
                 <Answer
-                  label="Résumé"
+                  label="R�sum�"
                   value={
                     childrenLabel
                   }
@@ -1009,7 +1009,7 @@ export default function AdoptantPublicProfilePage() {
                 title="Temps seul"
               >
                 <Answer
-                  label="Temps pendant lequel l'animal sera généralement seul"
+                  label="Temps pendant lequel l'animal sera g�n�ralement seul"
                   value={
                     questionnaire.temps_seul
                   }
@@ -1023,7 +1023,7 @@ export default function AdoptantPublicProfilePage() {
                 title="Rythme de vie"
               >
                 <Answer
-                  label="Rythme souhaité avec l'animal"
+                  label="Rythme souhait� avec l'animal"
                   value={
                     questionnaire.rythme_vie
                   }
@@ -1033,26 +1033,26 @@ export default function AdoptantPublicProfilePage() {
               {/* 7-9 */}
 
               <QuestionBlock
-                number="7–9"
-                title="Préférences principales"
+                number="7�9"
+                title="Pr�f�rences principales"
               >
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Answer
-                    label="Âge recherché"
+                    label="�ge recherch�"
                     value={
                       questionnaire.age_recherche
                     }
                   />
 
                   <Answer
-                    label="Taille recherchée"
+                    label="Taille recherch�e"
                     value={
                       questionnaire.taille_recherche
                     }
                   />
 
                   <Answer
-                    label="Sexe recherché"
+                    label="Sexe recherch�"
                     value={
                       questionnaire.sexe_recherche
                     }
@@ -1075,28 +1075,28 @@ export default function AdoptantPublicProfilePage() {
                   />
 
                   <BooleanAnswer
-                    label="Traitement médical régulier"
+                    label="Traitement m�dical r�gulier"
                     value={
                       questionnaire.accepte_traitement
                     }
                   />
 
                   <BooleanAnswer
-                    label="Animal craintif / traumatisé"
+                    label="Animal craintif / traumatis�"
                     value={
                       questionnaire.accepte_craintif
                     }
                   />
 
                   <BooleanAnswer
-                    label="Éducation à poursuivre"
+                    label="�ducation � poursuivre"
                     value={
                       questionnaire.accepte_education
                     }
                   />
 
                   <BooleanAnswer
-                    label="Ouvert à en discuter"
+                    label="Ouvert � en discuter"
                     value={
                       questionnaire.accepte_accompagnement_discussion
                     }
@@ -1104,7 +1104,7 @@ export default function AdoptantPublicProfilePage() {
                 </div>
 
                 <Answer
-                  label="Résumé besoins spéciaux"
+                  label="R�sum� besoins sp�ciaux"
                   value={
                     specialNeeds
                   }
@@ -1115,18 +1115,18 @@ export default function AdoptantPublicProfilePage() {
 
               <QuestionBlock
                 number="+"
-                title="Informations complémentaires"
+                title="Informations compl�mentaires"
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Answer
-                    label="Où vivra principalement l'animal ?"
+                    label="O� vivra principalement l'animal ?"
                     value={
                       questionnaire.lieu_vie_animal
                     }
                   />
 
                   <Answer
-                    label="L'animal pourra accompagner régulièrement l'adoptant"
+                    label="L'animal pourra accompagner r�guli�rement l'adoptant"
                     value={
                       questionnaire.accompagne_regulierement
                     }
@@ -1140,14 +1140,14 @@ export default function AdoptantPublicProfilePage() {
                   />
 
                   <Answer
-                    label="Temps consacré à l'adaptation"
+                    label="Temps consacr� � l'adaptation"
                     value={
                       questionnaire.temps_adaptation
                     }
                   />
 
                   <Answer
-                    label="Gestion des difficultés comportementales"
+                    label="Gestion des difficult�s comportementales"
                     value={
                       questionnaire.gestion_difficulte
                     }
@@ -1155,7 +1155,7 @@ export default function AdoptantPublicProfilePage() {
                 </div>
 
                 <Answer
-                  label="Préférence particulière"
+                  label="Pr�f�rence particuli�re"
                   value={
                     questionnaire.preference_libre
                   }
@@ -1190,7 +1190,7 @@ function Info({
 
       <p className="mt-2 whitespace-pre-wrap font-semibold text-[#064b42]">
         {value ||
-          "Non renseigné"}
+          "Non renseign�"}
       </p>
     </div>
   );
@@ -1242,7 +1242,7 @@ function Answer({
 
       <p className="mt-2 font-bold text-[#064b42]">
         {value ||
-          "Non renseigné"}
+          "Non renseign�"}
       </p>
     </div>
   );
@@ -1299,8 +1299,8 @@ function BooleanAnswer({
     >
       <p className="text-sm font-black text-[#064b42]">
         {value
-          ? "✓ "
-          : "— "}
+          ? "? "
+          : "� "}
         {label}
       </p>
 
@@ -1312,8 +1312,8 @@ function BooleanAnswer({
         }`}
       >
         {value
-          ? "Accepté"
-          : "Non sélectionné"}
+          ? "Accept�"
+          : "Non s�lectionn�"}
       </p>
     </div>
   );
@@ -1331,7 +1331,7 @@ function formatAge(
   if (
     !birthDate
   ) {
-    return "Non renseigné";
+    return "Non renseign�";
   }
 
   const birth =
@@ -1344,7 +1344,7 @@ function formatAge(
       birth.getTime()
     )
   ) {
-    return "Non renseigné";
+    return "Non renseign�";
   }
 
   const today =
@@ -1421,21 +1421,21 @@ function getStatusLabel(
     ).toLowerCase()
   ) {
     case "meeting":
-      return "🤝 Rencontre";
+      return "?? Rencontre";
 
     case "accepted":
-      return "✅ Adoption validée";
+      return "? Adoption valid�e";
 
     case "rejected":
     case "refused":
-      return "❌ Demande refusée";
+      return "? Demande refus�e";
 
     case "cancelled":
-      return "Demande annulée";
+      return "Demande annul�e";
 
     case "pending":
     default:
-      return "⏳ En attente";
+      return "? En attente";
   }
 }
 
@@ -1495,7 +1495,7 @@ function getAnimalCountLabel(
   if (
     !questionnaire
   ) {
-    return "Non renseigné";
+    return "Non renseign�";
   }
 
   const labels:
@@ -1559,7 +1559,7 @@ function getChildrenLabel(
   if (
     !questionnaire
   ) {
-    return "Non renseigné";
+    return "Non renseign�";
   }
 
   const labels:
@@ -1595,7 +1595,7 @@ function getChildrenLabel(
     eightTo14 > 0
   ) {
     labels.push(
-      `${eightTo14} de 8 à 14 ans`
+      `${eightTo14} de 8 � 14 ans`
     );
   }
 
@@ -1623,7 +1623,7 @@ function getSpecialNeeds(
   if (
     !questionnaire
   ) {
-    return "Non renseigné";
+    return "Non renseign�";
   }
 
   const values:
@@ -1641,7 +1641,7 @@ function getSpecialNeeds(
     questionnaire.accepte_traitement
   ) {
     values.push(
-      "Traitement médical"
+      "Traitement m�dical"
     );
   }
 
@@ -1649,7 +1649,7 @@ function getSpecialNeeds(
     questionnaire.accepte_craintif
   ) {
     values.push(
-      "Animal craintif / traumatisé"
+      "Animal craintif / traumatis�"
     );
   }
 
@@ -1657,7 +1657,7 @@ function getSpecialNeeds(
     questionnaire.accepte_education
   ) {
     values.push(
-      "Éducation à poursuivre"
+      "�ducation � poursuivre"
     );
   }
 
@@ -1665,7 +1665,7 @@ function getSpecialNeeds(
     questionnaire.accepte_accompagnement_discussion
   ) {
     values.push(
-      "Ouvert à en discuter"
+      "Ouvert � en discuter"
     );
   }
 
@@ -1673,6 +1673,6 @@ function getSpecialNeeds(
     values.join(
       ", "
     ) ||
-    "Aucun besoin particulier sélectionné"
+    "Aucun besoin particulier s�lectionn�"
   );
 }

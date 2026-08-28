@@ -1,4 +1,4 @@
-﻿import type { User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
 export type AnimalPhoto = {
@@ -84,8 +84,8 @@ export type Animal = {
   } | null;
 
   /*
-   * Anciens champs conservâ”œÂ®s
-   * pour compatibilitâ”œÂ® avec les
+   * Anciens champs conserv├®s
+   * pour compatibilit├® avec les
    * anciennes pages.
    */
   nom?: string | null;
@@ -142,7 +142,7 @@ const PUBLISHER_ROLES: AppRole[] = [
 ];
 
 /* =========================================================
-   PROFILS CRâ”œÃ«ATEURS
+   PROFILS CR├ëATEURS
 ========================================================= */
 
 async function attachOwnerProfiles(
@@ -212,7 +212,7 @@ async function attachOwnerProfiles(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECTâ”œÃ«
+   UTILISATEUR CONNECT├ë
 ========================================================= */
 
 async function getCurrentUser() {
@@ -227,7 +227,7 @@ async function getCurrentUser() {
     !user
   ) {
     throw new Error(
-      "Utilisateur non connectâ”œÂ®."
+      "Utilisateur non connect├®."
     );
   }
 
@@ -235,7 +235,7 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   Vâ”œÃ«RIFICATION DROIT DE PUBLICATION
+   V├ëRIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
@@ -296,7 +296,7 @@ async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
 }
 
 /* =========================================================
-   VÃ‰RIFICATION DROIT DE PUBLICATION
+   VÉRIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getPublisherUser() {
@@ -308,7 +308,7 @@ async function getPublisherUser() {
 
   if (!access.canPublishAnimals) {
     throw new Error(
-      "Votre compte ne permet pas actuellement de crÃ©er des fiches d'animaux."
+      "Votre compte ne permet pas actuellement de créer des fiches d'animaux."
     );
   }
 
@@ -319,7 +319,7 @@ async function getPublisherUser() {
 }
 
 /* =========================================================
-   NOM DU CRâ”œÃ«ATEUR / STRUCTURE
+   NOM DU CR├ëATEUR / STRUCTURE
 ========================================================= */
 
 function getPublisherName(
@@ -483,7 +483,7 @@ async function getById(
 }
 
 /* =========================================================
-   ANIMAUX PUBLIâ”œÃ«S POUR SWIPE CARD
+   ANIMAUX PUBLI├ëS POUR SWIPE CARD
 ========================================================= */
 
 async function getPublishedWithPhotos() {
@@ -551,7 +551,7 @@ async function getAllWithPhotos() {
 }
 
 /* =========================================================
-   CRâ”œÃ«ER UN ANIMAL
+   CR├ëER UN ANIMAL
 ========================================================= */
 
 async function create(
@@ -571,10 +571,10 @@ async function create(
    * IMPORTANT :
    *
    * owner_id est TOUJOURS
-   * l'utilisateur connectâ”œÂ®.
+   * l'utilisateur connect├®.
    *
    * On ignore volontairement
-   * animal.owner_id envoyâ”œÂ®
+   * animal.owner_id envoy├®
    * depuis le navigateur.
    */
   const animalToCreate = {
@@ -585,9 +585,9 @@ async function create(
 
     /*
      * Si association_name
-     * n'a pas â”œÂ®tâ”œÂ® fourni,
+     * n'a pas ├®t├® fourni,
      * on utilise automatiquement
-     * le nom du crâ”œÂ®ateur.
+     * le nom du cr├®ateur.
      *
      * Association :
      * Les Veilleurs de Kali
@@ -595,10 +595,10 @@ async function create(
      * Refuge :
      * SIGFA
      *
-     * Bâ”œÂ®nâ”œÂ®vole :
+     * B├®n├®vole :
      * Jonathan Drouillon
      *
-     * Fourriâ”œÂ¿re :
+     * Fourri├¿re :
      * nom de la structure
      */
     association_name:
@@ -677,7 +677,7 @@ async function update(
 }
 
 /* =========================================================
-   PUBLIER / Dâ”œÃ«PUBLIER
+   PUBLIER / D├ëPUBLIER
 ========================================================= */
 
 async function togglePublished(

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 type AnimalValue =
   | string
@@ -32,7 +32,7 @@ export default function GeneralTab({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-black text-[#064b42]">
-          Informations générales
+          Informations g�n�rales
         </h2>
 
         <p className="mt-1 text-sm text-[#746c64]">
@@ -43,7 +43,7 @@ export default function GeneralTab({
 
       <div className="grid gap-5 md:grid-cols-2">
         <Input
-          label="Nom de l’animal"
+          label="Nom de l�animal"
           value={String(
             animal.animal_name ?? ""
           )}
@@ -56,7 +56,7 @@ export default function GeneralTab({
         />
 
         <Select
-          label="Type d’animal"
+          label="Type d�animal"
           value={String(
             animal.animal_type ?? ""
           )}
@@ -69,7 +69,7 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "Sélectionner",
+              label: "S�lectionner",
             },
             {
               value: "Chien",
@@ -117,11 +117,11 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "Sélectionner",
+              label: "S�lectionner",
             },
             {
-              value: "Mâle",
-              label: "Mâle",
+              value: "M�le",
+              label: "M�le",
             },
             {
               value: "Femelle",
@@ -131,7 +131,7 @@ export default function GeneralTab({
         />
 
         <Input
-          label="Âge"
+          label="�ge"
           value={String(
             animal.age_label ?? ""
           )}
@@ -158,7 +158,7 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "Sélectionner",
+              label: "S�lectionner",
             },
             {
               value: "Petit",

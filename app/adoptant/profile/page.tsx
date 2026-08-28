@@ -139,7 +139,7 @@ export default function AdoptantProfilePage() {
 
       if (error) throw error;
 
-      alert("Profil mis à jour avec succès.");
+      alert("Profil mis � jour avec succ�s.");
       router.push("/profile");
     } catch (error: any) {
       alert(error.message || "Impossible d'enregistrer le profil.");
@@ -175,12 +175,12 @@ export default function AdoptantProfilePage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Input label="Prénom" value={form.first_name} onChange={(v) => updateField("first_name", v)} />
+            <Input label="Pr�nom" value={form.first_name} onChange={(v) => updateField("first_name", v)} />
             <Input label="Nom" value={form.last_name} onChange={(v) => updateField("last_name", v)} />
             <Input label="Date de naissance" type="date" value={form.birth_date} onChange={(v) => updateField("birth_date", v)} />
-            <Input label="Téléphone" value={form.phone} onChange={(v) => updateField("phone", v)} />
+            <Input label="T�l�phone" value={form.phone} onChange={(v) => updateField("phone", v)} />
             <Input label="Email" value={form.email} onChange={(v) => updateField("email", v)} />
-            <Input label="Île" value={form.island} onChange={(v) => updateField("island", v)} />
+            <Input label="�le" value={form.island} onChange={(v) => updateField("island", v)} />
             <Input label="Ville" value={form.city} onChange={(v) => updateField("city", v)} />
             <Input label="Code postal" value={form.postal_code} onChange={(v) => updateField("postal_code", v)} />
           </div>
@@ -197,14 +197,14 @@ export default function AdoptantProfilePage() {
 
           <div className="grid gap-5 md:grid-cols-2">
             <Select
-              label="Expérience avec les animaux"
+              label="Exp�rience avec les animaux"
               value={form.adopter_experience}
               onChange={(v) => updateField("adopter_experience", v)}
-              options={["Débutant", "Intermédiaire", "Expérimenté"]}
+              options={["D�butant", "Interm�diaire", "Exp�riment�"]}
             />
 
             <Select
-              label="Avez-vous déjà des animaux ?"
+              label="Avez-vous d�j� des animaux ?"
               value={form.current_animals}
               onChange={(v) => updateField("current_animals", v)}
               options={["Non", "Oui, chien", "Oui, chat", "Oui, plusieurs animaux"]}
@@ -221,68 +221,68 @@ export default function AdoptantProfilePage() {
               label="Avez-vous des enfants ?"
               value={form.children_age}
               onChange={(v) => updateField("children_age", v)}
-              options={["Non", "Oui, moins de 6 ans", "Oui, 6 à 12 ans", "Oui, plus de 12 ans"]}
+              options={["Non", "Oui, moins de 6 ans", "Oui, 6 � 12 ans", "Oui, plus de 12 ans"]}
             />
 
             <Select
-              label="Jardin / extérieur"
+              label="Jardin / ext�rieur"
               value={form.garden_type}
               onChange={(v) => updateField("garden_type", v)}
-              options={["Pas de jardin", "Petit jardin", "Grand jardin", "Terrain clôturé"]}
+              options={["Pas de jardin", "Petit jardin", "Grand jardin", "Terrain cl�tur�"]}
             />
 
             <Select
-              label="Âge souhaité"
+              label="�ge souhait�"
               value={form.ideal_age}
               onChange={(v) => updateField("ideal_age", v)}
-              options={["Aucune préférence", "Chiot", "Jeune", "Adulte", "Senior"]}
+              options={["Aucune pr�f�rence", "Chiot", "Jeune", "Adulte", "Senior"]}
             />
 
             <Select
-              label="Sexe souhaité"
+              label="Sexe souhait�"
               value={form.ideal_sex}
               onChange={(v) => updateField("ideal_sex", v)}
-              options={["Aucune préférence", "Mâle", "Femelle"]}
+              options={["Aucune pr�f�rence", "M�le", "Femelle"]}
             />
 
             <Select
-              label="Taille souhaitée"
+              label="Taille souhait�e"
               value={form.ideal_size}
               onChange={(v) => updateField("ideal_size", v)}
-              options={["Aucune préférence", "Petit", "Moyen", "Grand"]}
+              options={["Aucune pr�f�rence", "Petit", "Moyen", "Grand"]}
             />
 
             <Select
-              label="Activité souhaitée"
+              label="Activit� souhait�e"
               value={form.ideal_activity}
               onChange={(v) => updateField("ideal_activity", v)}
-              options={["Calme", "Modérée", "Active", "Très active"]}
+              options={["Calme", "Mod�r�e", "Active", "Tr�s active"]}
             />
 
             <Input
-              label="Race souhaitée"
+              label="Race souhait�e"
               value={form.ideal_breed}
               onChange={(v) => updateField("ideal_breed", v)}
             />
 
             <Select
-              label="Animal hypoallergénique"
+              label="Animal hypoallerg�nique"
               value={form.hypoallergenic}
               onChange={(v) => updateField("hypoallergenic", v)}
-              options={["Pas de préférence", "Oui", "Non"]}
+              options={["Pas de pr�f�rence", "Oui", "Non"]}
             />
 
             <Select
-              label="Propreté"
+              label="Propret�"
               value={form.cleanliness}
               onChange={(v) => updateField("cleanliness", v)}
-              options={["Pas de préférence", "Déjà propre", "Peut être éduqué"]}
+              options={["Pas de pr�f�rence", "D�j� propre", "Peut �tre �duqu�"]}
             />
           </div>
 
           <div className="mt-5">
             <Textarea
-              label="Besoins particuliers acceptés"
+              label="Besoins particuliers accept�s"
               value={form.special_needs}
               onChange={(v) => updateField("special_needs", v)}
             />
@@ -303,7 +303,7 @@ export default function AdoptantProfilePage() {
             onClick={() => router.push("/profile")}
             className="rounded-full bg-white px-8 py-4 font-bold text-[#064b42] shadow"
           >
-            Retour à mon espace
+            Retour � mon espace
           </button>
         </div>
       </div>
@@ -354,7 +354,7 @@ function Select({
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
       >
-        <option value="">Sélectionner</option>
+        <option value="">S�lectionner</option>
         {options.map((option) => (
           <option key={option} value={option}>
             {option}

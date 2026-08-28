@@ -14,7 +14,7 @@ export default function PreviewTab({ animal, photos }: Props) {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black text-[#064b42]">
-        Aperçu de la fiche
+        Aper�u de la fiche
       </h2>
 
       <div className="overflow-hidden rounded-3xl bg-white shadow-xl">
@@ -36,22 +36,22 @@ export default function PreviewTab({ animal, photos }: Props) {
           </div>
 
           <p className="text-gray-600">
-            {animal.breed || "Race non renseignée"} —{" "}
-            {animal.sex || "Sexe non renseigné"} —{" "}
-            {animal.age_label || "Âge non renseigné"}
+            {animal.breed || "Race non renseign�e"} �{" "}
+            {animal.sex || "Sexe non renseign�"} �{" "}
+            {animal.age_label || "�ge non renseign�"}
           </p>
 
           <p className="text-gray-700">
             {animal.description_character ||
-              "Aucune description du caractère pour le moment."}
+              "Aucune description du caract�re pour le moment."}
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {animal.vaccinated && <Badge label="Vacciné" />}
-            {animal.sterilized && <Badge label="Stérilisé" />}
-            {animal.microchipped && <Badge label="Identifié" />}
+            {animal.vaccinated && <Badge label="Vaccin�" />}
+            {animal.sterilized && <Badge label="St�rilis�" />}
+            {animal.microchipped && <Badge label="Identifi�" />}
             {animal.is_published ? (
-              <Badge label="Publié" />
+              <Badge label="Publi�" />
             ) : (
               <Badge label="Brouillon" />
             )}

@@ -47,7 +47,7 @@ function validateFile(
     )
   ) {
     throw new Error(
-      `Le fichier "${file.name}" n'est pas autorisé. Formats acceptés : JPG, PNG et WEBP.`
+      `Le fichier "${file.name}" n'est pas autoris�. Formats accept�s : JPG, PNG et WEBP.`
     );
   }
 
@@ -64,7 +64,7 @@ function validateFile(
     MAX_FILE_SIZE
   ) {
     throw new Error(
-      `Le fichier "${file.name}" dépasse la taille maximale de 8 Mo.`
+      `Le fichier "${file.name}" d�passe la taille maximale de 8 Mo.`
     );
   }
 }
@@ -82,7 +82,7 @@ function buildSafeFilePath(
     !extension
   ) {
     throw new Error(
-      "Type de fichier non autorisé."
+      "Type de fichier non autoris�."
     );
   }
 
@@ -288,7 +288,7 @@ export default function SignalementPage() {
               "",
 
             html:
-              '<div style="font-size:34px;">📍</div>',
+              '<div style="font-size:34px;">??</div>',
 
             iconSize: [
               34,
@@ -412,7 +412,7 @@ export default function SignalementPage() {
           "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
           {
             attribution:
-              "© OpenStreetMap",
+              "� OpenStreetMap",
           }
         ).addTo(
           map
@@ -484,7 +484,7 @@ export default function SignalementPage() {
         caughtError instanceof
           Error
           ? caughtError.message
-          : "Fichier non autorisé."
+          : "Fichier non autoris�."
       );
     }
   }
@@ -500,7 +500,7 @@ export default function SignalementPage() {
       !navigator.geolocation
     ) {
       alert(
-        "La géolocalisation n'est pas disponible."
+        "La g�olocalisation n'est pas disponible."
       );
 
       return;
@@ -527,7 +527,7 @@ export default function SignalementPage() {
       },
       () => {
         alert(
-          "Impossible de récupérer votre position."
+          "Impossible de r�cup�rer votre position."
         );
 
         setGpsLoading(
@@ -550,7 +550,7 @@ export default function SignalementPage() {
         !form.city
       ) {
         alert(
-          "Merci de remplir le type de signalement, l'animal, l'île et la commune."
+          "Merci de remplir le type de signalement, l'animal, l'�le et la commune."
         );
 
         return;
@@ -570,11 +570,11 @@ export default function SignalementPage() {
 
       if (
         form.type_signalement ===
-          "Animal trouvé" &&
+          "Animal trouv�" &&
         !form.found_date
       ) {
         alert(
-          "Merci d'indiquer la date approximative de découverte."
+          "Merci d'indiquer la date approximative de d�couverte."
         );
 
         return;
@@ -700,7 +700,7 @@ export default function SignalementPage() {
 
             found_at:
               form.type_signalement ===
-                "Animal trouvé" &&
+                "Animal trouv�" &&
               form.found_date
                 ? new Date(
                     `${form.found_date}T${
@@ -716,7 +716,7 @@ export default function SignalementPage() {
               form.situation,
 
             description:
-              `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
+              `${form.description}\n\nPr�cisions adresse : ${form.address_details}`,
 
             reporter_name:
               form.anonymous
@@ -844,14 +844,14 @@ export default function SignalementPage() {
       }
 
       /*
-       * Matching automatique perdu <-> trouvé.
+       * Matching automatique perdu <-> trouv�.
        * Une erreur de matching ne doit jamais annuler le signalement.
        */
       if (
         signalement?.id &&
         (
           form.type_signalement === "Animal perdu" ||
-          form.type_signalement === "Animal trouvé"
+          form.type_signalement === "Animal trouv�"
         )
       ) {
         try {
@@ -901,7 +901,7 @@ export default function SignalementPage() {
        * Notifications push :
        * uniquement pour
        * Animal perdu et
-       * Animal trouvé.
+       * Animal trouv�.
        *
        * Une erreur de push
        * ne doit jamais
@@ -913,7 +913,7 @@ export default function SignalementPage() {
           form.type_signalement ===
             "Animal perdu" ||
           form.type_signalement ===
-            "Animal trouvé"
+            "Animal trouv�"
         )
       ) {
         try {
@@ -966,7 +966,7 @@ export default function SignalementPage() {
       }
 
       alert(
-        "Signalement envoyé avec succès."
+        "Signalement envoy� avec succ�s."
       );
 
       router.push(
@@ -1011,7 +1011,7 @@ export default function SignalementPage() {
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h1 className="text-3xl font-black text-[#064b42] sm:text-4xl">
-            🚨 Signaler un animal
+            ?? Signaler un animal
           </h1>
         </div>
 
@@ -1019,7 +1019,7 @@ export default function SignalementPage() {
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            Informations générales
+            Informations g�n�rales
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -1039,10 +1039,10 @@ export default function SignalementPage() {
               options={[
                 "Animal errant",
                 "Animal perdu",
-                "Animal trouvé",
-                "Animal blessé",
-                "Animal maltraité",
-                "Animal décédé",
+                "Animal trouv�",
+                "Animal bless�",
+                "Animal maltrait�",
+                "Animal d�c�d�",
                 "Autre",
               ]}
             />
@@ -1098,13 +1098,13 @@ export default function SignalementPage() {
               }
               options={[
                 "Inconnu",
-                "Mâle",
+                "M�le",
                 "Femelle",
               ]}
             />
 
             <Input
-              label="Âge estimé"
+              label="�ge estim�"
               value={
                 form.age_label
               }
@@ -1149,7 +1149,7 @@ export default function SignalementPage() {
             />
 
             {(form.type_signalement === "Animal perdu" ||
-              form.type_signalement === "Animal trouvé") && (
+              form.type_signalement === "Animal trouv�") && (
               <>
                 <Input
                   label="Couleur du collier"
@@ -1158,7 +1158,7 @@ export default function SignalementPage() {
                 />
 
                 <Input
-                  label="Numéro d'identification (puce ou tatouage)"
+                  label="Num�ro d'identification (puce ou tatouage)"
                   value={form.identification_number}
                   onChange={(value) => updateField("identification_number", value)}
                 />
@@ -1178,7 +1178,7 @@ export default function SignalementPage() {
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <h2 className="text-2xl font-black text-[#064b42]">
-              📍 Localisation
+              ?? Localisation
             </h2>
 
             <button
@@ -1193,14 +1193,14 @@ export default function SignalementPage() {
             >
               {gpsLoading
                 ? "Localisation..."
-                : "📍 Utiliser ma position"}
+                : "?? Utiliser ma position"}
             </button>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
               <Input
-                label="Île"
+                label="�le"
                 value={
                   form.island
                 }
@@ -1230,7 +1230,7 @@ export default function SignalementPage() {
               />
 
               <Input
-                label="Adresse ou repère"
+                label="Adresse ou rep�re"
                 value={
                   form.address
                 }
@@ -1245,7 +1245,7 @@ export default function SignalementPage() {
               />
 
               <Textarea
-                label="Informations complémentaires"
+                label="Informations compl�mentaires"
                 value={
                   form.address_details
                 }
@@ -1305,13 +1305,13 @@ export default function SignalementPage() {
           "Animal perdu" && (
           <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
             <h2 className="mb-2 text-2xl font-black text-[#064b42]">
-              🕒 Disparition
+              ?? Disparition
             </h2>
 
             <p className="mb-6 text-sm text-[#6f5a47]">
-              Indiquez le moment où
-              l&apos;animal a été vu
-              pour la dernière fois.
+              Indiquez le moment o�
+              l&apos;animal a �t� vu
+              pour la derni�re fois.
               Une heure approximative
               suffit.
             </p>
@@ -1388,7 +1388,7 @@ export default function SignalementPage() {
             </label>
 
             <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
-              Le point GPS placé sur
+              Le point GPS plac� sur
               la carte ci-dessus
               correspond au{" "}
               <strong>
@@ -1401,24 +1401,24 @@ export default function SignalementPage() {
         )}
 
         {form.type_signalement ===
-          "Animal trouvé" && (
+          "Animal trouv�" && (
           <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
             <h2 className="mb-2 text-2xl font-black text-[#064b42]">
-              🕒 Découverte de
+              ?? D�couverte de
               l&apos;animal
             </h2>
 
             <p className="mb-6 text-sm text-[#6f5a47]">
-              Indiquez le moment où
-              l&apos;animal a été
-              découvert. Une heure
+              Indiquez le moment o�
+              l&apos;animal a �t�
+              d�couvert. Une heure
               approximative suffit.
             </p>
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
                 <label className="mb-2 block font-bold text-[#064b42]">
-                  Date de découverte
+                  Date de d�couverte
                 </label>
 
                 <input
@@ -1487,11 +1487,11 @@ export default function SignalementPage() {
             </label>
 
             <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
-              Le point GPS placé sur
+              Le point GPS plac� sur
               la carte ci-dessus sera
-              utilisé comme{" "}
+              utilis� comme{" "}
               <strong>
-                lieu de découverte de
+                lieu de d�couverte de
                 l&apos;animal
               </strong>
               .
@@ -1501,7 +1501,7 @@ export default function SignalementPage() {
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            État de l&apos;animal
+            �tat de l&apos;animal
           </h2>
 
           <Textarea
@@ -1521,7 +1521,7 @@ export default function SignalementPage() {
 
           <div className="mt-5">
             <Textarea
-              label="Description complète"
+              label="Description compl�te"
               value={
                 form.description
               }
@@ -1539,7 +1539,7 @@ export default function SignalementPage() {
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            📸 Photos
+            ?? Photos
           </h2>
 
           <input
@@ -1554,10 +1554,10 @@ export default function SignalementPage() {
 
           <p className="mt-3 text-sm text-gray-500">
             Vous pouvez ajouter
-            jusqu&apos;à 5 photos
+            jusqu&apos;� 5 photos
             (JPG, PNG ou WEBP), 8 Mo
             maximum par photo, pour
-            aider à identifier
+            aider � identifier
             l&apos;animal.
           </p>
 
@@ -1575,7 +1575,7 @@ export default function SignalementPage() {
                   >
                     <img
                       src={URL.createObjectURL(file)}
-                      alt={`Aperçu ${index + 1}`}
+                      alt={`Aper�u ${index + 1}`}
                       className="h-48 w-full object-cover"
                     />
 
@@ -1606,7 +1606,7 @@ export default function SignalementPage() {
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            Vos coordonnées
+            Vos coordonn�es
           </h2>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -1629,7 +1629,7 @@ export default function SignalementPage() {
             />
 
             <Input
-              label="Téléphone"
+              label="T�l�phone"
               value={
                 form.reporter_phone
               }
@@ -1683,8 +1683,8 @@ export default function SignalementPage() {
                 }
               />
 
-              Je souhaite être
-              recontacté
+              Je souhaite �tre
+              recontact�
             </label>
 
             <label className="flex gap-3 font-semibold">
@@ -1723,7 +1723,7 @@ export default function SignalementPage() {
           >
             {loading
               ? "Envoi..."
-              : "🚨 Envoyer le signalement"}
+              : "?? Envoyer le signalement"}
           </button>
 
           <button
@@ -1830,7 +1830,7 @@ function Select({
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
       >
         <option value="">
-          Sélectionner
+          S�lectionner
         </option>
 
         {options.map(

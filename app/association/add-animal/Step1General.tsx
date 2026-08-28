@@ -1,5 +1,5 @@
 const ages = [
-  "Inférieur à 1 mois",
+  "Inf�rieur � 1 mois",
   "1 mois",
   "2 mois",
   "3 mois",
@@ -46,7 +46,7 @@ type StepProps = {
 export default function Step1General({ animal, updateField }: StepProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-black">Informations générales</h2>
+      <h2 className="text-3xl font-black">Informations g�n�rales</h2>
 
       <div className="grid gap-5 md:grid-cols-2">
 
@@ -62,7 +62,7 @@ export default function Step1General({ animal, updateField }: StepProps) {
           value={String(animal.animal_type ?? "")}
           onChange={(e) => updateField("animal_type", e.target.value)}
         >
-          <option value="">Catégorie de l'animal</option>
+          <option value="">Cat�gorie de l'animal</option>
           <option value="Chien">Chien</option>
           <option value="Chat">Chat</option>
           <option value="Cheval">Cheval</option>
@@ -85,7 +85,7 @@ export default function Step1General({ animal, updateField }: StepProps) {
         >
           <option value="">Sexe</option>
           <option value="Femelle">Femelle</option>
-          <option value="Mâle">Mâle</option>
+          <option value="M�le">M�le</option>
           <option value="Inconnu">Inconnu</option>
         </select>
 
@@ -94,7 +94,7 @@ export default function Step1General({ animal, updateField }: StepProps) {
           value={String(animal.age_label ?? "")}
           onChange={(e) => updateField("age_label", e.target.value)}
         >
-          <option value="">Âge de l'animal</option>
+          <option value="">�ge de l'animal</option>
 
           {ages.map((age) => (
             <option key={age} value={age}>
@@ -112,7 +112,7 @@ export default function Step1General({ animal, updateField }: StepProps) {
           <option value="Petit">Petit</option>
           <option value="Moyen">Moyen</option>
           <option value="Grand">Grand</option>
-          <option value="Hors catégorie">Hors catégorie</option>
+          <option value="Hors cat�gorie">Hors cat�gorie</option>
         </select>
 
         <select

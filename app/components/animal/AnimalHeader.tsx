@@ -36,17 +36,17 @@ export default function AnimalHeader({
       </h1>
 
       <p className="mt-2 text-gray-600">
-        {type || "Animal"} · {sexe || "Sexe non renseigné"} ·{" "}
-        {age || "Âge non renseigné"}
+        {type || "Animal"} � {sexe || "Sexe non renseign�"} �{" "}
+        {age || "�ge non renseign�"}
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-        <Info label="Race" value={race || "Non renseignée"} />
-        <Info label="Taille" value={taille || "Non renseignée"} />
-        <Info label="Poids" value={poids || "Non renseigné"} />
-        <Info label="Île" value={ile || "Non renseignée"} />
-        <Info label="Localisation" value={localisation || "Non renseignée"} />
-        <Info label="Association" value={association || "Non renseignée"} />
+        <Info label="Race" value={race || "Non renseign�e"} />
+        <Info label="Taille" value={taille || "Non renseign�e"} />
+        <Info label="Poids" value={poids || "Non renseign�"} />
+        <Info label="�le" value={ile || "Non renseign�e"} />
+        <Info label="Localisation" value={localisation || "Non renseign�e"} />
+        <Info label="Association" value={association || "Non renseign�e"} />
       </div>
     </div>
   );

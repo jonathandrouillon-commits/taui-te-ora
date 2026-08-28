@@ -1,4 +1,4 @@
-﻿import { supabase } from "./supabase";
+import { supabase } from "./supabase";
 
 /* =========================================================
    TYPES
@@ -110,7 +110,7 @@ export type Animal = {
   On garde le nom Like pour ne pas casser
   les composants existants du dashboard.
 
-  MAIS les donnÃ©es sont maintenant lues
+  MAIS les données sont maintenant lues
   depuis la table "favorites".
 */
 
@@ -209,7 +209,7 @@ export function isQuestionnaireFilled(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECTÃ‰
+   UTILISATEUR CONNECTÉ
 ========================================================= */
 
 export async function getCurrentUser() {
@@ -224,7 +224,7 @@ export async function getCurrentUser() {
 }
 
 /* =========================================================
-   RÃ‰CUPÃ‰RER LE PROFIL
+   RÉCUPÉRER LE PROFIL
 ========================================================= */
 
 export async function getProfile(
@@ -343,7 +343,7 @@ export async function getProfile(
 }
 
 /* =========================================================
-   COUPS DE CÅ’UR
+   COUPS DE CŒUR
 ========================================================= */
 
 export async function getLikes(
@@ -566,7 +566,7 @@ export async function getNotifications(
 }
 
 /* =========================================================
-   DÃ‰CONNEXION
+   DÉCONNEXION
 ========================================================= */
 
 export async function logoutUser() {
