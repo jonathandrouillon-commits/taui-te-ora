@@ -10,6 +10,13 @@ type DashboardNotificationsProps = {
   notifications: Notification[];
 };
 
+type ExtendedNotification =
+  Notification & {
+    signalement_id?: string | null;
+    animal_id?: string | null;
+    adoption_request_id?: string | null;
+  };
+
 export default function DashboardNotifications({
   notifications,
 }: DashboardNotificationsProps) {
@@ -29,9 +36,17 @@ export default function DashboardNotifications({
         <div className="space-y-4">
           {notifications.map(
             (notification) => {
-              const hasConversation =
+              const item =
+                notification as ExtendedNotification;
+
+              const destination =
+                getNotificationDestination(
+                  item
+                );
+
+              const isClickable =
                 Boolean(
-                  notification.conversation_id
+                  destination
                 );
 
               const content = (
@@ -41,8 +56,8 @@ export default function DashboardNotifications({
                       ? "border-[#eadfce] bg-[#f8f4ec]"
                       : "border-[#9c7b54] bg-[#fff8ea]"
                   } ${
-                    hasConversation
-                      ? "cursor-pointer hover:shadow-md"
+                    isClickable
+                      ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
                       : ""
                   }`}
                 >
@@ -64,9 +79,11 @@ export default function DashboardNotifications({
                         )}
                       </p>
 
-                      {hasConversation && (
+                      {isClickable && (
                         <p className="mt-3 text-sm font-black text-[#064b42]">
-                          💬 Lire le message →
+                          {getOpenLabel(
+                            item
+                          )}
                         </p>
                       )}
                     </div>
@@ -81,12 +98,16 @@ export default function DashboardNotifications({
               );
 
               if (
-                notification.conversation_id
+                destination
               ) {
                 return (
                   <Link
-                    key={notification.id}
-                    href={`/messages/${notification.conversation_id}`}
+                    key={
+                      notification.id
+                    }
+                    href={
+                      destination
+                    }
                     className="block"
                   >
                     {content}
@@ -95,7 +116,11 @@ export default function DashboardNotifications({
               }
 
               return (
-                <div key={notification.id}>
+                <div
+                  key={
+                    notification.id
+                  }
+                >
                   {content}
                 </div>
               );
@@ -105,6 +130,81 @@ export default function DashboardNotifications({
       )}
     </section>
   );
+}
+
+function getNotificationDestination(
+  notification:
+    ExtendedNotification
+) {
+  /*
+   * Signalement animal
+   * perdu / trouvé.
+   */
+  if (
+    notification.signalement_id
+  ) {
+    return `/signalement/${notification.signalement_id}`;
+  }
+
+  /*
+   * Conversation / message.
+   */
+  if (
+    notification.conversation_id
+  ) {
+    return `/messages/${notification.conversation_id}`;
+  }
+
+  /*
+   * Demande adoption.
+   */
+  if (
+    notification.adoption_request_id
+  ) {
+    return `/association/demandes/${notification.adoption_request_id}`;
+  }
+
+  /*
+   * Animal adoption.
+   */
+  if (
+    notification.animal_id
+  ) {
+    return `/animal/${notification.animal_id}`;
+  }
+
+  return null;
+}
+
+function getOpenLabel(
+  notification:
+    ExtendedNotification
+) {
+  if (
+    notification.signalement_id
+  ) {
+    return "🐾 Voir le signalement →";
+  }
+
+  if (
+    notification.conversation_id
+  ) {
+    return "💬 Lire le message →";
+  }
+
+  if (
+    notification.adoption_request_id
+  ) {
+    return "📋 Voir la demande →";
+  }
+
+  if (
+    notification.animal_id
+  ) {
+    return "🐾 Voir l’animal →";
+  }
+
+  return "";
 }
 
 function formatDate(

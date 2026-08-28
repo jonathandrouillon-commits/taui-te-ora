@@ -25,6 +25,7 @@ type NotificationRow = {
   conversation_id?: string | null;
   animal_id?: string | null;
   adoption_request_id?: string | null;
+  signalement_id?: string | null;
 
   type?: string | null;
 };
@@ -341,32 +342,101 @@ export default function NotificationBell() {
     );
   }
 
-  function openToast() {
+  async function openToast() {
+    if (!toast) {
+      return;
+    }
+
+    const currentToast =
+      toast;
+
+    setToast(null);
+
     if (
-      toast?.conversation_id
+      currentToast.is_read !==
+      true
+    ) {
+      const {
+        error,
+      } =
+        await supabase
+          .from(
+            "notifications"
+          )
+          .update({
+            is_read:
+              true,
+
+            read_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            "id",
+            currentToast.id
+          );
+
+      if (error) {
+        console.error(
+          "Impossible de marquer la notification comme lue :",
+          error
+        );
+      } else {
+        setUnreadCount(
+          (
+            previous
+          ) =>
+            Math.max(
+              0,
+              previous - 1
+            )
+        );
+      }
+    }
+
+    if (
+      currentToast.signalement_id
     ) {
       router.push(
-        `/messages/${toast.conversation_id}`
+        `/signalement/${currentToast.signalement_id}`
       );
-
-      setToast(null);
 
       return;
     }
 
     if (
-      toast?.animal_id
+      currentToast.conversation_id
     ) {
       router.push(
-        `/animal/${toast.animal_id}`
+        `/messages/${currentToast.conversation_id}`
       );
-
-      setToast(null);
 
       return;
     }
 
-    openNotifications();
+    if (
+      currentToast.adoption_request_id
+    ) {
+      router.push(
+        `/association/demandes/${currentToast.adoption_request_id}`
+      );
+
+      return;
+    }
+
+    if (
+      currentToast.animal_id
+    ) {
+      router.push(
+        `/animal/${currentToast.animal_id}`
+      );
+
+      return;
+    }
+
+    router.push(
+      "/notifications"
+    );
   }
 
   if (!userId) {
