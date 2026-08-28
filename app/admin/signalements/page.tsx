@@ -8,6 +8,8 @@ import {
 } from "react";
 
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   CheckCircle2,
   Clock3,
@@ -17,6 +19,7 @@ import {
   Phone,
   Save,
   Search,
+  Trash2,
   User,
 } from "lucide-react";
 
@@ -45,6 +48,7 @@ type Signalement = {
   reporter_phone: string | null;
   reporter_email: string | null;
   status: string | null;
+  archived_at: string | null;
 };
 
 const STATUS_OPTIONS: {
@@ -207,6 +211,16 @@ export default function AdminSignalementsPage() {
     >(null);
 
   const [
+    actionId,
+    setActionId,
+  ] = useState<string | null>(null);
+
+  const [
+    expandedIds,
+    setExpandedIds,
+  ] = useState<Record<string, boolean>>({});
+
+  const [
     selectedStatuses,
     setSelectedStatuses,
   ] =
@@ -309,7 +323,8 @@ export default function AdminSignalementsPage() {
               reporter_name,
               reporter_phone,
               reporter_email,
-              status
+              status,
+              archived_at
             `
           )
           .order(
@@ -383,17 +398,23 @@ export default function AdminSignalementsPage() {
 
   const filteredSignalements =
     useMemo(() => {
-      if (
-        !statusFilter
-      ) {
-        return signalements;
+      if (statusFilter === "archive") {
+        return signalements.filter(
+          (item) => Boolean(item.archived_at)
+        );
       }
 
-      return signalements.filter(
+      const active = signalements.filter(
+        (item) => !item.archived_at
+      );
+
+      if (!statusFilter) {
+        return active;
+      }
+
+      return active.filter(
         (item) =>
-          normalizeStatus(
-            item.status
-          ) ===
+          normalizeStatus(item.status) ===
           statusFilter
       );
     }, [
@@ -404,26 +425,23 @@ export default function AdminSignalementsPage() {
   const counts =
     useMemo(() => {
       const result = {
-        total:
-          signalements.length,
+        total: 0,
         nouveau: 0,
         en_cours: 0,
         animal_retrouve: 0,
         cloture: 0,
+        archive: 0,
       };
 
-      for (
-        const item of
-        signalements
-      ) {
-        const status =
-          normalizeStatus(
-            item.status
-          );
+      for (const item of signalements) {
+        if (item.archived_at) {
+          result.archive += 1;
+          continue;
+        }
 
-        result[
-          status
-        ] += 1;
+        result.total += 1;
+        const status = normalizeStatus(item.status);
+        result[status] += 1;
       }
 
       return result;
@@ -583,6 +601,89 @@ export default function AdminSignalementsPage() {
     }
   }
 
+  async function archiveSignalement(item: Signalement) {
+    if (!window.confirm("Archiver ce signalement ? Il restera disponible dans le filtre « Archivés ».")) return;
+
+    try {
+      setActionId(item.id);
+      const archivedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from("signalements")
+        .update({ archived_at: archivedAt })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      setSignalements((previous) =>
+        previous.map((signalement) =>
+          signalement.id === item.id
+            ? { ...signalement, archived_at: archivedAt }
+            : signalement
+        )
+      );
+    } catch (error: unknown) {
+      console.error("Erreur archivage signalement :", error);
+      alert(error instanceof Error ? error.message : "Impossible d'archiver le signalement.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function restoreSignalement(item: Signalement) {
+    try {
+      setActionId(item.id);
+      const { error } = await supabase
+        .from("signalements")
+        .update({ archived_at: null })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      setSignalements((previous) =>
+        previous.map((signalement) =>
+          signalement.id === item.id
+            ? { ...signalement, archived_at: null }
+            : signalement
+        )
+      );
+    } catch (error: unknown) {
+      console.error("Erreur désarchivage signalement :", error);
+      alert(error instanceof Error ? error.message : "Impossible de désarchiver le signalement.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function deleteSignalement(item: Signalement) {
+    if (!window.confirm("Supprimer définitivement ce signalement ? Cette action est irréversible.")) return;
+
+    try {
+      setActionId(item.id);
+      const { error } = await supabase
+        .from("signalements")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      setSignalements((previous) =>
+        previous.filter((signalement) => signalement.id !== item.id)
+      );
+    } catch (error: unknown) {
+      console.error("Erreur suppression signalement :", error);
+      alert(error instanceof Error ? error.message : "Impossible de supprimer le signalement.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  function toggleDetails(id: string) {
+    setExpandedIds((previous) => ({
+      ...previous,
+      [id]: !previous[id],
+    }));
+  }
+
   return (
     <main
       className="
@@ -667,7 +768,7 @@ export default function AdminSignalementsPage() {
             grid
             gap-4
             sm:grid-cols-2
-            lg:grid-cols-5
+            lg:grid-cols-6
           "
         >
           <Stat
@@ -708,6 +809,12 @@ export default function AdminSignalementsPage() {
               counts.cloture
             }
             className="border-[#064b42] bg-[#064b42] text-white"
+          />
+
+          <Stat
+            label="Archivés"
+            value={counts.archive}
+            className="border-gray-300 bg-gray-100 text-gray-700"
           />
         </section>
 
@@ -770,6 +877,10 @@ export default function AdminSignalementsPage() {
                   value=""
                 >
                   Tous les signalements
+                </option>
+
+                <option value="archive">
+                  Archivés
                 </option>
 
                 {STATUS_OPTIONS.map(
@@ -876,6 +987,14 @@ export default function AdminSignalementsPage() {
                       currentStatus
                     );
 
+                  const isArchived = Boolean(item.archived_at);
+                  const isTreated =
+                    currentStatus === "animal_retrouve" ||
+                    currentStatus === "cloture";
+                  const isCompact =
+                    isArchived ||
+                    (isTreated && !expandedIds[item.id]);
+
                   return (
                     <article
                       key={
@@ -885,9 +1004,9 @@ export default function AdminSignalementsPage() {
                         rounded-[2rem]
                         border-2
                         bg-white
-                        p-6
-                        shadow-lg
-                        ${colors.card}
+                        ${isCompact ? "p-4" : "p-6"}
+                        ${isCompact ? "shadow-sm" : "shadow-lg"}
+                        ${isArchived ? "border-gray-300 opacity-90" : colors.card}
                       `}
                     >
                       <div
@@ -976,7 +1095,7 @@ export default function AdminSignalementsPage() {
                               "Île inconnue"}
                           </p>
 
-                          {item.address && (
+                          {!isCompact && item.address && (
                             <p
                               className="
                                 mt-1
@@ -991,6 +1110,7 @@ export default function AdminSignalementsPage() {
                           )}
                         </div>
 
+                        {!isCompact && !isArchived && (
                         <div
                           className="
                             w-full
@@ -1161,8 +1281,10 @@ export default function AdminSignalementsPage() {
                             </p>
                           )}
                         </div>
+                        )}
                       </div>
 
+                      {!isCompact && (
                       <div
                         className="
                           mt-6
@@ -1249,6 +1371,51 @@ export default function AdminSignalementsPage() {
                               : ""
                           }
                         />
+                      </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {isTreated && !isArchived && (
+                          <button
+                            type="button"
+                            onClick={() => toggleDetails(item.id)}
+                            className="rounded-full border border-[#d8ccc0] bg-white px-4 py-2 text-sm font-black text-[#064b42]"
+                          >
+                            {isCompact ? "Voir les détails" : "Réduire"}
+                          </button>
+                        )}
+
+                        {!isArchived ? (
+                          <button
+                            type="button"
+                            disabled={actionId === item.id}
+                            onClick={() => archiveSignalement(item)}
+                            className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-black text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                          >
+                            <Archive size={16} />
+                            Archiver
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={actionId === item.id}
+                            onClick={() => restoreSignalement(item)}
+                            className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-black text-green-800 hover:bg-green-100 disabled:opacity-50"
+                          >
+                            <ArchiveRestore size={16} />
+                            Désarchiver
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={actionId === item.id}
+                          onClick={() => deleteSignalement(item)}
+                          className="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <Trash2 size={16} />
+                          Supprimer
+                        </button>
                       </div>
                     </article>
                   );
