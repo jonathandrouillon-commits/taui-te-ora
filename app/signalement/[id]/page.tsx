@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -86,6 +87,19 @@ type SignalementMatch = {
   match_score: number;
   match_level?: string | null;
   match_reasons?: string[] | null;
+};
+
+type PhotoMatchAnalysis = {
+  analyzed: boolean;
+  photo_score: number | null;
+  confidence: "faible" | "moyenne" | "forte" | null;
+  same_animal_possible: boolean | null;
+  best_pair?: {
+    source_index: number | null;
+    candidate_index: number | null;
+  };
+  reasons: string[];
+  error?: string | null;
 };
 
 type Profile = {
@@ -190,6 +204,9 @@ export default function SignalementDetailPage() {
 
   const [matches, setMatches] = useState<SignalementMatch[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [photoAnalyses, setPhotoAnalyses] = useState<Record<string, PhotoMatchAnalysis>>({});
+  const [photoAnalysisLoading, setPhotoAnalysisLoading] = useState<Record<string, boolean>>({});
+  const analyzedMatchIdsRef = useRef<Set<string>>(new Set());
 
   const [
     resolutionNote,
@@ -986,9 +1003,92 @@ export default function SignalementDetailPage() {
 
   useEffect(() => {
     if (signalementId) {
+      analyzedMatchIdsRef.current.clear();
+      setPhotoAnalyses({});
+      setPhotoAnalysisLoading({});
       queueMicrotask(() => void loadData());
     }
   }, [signalementId, loadData]);
+
+  useEffect(() => {
+    if (!signalementId || matches.length === 0) return;
+
+    // On limite l'analyse OpenAI aux 5 meilleurs candidats ayant déjà
+    // un score de données significatif afin de maîtriser le coût API.
+    const candidates = matches
+      .filter((match) => Number(match.match_score || 0) >= 55)
+      .slice(0, 5)
+      .filter((match) => !analyzedMatchIdsRef.current.has(match.signalement_id));
+
+    if (candidates.length === 0) return;
+
+    candidates.forEach((match) => {
+      analyzedMatchIdsRef.current.add(match.signalement_id);
+      setPhotoAnalysisLoading((current) => ({
+        ...current,
+        [match.signalement_id]: true,
+      }));
+
+      void fetch("/api/matching/photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceSignalementId: signalementId,
+          candidateSignalementId: match.signalement_id,
+        }),
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload?.error || "Analyse photo indisponible.");
+          }
+
+          const analysis: PhotoMatchAnalysis = {
+            analyzed: Boolean(payload?.analyzed),
+            photo_score:
+              typeof payload?.photo_score === "number" ? payload.photo_score : null,
+            confidence:
+              payload?.confidence === "faible" ||
+              payload?.confidence === "moyenne" ||
+              payload?.confidence === "forte"
+                ? payload.confidence
+                : null,
+            same_animal_possible:
+              typeof payload?.same_animal_possible === "boolean"
+                ? payload.same_animal_possible
+                : null,
+            best_pair: payload?.best_pair,
+            reasons: Array.isArray(payload?.reasons) ? payload.reasons : [],
+            error: null,
+          };
+
+          setPhotoAnalyses((current) => ({
+            ...current,
+            [match.signalement_id]: analysis,
+          }));
+        })
+        .catch((error: unknown) => {
+          console.error("Erreur analyse photo :", error);
+          setPhotoAnalyses((current) => ({
+            ...current,
+            [match.signalement_id]: {
+              analyzed: false,
+              photo_score: null,
+              confidence: null,
+              same_animal_possible: null,
+              reasons: [],
+              error: error instanceof Error ? error.message : "Analyse photo indisponible.",
+            },
+          }));
+        })
+        .finally(() => {
+          setPhotoAnalysisLoading((current) => ({
+            ...current,
+            [match.signalement_id]: false,
+          }));
+        });
+    });
+  }, [matches, signalementId]);
 
   if (
     loading
@@ -1221,11 +1321,26 @@ export default function SignalementDetailPage() {
             ) : (
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {matches.map((match) => {
-                  const score = Number(match.match_score || 0);
-                  const level = getMatchLevel(match.match_level, score);
+                  const dataScore = Number(match.match_score || 0);
+                  const photoAnalysis = photoAnalyses[match.signalement_id];
+                  const photoScore =
+                    photoAnalysis?.analyzed && typeof photoAnalysis.photo_score === "number"
+                      ? photoAnalysis.photo_score
+                      : null;
+                  const identificationMatch =
+                    String(match.match_level || "").trim().toLowerCase() === "identification" ||
+                    (Array.isArray(match.match_reasons) &&
+                      match.match_reasons.includes("Même numéro d'identification"));
+                  const score = identificationMatch
+                    ? Math.max(99, dataScore)
+                    : photoScore === null
+                      ? dataScore
+                      : Math.round(dataScore * 0.75 + photoScore * 0.25);
+                  const level = getMatchLevel(identificationMatch ? "identification" : null, score);
                   const reasons = Array.isArray(match.match_reasons)
                     ? match.match_reasons
                     : [];
+                  const photoLoading = Boolean(photoAnalysisLoading[match.signalement_id]);
 
                   return (
                     <article
@@ -1258,6 +1373,25 @@ export default function SignalementDetailPage() {
                             </span>
                           </div>
 
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-black">
+                            <div className="rounded-2xl bg-white px-3 py-2 text-[#6f5a47]">
+                              📋 Données : {dataScore}%
+                            </div>
+                            <div className="rounded-2xl bg-white px-3 py-2 text-[#6f5a47]">
+                              {photoLoading
+                                ? "📷 Analyse des photos..."
+                                : photoScore !== null
+                                  ? `📷 Photos : ${photoScore}%`
+                                  : "📷 Photos : non analysées"}
+                            </div>
+                          </div>
+
+                          {photoAnalysis?.error && (
+                            <p className="mt-2 text-xs font-bold text-[#9c7b54]">
+                              Analyse photo temporairement indisponible. Le score des données reste utilisé.
+                            </p>
+                          )}
+
                           <h3 className="mt-3 text-lg font-black text-[#064b42]">
                             {match.animal_name || "Nom inconnu"}
                           </h3>
@@ -1282,6 +1416,24 @@ export default function SignalementDetailPage() {
                                   ✓ {reason}
                                 </span>
                               ))}
+                            </div>
+                          )}
+
+                          {photoScore !== null && photoAnalysis?.reasons?.length > 0 && (
+                            <div className="mt-3 rounded-2xl bg-white p-3">
+                              <p className="text-xs font-black uppercase tracking-wide text-[#b58b5b]">
+                                📷 Analyse visuelle
+                              </p>
+                              <div className="mt-2 space-y-1">
+                                {photoAnalysis.reasons.map((reason, index) => (
+                                  <p
+                                    key={`${match.signalement_id}-photo-${index}`}
+                                    className="text-xs font-semibold text-[#064b42]"
+                                  >
+                                    ✓ {reason}
+                                  </p>
+                                ))}
+                              </div>
                             </div>
                           )}
 
@@ -1748,6 +1900,13 @@ export default function SignalementDetailPage() {
 
 function getMatchLevel(level?: string | null, score = 0) {
   const normalized = String(level || "").trim().toLowerCase();
+
+  if (normalized === "identification") {
+    return {
+      label: "Identification correspondante",
+      classes: "bg-green-800 text-white",
+    };
+  }
 
   if (normalized === "tres_forte" || score >= 85) {
     return {

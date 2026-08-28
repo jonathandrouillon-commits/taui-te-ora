@@ -173,6 +173,12 @@ export default function SignalementPage() {
 
       breed: "",
 
+      collar_color: "",
+
+      distinctive_features: "",
+
+      identification_number: "",
+
       island: "",
 
       city: "",
@@ -452,31 +458,27 @@ export default function SignalementPage() {
             []
         );
 
-      if (
-        selectedFiles.length >
-        MAX_FILES
-      ) {
+      selectedFiles.forEach(
+        validateFile
+      );
+
+      if (files.length + selectedFiles.length > MAX_FILES) {
         throw new Error(
           `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
         );
       }
 
-      selectedFiles.forEach(
-        validateFile
-      );
+      setFiles((previousFiles) => [
+        ...previousFiles,
+        ...selectedFiles,
+      ]);
 
-      setFiles(
-        selectedFiles
-      );
+      event.target.value = "";
     } catch (
       caughtError
     ) {
       event.target.value =
         "";
-
-      setFiles(
-        []
-      );
 
       alert(
         caughtError instanceof
@@ -485,6 +487,12 @@ export default function SignalementPage() {
           : "Fichier non autorisé."
       );
     }
+  }
+
+  function removeFile(indexToRemove: number) {
+    setFiles((previousFiles) =>
+      previousFiles.filter((_, index) => index !== indexToRemove)
+    );
   }
 
   function useMyLocation() {
@@ -589,8 +597,25 @@ export default function SignalementPage() {
         data: {
           user,
         },
+        error: authError,
       } =
         await supabase.auth.getUser();
+
+      if (authError) {
+        console.error(
+          "ERREUR AUTH SIGNALEMENT :",
+          authError
+        );
+
+        throw new Error(
+          `Session Supabase invalide : ${authError.message}`
+        );
+      }
+
+      console.log(
+        "USER SIGNALEMENT :",
+        user?.id || null
+      );
 
       const {
         data:
@@ -626,6 +651,15 @@ export default function SignalementPage() {
 
             breed:
               form.breed,
+
+            collar_color:
+              form.collar_color.trim() || null,
+
+            distinctive_features:
+              form.distinctive_features.trim() || null,
+
+            identification_number:
+              form.identification_number.trim() || null,
 
             island:
               form.island,
@@ -928,13 +962,31 @@ export default function SignalementPage() {
         "/"
       );
     } catch (
-      caughtError
+      caughtError: any
     ) {
+      console.error(
+        "ERREUR COMPLETE SIGNALEMENT :",
+        caughtError
+      );
+
+      const message =
+        caughtError?.message ||
+        caughtError?.error_description ||
+        caughtError?.details ||
+        caughtError?.hint ||
+        (typeof caughtError === "string"
+          ? caughtError
+          : (() => {
+              try {
+                return JSON.stringify(caughtError);
+              } catch {
+                return "";
+              }
+            })());
+
       alert(
-        caughtError instanceof
-          Error
-          ? caughtError.message
-          : "Erreur lors de l'envoi."
+        message ||
+          "Erreur lors de l'envoi."
       );
     } finally {
       setLoading(
@@ -1084,6 +1136,31 @@ export default function SignalementPage() {
                 )
               }
             />
+
+            {(form.type_signalement === "Animal perdu" ||
+              form.type_signalement === "Animal trouvé") && (
+              <>
+                <Input
+                  label="Couleur du collier"
+                  value={form.collar_color}
+                  onChange={(value) => updateField("collar_color", value)}
+                />
+
+                <Input
+                  label="Numéro d'identification (puce ou tatouage)"
+                  value={form.identification_number}
+                  onChange={(value) => updateField("identification_number", value)}
+                />
+
+                <div className="md:col-span-2">
+                  <Textarea
+                    label="Signes particuliers"
+                    value={form.distinctive_features}
+                    onChange={(value) => updateField("distinctive_features", value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -1483,24 +1560,32 @@ export default function SignalementPage() {
                 ) => (
                   <div
                     key={`${file.name}-${index}`}
-                    className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] p-4"
+                    className="overflow-hidden rounded-2xl border border-[#eadfce] bg-[#faf7f2]"
                   >
-                    <p className="break-all text-sm font-semibold text-[#064b42]">
-                      {
-                        file.name
-                      }
-                    </p>
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Aperçu ${index + 1}`}
+                      className="h-48 w-full object-cover"
+                    />
 
-                    <p className="mt-1 text-xs text-gray-500">
-                      {(
-                        file.size /
-                        1024 /
-                        1024
-                      ).toFixed(
-                        2
-                      )}{" "}
-                      Mo
-                    </p>
+                    <div className="p-4">
+                      <p className="break-all text-sm font-semibold text-[#064b42]">
+                        {file.name}
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} Mo
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        disabled={loading}
+                        className="mt-3 rounded-full bg-red-50 px-4 py-2 text-sm font-bold text-red-600 disabled:opacity-50"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </div>
                 )
               )}
