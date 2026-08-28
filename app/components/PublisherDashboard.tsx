@@ -12,6 +12,7 @@ export type PublisherRole =
   | "association"
   | "refuge"
   | "fourriere"
+  | "sigfa"
   | "benevole";
 
 type Profile = {
@@ -89,8 +90,9 @@ type DashboardData = {
 
 const ROLE_LABELS: Record<PublisherRole, string> = {
   association: "Association",
-  refuge: "Refuge / SIGFA",
+  refuge: "Refuge",
   fourriere: "Fourrière",
+  sigfa: "SIGFA",
   benevole: "Bénévole indépendant",
 };
 
@@ -132,11 +134,19 @@ export default function PublisherDashboard({
       setLoading(true);
 
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: sessionData,
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (userError) throw userError;
+      if (sessionError) {
+        console.error(
+          "Erreur récupération session :",
+          sessionError
+        );
+      }
+
+      const user =
+        sessionData.session?.user;
 
       if (!user) {
         router.replace(
@@ -1442,6 +1452,47 @@ export default function PublisherDashboard({
           <DashboardMessages />
         </div>
 
+        {/* =====================================================
+            RESEAU D'AIDE / SOS
+            Un seul bloc commun à Association, Refuge,
+            Fourrière, SIGFA et Bénévole.
+        ====================================================== */}
+
+        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                Entraide
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black">
+                🤝 Réseau d’aide
+              </h2>
+
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-[#6f5a47]">
+                Consultez les personnes disponibles par île, commune et type d’aide,
+                et accédez aux SOS du réseau TAUI TE ORA.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/reseau-aide"
+                className="rounded-full bg-[#064b42] px-5 py-2.5 text-sm font-black text-white shadow transition hover:bg-[#08695d]"
+              >
+                Voir le réseau d’aide
+              </Link>
+
+              <Link
+                href="/sos-aide"
+                className="rounded-full bg-[#df8995] px-5 py-2.5 text-sm font-black text-white shadow transition hover:bg-[#d87584]"
+              >
+                🚨 SOS
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1481,6 +1532,9 @@ function getPublisherDestination(
 
     case "fourriere":
       return "/fourriere/dashboard";
+
+    case "sigfa":
+      return "/sigfa/dashboard";
 
     case "benevole":
       return "/benevole/dashboard";

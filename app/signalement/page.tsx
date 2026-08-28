@@ -810,6 +810,49 @@ export default function SignalementPage() {
       }
 
       /*
+       * Matching automatique perdu <-> trouvé.
+       * Une erreur de matching ne doit jamais annuler le signalement.
+       */
+      if (
+        signalement?.id &&
+        (
+          form.type_signalement === "Animal perdu" ||
+          form.type_signalement === "Animal trouvé"
+        )
+      ) {
+        try {
+          const matchingResponse = await fetch(
+            "/api/matching/signalement",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                signalementId: signalement.id,
+              }),
+            }
+          );
+
+          if (!matchingResponse.ok) {
+            const matchingResult = await matchingResponse
+              .json()
+              .catch(() => null);
+
+            console.error(
+              "Matching signalement :",
+              matchingResult
+            );
+          }
+        } catch (matchingError) {
+          console.error(
+            "Matching signalement :",
+            matchingError
+          );
+        }
+      }
+
+      /*
        * Notifications push :
        * uniquement pour
        * Animal perdu et

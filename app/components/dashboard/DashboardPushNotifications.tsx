@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 type PushState =
   | "loading"
@@ -162,10 +163,22 @@ export default function DashboardPushNotifications() {
         );
       }
 
+      const {
+        data: sessionData,
+      } = await supabase.auth.getSession();
+
+      const accessToken =
+        sessionData.session?.access_token || "";
+
       const response = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(accessToken
+            ? {
+                Authorization: `Bearer ${accessToken}`,
+              }
+            : {}),
         },
         body: JSON.stringify({
           endpoint: subscription.endpoint,
@@ -173,6 +186,7 @@ export default function DashboardPushNotifications() {
           auth: json.keys.auth,
           alertLost: true,
           alertFound: true,
+          alertSos: true,
         }),
       });
 
@@ -232,31 +246,11 @@ export default function DashboardPushNotifications() {
         const json = subscription.toJSON();
 
         if (json.keys?.p256dh && json.keys?.auth) {
-          const response = await fetch("/api/push/subscribe", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              endpoint: subscription.endpoint,
-              p256dh: json.keys.p256dh,
-              auth: json.keys.auth,
-              alertLost: false,
-              alertFound: false,
-            }),
-          });
-
-          if (!response.ok) {
-            const result = await response
-              .json()
-              .catch(() => null);
-
-            throw new Error(
-              result?.error ||
-                "Impossible de désactiver les notifications."
-            );
-          }
-
+          /*
+           * On désabonne le navigateur.
+           * L'ancien abonnement devenu invalide sera ensuite
+           * supprimé automatiquement lors d'un envoi push (404/410).
+           */
           await subscription.unsubscribe();
         }
       }

@@ -19,6 +19,7 @@ type SubscribeBody = {
 
   alertLost?: boolean;
   alertFound?: boolean;
+  alertSos?: boolean;
 };
 
 function getAdmin() {
@@ -46,12 +47,34 @@ function getAdmin() {
       auth: {
         persistSession:
           false,
-
         autoRefreshToken:
           false,
       },
     }
   );
+}
+
+function getBearerToken(
+  request: Request
+) {
+  const header =
+    request.headers.get(
+      "authorization"
+    ) || "";
+
+  if (
+    !header
+      .toLowerCase()
+      .startsWith(
+        "bearer "
+      )
+  ) {
+    return "";
+  }
+
+  return header
+    .slice(7)
+    .trim();
 }
 
 export async function POST(
@@ -104,6 +127,14 @@ export async function POST(
         body.alertFound
       );
 
+    const alertSos =
+      body.alertSos ===
+      undefined
+        ? true
+        : Boolean(
+            body.alertSos
+          );
+
     if (
       !endpoint ||
       !p256dh ||
@@ -122,7 +153,8 @@ export async function POST(
 
     if (
       !alertLost &&
-      !alertFound
+      !alertFound &&
+      !alertSos
     ) {
       return NextResponse.json(
         {
@@ -154,6 +186,49 @@ export async function POST(
     const supabase =
       getAdmin();
 
+    /*
+     * On rattache l'abonnement push au profil connecté.
+     * C'est indispensable pour envoyer un SOS seulement
+     * aux personnes compatibles.
+     */
+    let userId:
+      string | null =
+      null;
+
+    const token =
+      getBearerToken(
+        request
+      );
+
+    if (token) {
+      const {
+        data:
+          userData,
+        error:
+          userError,
+      } =
+        await supabase
+          .auth
+          .getUser(
+            token
+          );
+
+      if (
+        userError
+      ) {
+        console.error(
+          "Token push invalide :",
+          userError
+        );
+      } else {
+        userId =
+          userData
+            .user
+            ?.id ||
+          null;
+      }
+    }
+
     const {
       error,
     } =
@@ -164,16 +239,20 @@ export async function POST(
         .upsert(
           {
             endpoint,
-
             p256dh,
-
             auth,
+
+            user_id:
+              userId,
 
             alert_lost:
               alertLost,
 
             alert_found:
               alertFound,
+
+            alert_sos:
+              alertSos,
 
             updated_at:
               new Date()
@@ -207,9 +286,14 @@ export async function POST(
       {
         ok: true,
 
-        alertLost,
+        userLinked:
+          Boolean(
+            userId
+          ),
 
+        alertLost,
         alertFound,
+        alertSos,
       },
       {
         status: 200,

@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  Bell,
   CheckCircle2,
   Clock3,
   MapPin,
@@ -37,9 +38,29 @@ type HelpSos = {
   urgency: Urgency;
   status: SosStatus;
   animal_id: string | null;
+  animal_type?: string | null;
+  animals_count?: number | null;
+  push_sent_at?: string | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+};
+
+type MatchingHelper = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  organization_name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  island?: string | null;
+  city?: string | null;
+  help_notes?: string | null;
+  foster_capacity?: number | null;
+  foster_duration?: string | null;
+  foster_accepts_dogs?: boolean | null;
+  foster_accepts_cats?: boolean | null;
+  help_has_transport?: boolean | null;
 };
 
 const HELP_TYPES: Array<{
@@ -98,6 +119,13 @@ export default function HelpSosPage() {
   const [message, setMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [matchingHelpers, setMatchingHelpers] = useState<Record<string, MatchingHelper[]>>({});
+  const [matchingLoading, setMatchingLoading] = useState<Record<string, boolean>>({});
+  const [expandedMatching, setExpandedMatching] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState<Record<string, boolean>>({});
+  const [notificationResults, setNotificationResults] = useState<
+    Record<string, string>
+  >({});
 
   const load = useCallback(async () => {
     try {
@@ -135,7 +163,7 @@ export default function HelpSosPage() {
       const { data, error: listError } = await supabase
         .from("help_sos")
         .select(
-          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, created_at, updated_at, closed_at"
+          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at"
         )
         .order("created_at", { ascending: false });
 
@@ -239,6 +267,119 @@ export default function HelpSosPage() {
           ? caught.message
           : "Impossible de mettre à jour le SOS."
       );
+    }
+  }
+
+  async function loadMatchingHelpers(item: HelpSos) {
+    if (expandedMatching === item.id) {
+      setExpandedMatching(null);
+      return;
+    }
+
+    setExpandedMatching(item.id);
+
+    if (matchingHelpers[item.id]) return;
+
+    try {
+      setMatchingLoading((current) => ({ ...current, [item.id]: true }));
+      setError("");
+
+      const { data, error: matchingError } = await supabase.rpc(
+        "get_matching_helpers_for_sos",
+        { p_sos_id: item.id }
+      );
+
+      if (matchingError) throw matchingError;
+
+      setMatchingHelpers((current) => ({
+        ...current,
+        [item.id]: (data || []) as MatchingHelper[],
+      }));
+    } catch (caught) {
+      console.error("Matching SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de rechercher les personnes compatibles."
+      );
+    } finally {
+      setMatchingLoading((current) => ({ ...current, [item.id]: false }));
+    }
+  }
+
+  async function notifyMatchingHelpers(item: HelpSos) {
+    try {
+      setNotifying((current) => ({ ...current, [item.id]: true }));
+      setError("");
+      setMessage("");
+
+      const {
+        data: sessionData,
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Votre session a expiré. Reconnectez-vous.");
+      }
+
+      const response = await fetch("/api/push/sos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          sosId: item.id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            "Impossible d’envoyer les notifications SOS."
+        );
+      }
+
+      let resultMessage = "";
+
+      if (result?.alreadySent) {
+        resultMessage = "Les personnes compatibles ont déjà été notifiées.";
+      } else if (Number(result?.matched || 0) === 0) {
+        resultMessage = "Aucune personne compatible à notifier pour le moment.";
+      } else {
+        const matched = Number(result?.matched || 0);
+        const sent = Number(result?.sent || 0);
+
+        resultMessage =
+          `${matched} personne${matched > 1 ? "s" : ""} ciblée${
+            matched > 1 ? "s" : ""
+          } · ${sent} notification${sent > 1 ? "s" : ""} envoyée${
+            sent > 1 ? "s" : ""
+          }.`;
+      }
+
+      setNotificationResults((current) => ({
+        ...current,
+        [item.id]: resultMessage,
+      }));
+
+      setMessage(resultMessage);
+      await load();
+    } catch (caught) {
+      console.error("Notification SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible d’envoyer les notifications SOS."
+      );
+    } finally {
+      setNotifying((current) => ({ ...current, [item.id]: false }));
     }
   }
 
@@ -359,7 +500,7 @@ export default function HelpSosPage() {
                   Nouveau SOS
                 </h2>
                 <p className="mt-1 text-sm text-[#756d67]">
-                  Le ciblage des notifications sera ajouté à l’étape suivante.
+                  Après publication, TAUI TE ORA pourra rechercher les personnes compatibles avec ce SOS.
                 </p>
               </div>
 
@@ -578,8 +719,50 @@ export default function HelpSosPage() {
                       </p>
                     </div>
 
-                    {canManage ? (
-                      <div className="grid min-w-[180px] gap-2">
+                    <div className="grid min-w-[220px] gap-2">
+                      {canManage ? (
+                        <button
+                          type="button"
+                          onClick={() => void loadMatchingHelpers(item)}
+                          disabled={matchingLoading[item.id]}
+                          className="rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42] disabled:opacity-60"
+                        >
+                          {matchingLoading[item.id]
+                            ? "Recherche..."
+                            : matchingHelpers[item.id]
+                              ? `${matchingHelpers[item.id].length} personne${
+                                  matchingHelpers[item.id].length > 1 ? "s" : ""
+                                } compatible${
+                                  matchingHelpers[item.id].length > 1 ? "s" : ""
+                                }`
+                              : "Voir les personnes compatibles"}
+                        </button>
+                      ) : null}
+
+                      {canManage && item.status !== "cloture" ? (
+                        <button
+                          type="button"
+                          onClick={() => void notifyMatchingHelpers(item)}
+                          disabled={notifying[item.id] || Boolean(item.push_sent_at)}
+                          className="flex items-center justify-center gap-2 rounded-xl bg-[#df8995] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Bell size={17} />
+                          {notifying[item.id]
+                            ? "Notification..."
+                            : item.push_sent_at
+                              ? "Personnes déjà notifiées"
+                              : "Notifier les personnes compatibles"}
+                        </button>
+                      ) : null}
+
+                      {notificationResults[item.id] ? (
+                        <p className="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold leading-5 text-green-800">
+                          {notificationResults[item.id]}
+                        </p>
+                      ) : null}
+
+                      {canManage ? (
+                      <div className="grid gap-2">
                         {item.status !== "en_cours" ? (
                           <button
                             type="button"
@@ -616,7 +799,92 @@ export default function HelpSosPage() {
                         )}
                       </div>
                     ) : null}
+                    </div>
                   </div>
+
+                  {expandedMatching === item.id ? (
+                    <div className="mt-5 border-t border-[#eee5dc] pt-5">
+                      <h3 className="text-lg font-black text-[#064b42]">
+                        Personnes compatibles
+                      </h3>
+
+                      {matchingLoading[item.id] ? (
+                        <p className="mt-3 text-sm font-semibold text-[#756d67]">
+                          Recherche des personnes disponibles...
+                        </p>
+                      ) : (matchingHelpers[item.id] || []).length === 0 ? (
+                        <div className="mt-3 rounded-2xl bg-[#fbf7ef] p-4 text-sm font-semibold text-[#756d67]">
+                          Aucune personne compatible trouvée pour le moment.
+                        </div>
+                      ) : (
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {(matchingHelpers[item.id] || []).map((helper) => {
+                            const name =
+                              [helper.first_name, helper.last_name]
+                                .filter(Boolean)
+                                .join(" ") ||
+                              helper.organization_name ||
+                              "Membre du réseau";
+
+                            return (
+                              <div
+                                key={helper.id}
+                                className="rounded-2xl bg-[#fbf7ef] p-4"
+                              >
+                                <p className="font-black text-[#064b42]">
+                                  {name}
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-[#756d67]">
+                                  {[helper.city, helper.island]
+                                    .filter(Boolean)
+                                    .join(" · ") || "Localisation non renseignée"}
+                                </p>
+
+                                {helper.phone ? (
+                                  <a
+                                    href={`tel:${helper.phone}`}
+                                    className="mt-3 block text-sm font-black text-[#064b42]"
+                                  >
+                                    📞 {helper.phone}
+                                  </a>
+                                ) : null}
+
+                                {helper.email ? (
+                                  <a
+                                    href={`mailto:${helper.email}`}
+                                    className="mt-1 block break-all text-sm font-black text-[#064b42]"
+                                  >
+                                    ✉️ {helper.email}
+                                  </a>
+                                ) : null}
+
+                                {item.help_type === "famille_accueil" ? (
+                                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
+                                    {helper.foster_capacity ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        Capacité : {helper.foster_capacity}
+                                      </span>
+                                    ) : null}
+                                    {helper.foster_accepts_dogs ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        🐶 Chiens
+                                      </span>
+                                    ) : null}
+                                    {helper.foster_accepts_cats ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        🐱 Chats
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </article>
               );
             })
