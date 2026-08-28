@@ -116,7 +116,7 @@ export default function BottomNavigation() {
   }, []);
 
   // Sur l'accueil, on masque cette navigation
-  // car la barre principale est directement intégrée dans app/page.tsx
+  // car la barre principale est directement int�gr�e dans app/page.tsx
   if (pathname === "/") {
     return null;
   }
@@ -125,12 +125,12 @@ export default function BottomNavigation() {
     {
       href: "/",
       label: "Accueil",
-      icon: "🏠",
+      icon: "??",
     },
     {
       href: "/search",
       label: "Search",
-      icon: "🔎",
+      icon: "??",
     },
     {
       href: "/signalement",
@@ -141,13 +141,13 @@ export default function BottomNavigation() {
     {
       href: "#",
       label: "Menu",
-      icon: "☰",
+      icon: "?",
       menu: true,
     },
     {
       href: profileHref,
       label: "Profil",
-      icon: "👤",
+      icon: "??",
       profile: true,
     },
   ];
@@ -156,57 +156,57 @@ export default function BottomNavigation() {
     {
       href: "/arpap",
       label: "ARPAP",
-      icon: "🐾",
+      icon: "??",
     },
     {
       href: "/info",
       label: "Info",
-      icon: "ℹ️",
+      icon: "??",
     },
     {
       href: "/veterinaires",
-      label: "Vétérinaires",
-      icon: "🩺",
+      label: "V�t�rinaires",
+      icon: "??",
     },
     {
       href: "/conseils-sante",
-      label: "Conseils santé",
-      icon: "❤️‍🩹",
+      label: "Conseils sant�",
+      icon: "?????",
     },
     {
       href: "/association",
       label: "Les Veilleurs de Kali",
-      icon: "❤️",
+      icon: "??",
     },
     {
       href: "/boutique",
       label: "Boutique",
-      icon: "🛍️",
+      icon: "???",
     },
     {
       href: "/toilettage",
       label: "Toilettage",
-      icon: "✂️",
+      icon: "??",
     },
     {
       href: "/gardiennage",
       label: "Gardiennage",
-      icon: "🏡",
+      icon: "??",
     },
     {
       href: "/education",
-      label: "Éducation",
-      icon: "🎓",
+      label: "�ducation",
+      icon: "??",
     },
     {
       href: "/alimentation",
       label: "Alimentation",
-      icon: "🥣",
+      icon: "??",
     },
     {
       href: "/hommage",
-      label: "Hommage à Kali",
-      icon: "🐾",
+      label: "Hommage � Kali",
+      icon: "??",
     },
   ];
 
@@ -231,7 +231,7 @@ export default function BottomNavigation() {
             className="fixed inset-0 z-[200] cursor-default bg-black/40"
           />
 
-          <div className="fixed bottom-[82px] left-1/2 z-[210] max-h-[70vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
+          <div className="taui-bottom-sheet fixed left-1/2 z-[210] max-h-[70dvh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 overflow-hidden rounded-[28px] bg-white shadow-2xl">
             <div className="flex justify-center pt-3">
               <div className="h-1.5 w-14 rounded-full bg-gray-300" />
             </div>
@@ -243,7 +243,7 @@ export default function BottomNavigation() {
                 aria-label="Fermer le menu"
                 className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f4ec] text-lg font-black text-[#064b42] shadow-sm"
               >
-                ✕
+                ?
               </button>
 
               <h2 className="mb-5 text-center text-xl font-black text-[#064b42]">
@@ -285,7 +285,7 @@ export default function BottomNavigation() {
         </>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pb-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
+      <nav className="taui-bottom-nav fixed inset-x-0 bottom-0 z-[220] border-t border-[#eadfce] bg-white/95 px-2 pt-1 shadow-[0_-6px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-1 pt-1">
           {mainItems.map((item) => {
             const isActive =
@@ -318,7 +318,7 @@ export default function BottomNavigation() {
                     }`}
                   >
                     {menuOpen
-                      ? "✕"
+                      ? "?"
                       : item.icon}
                   </span>
 
@@ -377,7 +377,7 @@ export default function BottomNavigation() {
                     </span>
                   ) : (
                     <span className="text-[24px] leading-none">
-                      👤
+                      ??
                     </span>
                   )}
 
