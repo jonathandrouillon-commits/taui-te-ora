@@ -1086,42 +1086,38 @@ export default function AnimalSwipeCard({
           "
         >
           <div className="flex min-w-0 flex-col items-stretch gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 flex-wrap items-end gap-2">
-                <h2
-                  className="
-                    min-w-0
-                    max-w-full
-                    break-words
-                    text-[30px]
-                    font-black
-                    leading-[0.95]
-                    tracking-tight
-                    drop-shadow-lg
-                    sm:text-[38px]
-                    md:text-[42px]
-                    lg:text-[46px]
-                  "
-                >
-                  {animalName}
-                </h2>
-
-              </div>
-            </div>
+            <div className="min-w-0 flex-1" />
 
             <div
               className="
                 mt-2
                 flex
                 shrink-0
-                flex-row
+                flex-col
                 items-center
                 justify-end
                 gap-2
                 sm:mt-3
-                sm:items-end
               "
             >
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleInformation();
+                }}
+                aria-label="Informations"
+                title="Informations"
+                className="
+                  flex h-[42px] w-[42px] shrink-0 items-center justify-center
+                  rounded-full border-2 border-white bg-[#fffaf7]/95
+                  text-lg font-black text-[#60605d] shadow-lg backdrop-blur
+                  transition active:scale-95 sm:h-[46px] sm:w-[46px]
+                "
+              >
+                i
+              </button>
+
               {creatorId && (
                 <button
                   type="button"
@@ -1174,8 +1170,7 @@ export default function AnimalSwipeCard({
               )}
 
               {onOpenFilter && (
-                <div className="flex flex-col items-center gap-2">
-                  <button
+                <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1213,45 +1208,20 @@ export default function AnimalSwipeCard({
                       ? `Filtres (${filterCount})`
                       : "Choisir"}
                   </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleInformation();
-                    }}
-                    aria-label="Informations"
-                    title="Informations"
-                    className="
-                      flex
-                      h-9
-                      w-9
-                      shrink-0
-                      items-center
-                      justify-center
-                      rounded-full
-                      border-2
-                      border-white
-                      bg-[#fffaf7]/95
-                      text-base
-                      font-black
-                      text-[#60605d]
-                      shadow-lg
-                      backdrop-blur
-                      transition
-                      active:scale-95
-                      sm:h-10
-                      sm:w-10
-                      sm:text-lg
-                    "
-                  >
-                    i
-                  </button>
-                </div>
+                </button>
               )}
             </div>
           </div>
+
+          <h2
+            className="
+              mt-2 min-w-0 max-w-[82%] break-words
+              text-[30px] font-black leading-[0.95] tracking-tight
+              text-white drop-shadow-lg sm:text-[38px] md:text-[42px] lg:text-[46px]
+            "
+          >
+            {animalName}
+          </h2>
 
           {(city || island) && (
             <p
