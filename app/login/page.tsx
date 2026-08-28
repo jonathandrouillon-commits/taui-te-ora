@@ -326,8 +326,7 @@ function LoginContent() {
           "utilisateur"
       ) {
         router.replace(
-          safeRedirect ||
-            "/"
+          "/"
         );
 
         router.refresh();
