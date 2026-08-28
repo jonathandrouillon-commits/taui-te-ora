@@ -12,7 +12,6 @@ export type PublisherRole =
   | "association"
   | "refuge"
   | "fourriere"
-  | "sigfa"
   | "benevole";
 
 type Profile = {
@@ -90,9 +89,8 @@ type DashboardData = {
 
 const ROLE_LABELS: Record<PublisherRole, string> = {
   association: "Association",
-  refuge: "Refuge",
+  refuge: "Refuge / SIGFA",
   fourriere: "Fourrière",
-  sigfa: "SIGFA",
   benevole: "Bénévole indépendant",
 };
 
@@ -477,9 +475,9 @@ export default function PublisherDashboard({
       rejected:
         "refuser cette demande d'adoption",
       meeting:
-        "passer cette demande à l'étape Rencontre",
+        "passer cette demande � l'�tape Rencontre",
       accepted:
-        "valider définitivement cette adoption",
+        "valider d�finitivement cette adoption",
     };
 
     const confirmed =
@@ -492,69 +490,65 @@ export default function PublisherDashboard({
     try {
       setActionId(request.id);
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        throw userError;
-      }
-
-      if (!user) {
-        throw new Error(
-          "Utilisateur non connecté."
-        );
-      }
-
-      const {
-        error: requestError,
-      } = await supabase
-        .from("adoption_requests")
-        .update({
-          status: nextStatus,
-        })
-        .eq(
-          "id",
-          request.id
-        )
-        .eq(
-          "owner_id",
-          user.id
-        );
-
-      if (requestError) {
-        throw requestError;
-      }
-
       /*
-       * Lorsqu'une adoption est validée,
-       * on marque aussi l'animal comme adopté.
+       * L'acceptation d�finitive passe par une transaction
+       * Supabase atomique via finalize_adoption().
        */
-      if (
-        nextStatus === "accepted" &&
-        request.animal_id
-      ) {
+      if (nextStatus === "accepted") {
         const {
-          error: animalError,
-        } = await supabase
-          .from("animals")
-          .update({
-            is_adopted: true,
-            is_published: false,
-            status: "adopted",
-          })
-          .eq(
-            "id",
-            request.animal_id
-          )
-          .eq(
-            "owner_id",
-            user.id
+          error: finalizeError,
+        } =
+          await supabase.rpc(
+            "finalize_adoption",
+            {
+              p_request_id: request.id,
+            }
           );
 
-        if (animalError) {
-          throw animalError;
+        if (finalizeError) {
+          throw finalizeError;
+        }
+      } else {
+        /*
+         * Rencontre / refus :
+         * mise � jour classique prot�g�e par RLS
+         * et protect_adoption_request_fields().
+         */
+        const {
+          data: { user },
+          error: userError,
+        } =
+          await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          throw new Error(
+            "Utilisateur non connect�."
+          );
+        }
+
+        const {
+          error: requestError,
+        } =
+          await supabase
+            .from("adoption_requests")
+            .update({
+              status: nextStatus,
+            })
+            .eq(
+              "id",
+              request.id
+            )
+            .eq(
+              "owner_id",
+              user.id
+            );
+
+        if (requestError) {
+          throw requestError;
         }
       }
 
@@ -1533,8 +1527,6 @@ function getPublisherDestination(
     case "fourriere":
       return "/fourriere/dashboard";
 
-    case "sigfa":
-      return "/sigfa/dashboard";
 
     case "benevole":
       return "/benevole/dashboard";

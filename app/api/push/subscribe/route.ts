@@ -1,4 +1,4 @@
-﻿import {
+import {
   NextResponse,
 } from "next/server";
 
@@ -91,7 +91,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Corps de requÃªte invalide.",
+            "Corps de requête invalide.",
         },
         {
           status: 400,
@@ -187,7 +187,7 @@ export async function POST(
       getAdmin();
 
     /*
-     * On rattache l'abonnement push au profil connectÃ©.
+     * On rattache l'abonnement push au profil connecté.
      * C'est indispensable pour envoyer un SOS seulement
      * aux personnes compatibles.
      */
@@ -214,19 +214,27 @@ export async function POST(
           );
 
       if (
-        userError
+        userError ||
+        !userData.user
       ) {
         console.error(
           "Token push invalide :",
           userError
         );
-      } else {
-        userId =
-          userData
-            .user
-            ?.id ||
-          null;
+
+        return NextResponse.json(
+          {
+            error:
+              "Session invalide.",
+          },
+          {
+            status: 401,
+          }
+        );
       }
+
+      userId =
+        userData.user.id;
     }
 
     const subscriptionData = {
@@ -330,7 +338,7 @@ export async function POST(
         {
           error:
             error.message ||
-            "Impossible d'enregistrer ce tÃ©lÃ©phone.",
+            "Impossible d'enregistrer ce téléphone.",
         },
         {
           status: 500,

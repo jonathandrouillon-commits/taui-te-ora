@@ -993,9 +993,7 @@ function formatRole(
 
   if (
     value ===
-      "refuge" ||
-    value ===
-      "sigfa"
+      "refuge"
   ) {
     return "Refuge / SIGFA";
   }

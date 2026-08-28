@@ -1,327 +1,830 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
+import {
+  Archive,
+  ArrowLeft,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Pencil,
+  Search,
+} from "lucide-react";
+
 import { supabase } from "../../lib/supabase";
 
 type Animal = {
   id: string;
-  animal_name: string;
-  animal_type: string;
-  age_label: string;
-  sex: string;
-  breed: string;
-  size_label: string;
-  association_name: string;
-  island: string;
-  city: string;
-  status: string;
-  is_published: boolean;
-  is_adopted: boolean;
+  animal_name: string | null;
+  animal_type: string | null;
+  age_label: string | null;
+  sex: string | null;
+  breed: string | null;
+  association_name: string | null;
+  island: string | null;
+  city: string | null;
+  status: string | null;
+  is_published: boolean | null;
+  is_adopted: boolean | null;
+  owner_id: string | null;
+  created_at: string | null;
 };
+
+type Filter =
+  | "all"
+  | "published"
+  | "draft"
+  | "adopted"
+  | "archived";
 
 export default function AdminAnimalsPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<Animal>>({});
+  const [loading, setLoading] =
+    useState(true);
 
-  const loadAnimals = useCallback(async () => {
-    setLoading(true);
+  const [actionId, setActionId] =
+    useState<string | null>(null);
 
-    const { data, error } = await supabase
-      .from("animals")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const [animals, setAnimals] =
+    useState<Animal[]>([]);
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setAnimals((data || []) as Animal[]);
-    }
+  const [filter, setFilter] =
+    useState<Filter>("all");
 
-    setLoading(false);
-  }, []);
+  const [search, setSearch] =
+    useState("");
 
-  const checkAdmin = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const loadAnimals =
+    useCallback(async () => {
+      const { data, error } =
+        await supabase
+          .from("animals")
+          .select(`
+            id,
+            animal_name,
+            animal_type,
+            age_label,
+            sex,
+            breed,
+            association_name,
+            island,
+            city,
+            status,
+            is_published,
+            is_adopted,
+            owner_id,
+            created_at
+          `)
+          .order(
+            "created_at",
+            {
+              ascending: false,
+            }
+          );
 
-    if (!user) {
-      router.push("/login?redirect=/admin/animals");
-      return;
-    }
+      if (error) {
+        throw error;
+      }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+      setAnimals(
+        (data || []) as Animal[]
+      );
+    }, []);
 
-    if (profile?.role !== "admin") {
-      router.push("/");
-      return;
-    }
+  const initialize =
+    useCallback(async () => {
+      try {
+        setLoading(true);
 
-    await loadAnimals();
-  }, [loadAnimals, router]);
+        const {
+          data: { user },
+          error: userError,
+        } =
+          await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace(
+            "/login?redirect=/admin/animals"
+          );
+          return;
+        }
+
+        const {
+          data: profile,
+          error: profileError,
+        } =
+          await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (
+          String(
+            profile?.role || ""
+          )
+            .trim()
+            .toLowerCase() !==
+          "admin"
+        ) {
+          router.replace("/");
+          return;
+        }
+
+        await loadAnimals();
+      } catch (error: unknown) {
+        console.error(
+          "Erreur chargement admin animaux :",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger les animaux."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [loadAnimals, router]);
 
   useEffect(() => {
-    async function loadAdminAnimals() {
-      await checkAdmin();
-    }
+    void initialize();
+  }, [initialize]);
 
-    void loadAdminAnimals();
-  }, [checkAdmin]);
-
-  function startEdit(animal: Animal) {
-    setEditingId(animal.id);
-    setForm(animal);
-  }
-
-  function updateField(name: keyof Animal, value: string | boolean) {
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
-  async function saveAnimal(id: string) {
-    const { error } = await supabase
-      .from("animals")
-      .update({
-        animal_name: form.animal_name,
-        animal_type: form.animal_type,
-        age_label: form.age_label,
-        sex: form.sex,
-        breed: form.breed,
-        size_label: form.size_label,
-        association_name: form.association_name,
-        island: form.island,
-        city: form.city,
-        status: form.status,
-        is_published: form.is_published,
-        is_adopted: form.is_adopted,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setEditingId(null);
-    setForm({});
-    await loadAnimals();
-  }
-
-  async function deleteAnimal(id: string) {
-    const confirmDelete = confirm(
-      "Voulez-vous vraiment supprimer cet animal ? Cette action est définitive."
+  const publishedCount =
+    useMemo(
+      () =>
+        animals.filter(
+          (animal) =>
+            animal.is_published &&
+            !animal.is_adopted &&
+            animal.status !==
+              "archive"
+        ).length,
+      [animals]
     );
 
-    if (!confirmDelete) return;
+  const draftCount =
+    useMemo(
+      () =>
+        animals.filter(
+          (animal) =>
+            !animal.is_published &&
+            !animal.is_adopted &&
+            animal.status !==
+              "archive"
+        ).length,
+      [animals]
+    );
 
-    const { error } = await supabase
-      .from("animals")
-      .delete()
-      .eq("id", id);
+  const adoptedCount =
+    useMemo(
+      () =>
+        animals.filter(
+          (animal) =>
+            animal.is_adopted ||
+            animal.status ===
+              "adopted"
+        ).length,
+      [animals]
+    );
 
-    if (error) {
-      alert(error.message);
+  const archivedCount =
+    useMemo(
+      () =>
+        animals.filter(
+          (animal) =>
+            animal.status ===
+              "archive"
+        ).length,
+      [animals]
+    );
+
+  const filteredAnimals =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
+
+      return animals.filter(
+        (animal) => {
+          if (
+            filter ===
+              "published" &&
+            (!animal.is_published ||
+              animal.is_adopted ||
+              animal.status ===
+                "archive")
+          ) {
+            return false;
+          }
+
+          if (
+            filter === "draft" &&
+            (animal.is_published ||
+              animal.is_adopted ||
+              animal.status ===
+                "archive")
+          ) {
+            return false;
+          }
+
+          if (
+            filter ===
+              "adopted" &&
+            !animal.is_adopted &&
+            animal.status !==
+              "adopted"
+          ) {
+            return false;
+          }
+
+          if (
+            filter ===
+              "archived" &&
+            animal.status !==
+              "archive"
+          ) {
+            return false;
+          }
+
+          if (!query) {
+            return true;
+          }
+
+          const haystack = [
+            animal.animal_name,
+            animal.animal_type,
+            animal.breed,
+            animal.association_name,
+            animal.city,
+            animal.island,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return haystack.includes(
+            query
+          );
+        }
+      );
+    }, [
+      animals,
+      filter,
+      search,
+    ]);
+
+  async function updateAnimal(
+    animalId: string,
+    values: Partial<Animal>
+  ) {
+    try {
+      setActionId(animalId);
+
+      const { error } =
+        await supabase
+          .from("animals")
+          .update({
+            ...values,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq("id", animalId);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadAnimals();
+    } catch (error: unknown) {
+      console.error(
+        "Erreur modification animal :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de modifier cet animal."
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function publishAnimal(
+    animal: Animal
+  ) {
+    if (animal.is_adopted) {
+      alert(
+        "Un animal adopt� ne peut pas �tre publi�."
+      );
       return;
     }
 
-    await loadAnimals();
+    if (
+      animal.status === "archive"
+    ) {
+      alert(
+        "R�activez d'abord l'animal archiv�."
+      );
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Publier ${
+          animal.animal_name ||
+          "cet animal"
+        } ?`
+      );
+
+    if (!confirmed) return;
+
+    await updateAnimal(
+      animal.id,
+      {
+        is_published: true,
+      }
+    );
+  }
+
+  async function unpublishAnimal(
+    animal: Animal
+  ) {
+    const confirmed =
+      window.confirm(
+        `D�publier ${
+          animal.animal_name ||
+          "cet animal"
+        } ?`
+      );
+
+    if (!confirmed) return;
+
+    await updateAnimal(
+      animal.id,
+      {
+        is_published: false,
+      }
+    );
+  }
+
+  async function archiveAnimal(
+    animal: Animal
+  ) {
+    if (animal.is_adopted) {
+      alert(
+        "Cet animal est d�j� enregistr� comme adopt�."
+      );
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Archiver ${
+          animal.animal_name ||
+          "cet animal"
+        } ? Il ne sera plus visible publiquement.`
+      );
+
+    if (!confirmed) return;
+
+    await updateAnimal(
+      animal.id,
+      {
+        is_published: false,
+        status: "archive",
+      }
+    );
+  }
+
+  async function restoreAnimal(
+    animal: Animal
+  ) {
+    const confirmed =
+      window.confirm(
+        `R�activer ${
+          animal.animal_name ||
+          "cet animal"
+        } ? Il restera non publi� jusqu'� validation de sa publication.`
+      );
+
+    if (!confirmed) return;
+
+    await updateAnimal(
+      animal.id,
+      {
+        is_published: false,
+        is_adopted: false,
+        status: "available",
+      }
+    );
   }
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec]">
-        <p className="font-bold text-[#064b42]">Chargement des animaux...</p>
+        <p className="font-bold text-[#064b42]">
+          Chargement des animaux...
+        </p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] px-5 py-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
+    <main className="min-h-screen bg-[#f8f4ec] px-4 pb-16 pt-24 text-[#064b42] sm:px-8">
+      <section className="mx-auto max-w-7xl">
+
+        <button
+          type="button"
+          onClick={() =>
+            router.push(
+              "/admin/dashboard"
+            )
+          }
+          className="mb-6 flex items-center gap-2 font-black"
+        >
+          <ArrowLeft size={20} />
+          Retour dashboard
+        </button>
+
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-black text-[#064b42]">
-              Administration des animaux
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b68b2f]">
+              Administration
+            </p>
+
+            <h1 className="mt-1 text-4xl font-black sm:text-5xl">
+              Animaux
             </h1>
+
             <p className="mt-2 text-[#6f5a47]">
-              Modifier, publier ou supprimer les profils animaux.
+              Gestion des publications,
+              adoptions et archives.
             </p>
           </div>
 
-          <button
-            onClick={() => router.push("/admin/dashboard")}
-            className="rounded-full bg-white px-6 py-3 font-bold text-[#064b42] shadow"
-          >
-            Retour admin
-          </button>
+          <div className="relative w-full lg:max-w-sm">
+            <Search
+              size={19}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value
+                )
+              }
+              placeholder="Rechercher un animal..."
+              className="w-full rounded-2xl border border-[#eadfce] bg-white py-4 pl-12 pr-4 font-bold outline-none"
+            />
+          </div>
         </div>
 
-        <div className="space-y-5">
-          {animals.map((animal) => {
-            const isEditing = editingId === animal.id;
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Stat
+            label="Total"
+            value={animals.length}
+            active={
+              filter === "all"
+            }
+            onClick={() =>
+              setFilter("all")
+            }
+          />
 
-            return (
-              <div
-                key={animal.id}
-                className="rounded-[2rem] bg-white p-6 shadow-md"
-              >
-                {isEditing ? (
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Input label="Nom" value={form.animal_name || ""} onChange={(v) => updateField("animal_name", v)} />
-                    <Input label="Type" value={form.animal_type || ""} onChange={(v) => updateField("animal_type", v)} />
-                    <Input label="Âge" value={form.age_label || ""} onChange={(v) => updateField("age_label", v)} />
-                    <Input label="Sexe" value={form.sex || ""} onChange={(v) => updateField("sex", v)} />
-                    <Input label="Race" value={form.breed || ""} onChange={(v) => updateField("breed", v)} />
-                    <Input label="Taille" value={form.size_label || ""} onChange={(v) => updateField("size_label", v)} />
-                    <Input label="Association" value={form.association_name || ""} onChange={(v) => updateField("association_name", v)} />
-                    <Input label="Île" value={form.island || ""} onChange={(v) => updateField("island", v)} />
-                    <Input label="Ville" value={form.city || ""} onChange={(v) => updateField("city", v)} />
-                    <Input label="Statut" value={form.status || ""} onChange={(v) => updateField("status", v)} />
+          <Stat
+            label="Publi�s"
+            value={publishedCount}
+            active={
+              filter ===
+              "published"
+            }
+            onClick={() =>
+              setFilter(
+                "published"
+              )
+            }
+          />
 
-                    <SelectBoolean
-                      label="Publié"
-                      value={!!form.is_published}
-                      onChange={(v) => updateField("is_published", v)}
-                    />
+          <Stat
+            label="Brouillons"
+            value={draftCount}
+            active={
+              filter === "draft"
+            }
+            onClick={() =>
+              setFilter("draft")
+            }
+          />
 
-                    <SelectBoolean
-                      label="Adopté"
-                      value={!!form.is_adopted}
-                      onChange={(v) => updateField("is_adopted", v)}
-                    />
+          <Stat
+            label="Adopt�s"
+            value={adoptedCount}
+            active={
+              filter ===
+              "adopted"
+            }
+            onClick={() =>
+              setFilter(
+                "adopted"
+              )
+            }
+          />
 
-                    <div className="md:col-span-3 flex gap-3 pt-4">
-                      <button
-                        onClick={() => saveAnimal(animal.id)}
-                        className="rounded-full bg-[#064b42] px-6 py-3 font-bold text-white"
-                      >
-                        Enregistrer
-                      </button>
+          <Stat
+            label="Archiv�s"
+            value={archivedCount}
+            active={
+              filter ===
+              "archived"
+            }
+            onClick={() =>
+              setFilter(
+                "archived"
+              )
+            }
+          />
+        </div>
 
-                      <button
-                        onClick={() => {
-                          setEditingId(null);
-                          setForm({});
-                        }}
-                        className="rounded-full bg-gray-100 px-6 py-3 font-bold text-gray-700"
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-black text-[#2f241c]">
-                        {animal.animal_name || "Animal sans nom"}
-                      </h2>
+        <div className="mt-8 space-y-5">
+          {filteredAnimals.length ===
+          0 ? (
+            <div className="rounded-3xl bg-white p-10 text-center shadow">
+              <h2 className="text-2xl font-black">
+                Aucun animal
+              </h2>
 
-                      <p className="mt-1 text-[#6f5a47]">
-                        {animal.animal_type || "Type non renseigné"} ·{" "}
-                        {animal.age_label || "Âge non renseigné"} ·{" "}
-                        {animal.sex || "Sexe non renseigné"}
-                      </p>
+              <p className="mt-2 text-gray-500">
+                Aucun r�sultat ne
+                correspond aux crit�res.
+              </p>
+            </div>
+          ) : (
+            filteredAnimals.map(
+              (animal) => {
+                const processing =
+                  actionId ===
+                  animal.id;
 
-                      <p className="mt-1 text-sm text-[#9c7b54]">
-                        {animal.association_name || "Association non renseignée"} ·{" "}
-                        {animal.city || "Ville non renseignée"} ·{" "}
-                        {animal.island || "Île non renseignée"}
-                      </p>
+                const archived =
+                  animal.status ===
+                  "archive";
 
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Badge text={animal.is_published ? "Publié" : "Non publié"} />
-                        <Badge text={animal.is_adopted ? "Adopté" : "Disponible"} />
-                        <Badge text={animal.status || "Statut vide"} />
+                const adopted =
+                  !!animal.is_adopted ||
+                  animal.status ===
+                    "adopted";
+
+                return (
+                  <article
+                    key={animal.id}
+                    className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm"
+                  >
+                    <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2 className="text-2xl font-black text-[#2f241c]">
+                            {animal.animal_name ||
+                              "Animal sans nom"}
+                          </h2>
+
+                          {adopted ? (
+                            <Badge>
+                              Adopt�
+                            </Badge>
+                          ) : archived ? (
+                            <Badge>
+                              Archiv�
+                            </Badge>
+                          ) : animal.is_published ? (
+                            <Badge>
+                              Publi�
+                            </Badge>
+                          ) : (
+                            <Badge>
+                              Brouillon
+                            </Badge>
+                          )}
+                        </div>
+
+                        <p className="mt-2 text-[#6f5a47]">
+                          {animal.animal_type ||
+                            "Type non renseign�"}
+                          {" � "}
+                          {animal.age_label ||
+                            "�ge non renseign�"}
+                          {" � "}
+                          {animal.sex ||
+                            "Sexe non renseign�"}
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                          {animal.breed ||
+                            "Race non renseign�e"}
+                          {" � "}
+                          {animal.city ||
+                            "Commune non renseign�e"}
+                          {" � "}
+                          {animal.island ||
+                            "�le non renseign�e"}
+                        </p>
+
+                        <p className="mt-2 text-sm font-bold text-[#9c7b54]">
+                          {animal.association_name ||
+                            "Structure non renseign�e"}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/animal/${animal.id}`
+                            )
+                          }
+                          className="flex items-center gap-2 rounded-2xl bg-[#f8f4ec] px-4 py-3 font-black"
+                        >
+                          <Eye size={17} />
+                          Voir
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/admin/animals/${animal.id}/edit`
+                            )
+                          }
+                          className="flex items-center gap-2 rounded-2xl bg-[#9c7b54] px-4 py-3 font-black text-white"
+                        >
+                          <Pencil
+                            size={17}
+                          />
+                          Modifier
+                        </button>
+
+                        {!adopted &&
+                          !archived &&
+                          !animal.is_published && (
+                            <button
+                              type="button"
+                              disabled={
+                                processing
+                              }
+                              onClick={() =>
+                                publishAnimal(
+                                  animal
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-4 py-3 font-black text-white disabled:opacity-50"
+                            >
+                              <Eye
+                                size={17}
+                              />
+                              Publier
+                            </button>
+                          )}
+
+                        {!adopted &&
+                          !archived &&
+                          animal.is_published && (
+                            <button
+                              type="button"
+                              disabled={
+                                processing
+                              }
+                              onClick={() =>
+                                unpublishAnimal(
+                                  animal
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-amber-100 px-4 py-3 font-black text-amber-800 disabled:opacity-50"
+                            >
+                              <EyeOff
+                                size={17}
+                              />
+                              D�publier
+                            </button>
+                          )}
+
+                        {!adopted &&
+                          !archived && (
+                            <button
+                              type="button"
+                              disabled={
+                                processing
+                              }
+                              onClick={() =>
+                                archiveAnimal(
+                                  animal
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3 font-black text-gray-700 disabled:opacity-50"
+                            >
+                              <Archive
+                                size={17}
+                              />
+                              Archiver
+                            </button>
+                          )}
+
+                        {archived && (
+                          <button
+                            type="button"
+                            disabled={
+                              processing
+                            }
+                            onClick={() =>
+                              restoreAnimal(
+                                animal
+                              )
+                            }
+                            className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-4 py-3 font-black text-white disabled:opacity-50"
+                          >
+                            <CheckCircle2
+                              size={17}
+                            />
+                            R�activer
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => router.push(`/admin/animals/${animal.id}/edit`)}
-                        className="rounded-full bg-[#9c7b54] px-5 py-3 font-bold text-white"
-                      >
-                        Modifier
-                      </button>
-
-                      <button
-                        onClick={() => deleteAnimal(animal.id)}
-                        className="rounded-full bg-red-600 px-5 py-3 font-bold text-white"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  </article>
+                );
+              }
+            )
+          )}
         </div>
-      </div>
+      </section>
     </main>
   );
 }
 
-function Input({
-  label,
-  value,
-  onChange,
+function Badge({
+  children,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
-      />
-    </div>
-  );
-}
-
-function SelectBoolean({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">{label}</label>
-      <select
-        value={value ? "true" : "false"}
-        onChange={(e) => onChange(e.target.value === "true")}
-        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
-      >
-        <option value="true">Oui</option>
-        <option value="false">Non</option>
-      </select>
-    </div>
-  );
-}
-
-function Badge({ text }: { text: string }) {
-  return (
-    <span className="rounded-full bg-[#f8f4ec] px-3 py-1 text-xs font-bold text-[#6f5a47]">
-      {text}
+    <span className="rounded-full bg-[#f8f4ec] px-3 py-1 text-xs font-black text-[#064b42]">
+      {children}
     </span>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-3xl border p-5 text-left shadow-sm transition ${
+        active
+          ? "border-[#064b42] bg-[#064b42] text-white"
+          : "border-[#eadfce] bg-white text-[#064b42]"
+      }`}
+    >
+      <p className="text-xs font-black uppercase tracking-[0.15em]">
+        {label}
+      </p>
+
+      <p className="mt-2 text-4xl font-black">
+        {value}
+      </p>
+    </button>
   );
 }

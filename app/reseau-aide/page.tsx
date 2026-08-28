@@ -100,7 +100,7 @@ export default function HelpNetworkPage() {
         .trim()
         .toLowerCase();
 
-      if (!["admin", "administrateur", "association"].includes(role)) {
+      if (!["admin", "administrateur", "association", "refuge", "fourriere", "benevole"].includes(role)) {
         router.replace("/");
         return;
       }

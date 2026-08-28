@@ -273,9 +273,7 @@ function LoginContent() {
 
       if (
         role ===
-          "fourriere" ||
-        role ===
-          "sigfa"
+          "fourriere"
       ) {
         router.replace(
           safeRedirect ||

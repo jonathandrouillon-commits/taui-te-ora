@@ -354,11 +354,13 @@ export async function POST(
     const sos =
       sosData as HelpSos;
 
+    const isAdmin =
+      role === "admin" ||
+      role === "administrateur";
+
     if (
-      role ===
-        "association" &&
-      sos.created_by !==
-        user.id
+      !isAdmin &&
+      sos.created_by !== user.id
     ) {
       return NextResponse.json(
         {

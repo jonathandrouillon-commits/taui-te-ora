@@ -153,7 +153,7 @@ export default function HelpSosPage() {
 
       const role = String(profile?.role || "").trim().toLowerCase();
 
-      if (!["admin", "administrateur", "association"].includes(role)) {
+      if (!["admin", "administrateur", "association", "refuge", "fourriere", "benevole"].includes(role)) {
         router.replace("/");
         return;
       }
@@ -763,7 +763,7 @@ export default function HelpSosPage() {
 
                       {canManage ? (
                       <div className="grid gap-2">
-                        {item.status !== "en_cours" ? (
+                        {item.status !== "en_cours" && item.status !== "cloture" ? (
                           <button
                             type="button"
                             onClick={() =>

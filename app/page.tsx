@@ -1576,7 +1576,6 @@ function getProfileDestination(role: unknown) {
       return "/refuge/dashboard";
 
     case "fourriere":
-    case "sigfa":
       return "/fourriere/dashboard";
 
     case "benevole":
