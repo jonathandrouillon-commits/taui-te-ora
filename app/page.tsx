@@ -1,7 +1,4 @@
-"use client";
-
-import type { Animal } from "./services/animal.service";
-
+﻿"use client";
 
 import Link from "next/link";
 import {
@@ -23,7 +20,6 @@ import { supabase } from "./lib/supabase";
 type AnimalFilter =
   | "chien"
   | "chat"
-  | "oiseau"
   | "cheval"
   | "autre";
 
@@ -44,7 +40,7 @@ type SwipeItem =
   | {
       kind: "animal";
       id: string;
-      animal: Animal;
+      animal: any;
     }
   | {
       kind: "ad";
@@ -62,7 +58,7 @@ export default function HomePage() {
   const router = useRouter();
 
   const [animals, setAnimals] =
-    useState<Animal[]>([]);
+    useState<any[]>([]);
 
   const [ads, setAds] =
     useState<Ad[]>([]);
@@ -120,7 +116,6 @@ export default function HomePage() {
                 [
                   "chien",
                   "chat",
-                  "oiseau",
                   "cheval",
                   "autre",
                 ].includes(value)
@@ -222,32 +217,6 @@ export default function HomePage() {
 
     setCurrentIndex(0);
     setWelcomeOpen(false);
-  }
-
-  function selectQuickCategory(
-    type: AnimalFilter | "tous"
-  ) {
-    const nextTypes: AnimalFilter[] =
-      type === "tous"
-        ? []
-        : [type];
-
-    setSelectedTypes(nextTypes);
-    setCurrentIndex(0);
-
-    try {
-      sessionStorage.setItem(
-        FILTER_STORAGE_KEY,
-        JSON.stringify(nextTypes)
-      );
-
-      sessionStorage.setItem(
-        WELCOME_STORAGE_KEY,
-        "yes"
-      );
-    } catch {
-      // rien
-    }
   }
 
   const restoreFavoriteAfterLogin = useCallback(async () => {
@@ -404,13 +373,6 @@ export default function HomePage() {
             type.includes("chat") ||
             type.includes("cat");
 
-          const isBird =
-            type.includes("oiseau") ||
-            type.includes("bird") ||
-            type.includes("perroquet") ||
-            type.includes("perruche") ||
-            type.includes("canari");
-
           const isHorse =
             type.includes("cheval") ||
             type.includes("horse");
@@ -430,12 +392,6 @@ export default function HomePage() {
               }
 
               if (
-                selected === "oiseau"
-              ) {
-                return isBird;
-              }
-
-              if (
                 selected === "cheval"
               ) {
                 return isHorse;
@@ -447,7 +403,6 @@ export default function HomePage() {
                 return (
                   !isDog &&
                   !isCat &&
-                  !isBird &&
                   !isHorse
                 );
               }
@@ -461,102 +416,6 @@ export default function HomePage() {
       animals,
       selectedTypes,
     ]);
-
-  const categoryAvailability =
-    useMemo(() => {
-      const availability = {
-        chien: false,
-        chat: false,
-        oiseau: false,
-        cheval: false,
-        autre: false,
-      };
-
-      for (const animal of animals) {
-        const type = String(
-          animal?.animal_type ||
-            animal?.type ||
-            ""
-        )
-          .trim()
-          .toLowerCase();
-
-        const isDog =
-          type.includes("chien") ||
-          type.includes("dog");
-
-        const isCat =
-          type.includes("chat") ||
-          type.includes("cat");
-
-        const isBird =
-          type.includes("oiseau") ||
-          type.includes("bird") ||
-          type.includes("perroquet") ||
-          type.includes("perruche") ||
-          type.includes("canari");
-
-        const isHorse =
-          type.includes("cheval") ||
-          type.includes("horse");
-
-        if (isDog) {
-          availability.chien = true;
-        } else if (isCat) {
-          availability.chat = true;
-        } else if (isBird) {
-          availability.oiseau = true;
-        } else if (isHorse) {
-          availability.cheval = true;
-        } else {
-          availability.autre = true;
-        }
-      }
-
-      return availability;
-    }, [animals]);
-
-  const quickCategories = useMemo(
-    () => [
-      {
-        type: "tous" as const,
-        icon: "🐾",
-        label: "Tous",
-        visible: true,
-      },
-      {
-        type: "chien" as const,
-        icon: "🐶",
-        label: "Chiens",
-        visible: categoryAvailability.chien,
-      },
-      {
-        type: "chat" as const,
-        icon: "🐱",
-        label: "Chats",
-        visible: categoryAvailability.chat,
-      },
-      {
-        type: "oiseau" as const,
-        icon: "🐦",
-        label: "Oiseaux",
-        visible: categoryAvailability.oiseau,
-      },
-      {
-        type: "cheval" as const,
-        icon: "🐴",
-        label: "Chevaux",
-        visible: categoryAvailability.cheval,
-      },
-      {
-        type: "autre" as const,
-        icon: "🐰",
-        label: "Autres",
-        visible: categoryAvailability.autre,
-      },
-    ],
-    [categoryAvailability]
-  );
 
   const swipeItems =
     useMemo<SwipeItem[]>(() => {
@@ -667,15 +526,14 @@ export default function HomePage() {
             flex
             min-h-[calc(100dvh-74px)]
             w-full
-            flex-col
-            items-center
-            justify-start
+            items-start
+            justify-center
             p-0
             md:px-6
             md:py-8
           "
         >
-           {loading && (
+          {loading && (
             <div
               className="
                 flex
@@ -913,7 +771,10 @@ function SwipeAdCard({
       return;
     }
 
-    window.setTimeout(() => setImpressionSent(true), 0);
+    window.setTimeout(
+      () => setImpressionSent(true),
+      0
+    );
 
     void supabase.rpc(
       "track_ad_impression",
@@ -921,10 +782,7 @@ function SwipeAdCard({
         p_ad_id: ad.id,
       }
     );
-  }, [
-    ad.id,
-    impressionSent,
-  ]);
+  }, [ad.id, impressionSent]);
 
   async function handleClick() {
     try {
@@ -951,100 +809,279 @@ function SwipeAdCard({
   }
 
   return (
-    <div className="flex w-full justify-center px-3 md:px-0">
-      <article className="relative w-full max-w-[470px] overflow-hidden rounded-[30px] bg-white shadow-[0_20px_60px_rgba(61,49,44,.18)]">
-        <div className="relative">
-          {ad.image_url ? (
-            <div className="h-[58dvh] min-h-[430px] max-h-[640px] bg-[#eee7df]">
-              <img
-                src={ad.image_url}
-                alt={ad.title}
-                className="h-full w-full object-cover"
-              />
+    <div
+      className="
+        flex
+        w-full
+        flex-col
+        items-center
+        px-0
+        pb-0
+        pt-0
+        sm:px-4
+        sm:pb-[122px]
+        sm:pt-2
+        md:px-6
+        lg:px-8
+      "
+    >
+      <article
+        className="
+          relative
+          isolate
+          h-[calc(100dvh-64px)]
+          min-h-[620px]
+          max-h-none
+          w-full
+          max-w-[455px]
+          overflow-hidden
+          rounded-none
+          bg-[#d9d4cf]
+          shadow-[0_18px_45px_rgba(40,30,25,.22)]
+          sm:h-[calc(100dvh-285px)]
+          sm:min-h-[560px]
+          sm:max-h-[700px]
+          sm:max-w-[520px]
+          sm:rounded-[28px]
+          md:h-[680px]
+          md:max-h-[680px]
+          md:max-w-[560px]
+          md:rounded-[32px]
+          lg:h-[720px]
+          lg:max-h-[720px]
+          lg:max-w-[620px]
+          lg:rounded-[34px]
+        "
+      >
+        {ad.image_url ? (
+          <img
+            src={ad.image_url}
+            alt={ad.title}
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="
+              absolute
+              inset-0
+              flex
+              items-center
+              justify-center
+              bg-gradient-to-br
+              from-[#064b42]
+              to-[#0a796b]
+              px-10
+              text-center
+              text-white
+            "
+          >
+            <div>
+              <div className="text-7xl">✨</div>
+              <h2 className="mt-5 text-4xl font-black">
+                {ad.title}
+              </h2>
             </div>
-          ) : (
-            <div className="flex h-[58dvh] min-h-[430px] max-h-[640px] items-center justify-center bg-gradient-to-br from-[#064b42] to-[#0a796b] px-10 text-center text-white">
-              <div>
-                <div className="text-6xl">
-                  ✨
-                </div>
+          </div>
+        )}
 
-                <h2 className="mt-5 text-3xl font-black">
-                  {ad.title}
-                </h2>
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            h-[58%]
+            bg-gradient-to-t
+            from-black/90
+            via-black/45
+            to-transparent
+          "
+        />
+
+        <div
+          className="
+            absolute
+            left-4
+            top-4
+            z-40
+            rounded-full
+            border
+            border-white/80
+            bg-white/95
+            px-4
+            py-2
+            text-[11px]
+            font-black
+            uppercase
+            tracking-[0.12em]
+            text-[#064b42]
+            shadow-lg
+            backdrop-blur-xl
+          "
+        >
+          Sponsorisé
+        </div>
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-[118px]
+            z-40
+            px-5
+            text-white
+            sm:bottom-0
+            sm:px-6
+            sm:pb-7
+          "
+        >
+          <div className="flex items-center gap-3">
+            {ad.logo_url ? (
+              <img
+                src={ad.logo_url}
+                alt={ad.advertiser_name}
+                draggable={false}
+                className="h-14 w-14 rounded-full border-[3px] border-white bg-white object-contain p-1 shadow-xl"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-white/95 text-2xl shadow-xl">
+                ✨
               </div>
+            )}
+
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/75">
+                Sponsorisé
+              </p>
+
+              <p className="mt-0.5 truncate text-sm font-black uppercase">
+                {ad.advertiser_name}
+              </p>
             </div>
+          </div>
+
+          <h2
+            className="
+              mt-4
+              max-w-[88%]
+              break-words
+              text-[34px]
+              font-black
+              leading-[0.95]
+              tracking-tight
+              drop-shadow-lg
+              sm:text-[40px]
+              md:text-[44px]
+            "
+          >
+            {ad.title}
+          </h2>
+
+          {ad.description && (
+            <p className="mt-3 max-w-[92%] text-sm leading-5 text-white/90 sm:text-base sm:leading-6">
+              {ad.description}
+            </p>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-5 pb-6 pt-24 text-white">
-            <div className="flex items-center gap-3">
-              {ad.logo_url && (
-                <img
-                  src={ad.logo_url}
-                  alt={ad.advertiser_name}
-                  className="h-12 w-12 rounded-full bg-white object-contain p-1 shadow"
-                />
-              )}
-
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">
-                  Sponsorisé
-                </p>
-
-                <p className="mt-0.5 text-sm font-black uppercase">
-                  {ad.advertiser_name}
-                </p>
-              </div>
-            </div>
-
-            <h2 className="mt-4 text-3xl font-black leading-tight">
-              {ad.title}
-            </h2>
-
-            {ad.description && (
-              <p className="mt-3 text-sm leading-6 text-white/85">
-                {ad.description}
-              </p>
-            )}
-
-            {ad.target_url && (
-              <button
-                type="button"
-                onClick={handleClick}
-                className="mt-5 w-full rounded-full bg-white px-5 py-3.5 font-black text-[#064b42] shadow-lg"
-              >
-                {ad.button_text ||
-                  "Découvrir"}
-              </button>
-            )}
-          </div>
-
-          <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#064b42] shadow">
-            Sponsorisé
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 bg-[#fffaf7] p-4">
-          <button
-            type="button"
-            onClick={onNext}
-            className="rounded-full border border-[#eadfd8] bg-white px-5 py-3 font-black text-[#746c66]"
-          >
-            ← Next time
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenFilter}
-            className="rounded-full bg-[#f3e7df] px-5 py-3 font-black text-[#064b42]"
-          >
-            Filtres
-            {filterCount > 0
-              ? ` (${filterCount})`
-              : ""}
-          </button>
+          {ad.target_url && (
+            <button
+              type="button"
+              onClick={handleClick}
+              className="
+                mt-4
+                inline-flex
+                min-h-[44px]
+                items-center
+                justify-center
+                rounded-full
+                border-2
+                border-white
+                bg-white/95
+                px-5
+                py-3
+                text-sm
+                font-black
+                text-[#064b42]
+                shadow-xl
+                backdrop-blur
+                transition
+                active:scale-95
+              "
+            >
+              {ad.button_text || "Découvrir"}
+            </button>
+          )}
         </div>
       </article>
+
+      <div
+        className="
+          relative
+          z-[70]
+          -mt-[108px]
+          grid
+          w-full
+          max-w-[455px]
+          grid-cols-2
+          gap-3
+          px-4
+          sm:mt-3
+          sm:max-w-[520px]
+          sm:px-4
+          md:max-w-[560px]
+          lg:max-w-[620px]
+        "
+      >
+        <button
+          type="button"
+          onClick={onNext}
+          className="
+            min-h-[52px]
+            rounded-full
+            border-2
+            border-white
+            bg-white/95
+            px-5
+            py-3
+            text-base
+            font-black
+            text-[#746c66]
+            shadow-xl
+            backdrop-blur
+            transition
+            active:scale-95
+          "
+        >
+          ← Next time
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenFilter}
+          className="
+            min-h-[52px]
+            rounded-full
+            border-2
+            border-white
+            bg-[#f3e7df]/95
+            px-5
+            py-3
+            text-base
+            font-black
+            text-[#064b42]
+            shadow-xl
+            backdrop-blur
+            transition
+            active:scale-95
+          "
+        >
+          Filtres
+          {filterCount > 0
+            ? ` (${filterCount})`
+            : ""}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1091,11 +1128,6 @@ function WelcomeModal({
       type: "chat",
       icon: "🐱",
       title: "Chat",
-    },
-    {
-      type: "oiseau",
-      icon: "🐦",
-      title: "Oiseau",
     },
     {
       type: "cheval",
@@ -1579,6 +1611,7 @@ function getProfileDestination(role: unknown) {
       return "/refuge/dashboard";
 
     case "fourriere":
+    case "sigfa":
       return "/fourriere/dashboard";
 
     case "benevole":
@@ -1615,18 +1648,11 @@ function BottomMenu() {
 
   const systemMenuPages = useMemo(() => [
     {
-      slug: "alimentation",
-      label: "Alimentation",
-      href: "/alimentation",
-      icon: "🥣",
+      slug: "veterinaires",
+      label: "Vétérinaires",
+      href: "/veterinaires",
+      icon: "🩺",
       sortOrder: 10,
-    },
-    {
-      slug: "arpap",
-      label: "ARPAP",
-      href: "/arpap",
-      icon: "🐾",
-      sortOrder: 15,
     },
     {
       slug: "associations",
@@ -1636,38 +1662,31 @@ function BottomMenu() {
       sortOrder: 20,
     },
     {
-      slug: "balades",
-      label: "Balades & Copains",
-      href: "/balades",
+      slug: "conseils-sante",
+      label: "Conseils santé",
+      href: "/conseils-sante",
+      icon: "❤️‍🩹",
+      sortOrder: 30,
+    },
+    {
+      slug: "les-veilleurs-de-kali",
+      label: "Les Veilleurs de Kali",
+      href: "/association/lesveilleursdekali",
       icon: "🐾",
-      sortOrder: 25,
+      sortOrder: 40,
     },
     {
       slug: "boutique",
       label: "Boutique",
       href: "/boutique",
       icon: "🛍️",
-      sortOrder: 30,
-    },
-    {
-      slug: "conseils-sante",
-      label: "Conseils santé",
-      href: "/conseils-sante",
-      icon: "❤️‍🩹",
-      sortOrder: 40,
-    },
-    {
-      slug: "dons",
-      label: "Dons",
-      href: "/dons",
-      icon: "💝",
       sortOrder: 50,
     },
     {
-      slug: "education",
-      label: "Éducation",
-      href: "/education",
-      icon: "🎓",
+      slug: "toilettage",
+      label: "Toilettage",
+      href: "/toilettage",
+      icon: "✂️",
       sortOrder: 60,
     },
     {
@@ -1678,17 +1697,17 @@ function BottomMenu() {
       sortOrder: 70,
     },
     {
-      slug: "hommage",
-      label: "Hommage",
-      href: "/hommage",
-      icon: "🕯️",
+      slug: "education",
+      label: "Éducation",
+      href: "/education",
+      icon: "🎓",
       sortOrder: 80,
     },
     {
-      slug: "les-veilleurs-de-kali",
-      label: "Les Veilleurs de Kali",
-      href: "/association/lesveilleursdekali",
-      icon: "🐾",
+      slug: "alimentation",
+      label: "Alimentation",
+      href: "/alimentation",
+      icon: "🥣",
       sortOrder: 90,
     },
     {
@@ -1699,18 +1718,11 @@ function BottomMenu() {
       sortOrder: 100,
     },
     {
-      slug: "toilettage",
-      label: "Toilettage",
-      href: "/toilettage",
-      icon: "✂️",
+      slug: "hommage",
+      label: "Hommage",
+      href: "/hommage",
+      icon: "🕯️",
       sortOrder: 110,
-    },
-    {
-      slug: "veterinaires",
-      label: "Vétérinaires",
-      href: "/veterinaires",
-      icon: "🩺",
-      sortOrder: 120,
     },
   ], []);
 
@@ -1854,15 +1866,9 @@ function BottomMenu() {
       }) => page
     ),
     ...dynamicMenuPages,
-  ].sort((a, b) =>
-    a.label.localeCompare(
-      b.label,
-      "fr",
-      {
-        sensitivity: "base",
-        ignorePunctuation: true,
-      }
-    )
+  ].sort(
+    (a, b) =>
+      a.sortOrder - b.sortOrder
   );
 
   function closeMenu() {
