@@ -13,6 +13,7 @@ export default function GlobalBackButton() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
     setEditMode(params.get("edit") === "1");
     setQueryReady(true);
   }, [pathname]);
@@ -27,18 +28,17 @@ export default function GlobalBackButton() {
   ];
 
   const isWalkPage = pathname.startsWith("/balades");
+
   const isDonationPage = pathname === "/dons";
+
   const isAdminPage = pathname.startsWith("/admin");
 
-  /*
-   * Dashboards qui possèdent déjà leur propre en-tête TAUI TE ORA.
-   * Ici le bouton doit rester compact pour ne jamais cacher le logo / nom.
-   */
   const isPublisherDashboard =
     pathname === "/association/dashboard" ||
     pathname === "/benevole/dashboard" ||
     pathname === "/refuge/dashboard" ||
-    pathname === "/fourriere/dashboard";
+    pathname === "/fourriere/dashboard" ||
+    pathname === "/sigfa/dashboard";
 
   if (
     !queryReady ||
@@ -64,12 +64,79 @@ export default function GlobalBackButton() {
     router.push("/");
   }
 
+  /*
+   * DASHBOARDS
+   * Association / Bénévole / Refuge / Fourrière / SIGFA
+   *
+   * IMPORTANT :
+   * On n'ajoute PLUS de logo ni de texte ici.
+   * La barre principale conserve son logo TAUI TE ORA.
+   */
+  if (isPublisherDashboard && !editMode) {
+    return (
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="Retour"
+        className="
+          fixed
+          left-5
+          top-[18px]
+          z-[9900]
+
+          flex
+          h-12
+          items-center
+          justify-center
+          gap-1.5
+
+          rounded-full
+          border
+          border-[#eadfd8]
+
+          bg-white/95
+          px-5
+
+          text-sm
+          font-black
+          text-[#064b42]
+
+          shadow-md
+          backdrop-blur-md
+
+          transition
+
+          hover:bg-white
+          active:scale-[0.96]
+
+          max-md:left-3
+          max-md:top-3
+          max-md:h-11
+          max-md:px-3
+          max-md:text-[13px]
+        "
+      >
+        <ChevronLeft
+          size={19}
+          strokeWidth={3}
+        />
+
+        <span className="whitespace-nowrap">
+          Retour
+        </span>
+      </button>
+    );
+  }
+
   return (
     <>
       {isAdminPage && !editMode ? (
         <div
           aria-hidden="true"
-          className="h-16 sm:h-[72px]"
+          className="
+            h-16
+            sm:h-[72px]
+          "
         />
       ) : null}
 
@@ -83,57 +150,44 @@ export default function GlobalBackButton() {
         }
         className={`
           fixed
+          left-4
           z-[9900]
+
           flex
+          min-h-[44px]
           items-center
           justify-center
-          gap-1
+          gap-1.5
+
           rounded-full
           border
           border-[#eadfd8]
+
           bg-white/95
+          px-4
+
+          text-sm
           font-black
           text-[#064b42]
+
           shadow-md
           backdrop-blur-md
+
           transition
+
           hover:bg-white
           active:scale-[0.96]
 
           ${
             editMode
-              ? "left-4 top-[84px] min-h-[44px] px-4 text-sm sm:top-[78px]"
-              : isPublisherDashboard
-                ? `
-                    left-3
-                    top-4
-                    h-11
-                    min-w-[108px]
-                    px-3
-                    text-[13px]
-
-                    sm:left-4
-                    sm:h-12
-                    sm:min-w-[116px]
-                    sm:px-3.5
-                    sm:text-sm
-
-                    lg:left-5
-                  `
-                : `
-                    left-4
-                    top-4
-                    min-h-[44px]
-                    px-4
-                    text-sm
-                  `
+              ? "top-[84px] sm:top-[78px]"
+              : "top-4"
           }
         `}
       >
         <ChevronLeft
           size={18}
           strokeWidth={3}
-          className="shrink-0"
         />
 
         <span className="whitespace-nowrap">

@@ -12,6 +12,7 @@ export type PublisherRole =
   | "association"
   | "refuge"
   | "fourriere"
+  | "sigfa"
   | "benevole";
 
 type Profile = {
@@ -91,6 +92,7 @@ const ROLE_LABELS: Record<PublisherRole, string> = {
   association: "Association",
   refuge: "Refuge / SIGFA",
   fourriere: "Fourrière",
+  sigfa: "SIGFA",
   benevole: "Bénévole indépendant",
 };
 
@@ -109,6 +111,23 @@ function getEditAnimalPath(
   return `/association/edit-animal/${animalId}`;
 }
 
+type DashboardSectionKey =
+  | "stats"
+  | "animals"
+  | "adoptions"
+  | "messages"
+  | "help"
+  | "support";
+
+const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = {
+  stats: true,
+  animals: true,
+  adoptions: true,
+  messages: true,
+  help: true,
+  support: true,
+};
+
 type PublisherDashboardProps = {
   expectedRole: PublisherRole;
 };
@@ -126,6 +145,68 @@ export default function PublisherDashboard({
 
   const [actionId, setActionId] =
     useState<string | null>(null);
+
+  const [sectionVisibility, setSectionVisibility] = useState<
+    Record<DashboardSectionKey, boolean>
+  >(DEFAULT_SECTION_VISIBILITY);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(
+        `taui-publisher-dashboard-sections-${expectedRole}`
+      );
+
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved) as Partial<
+        Record<DashboardSectionKey, boolean>
+      >;
+
+      setSectionVisibility({
+        ...DEFAULT_SECTION_VISIBILITY,
+        ...parsed,
+      });
+    } catch (error) {
+      console.warn("Impossible de charger l’affichage du dashboard :", error);
+    }
+  }, [expectedRole]);
+
+  function setSectionVisible(
+    key: DashboardSectionKey,
+    visible: boolean
+  ) {
+    setSectionVisibility((current) => {
+      const next = { ...current, [key]: visible };
+
+      try {
+        window.localStorage.setItem(
+          `taui-publisher-dashboard-sections-${expectedRole}`,
+          JSON.stringify(next)
+        );
+      } catch (error) {
+        console.warn("Impossible de mémoriser l’affichage du dashboard :", error);
+      }
+
+      return next;
+    });
+  }
+
+  function setAllSections(visible: boolean) {
+    const next = Object.fromEntries(
+      Object.keys(DEFAULT_SECTION_VISIBILITY).map((key) => [key, visible])
+    ) as Record<DashboardSectionKey, boolean>;
+
+    setSectionVisibility(next);
+
+    try {
+      window.localStorage.setItem(
+        `taui-publisher-dashboard-sections-${expectedRole}`,
+        JSON.stringify(next)
+      );
+    } catch (error) {
+      console.warn("Impossible de mémoriser l’affichage du dashboard :", error);
+    }
+  }
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -728,6 +809,39 @@ export default function PublisherDashboard({
           </div>
         </header>
 
+        <section className="mt-6 rounded-[26px] bg-white p-4 shadow-md sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                Affichage du dashboard
+              </p>
+              <h2 className="mt-1 text-xl font-black">Afficher par catégorie</h2>
+              <p className="mt-1 text-sm text-[#6f5a47]">
+                Masquez les détails inutiles. Vos choix sont mémorisés sur cet appareil.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setAllSections(true)} className="rounded-full bg-[#064b42] px-4 py-2 text-xs font-black text-white">
+                Tout afficher
+              </button>
+              <button type="button" onClick={() => setAllSections(false)} className="rounded-full border border-[#064b42] bg-white px-4 py-2 text-xs font-black text-[#064b42]">
+                Tout masquer
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <SectionToggle label="Statistiques" icon="📊" active={sectionVisibility.stats} onClick={() => setSectionVisible("stats", !sectionVisibility.stats)} />
+            <SectionToggle label="Mes animaux" icon="🐾" active={sectionVisibility.animals} onClick={() => setSectionVisible("animals", !sectionVisibility.animals)} />
+            <SectionToggle label="Adoptions" icon="📩" active={sectionVisibility.adoptions} onClick={() => setSectionVisible("adoptions", !sectionVisibility.adoptions)} />
+            <SectionToggle label="Messages" icon="💬" active={sectionVisibility.messages} onClick={() => setSectionVisible("messages", !sectionVisibility.messages)} />
+            <SectionToggle label="Réseau d’aide" icon="🤝" active={sectionVisibility.help} onClick={() => setSectionVisible("help", !sectionVisibility.help)} />
+            <SectionToggle label="Assistance" icon="🛟" active={sectionVisibility.support} onClick={() => setSectionVisible("support", !sectionVisibility.support)} />
+          </div>
+        </section>
+
+        {sectionVisibility.stats && (
         <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Stat label="Animaux" value={data.animals.length} icon="🐾" />
           <Stat label="Publiés" value={published} icon="✅" />
@@ -738,7 +852,9 @@ export default function PublisherDashboard({
             <Stat label="Messages" value={data.conversations.length} icon="💬" />
           </Link>
         </div>
+        )}
 
+        {sectionVisibility.animals && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
@@ -856,7 +972,9 @@ export default function PublisherDashboard({
             </div>
           )}
         </section>
+        )}
 
+        {sectionVisibility.adoptions && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <h2 className="text-2xl font-black">
             Demandes d&apos;adoption
@@ -1359,11 +1477,39 @@ export default function PublisherDashboard({
             )}
           </div>
         </section>
+        )}
 
-        <div className="mt-7">
-          <DashboardMessages />
-        </div>
+        {sectionVisibility.messages && (
+          <div className="mt-7">
+            <DashboardMessages />
+          </div>
+        )}
 
+        {sectionVisibility.help && (
+          <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                  Entraide
+                </p>
+                <h2 className="mt-1 text-2xl font-black">🤝 Réseau d’aide</h2>
+                <p className="mt-1 text-sm text-[#6f5a47]">
+                  Consultez le réseau d’entraide et les SOS actifs.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/reseau-aide" className="rounded-full bg-[#064b42] px-5 py-2.5 text-sm font-black text-white">
+                  Voir le réseau
+                </Link>
+                <Link href="/sos-aide" className="rounded-full bg-[#df8995] px-5 py-2.5 text-sm font-black text-white">
+                  🚨 SOS
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {sectionVisibility.support && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1385,6 +1531,7 @@ export default function PublisherDashboard({
             </div>
           </div>
         </section>
+        )}
       </section>
     </main>
   );
@@ -1403,6 +1550,9 @@ function getPublisherDestination(
 
     case "fourriere":
       return "/fourriere/dashboard";
+
+    case "sigfa":
+      return "/sigfa/dashboard";
 
     case "benevole":
       return "/benevole/dashboard";
@@ -1473,6 +1623,33 @@ function getCoverPhoto(animal: Animal) {
       )[0];
 
   return cover?.photo_url || "";
+}
+
+function SectionToggle({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full border px-4 py-2 text-xs font-black transition ${
+        active
+          ? "border-[#064b42] bg-[#e8f5f1] text-[#064b42]"
+          : "border-[#ded6ce] bg-[#f8f4ec] text-[#80766e]"
+      }`}
+    >
+      {icon} {label} {active ? "▲" : "▼"}
+    </button>
+  );
 }
 
 function Stat({
