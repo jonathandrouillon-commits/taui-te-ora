@@ -855,14 +855,14 @@ export default function AnimalSwipeCard({
           className="
             absolute
             right-3
-            bottom-[190px]
+            bottom-[128px]
             z-50
             flex
             flex-col
             items-center
             gap-2
             sm:right-4
-            sm:bottom-[150px]
+            sm:bottom-[118px]
           "
         >
           <button
