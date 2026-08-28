@@ -116,7 +116,7 @@ export default function BottomNavigation() {
   }, []);
 
   // Sur l'accueil, on masque cette navigation
-  // car la barre principale est directement int�gr�e dans app/page.tsx
+  // car la barre principale est directement intégrée dans app/page.tsx
   if (pathname === "/") {
     return null;
   }
@@ -125,12 +125,12 @@ export default function BottomNavigation() {
     {
       href: "/",
       label: "Accueil",
-      icon: "??",
+      icon: "🏠",
     },
     {
       href: "/search",
       label: "Search",
-      icon: "??",
+      icon: "🔎",
     },
     {
       href: "/signalement",
@@ -141,13 +141,13 @@ export default function BottomNavigation() {
     {
       href: "#",
       label: "Menu",
-      icon: "?",
+      icon: "☰",
       menu: true,
     },
     {
       href: profileHref,
       label: "Profil",
-      icon: "??",
+      icon: "👤",
       profile: true,
     },
   ];
@@ -156,56 +156,56 @@ export default function BottomNavigation() {
     {
       href: "/arpap",
       label: "ARPAP",
-      icon: "??",
+      icon: "🐾",
     },
     {
       href: "/info",
       label: "Info",
-      icon: "??",
+      icon: "ℹ",
     },
     {
       href: "/veterinaires",
-      label: "V�t�rinaires",
+      label: "Vétérinaires",
       icon: "??",
     },
     {
       href: "/conseils-sante",
-      label: "Conseils sant�",
+      label: "Conseils santé",
       icon: "?????",
     },
     {
       href: "/association",
       label: "Les Veilleurs de Kali",
-      icon: "??",
+      icon: "❤️",
     },
     {
       href: "/boutique",
       label: "Boutique",
-      icon: "???",
+      icon: "🛍️",
     },
     {
       href: "/toilettage",
       label: "Toilettage",
-      icon: "??",
+      icon: "✂",
     },
     {
       href: "/gardiennage",
       label: "Gardiennage",
-      icon: "??",
+      icon: "🏡",
     },
     {
       href: "/education",
-      label: "�ducation",
+      label: "éducation",
       icon: "??",
     },
     {
       href: "/alimentation",
       label: "Alimentation",
-      icon: "??",
+      icon: "🍖",
     },
     {
       href: "/hommage",
-      label: "Hommage � Kali",
+      label: "Hommage à Kali",
       icon: "??",
     },
   ];

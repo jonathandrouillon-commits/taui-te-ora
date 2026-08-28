@@ -345,7 +345,7 @@ export default function AdminAnimalsPage() {
   ) {
     if (animal.is_adopted) {
       alert(
-        "Un animal adopt� ne peut pas �tre publi�."
+        "Un animal adopté ne peut pas être publié."
       );
       return;
     }
@@ -354,7 +354,7 @@ export default function AdminAnimalsPage() {
       animal.status === "archive"
     ) {
       alert(
-        "R�activez d'abord l'animal archiv�."
+        "Réactivez d'abord l'animal archivé."
       );
       return;
     }
@@ -382,7 +382,7 @@ export default function AdminAnimalsPage() {
   ) {
     const confirmed =
       window.confirm(
-        `D�publier ${
+        `Dépublier ${
           animal.animal_name ||
           "cet animal"
         } ?`
@@ -403,7 +403,7 @@ export default function AdminAnimalsPage() {
   ) {
     if (animal.is_adopted) {
       alert(
-        "Cet animal est d�j� enregistr� comme adopt�."
+        "Cet animal est déjà enregistré comme adopté."
       );
       return;
     }
@@ -432,10 +432,10 @@ export default function AdminAnimalsPage() {
   ) {
     const confirmed =
       window.confirm(
-        `R�activer ${
+        `Réactiver ${
           animal.animal_name ||
           "cet animal"
-        } ? Il restera non publi� jusqu'� validation de sa publication.`
+        } ? Il restera non publié jusqu'à validation de sa publication.`
       );
 
     if (!confirmed) return;
@@ -525,7 +525,7 @@ export default function AdminAnimalsPage() {
           />
 
           <Stat
-            label="Publi�s"
+            label="Publiés"
             value={publishedCount}
             active={
               filter ===
@@ -550,7 +550,7 @@ export default function AdminAnimalsPage() {
           />
 
           <Stat
-            label="Adopt�s"
+            label="Adoptés"
             value={adoptedCount}
             active={
               filter ===
@@ -564,7 +564,7 @@ export default function AdminAnimalsPage() {
           />
 
           <Stat
-            label="Archiv�s"
+            label="Archivés"
             value={archivedCount}
             active={
               filter ===
@@ -587,8 +587,8 @@ export default function AdminAnimalsPage() {
               </h2>
 
               <p className="mt-2 text-gray-500">
-                Aucun r�sultat ne
-                correspond aux crit�res.
+                Aucun résultat ne
+                correspond aux critères.
               </p>
             </div>
           ) : (
@@ -623,15 +623,15 @@ export default function AdminAnimalsPage() {
 
                           {adopted ? (
                             <Badge>
-                              Adopt�
+                              Adopté
                             </Badge>
                           ) : archived ? (
                             <Badge>
-                              Archiv�
+                              Archivé
                             </Badge>
                           ) : animal.is_published ? (
                             <Badge>
-                              Publi�
+                              Publié
                             </Badge>
                           ) : (
                             <Badge>
@@ -642,29 +642,29 @@ export default function AdminAnimalsPage() {
 
                         <p className="mt-2 text-[#6f5a47]">
                           {animal.animal_type ||
-                            "Type non renseign�"}
-                          {" � "}
+                            "Type non renseigné"}
+                          {" • "}
                           {animal.age_label ||
-                            "�ge non renseign�"}
-                          {" � "}
+                            "âge non renseigné"}
+                          {" • "}
                           {animal.sex ||
-                            "Sexe non renseign�"}
+                            "Sexe non renseigné"}
                         </p>
 
                         <p className="mt-1 text-sm text-gray-500">
                           {animal.breed ||
-                            "Race non renseign�e"}
-                          {" � "}
+                            "Race non renseignée"}
+                          {" • "}
                           {animal.city ||
-                            "Commune non renseign�e"}
-                          {" � "}
+                            "Commune non renseignée"}
+                          {" • "}
                           {animal.island ||
-                            "�le non renseign�e"}
+                            "île non renseignée"}
                         </p>
 
                         <p className="mt-2 text-sm font-bold text-[#9c7b54]">
                           {animal.association_name ||
-                            "Structure non renseign�e"}
+                            "Structure non renseignée"}
                         </p>
                       </div>
 
@@ -738,7 +738,7 @@ export default function AdminAnimalsPage() {
                               <EyeOff
                                 size={17}
                               />
-                              D�publier
+                              Dépublier
                             </button>
                           )}
 
@@ -779,7 +779,7 @@ export default function AdminAnimalsPage() {
                             <CheckCircle2
                               size={17}
                             />
-                            R�activer
+                            Réactiver
                           </button>
                         )}
                       </div>

@@ -32,7 +32,7 @@ export default function GeneralTab({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-black text-[#064b42]">
-          Informations g�n�rales
+          Informations générales
         </h2>
 
         <p className="mt-1 text-sm text-[#746c64]">
@@ -43,7 +43,7 @@ export default function GeneralTab({
 
       <div className="grid gap-5 md:grid-cols-2">
         <Input
-          label="Nom de l�animal"
+          label="Nom de l'animal"
           value={String(
             animal.animal_name ?? ""
           )}
@@ -56,7 +56,7 @@ export default function GeneralTab({
         />
 
         <Select
-          label="Type d�animal"
+          label="Type d'animal"
           value={String(
             animal.animal_type ?? ""
           )}
@@ -69,7 +69,7 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "S�lectionner",
+              label: "Sîlectionner",
             },
             {
               value: "Chien",
@@ -117,11 +117,11 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "S�lectionner",
+              label: "Sîlectionner",
             },
             {
-              value: "M�le",
-              label: "M�le",
+              value: "Mîle",
+              label: "Mîle",
             },
             {
               value: "Femelle",
@@ -131,7 +131,7 @@ export default function GeneralTab({
         />
 
         <Input
-          label="�ge"
+          label="Âge"
           value={String(
             animal.age_label ?? ""
           )}
@@ -158,7 +158,7 @@ export default function GeneralTab({
           options={[
             {
               value: "",
-              label: "S�lectionner",
+              label: "Sîlectionner",
             },
             {
               value: "Petit",

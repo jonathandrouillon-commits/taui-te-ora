@@ -478,9 +478,9 @@ export default function PublisherDashboard({
       rejected:
         "refuser cette demande d'adoption",
       meeting:
-        "passer cette demande � l'�tape Rencontre",
+        "passer cette demande à l'étape Rencontre",
       accepted:
-        "valider d�finitivement cette adoption",
+        "valider définitivement cette adoption",
     };
 
     const confirmed =
@@ -494,7 +494,7 @@ export default function PublisherDashboard({
       setActionId(request.id);
 
       /*
-       * L'acceptation d�finitive passe par une transaction
+       * L'acceptation définitive passe par une transaction
        * Supabase atomique via finalize_adoption().
        */
       if (nextStatus === "accepted") {
@@ -514,7 +514,7 @@ export default function PublisherDashboard({
       } else {
         /*
          * Rencontre / refus :
-         * mise � jour classique prot�g�e par RLS
+         * mise à jour classique protégée par RLS
          * et protect_adoption_request_fields().
          */
         const {
@@ -529,7 +529,7 @@ export default function PublisherDashboard({
 
         if (!user) {
           throw new Error(
-            "Utilisateur non connect�."
+            "Utilisateur non connecté."
           );
         }
 

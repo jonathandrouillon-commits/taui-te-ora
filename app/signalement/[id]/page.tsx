@@ -290,7 +290,7 @@ export default function SignalementDetailPage() {
         )
       ) {
         throw new Error(
-          "Vous devez �tre connect� � TAUI TE ORA pour consulter cette alerte."
+          "Vous devez être connecté à TAUI TE ORA pour consulter cette alerte."
         );
       }
 
@@ -349,7 +349,7 @@ export default function SignalementDetailPage() {
         signalementData?.type_signalement || ""
       ).trim().toLowerCase();
 
-      if (loadedType === "animal perdu" || loadedType === "animal trouv�") {
+      if (loadedType === "animal perdu" || loadedType === "animal trouvé") {
         setMatchesLoading(true);
 
         const {
@@ -399,7 +399,7 @@ export default function SignalementDetailPage() {
         mediaError
       ) {
         console.error(
-          "Erreur m�dias :",
+          "Erreur médias :",
           mediaError
         );
       }
@@ -415,7 +415,7 @@ export default function SignalementDetailPage() {
         .eq("signalement_id", signalementId)
         .order("created_at", { ascending: false });
 
-      if (updateError) console.error("Erreur informations suppl�mentaires :", updateError);
+      if (updateError) console.error("Erreur informations supplémentaires :", updateError);
       setUpdates((updateData || []) as SignalementUpdate[]);
 
       if (
@@ -564,7 +564,7 @@ export default function SignalementDetailPage() {
             "signalement_status",
 
           title:
-            `Mise � jour de votre signalement : ${label}`,
+            `Mise à jour de votre signalement : ${label}`,
 
           message,
 
@@ -574,7 +574,7 @@ export default function SignalementDetailPage() {
 
     if (error) {
       console.error(
-        "Erreur notification d�clarant :",
+        "Erreur notification déclarant :",
         error
       );
     }
@@ -593,7 +593,7 @@ export default function SignalementDetailPage() {
 
     const lostOrFoundAnimal =
       signalementType === "animal perdu" ||
-      signalementType === "animal trouv�";
+      signalementType === "animal trouvé";
 
     if (
       lostOrFoundAnimal &&
@@ -677,7 +677,7 @@ export default function SignalementDetailPage() {
       );
 
       alert(
-        "Signalement sauvegard�. Le statut a �t� mis � jour."
+        "Signalement sauvegardé. Le statut a été mis à jour."
       );
 
       await loadData();
@@ -758,7 +758,7 @@ export default function SignalementDetailPage() {
 
       if (!data) {
         alert(
-          "Cette intervention vient d�j� d'�tre prise en charge par un autre intervenant."
+          "Cette intervention vient déjà d'être prise en charge par un autre intervenant."
         );
 
         await loadData();
@@ -848,7 +848,7 @@ export default function SignalementDetailPage() {
     ) {
       alert(
         error instanceof Error ? error.message :
-          "Impossible de d�marrer l'intervention."
+          "Impossible de démarrer l'intervention."
       );
     } finally {
       setActionLoading(
@@ -867,7 +867,7 @@ export default function SignalementDetailPage() {
 
     const confirmed =
       window.confirm(
-        "Confirmer que cette intervention est r�gl�e ?"
+        "Confirmer que cette intervention est réglée ?"
       );
 
     if (
@@ -933,7 +933,7 @@ export default function SignalementDetailPage() {
     ) {
       alert(
         error instanceof Error ? error.message :
-          "Impossible de cl�turer l'intervention."
+          "Impossible de clôturer l'intervention."
       );
     } finally {
       setActionLoading(
@@ -960,7 +960,7 @@ export default function SignalementDetailPage() {
       });
       if (error) throw error;
       setUpdateMessage(""); setUpdateObservationAt(""); setUpdateLatitude(""); setUpdateLongitude("");
-      alert(isAdmin ? "Information ajout�e et v�rifi�e." : "Information envoy�e. Elle sera publi�e apr�s v�rification par un administrateur.");
+      alert(isAdmin ? "Information ajoutée et vérifiée." : "Information envoyée. Elle sera publiée après vérification par un administrateur.");
       await loadData();
     } catch (error: unknown) {
       alert(error instanceof Error ? error.message : "Impossible d'ajouter cette information.");
@@ -979,7 +979,7 @@ export default function SignalementDetailPage() {
       if (error) throw error;
       await loadData();
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : "Impossible de v�rifier cette information.");
+      alert(error instanceof Error ? error.message : "Impossible de vérifier cette information.");
     } finally { setActionLoading(false); }
   }
 
@@ -1042,7 +1042,7 @@ export default function SignalementDetailPage() {
   const signalementType =
     String(signalement.type_signalement || "").trim().toLowerCase();
   const isLostAnimal = signalementType === "animal perdu";
-  const isFoundAnimal = signalementType === "animal trouv�";
+  const isFoundAnimal = signalementType === "animal trouvé";
   const isLostOrFoundAnimal = isLostAnimal || isFoundAnimal;
   const isReporter = signalement.user_id === currentProfile?.id;
   const canManageLostOrFoundAnimal =
@@ -1081,7 +1081,7 @@ export default function SignalementDetailPage() {
             <div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
-                  ?? SOS
+                  🆘 SOS
                 </span>
 
                 <StatusBadge
@@ -1092,7 +1092,7 @@ export default function SignalementDetailPage() {
 
                 {signalement.anonymous && (
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">
-                    ?? Anonyme
+                    🔒 Anonyme
                   </span>
                 )}
               </div>
@@ -1105,7 +1105,7 @@ export default function SignalementDetailPage() {
               <p className="mt-2 text-lg text-[#6f5a47]">
                 {signalement.animal_type ||
                   "Animal"}{" "}
-                �{" "}
+                •{" "}
                 {signalement.animal_name ||
                   "Nom inconnu"}
               </p>
@@ -1116,7 +1116,7 @@ export default function SignalementDetailPage() {
                   "Commune inconnue"}{" "}
                 -{" "}
                 {signalement.island ||
-                  "�le inconnue"}
+                  "île inconnue"}
               </p>
             </div>
 
@@ -1190,16 +1190,16 @@ export default function SignalementDetailPage() {
                   Matching automatique
                 </p>
                 <h2 className="mt-1 text-xl font-black text-[#064b42]">
-                  ?? Correspondances possibles
+                  🔎 Correspondances possibles
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6f5a47]">
-                  TAUI TE ORA compare les signalements perdus et trouv�s. Une correspondance est une suggestion et doit toujours �tre v�rifi�e.
+                  TAUI TE ORA compare les signalements perdus et trouvés. Une correspondance est une suggestion et doit toujours être vérifiée.
                 </p>
               </div>
 
               {!matchesLoading && matches.length > 0 && (
                 <span className="w-fit rounded-full bg-[#edf7f4] px-4 py-2 text-sm font-black text-[#064b42]">
-                  {matches.length} r�sultat{matches.length > 1 ? "s" : ""}
+                  {matches.length} résultat{matches.length > 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -1214,7 +1214,7 @@ export default function SignalementDetailPage() {
                   Aucune correspondance suffisamment proche pour le moment.
                 </p>
                 <p className="mt-2 text-sm text-[#6f5a47]">
-                  Le matching �voluera automatiquement lorsque de nouveaux signalements seront enregistr�s.
+                  Le matching évoluera automatiquement lorsque de nouveaux signalements seront enregistrés.
                 </p>
               </div>
             ) : (
@@ -1224,7 +1224,7 @@ export default function SignalementDetailPage() {
                   const identificationMatch =
                     String(match.match_level || "").trim().toLowerCase() === "identification" ||
                     (Array.isArray(match.match_reasons) &&
-                      match.match_reasons.includes("M�me num�ro d'identification"));
+                      match.match_reasons.includes("Même numéro d'identification"));
                   const score = identificationMatch
                     ? Math.max(99, dataScore)
                     : dataScore;
@@ -1256,7 +1256,7 @@ export default function SignalementDetailPage() {
                         <div className="p-5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className={`rounded-full px-3 py-1 text-xs font-black ${level.classes}`}>
-                              {score}% � {level.label}
+                              {score}% • {level.label}
                             </span>
 
                             <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#6f5a47]">
@@ -1270,12 +1270,12 @@ export default function SignalementDetailPage() {
 
                           <p className="mt-1 text-sm font-bold text-[#6f5a47]">
                             {match.animal_type || "Animal"}
-                            {match.breed ? ` � ${match.breed}` : ""}
-                            {match.sex ? ` � ${match.sex}` : ""}
+                            {match.breed ? ` • ${match.breed}` : ""}
+                            {match.sex ? ` • ${match.sex}` : ""}
                           </p>
 
                           <p className="mt-2 text-sm font-black text-[#b58b5b]">
-                            ?? {match.city || "Commune inconnue"} � {match.island || "�le inconnue"}
+                            ?? {match.city || "Commune inconnue"} • {match.island || "île inconnue"}
                           </p>
 
                           {reasons.length > 0 && (
@@ -1339,7 +1339,7 @@ export default function SignalementDetailPage() {
               />
 
               <Info
-                title="�ge estim�"
+                title="Âge estimé"
                 value={
                   signalement.age_label
                 }
@@ -1386,7 +1386,7 @@ export default function SignalementDetailPage() {
 
             <div className="mt-5 space-y-3">
               <Info
-                title="�le"
+                title="Île"
                 value={
                   signalement.island
                 }
@@ -1411,16 +1411,16 @@ export default function SignalementDetailPage() {
                   title="Date / heure approximative de disparition"
                   value={signalement.disappearance_at
                     ? new Date(signalement.disappearance_at).toLocaleString("fr-FR")
-                    : "Non renseign�"}
+                    : "Non renseigné"}
                 />
               )}
 
               {isFoundAnimal && (
                 <Info
-                  title="Date / heure approximative de d�couverte"
+                  title="Date / heure approximative de découverte"
                   value={signalement.found_at
                     ? new Date(signalement.found_at).toLocaleString("fr-FR")
-                    : "Non renseign�"}
+                    : "Non renseigné"}
                 />
               )}
 
@@ -1434,7 +1434,7 @@ export default function SignalementDetailPage() {
                     rel="noreferrer"
                     className="block rounded-full bg-[#064b42] px-5 py-3 text-center font-black text-white"
                   >
-                    ?? Ouvrir la g�olocalisation
+                    📍 Ouvrir la géolocalisation
                   </a>
                 )}
             </div>
@@ -1443,37 +1443,37 @@ export default function SignalementDetailPage() {
 
         {isLostOrFoundAnimal && (
           <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
-            <h2 className="text-xl font-black text-[#064b42]">Informations v�rifi�es</h2>
+            <h2 className="text-xl font-black text-[#064b42]">Informations vérifiées</h2>
             <p className="mt-1 text-sm text-[#6f5a47]">
-              Les observations v�rifi�es sont visibles par tous. L&apos;administrateur valide les nouvelles informations.
+              Les observations vérifiées sont visibles par tous. L&apos;administrateur valide les nouvelles informations.
             </p>
 
             <div className="mt-5 space-y-4">
               {visibleUpdates.length === 0 && (
                 <div className="rounded-[22px] bg-[#faf7f2] p-5 text-[#6f5a47]">
-                  Aucune information suppl�mentaire v�rifi�e pour le moment.
+                  Aucune information supplémentaire vérifiée pour le moment.
                 </div>
               )}
               {visibleUpdates.map((item) => (
                 <div key={item.id} className="rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-5">
                   <span className={`rounded-full px-3 py-1 text-xs font-black ${item.is_verified ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}>
-                    {item.is_verified ? "? Information v�rifi�e" : "En attente de v�rification"}
+                    {item.is_verified ? "✅ Information vérifiée" : "En attente de vérification"}
                   </span>
                   <p className="mt-4 whitespace-pre-wrap font-semibold text-[#064b42]">{item.message}</p>
                   {item.observation_at && (
-                    <p className="mt-3 text-sm text-[#6f5a47]">?? Observation : {new Date(item.observation_at).toLocaleString("fr-FR")}</p>
+                    <p className="mt-3 text-sm text-[#6f5a47]">🕒 Observation : {new Date(item.observation_at).toLocaleString("fr-FR")}</p>
                   )}
                   {typeof item.latitude === "number" && typeof item.longitude === "number" && (
                     <a href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`} target="_blank" rel="noreferrer"
                       className="mt-3 inline-block rounded-full bg-white px-4 py-2 text-sm font-black text-[#064b42] shadow-sm">
-                      ?? Voir le point d&apos;observation
+                      📍 Voir le point d&apos;observation
                     </a>
                   )}
                   {currentProfile?.role === "admin" && !item.is_verified && (
                     <button type="button" disabled={actionLoading}
                       onClick={() => void verifySignalementUpdate(item.id)}
                       className="mt-4 block rounded-full bg-green-700 px-5 py-3 font-black text-white disabled:opacity-50">
-                      ? V�rifier et publier
+                      ? Vérifier et publier
                     </button>
                   )}
                 </div>
@@ -1484,7 +1484,7 @@ export default function SignalementDetailPage() {
               <div className="mt-7 border-t border-[#eadfce] pt-6">
                 <h3 className="font-black text-[#064b42]">Ajouter une information</h3>
                 <textarea value={updateMessage} onChange={(e) => setUpdateMessage(e.target.value)} rows={4}
-                  placeholder="Exemple : aper�u pr�s de la mairie, direction Paea..."
+                  placeholder="Exemple : aperçu près de la mairie, direction Paea..."
                   className="mt-4 w-full rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-4" />
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                   <input type="datetime-local" value={updateObservationAt} onChange={(e) => setUpdateObservationAt(e.target.value)}
@@ -1507,17 +1507,17 @@ export default function SignalementDetailPage() {
         {canIntervene && (
         <section className="mt-6 rounded-[30px] bg-white p-6 shadow">
           <h2 className="text-xl font-black text-[#064b42]">
-            D�clarant
+            Déclarant
           </h2>
 
           {signalement.anonymous ? (
             <div className="mt-5 rounded-[22px] bg-gray-100 p-5">
               <p className="font-black text-gray-700">
-                ?? Signalement anonyme
+                🔒 Signalement anonyme
               </p>
 
               <p className="mt-2 text-sm text-gray-600">
-                Le nom, le t�l�phone et l&apos;adresse email ne sont pas communiqu�s aux intervenants.
+                Le nom, le téléphone et l&apos;adresse email ne sont pas communiqués aux intervenants.
               </p>
             </div>
           ) : (
@@ -1530,7 +1530,7 @@ export default function SignalementDetailPage() {
               />
 
               <Info
-                title="T�l�phone"
+                title="Téléphone"
                 value={
                   signalement.reporter_phone
                 }
@@ -1556,7 +1556,7 @@ export default function SignalementDetailPage() {
               </h2>
 
               <p className="mt-1 text-sm text-[#6f5a47]">
-                Modifiez le statut, ajoutez un message pour le d�clarant puis sauvegardez.
+                Modifiez le statut, ajoutez un message pour le déclarant puis sauvegardez.
               </p>
             </div>
 
@@ -1581,7 +1581,7 @@ export default function SignalementDetailPage() {
                 }
                 className="mt-5 w-full rounded-full bg-orange-500 px-6 py-4 text-lg font-black text-white disabled:opacity-50"
               >
-                ?? Prendre en charge
+                🤝 Prendre en charge
               </button>
             )}
 
@@ -1591,11 +1591,11 @@ export default function SignalementDetailPage() {
               "admin" && (
               <div className="mt-5 rounded-[22px] bg-[#f8f4ec] p-5">
                 <p className="font-black text-[#064b42]">
-                  Intervention d�j� prise en charge
+                  Intervention déjà prise en charge
                 </p>
 
                 <p className="mt-2 text-sm text-[#6f5a47]">
-                  {assignedName} g�re actuellement ce signalement.
+                  {assignedName} gère actuellement ce signalement.
                 </p>
               </div>
             )}
@@ -1623,7 +1623,7 @@ export default function SignalementDetailPage() {
                         : "border-orange-100 bg-white text-orange-700"
                     }`}
                   >
-                    ?? En cours
+                    🟠 En cours
                   </button>
 
                   <button
@@ -1640,7 +1640,7 @@ export default function SignalementDetailPage() {
                         : "border-green-100 bg-white text-green-700"
                     }`}
                   >
-                    ?? Animal retrouv�
+                    ✅ Animal retrouvé
                   </button>
 
                   <button
@@ -1657,14 +1657,14 @@ export default function SignalementDetailPage() {
                         : "border-green-200 bg-white text-green-900"
                     }`}
                   >
-                    ? Cl�tur�
+                    🔒 Clôturé
                   </button>
                 </div>
               </div>
 
               <div>
                 <label className="mb-2 block font-black text-[#064b42]">
-                  Message envoy� au d�clarant
+                  Message envoyé au déclarant
                 </label>
 
                 <textarea
@@ -1679,12 +1679,12 @@ export default function SignalementDetailPage() {
                     )
                   }
                   rows={5}
-                  placeholder="Exemple : Nous avons pris en charge votre signalement. L'animal a �t� retrouv� et mis en s�curit�..."
+                  placeholder="Exemple : Nous avons pris en charge votre signalement. L'animal a été retrouvé et mis en sécurité..."
                   className="w-full rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-4 outline-none focus:border-[#064b42]"
                 />
 
                 <p className="mt-2 text-xs text-[#7a7068]">
-                  Si le d�clarant poss�de un compte TAUI TE ORA, il recevra cette mise � jour dans ses notifications avec le nouveau statut.
+                  Si le déclarant possède un compte TAUI TE ORA, il recevra cette mise à jour dans ses notifications avec le nouveau statut.
                 </p>
               </div>
 
@@ -1700,7 +1700,7 @@ export default function SignalementDetailPage() {
               >
                 {actionLoading
                   ? "Sauvegarde..."
-                  : "?? Sauvegarder le signalement"}
+                  : "💾 Sauvegarder le signalement"}
               </button>
             </div>
           )}
@@ -1720,8 +1720,8 @@ export default function SignalementDetailPage() {
               <p className="text-lg font-black">
                 {status ===
                 "animal_retrouve"
-                  ? "?? Animal retrouv�"
-                  : "? Signalement cl�tur�"}
+                  ? "✅ Animal retrouvé"
+                  : "🔒 Signalement clôturé"}
               </p>
 
               {signalement.resolution_note && (
@@ -1734,7 +1734,7 @@ export default function SignalementDetailPage() {
 
               {signalement.resolved_at && (
                 <p className="mt-3 text-sm opacity-80">
-                  Mis � jour le{" "}
+                  Mis à jour le{" "}
                   {new Date(
                     signalement.resolved_at
                   ).toLocaleString(
@@ -1764,7 +1764,7 @@ function getMatchLevel(level?: string | null, score = 0) {
 
   if (normalized === "tres_forte" || score >= 85) {
     return {
-      label: "Tr�s forte correspondance",
+      label: "Très forte correspondance",
       classes: "bg-green-700 text-white",
     };
   }
@@ -1784,7 +1784,7 @@ function getMatchLevel(level?: string | null, score = 0) {
   }
 
   return {
-    label: "� v�rifier",
+    label: "à vérifier",
     classes: "bg-gray-100 text-gray-700",
   };
 }
@@ -1858,10 +1858,10 @@ function statusLabel(
       return "En cours";
 
     case "animal_retrouve":
-      return "Animal retrouv�";
+      return "Animal retrouvé";
 
     case "cloture":
-      return "Cl�tur�";
+      return "Clôturé";
 
     case "nouveau":
     default:
@@ -1902,14 +1902,14 @@ function StatusBadge({
 
     animal_retrouve: {
       label:
-        "Animal retrouv�",
+        "Animal retrouvé",
       classes:
         "bg-green-100 text-green-800",
     },
 
     cloture: {
       label:
-        "Cl�tur�",
+        "Clôturé",
       classes:
         "bg-green-800 text-white",
     },
@@ -1946,7 +1946,7 @@ function Info({
 
       <p className="mt-2 whitespace-pre-line text-[#064b42]">
         {value ||
-          "Non renseign�"}
+          "Non renseigné"}
       </p>
     </div>
   );

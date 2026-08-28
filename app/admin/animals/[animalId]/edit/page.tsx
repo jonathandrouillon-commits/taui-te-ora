@@ -334,7 +334,7 @@ export default function EditAnimalPage() {
       form.status === "adopted"
     ) {
       alert(
-        "Un animal adopt� ne peut pas �tre publi�."
+        "Un animal adopté ne peut pas être publié."
       );
       return;
     }
@@ -343,7 +343,7 @@ export default function EditAnimalPage() {
       form.status === "archive"
     ) {
       alert(
-        "Un animal archiv� doit d'abord �tre r�activ�."
+        "Un animal archivé doit d'abord être réactivé."
       );
       return;
     }
@@ -374,7 +374,7 @@ export default function EditAnimalPage() {
         Number(weight) < 0)
     ) {
       alert(
-        "Le poids doit �tre un nombre valide."
+        "Le poids doit être un nombre valide."
       );
       return;
     }
@@ -395,7 +395,7 @@ export default function EditAnimalPage() {
         throw (
           userError ||
           new Error(
-            "Utilisateur non connect�."
+            "Utilisateur non connecté."
           )
         );
       }
@@ -483,7 +483,7 @@ export default function EditAnimalPage() {
       }
 
       alert(
-        "Profil animal mis � jour."
+        "Profil animal mis à jour."
       );
 
       router.push(
@@ -552,7 +552,7 @@ export default function EditAnimalPage() {
           </h1>
 
           <p className="mt-2 text-[#6f5a47]">
-            Gestion compl�te des informations,
+            Gestion complète des informations,
             de la publication et du statut.
           </p>
         </div>
@@ -562,7 +562,7 @@ export default function EditAnimalPage() {
         >
           <div className="grid gap-5 md:grid-cols-2">
             <Input
-              label="R�f�rence"
+              label="Référence"
               value={
                 form.reference_number
               }
@@ -601,7 +601,7 @@ export default function EditAnimalPage() {
             />
 
             <Input
-              label="�ge"
+              label="Âge"
               value={
                 form.age_label
               }
@@ -681,7 +681,7 @@ export default function EditAnimalPage() {
             />
 
             <Input
-              label="�le"
+              label="Île"
               value={form.island}
               onChange={(value) =>
                 updateField(
@@ -744,11 +744,11 @@ export default function EditAnimalPage() {
         </Section>
 
         <Section
-          title="Description compl�te"
+          title="Description complète"
         >
           <div className="space-y-5">
             <Textarea
-              label="Caract�re"
+              label="Caractère"
               value={
                 form.description_character
               }
@@ -772,7 +772,7 @@ export default function EditAnimalPage() {
             />
 
             <Textarea
-              label="�tat de sant�"
+              label="état de santé"
               value={
                 form.health_status
               }
@@ -800,7 +800,7 @@ export default function EditAnimalPage() {
         </Section>
 
         <Section
-          title="Compatibilit�s et sant�"
+          title="Compatibilités et santé"
         >
           <div className="grid gap-5 md:grid-cols-2">
             <Input
@@ -843,7 +843,7 @@ export default function EditAnimalPage() {
             />
 
             <BooleanSelect
-              label="Vaccin�"
+              label="Vacciné"
               value={
                 form.vaccinated
               }
@@ -856,7 +856,7 @@ export default function EditAnimalPage() {
             />
 
             <BooleanSelect
-              label="St�rilis�"
+              label="Stérilisé"
               value={
                 form.sterilized
               }
@@ -869,7 +869,7 @@ export default function EditAnimalPage() {
             />
 
             <BooleanSelect
-              label="Puc�"
+              label="Pucé"
               value={
                 form.microchipped
               }
@@ -906,8 +906,8 @@ export default function EditAnimalPage() {
                 currentStatus ===
                 "adopted"
               }
-              title="Adopt�"
-              description="Retir� automatiquement des annonces."
+              title="Adopté"
+              description="Retiré automatiquement des annonces."
               onClick={() =>
                 changeStatus(
                   "adopted"
@@ -920,8 +920,8 @@ export default function EditAnimalPage() {
                 currentStatus ===
                 "archive"
               }
-              title="Archiv�"
-              description="Conserv� dans l'historique."
+              title="Archivé"
+              description="Conservé dans l'historique."
               onClick={() =>
                 changeStatus(
                   "archive"
@@ -964,7 +964,7 @@ export default function EditAnimalPage() {
                     <EyeOff
                       size={18}
                     />
-                    D�publier
+                    Dépublier
                   </>
                 ) : (
                   <>
@@ -1022,9 +1022,9 @@ export default function EditAnimalPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          La suppression d�finitive n&apos;est plus propos�e ici.
+          La suppression définitive n&apos;est plus proposée ici.
           Utilisez l&apos;archivage pour conserver l&apos;historique des
-          adoptions, conversations et donn�es li�es � l&apos;animal.
+          adoptions, conversations et données liées à l&apos;animal.
         </div>
       </section>
     </main>

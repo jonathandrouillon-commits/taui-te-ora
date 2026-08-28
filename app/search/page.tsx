@@ -166,7 +166,7 @@ export default function SearchPage() {
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h1 className="text-3xl font-black text-[#064b42] sm:text-4xl">
-            ?? Recherche animaux
+            🔎 Recherche animaux
           </h1>
 
           <p className="mx-auto mt-2 max-w-2xl text-gray-600">
@@ -194,14 +194,14 @@ export default function SearchPage() {
               label="Sexe"
               value={sex}
               onChange={setSex}
-              options={["M�le", "Femelle", "Inconnu"]}
+              options={["Mâle", "Femelle", "Inconnu"]}
             />
 
             <Select
               label="Taille"
               value={size}
               onChange={setSize}
-              options={["Petit", "Moyen", "Grand", "Tr�s grand"]}
+              options={["Petit", "Moyen", "Grand", "Très grand"]}
             />
 
             <Select
@@ -212,7 +212,7 @@ export default function SearchPage() {
             />
 
             <Input
-              label="�le"
+              label="Île"
               placeholder="Tahiti, Moorea..."
               value={island}
               onChange={setIsland}
@@ -226,21 +226,21 @@ export default function SearchPage() {
             />
 
             <Select
-              label="Vaccin�"
+              label="Vacciné"
               value={vaccinated}
               onChange={setVaccinated}
               options={["Oui", "Non"]}
             />
 
             <Select
-              label="St�rilis�"
+              label="Stérilisé"
               value={sterilized}
               onChange={setSterilized}
               options={["Oui", "Non"]}
             />
 
             <Select
-              label="Identifi� / puc�"
+              label="Identifié / pucé"
               value={microchipped}
               onChange={setMicrochipped}
               options={["Oui", "Non"]}
@@ -260,19 +260,19 @@ export default function SearchPage() {
               onClick={resetFilters}
               className="rounded-full bg-[#eadfce] px-8 py-3 font-bold text-[#064b42]"
             >
-              R�initialiser
+              Réinitialiser
             </button>
           </div>
         </section>
 
         <section className="mt-8">
           <h2 className="mb-4 text-2xl font-black text-[#064b42]">
-            R�sultats : {animals.length}
+            Résultats : {animals.length}
           </h2>
 
           {animals.length === 0 ? (
             <div className="rounded-[2rem] bg-white p-8 text-center shadow">
-              Aucun animal trouv�.
+              Aucun animal trouvé.
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -305,19 +305,19 @@ export default function SearchPage() {
                       </h3>
 
                       <p className="mt-2 text-gray-600">
-                        {animal.animal_type || "Animal"} �{" "}
-                        {animal.sex || "Sexe inconnu"} �{" "}
-                        {animal.age_label || "�ge inconnu"}
+                        {animal.animal_type || "Animal"} •{" "}
+                        {animal.sex || "Sexe inconnu"} •{" "}
+                        {animal.age_label || "âge inconnu"}
                       </p>
 
                       <p className="mt-1 text-gray-600">
-                        {animal.breed || "Race inconnue"} �{" "}
+                        {animal.breed || "Race inconnue"} •{" "}
                         {animal.size_label || "Taille inconnue"}
                       </p>
 
                       <p className="mt-3 font-bold text-[#b58b5b]">
                         ?? {animal.city || "Commune inconnue"} -{" "}
-                        {animal.island || "�le inconnue"}
+                        {animal.island || "île inconnue"}
                       </p>
 
                       {animal.association_name && (
@@ -329,9 +329,9 @@ export default function SearchPage() {
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Badge label={animal.status || "Statut inconnu"} />
 
-                        {animal.vaccinated && <Badge label="Vaccin�" />}
-                        {animal.sterilized && <Badge label="St�rilis�" />}
-                        {animal.microchipped && <Badge label="Identifi�" />}
+                        {animal.vaccinated && <Badge label="Vacciné" />}
+                        {animal.sterilized && <Badge label="Stérilisé" />}
+                        {animal.microchipped && <Badge label="Identifié" />}
                       </div>
                     </div>
                   </Link>

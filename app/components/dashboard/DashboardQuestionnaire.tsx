@@ -22,8 +22,8 @@ export default function DashboardQuestionnaire({
           </h2>
 
           <p className="mt-2 text-[#6f5a47]">
-            Ces informations sont enregistr�es dans votre profil et seront
-            utilis�es pour vos futures demandes d&apos;adoption.
+            Ces informations sont enregistrées dans votre profil et seront
+            utilisées pour vos futures demandes d&apos;adoption.
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export default function DashboardQuestionnaire({
               : "bg-orange-100 text-orange-700"
           }`}
         >
-          {filled ? "Compl�t�" : "� compl�ter"}
+          {filled ? "Complété" : "à compléter"}
         </span>
       </div>
 
@@ -42,7 +42,7 @@ export default function DashboardQuestionnaire({
         <>
           <div className="space-y-2">
             <Info
-              label="Exp�rience"
+              label="Expérience"
               value={profile?.adopter_experience}
             />
 
@@ -67,37 +67,37 @@ export default function DashboardQuestionnaire({
             />
 
             <Info
-              label="�ge souhait�"
+              label="Âge souhaité"
               value={profile?.ideal_age}
             />
 
             <Info
-              label="Sexe souhait�"
+              label="Sexe souhaité"
               value={profile?.ideal_sex}
             />
 
             <Info
-              label="Taille souhait�e"
+              label="Taille souhaitée"
               value={profile?.ideal_size}
             />
 
             <Info
-              label="Activit� souhait�e"
+              label="Activité souhaitée"
               value={profile?.ideal_activity}
             />
 
             <Info
-              label="Race souhait�e"
+              label="Race souhaitée"
               value={profile?.ideal_breed}
             />
 
             <Info
-              label="Hypoallerg�nique"
+              label="Hypoallergénique"
               value={profile?.hypoallergenic}
             />
 
             <Info
-              label="Propret�"
+              label="Propreté"
               value={profile?.cleanliness}
             />
 
@@ -136,8 +136,8 @@ export default function DashboardQuestionnaire({
           </h3>
 
           <p className="mx-auto mt-4 max-w-md text-[#6f5a47]">
-            Compl�tez votre questionnaire adoptant pour que les associations
-            puissent mieux comprendre votre foyer et vos pr�f�rences.
+            Complétez votre questionnaire adoptant pour que les associations
+            puissent mieux comprendre votre foyer et vos préférences.
           </p>
 
           <Link
@@ -156,7 +156,7 @@ export default function DashboardQuestionnaire({
               hover:bg-[#0a6659]
             "
           >
-            Compl�ter mon questionnaire
+            Compléter mon questionnaire
           </Link>
         </div>
       )}
@@ -191,7 +191,7 @@ function Info({
       </span>
 
       <span className="text-right font-bold text-[#2f241c]">
-        {value || "Non renseign�"}
+        {value || "Non renseigné"}
       </span>
     </div>
   );
