@@ -813,6 +813,81 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* =====================================================
+            RESEAU D'AIDE / SOS
+        ====================================================== */}
+
+        <Card className="mt-10">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
+                Entraide
+              </p>
+
+              <h2 className="mt-1 text-3xl font-black text-[#064b42]">
+                🤝 Réseau d’aide
+              </h2>
+
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+                Consultez les bénévoles et familles d’accueil disponibles,
+                puis créez, suivez et clôturez les SOS du réseau TAUI TE ORA.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => router.push("/reseau-aide")}
+                className="
+                  flex
+                  min-h-[48px]
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-full
+                  bg-[#064b42]
+                  px-6
+                  py-3
+                  font-black
+                  text-white
+                  shadow-md
+                  transition
+                  hover:bg-[#08695d]
+                  active:scale-[0.98]
+                "
+              >
+                <HeartHandshake size={20} />
+                Voir le réseau d’aide
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/sos-aide")}
+                className="
+                  flex
+                  min-h-[48px]
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-full
+                  bg-[#df8995]
+                  px-6
+                  py-3
+                  font-black
+                  text-white
+                  shadow-md
+                  transition
+                  hover:bg-[#d87584]
+                  active:scale-[0.98]
+                "
+              >
+                <Siren size={20} />
+                Créer / gérer les SOS
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* =====================================================
             ACTIONS RAPIDES
         ====================================================== */}
 
@@ -837,7 +912,7 @@ export default function AdminDashboardPage() {
               gap-4
               md:grid-cols-2
               lg:grid-cols-3
-              xl:grid-cols-9
+              xl:grid-cols-10
             "
           >
             {/* UTILISATEURS */}
@@ -953,6 +1028,36 @@ export default function AdminDashboardPage() {
               <HeartHandshake size={20} />
 
               Réseau d’aide
+            </button>
+
+            {/* SOS */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/sos-aide"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#fff0f3]
+                px-4
+                py-3
+                font-black
+                text-[#c85f72]
+                transition
+                hover:bg-[#ffe3e9]
+                active:scale-[0.98]
+              "
+            >
+              <Siren size={20} />
+              SOS
             </button>
 
             {/* VETERINAIRES */}
