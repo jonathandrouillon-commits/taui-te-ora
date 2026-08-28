@@ -53,6 +53,25 @@ type AnimalAlertData = {
 
   photo_url?: string | null;
 };
+async function markSignalementAlertSeen(
+  signalementId: string
+) {
+  const { error } =
+    await supabase.rpc(
+      "mark_lost_animal_alert_seen",
+      {
+        p_signalement_id:
+          signalementId,
+      }
+    );
+
+  if (error) {
+    console.error(
+      "Impossible de marquer l'alerte comme vue :",
+      error
+    );
+  }
+}
 
 export default function LostAnimalAlert() {
   const router =
@@ -111,10 +130,23 @@ export default function LostAnimalAlert() {
             ? data[0]
             : null;
 
-        setAlert(
+        const nextAlert =
           (firstAlert as AnimalAlertData) ||
-            null
-        );
+          null;
+
+        /*
+         * Dès qu'une alerte est réellement chargée pour cet utilisateur,
+         * on la marque comme vue AVANT de l'afficher.
+         * Ainsi, un rechargement ou une nouvelle connexion ne pourra pas
+         * faire réapparaître ce même signalement.
+         */
+        if (nextAlert?.signalement_id) {
+          await markSignalementAlertSeen(
+            nextAlert.signalement_id
+          );
+        }
+
+        setAlert(nextAlert);
       } catch (error) {
         console.error(
           "Erreur alerte animale :",
@@ -136,23 +168,9 @@ export default function LostAnimalAlert() {
       return;
     }
 
-    const {
-      error,
-    } =
-      await supabase.rpc(
-        "mark_lost_animal_alert_seen",
-        {
-          p_signalement_id:
-            alert.signalement_id,
-        }
-      );
-
-    if (error) {
-      console.error(
-        "Impossible de marquer l'alerte comme vue :",
-        error
-      );
-    }
+    await markSignalementAlertSeen(
+      alert.signalement_id
+    );
   }
 
   async function closeAlert() {
