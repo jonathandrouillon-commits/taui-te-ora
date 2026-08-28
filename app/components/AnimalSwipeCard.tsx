@@ -850,6 +850,139 @@ export default function AnimalSwipeCard({
           </span>
         </div>
 
+        {/* ACTIONS DROITE : INFORMATION / ASSOCIATION / FILTRE */}
+        <div
+          className="
+            absolute
+            right-3
+            bottom-[190px]
+            z-50
+            flex
+            flex-col
+            items-center
+            gap-2
+            sm:right-4
+            sm:bottom-[150px]
+          "
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleInformation();
+            }}
+            aria-label="Informations"
+            title="Informations"
+            className="
+              flex
+              h-[44px]
+              w-[44px]
+              items-center
+              justify-center
+              rounded-full
+              border-[3px]
+              border-white
+              bg-[#fffaf7]/95
+              text-lg
+              font-black
+              text-[#60605d]
+              shadow-xl
+              backdrop-blur
+              transition
+              active:scale-95
+            "
+          >
+            i
+          </button>
+
+          {creatorId && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleStructure();
+              }}
+              aria-label={
+                creatorName
+                  ? `Voir ${creatorName}`
+                  : "Voir la structure"
+              }
+              className="
+                flex
+                h-[50px]
+                w-[50px]
+                items-center
+                justify-center
+                overflow-hidden
+                rounded-full
+                border-[3px]
+                border-white
+                bg-white
+                shadow-xl
+                transition
+                active:scale-95
+              "
+            >
+              {creatorLogo ? (
+                <img
+                  src={creatorLogo}
+                  alt={creatorName || "Structure"}
+                  draggable={false}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
+                >
+                  🐾
+                </span>
+              )}
+            </button>
+          )}
+
+          {onOpenFilter && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenFilter();
+              }}
+              aria-label="Choisir les animaux à afficher"
+              className="
+                flex
+                min-h-[42px]
+                items-center
+                justify-center
+                gap-1.5
+                rounded-full
+                border-[3px]
+                border-white
+                bg-white/95
+                px-3
+                py-2
+                text-[11px]
+                font-black
+                text-[#064b42]
+                shadow-xl
+                backdrop-blur
+                transition
+                active:scale-95
+              "
+            >
+              <span aria-hidden="true" className="text-base leading-none">
+                🐾
+              </span>
+
+              <span>
+                {filterCount > 0
+                  ? `Filtres (${filterCount})`
+                  : "Choisir"}
+              </span>
+            </button>
+          )}
+        </div>
+
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
 
         <div
@@ -1086,142 +1219,30 @@ export default function AnimalSwipeCard({
           "
         >
           <div className="flex min-w-0 flex-col items-stretch gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-            <div className="min-w-0 flex-1" />
-
-            <div
-              className="
-                mt-2
-                flex
-                shrink-0
-                flex-col
-                items-center
-                justify-end
-                gap-2
-                sm:mt-3
-              "
-            >
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleInformation();
-                }}
-                aria-label="Informations"
-                title="Informations"
-                className="
-                  flex h-[42px] w-[42px] shrink-0 items-center justify-center
-                  rounded-full border-2 border-white bg-[#fffaf7]/95
-                  text-lg font-black text-[#60605d] shadow-lg backdrop-blur
-                  transition active:scale-95 sm:h-[46px] sm:w-[46px]
-                "
-              >
-                i
-              </button>
-
-              {creatorId && (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleStructure();
-                  }}
-                  aria-label={
-                    creatorName
-                      ? `Voir ${creatorName}`
-                      : "Voir la structure"
-                  }
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-end gap-2">
+                <h2
                   className="
-                    flex
-                    h-[46px]
-                    w-[46px]
-                    shrink-0
-                    items-center
-                    justify-center
-                    overflow-hidden
-                    rounded-full
-                    border-[3px]
-                    border-white
-                    bg-white
-                    shadow-xl
-                    transition
-                    active:scale-95
-                    sm:h-[52px]
-                    sm:w-[52px]
-                    md:h-[56px]
-                    md:w-[56px]
-                  "
-                >
-                  {creatorLogo ? (
-                    <img
-                      src={creatorLogo}
-                      alt={creatorName || "Structure"}
-                      draggable={false}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
-                    >
-                      🐾
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {onOpenFilter && (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onOpenFilter();
-                  }}
-                  aria-label="Choisir les animaux à afficher"
-                  className="
-                    flex
-                    min-h-[38px]
-                    shrink-0
-                    items-center
-                    justify-center
-                    gap-1.5
-                    rounded-full
-                    border-2
-                    border-white
-                    bg-white/95
-                    px-3
-                    py-2
-                    text-[11px]
+                    min-w-0
+                    max-w-full
+                    break-words
+                    text-[30px]
                     font-black
-                    text-[#064b42]
-                    shadow-lg
-                    backdrop-blur
-                    transition
-                    active:scale-95
+                    leading-[0.95]
+                    tracking-tight
+                    drop-shadow-lg
+                    sm:text-[38px]
+                    md:text-[42px]
+                    lg:text-[46px]
                   "
                 >
-                  <span aria-hidden="true" className="text-base leading-none">
-                    🐾
-                  </span>
+                  {animalName}
+                </h2>
 
-                  <span>
-                    {filterCount > 0
-                      ? `Filtres (${filterCount})`
-                      : "Choisir"}
-                  </span>
-                </button>
-              )}
+              </div>
             </div>
-          </div>
 
-          <h2
-            className="
-              mt-2 min-w-0 max-w-[82%] break-words
-              text-[30px] font-black leading-[0.95] tracking-tight
-              text-white drop-shadow-lg sm:text-[38px] md:text-[42px] lg:text-[46px]
-            "
-          >
-            {animalName}
-          </h2>
+          </div>
 
           {(city || island) && (
             <p
