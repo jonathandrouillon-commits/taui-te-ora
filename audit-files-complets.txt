@@ -1,0 +1,4252 @@
+
+============================================================
+FILE: .\app\association\animals\page.tsx
+============================================================
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  animalService,
+  type Animal,
+} from "../../services/animal.service";
+
+type FilterValue =
+  | "all"
+  | "published"
+  | "draft";
+
+function getAnimalPhoto(
+  animal: Animal
+): string {
+  const photos =
+    animal.animal_photos;
+
+  if (
+    Array.isArray(photos) &&
+    photos.length > 0
+  ) {
+    const cover =
+      photos.find(
+        (
+          photo
+        ) =>
+          typeof photo === "object" &&
+          photo !== null &&
+          "is_cover" in photo &&
+          photo.is_cover === true
+      );
+
+    if (
+      cover &&
+      typeof cover === "object" &&
+      "photo_url" in cover &&
+      typeof cover.photo_url === "string"
+    ) {
+      return cover.photo_url;
+    }
+
+    const first =
+      photos[0];
+
+    if (
+      typeof first === "object" &&
+      first !== null &&
+      "photo_url" in first &&
+      typeof first.photo_url === "string"
+    ) {
+      return first.photo_url;
+    }
+  }
+
+  if (
+    typeof animal.photo_url ===
+      "string" &&
+    animal.photo_url
+  ) {
+    return animal.photo_url;
+  }
+
+  return "";
+}
+
+function textValue(
+  value:
+    | string
+    | null
+    | undefined,
+  fallback = "—"
+): string {
+  const clean =
+    String(
+      value ?? ""
+    ).trim();
+
+  return clean || fallback;
+}
+
+function statusLabel(
+  animal: Animal
+): string {
+  return animal.is_published
+    ? "Publié"
+    : "Brouillon";
+}
+
+export default function AssociationAnimalsPage() {
+  const router =
+    useRouter();
+
+  const [
+    animals,
+    setAnimals,
+  ] =
+    useState<Animal[]>([]);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    deletingId,
+    setDeletingId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    search,
+    setSearch,
+  ] =
+    useState("");
+
+  const [
+    filter,
+    setFilter,
+  ] =
+    useState<FilterValue>(
+      "all"
+    );
+
+  useEffect(() => {
+    void loadAnimals();
+  }, []);
+
+  async function loadAnimals() {
+    try {
+      setLoading(true);
+
+      const data =
+        await animalService.getMyAnimals();
+
+      setAnimals(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+    } catch (
+      error: unknown
+    ) {
+      console.error(
+        "Erreur chargement animaux :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de charger les animaux."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteAnimal(
+    animal: Animal
+  ) {
+    const animalName =
+      textValue(
+        animal.animal_name,
+        "cet animal"
+      );
+
+    const confirmed =
+      window.confirm(
+        `Supprimer définitivement ${animalName} ?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(
+        animal.id
+      );
+
+      await animalService.delete(
+        animal.id
+      );
+
+      setAnimals(
+        (
+          current
+        ) =>
+          current.filter(
+            (
+              item
+            ) =>
+              item.id !==
+              animal.id
+          )
+      );
+    } catch (
+      error: unknown
+    ) {
+      console.error(
+        "Erreur suppression animal :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer cet animal."
+      );
+    } finally {
+      setDeletingId(
+        null
+      );
+    }
+  }
+
+  const filteredAnimals =
+    useMemo(
+      () => {
+        const query =
+          search
+            .trim()
+            .toLowerCase();
+
+        return animals.filter(
+          (
+            animal
+          ) => {
+            if (
+              filter ===
+                "published" &&
+              !animal.is_published
+            ) {
+              return false;
+            }
+
+            if (
+              filter ===
+                "draft" &&
+              animal.is_published
+            ) {
+              return false;
+            }
+
+            if (!query) {
+              return true;
+            }
+
+            const searchable =
+              [
+                animal.animal_name,
+                animal.breed,
+                animal.animal_type,
+                animal.sex,
+                animal.island,
+                animal.city,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return searchable.includes(
+              query
+            );
+          }
+        );
+      },
+      [
+        animals,
+        filter,
+        search,
+      ]
+    );
+
+  return (
+    <main className="min-h-screen bg-[#f8f3e8] px-4 pb-16 pt-8 text-[#064b42] sm:px-6 lg:px-10">
+      <section className="mx-auto w-full max-w-7xl">
+        <div className="mb-8">
+          <p className="text-sm font-black uppercase tracking-[0.35em] text-[#b68b2f] sm:text-base">
+            Association
+          </p>
+
+          <h1 className="mt-3 text-4xl font-black leading-none sm:text-5xl lg:text-6xl">
+            Mes animaux
+          </h1>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/association/add-animal"
+              )
+            }
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#064b42] px-6 py-4 text-lg font-black text-white shadow-sm transition hover:opacity-90 sm:w-auto sm:text-xl"
+          >
+            <Plus
+              size={24}
+            />
+
+            Ajouter un animal
+          </button>
+        </div>
+
+        <div className="mb-8 grid gap-4 md:grid-cols-[1fr_260px]">
+          <label className="relative block">
+            <Search
+              size={24}
+              className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="search"
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value
+                )
+              }
+              placeholder="Rechercher par nom ou race..."
+              className="w-full rounded-[22px] border border-[#ded7cc] bg-white py-4 pl-14 pr-5 text-base text-[#2f2a26] shadow-sm outline-none transition placeholder:text-gray-400 focus:border-[#064b42] sm:text-lg"
+            />
+          </label>
+
+          <select
+            value={filter}
+            onChange={(event) =>
+              setFilter(
+                event.target
+                  .value as FilterValue
+              )
+            }
+            className="w-full rounded-[22px] border border-[#ded7cc] bg-white px-5 py-4 text-base text-[#2f2a26] shadow-sm outline-none focus:border-[#064b42] sm:text-lg"
+          >
+            <option value="all">
+              Tous
+            </option>
+
+            <option value="published">
+              Publiés
+            </option>
+
+            <option value="draft">
+              Brouillons
+            </option>
+          </select>
+        </div>
+
+        {loading ? (
+          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
+            <p className="font-bold text-[#746c64]">
+              Chargement des animaux...
+            </p>
+          </div>
+        ) : filteredAnimals.length ===
+          0 ? (
+          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
+            <p className="text-lg font-black text-[#064b42]">
+              Aucun animal
+            </p>
+
+            <p className="mt-2 text-sm text-[#746c64]">
+              Aucun animal ne correspond
+              à votre recherche.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* =========================
+                MOBILE
+            ========================== */}
+
+            <div className="grid gap-4 md:hidden">
+              {filteredAnimals.map(
+                (
+                  animal
+                ) => {
+                  const photo =
+                    getAnimalPhoto(
+                      animal
+                    );
+
+                  return (
+                    <article
+                      key={
+                        animal.id
+                      }
+                      className="overflow-hidden rounded-[26px] bg-white shadow-sm"
+                    >
+                      <div className="flex gap-4 p-4">
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[20px] bg-[#eee7dc]">
+                          {photo ? (
+                            <img
+                              src={
+                                photo
+                              }
+                              alt={
+                                textValue(
+                                  animal.animal_name,
+                                  "Animal"
+                                )
+                              }
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-3xl">
+                              🐾
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h2 className="truncate text-2xl font-black text-[#064b42]">
+                                {textValue(
+                                  animal.animal_name,
+                                  "Sans nom"
+                                )}
+                              </h2>
+
+                              <span
+                                className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                                  animal.is_published
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                                }`}
+                              >
+                                {statusLabel(
+                                  animal
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                                Type
+                              </p>
+
+                              <p className="font-bold text-[#2f2a26]">
+                                {textValue(
+                                  animal.animal_type
+                                )}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                                Sexe
+                              </p>
+
+                              <p className="font-bold text-[#2f2a26]">
+                                {textValue(
+                                  animal.sex
+                                )}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                                Île
+                              </p>
+
+                              <p className="font-bold text-[#2f2a26]">
+                                {textValue(
+                                  animal.island
+                                )}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                                Race
+                              </p>
+
+                              <p className="truncate font-bold text-[#2f2a26]">
+                                {textValue(
+                                  animal.breed
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 border-t border-[#eee7dc]">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/association/edit-animal/${animal.id}`
+                            )
+                          }
+                          className="flex items-center justify-center gap-2 px-4 py-4 font-black text-[#064b42]"
+                        >
+                          <Pencil
+                            size={18}
+                          />
+
+                          Modifier
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            deletingId ===
+                            animal.id
+                          }
+                          onClick={() =>
+                            void deleteAnimal(
+                              animal
+                            )
+                          }
+                          className="flex items-center justify-center gap-2 border-l border-[#eee7dc] px-4 py-4 font-black text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2
+                            size={18}
+                          />
+
+                          {deletingId ===
+                          animal.id
+                            ? "Suppression..."
+                            : "Supprimer"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                }
+              )}
+            </div>
+
+            {/* =========================
+                TABLETTE / PC
+            ========================== */}
+
+            <div className="hidden overflow-hidden rounded-[28px] bg-white shadow-sm md:block">
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_160px] bg-[#064b42] px-6 py-5 font-black text-white">
+                <div>
+                  Animal
+                </div>
+
+                <div>
+                  Type
+                </div>
+
+                <div>
+                  Sexe
+                </div>
+
+                <div>
+                  Île
+                </div>
+
+                <div className="text-right">
+                  Actions
+                </div>
+              </div>
+
+              {filteredAnimals.map(
+                (
+                  animal
+                ) => {
+                  const photo =
+                    getAnimalPhoto(
+                      animal
+                    );
+
+                  return (
+                    <div
+                      key={
+                        animal.id
+                      }
+                      className="grid min-h-[120px] grid-cols-[2fr_1fr_1fr_1fr_160px] items-center border-b border-[#eee7dc] px-6 py-5 last:border-b-0"
+                    >
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[18px] bg-[#eee7dc]">
+                          {photo ? (
+                            <img
+                              src={
+                                photo
+                              }
+                              alt={
+                                textValue(
+                                  animal.animal_name,
+                                  "Animal"
+                                )
+                              }
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-2xl">
+                              🐾
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="truncate text-xl font-black text-[#064b42]">
+                            {textValue(
+                              animal.animal_name,
+                              "Sans nom"
+                            )}
+                          </p>
+
+                          <p className="mt-1 truncate text-sm text-gray-500">
+                            {textValue(
+                              animal.breed,
+                              "Race non renseignée"
+                            )}
+                          </p>
+
+                          <span
+                            className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                              animal.is_published
+                                ? "bg-green-100 text-green-700"
+                                : "bg-orange-100 text-orange-700"
+                            }`}
+                          >
+                            {statusLabel(
+                              animal
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="font-semibold text-[#2f2a26]">
+                        {textValue(
+                          animal.animal_type
+                        )}
+                      </div>
+
+                      <div className="font-semibold text-[#2f2a26]">
+                        {textValue(
+                          animal.sex
+                        )}
+                      </div>
+
+                      <div className="font-semibold text-[#2f2a26]">
+                        {textValue(
+                          animal.island
+                        )}
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/association/edit-animal/${animal.id}`
+                            )
+                          }
+                          className="rounded-xl bg-[#f3eee5] p-3 text-[#064b42] transition hover:bg-[#e8dfd1]"
+                          title="Modifier"
+                        >
+                          <Pencil
+                            size={18}
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            deletingId ===
+                            animal.id
+                          }
+                          onClick={() =>
+                            void deleteAnimal(
+                              animal
+                            )
+                          }
+                          className="rounded-xl bg-red-50 p-3 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                          title="Supprimer"
+                        >
+                          <Trash2
+                            size={18}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          </>
+        )}
+      </section>
+    </main>
+  );
+}
+
+============================================================
+FILE: .\app\animal\[id]\page.tsx
+============================================================
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useParams,
+  useRouter,
+} from "next/navigation";
+
+import {
+  Video,
+} from "lucide-react";
+
+import AnimalActions from "../../components/animal/AnimalActions";
+import AnimalGallery from "../../components/animal/AnimalGallery";
+import AnimalHeader from "../../components/animal/AnimalHeader";
+import AnimalHistory from "../../components/animal/AnimalHistory";
+import AnimalHealth from "../../components/animal/AnimalHealth";
+import AnimalCompatibility from "../../components/animal/AnimalCompatibility";
+
+import {
+  animalService,
+} from "../../services/animal.service";
+
+import {
+  compatibilityService,
+} from "../../services/compatibility.service";
+
+import {
+  supabase,
+} from "../../lib/supabase";
+
+import {
+  videoService,
+} from "../../services/video.service";
+
+type AnimalVideo = {
+  id: string;
+  animal_id: string;
+  video_url: string;
+  sort_order: number;
+  created_at?: string;
+};
+
+type QuestionnaireData = {
+  proprietaire_animal: string;
+  animal_actuel: string;
+  adoption_pour: string;
+  enfants: string;
+  jardin: string;
+  age_souhaite: string;
+  sexe_souhaite: string;
+  taille_souhaitee: string;
+  activite_souhaitee: string;
+  hypoallergenique: string;
+  proprete: string;
+  besoins_speciaux: string;
+  race_souhaitee: string;
+};
+
+type MatchResult = ReturnType<
+  typeof compatibilityService.calculate
+>;
+
+export default function AnimalPublicPage() {
+  const router =
+    useRouter();
+
+  const params =
+    useParams();
+
+  const id =
+    String(params.id);
+
+  const [
+    animal,
+    setAnimal,
+  ] =
+    useState<any | null>(
+      null
+    );
+
+  const [
+    videos,
+    setVideos,
+  ] =
+    useState<AnimalVideo[]>(
+      []
+    );
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] =
+    useState("");
+
+  const [
+    adoptionMode,
+    setAdoptionMode,
+  ] = useState(false);
+
+  const [
+    matchLoading,
+    setMatchLoading,
+  ] = useState(false);
+
+  const [
+    matchResult,
+    setMatchResult,
+  ] = useState<MatchResult | null>(
+    null
+  );
+
+  const [
+    matchError,
+    setMatchError,
+  ] = useState("");
+
+  const loadAnimal = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      /*
+       * On charge la fiche animal et les vidéos
+       * indépendamment.
+       *
+       * Ainsi, une erreur vidéo ne bloque pas
+       * l'affichage de la fiche.
+       */
+
+      const data =
+        await animalService.getById(
+          id
+        );
+
+      setAnimal(data);
+
+      try {
+        const videoData =
+          await videoService.getByAnimal(
+            id
+          );
+
+        setVideos(
+          (videoData ||
+            []) as AnimalVideo[]
+        );
+      } catch (
+        videoError
+      ) {
+        console.error(
+          "Erreur chargement vidéos :",
+          videoError
+        );
+
+        setVideos([]);
+      }
+    } catch (
+      error
+    ) {
+      console.error(
+        error
+      );
+
+      setErrorMessage(
+        "Animal introuvable ou erreur de chargement."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadAnimal());
+  }, [id, loadAnimal]);
+
+  const loadCompatibility =
+    useCallback(async () => {
+      if (!animal) return;
+
+      try {
+        setMatchLoading(true);
+        setMatchError("");
+
+        const {
+          data: { user },
+          error: userError,
+        } =
+          await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace(
+            "/login?redirect=" +
+              encodeURIComponent(
+                `/adoption/start/${id}`
+              )
+          );
+          return;
+        }
+
+        const access =
+          await animalService.getCurrentUserAccess();
+
+        if (
+          access.role !==
+          "adoptant"
+        ) {
+          throw new Error(
+            "La demande d'adoption doit être effectuée avec un compte Adoptant."
+          );
+        }
+
+        if (!access.isActive) {
+          throw new Error(
+            "Votre compte est actuellement désactivé."
+          );
+        }
+
+        if (
+          access.approvalStatus ===
+            "rejected" ||
+          access.approvalStatus ===
+            "suspended"
+        ) {
+          throw new Error(
+            "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+          );
+        }
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("profiles")
+          .select(
+            `
+              adopter_experience,
+              current_animals,
+              adoption_for,
+              children_age,
+              garden_type,
+              ideal_age,
+              ideal_sex,
+              ideal_size,
+              ideal_activity,
+              ideal_breed,
+              hypoallergenic,
+              cleanliness,
+              special_needs
+            `
+          )
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (
+          !data ||
+          !data.adopter_experience ||
+          !data.garden_type ||
+          !data.ideal_age ||
+          !data.ideal_sex ||
+          !data.ideal_size ||
+          !data.ideal_activity
+        ) {
+          router.replace(
+            "/adoptant/questionnaire?redirect=" +
+              encodeURIComponent(
+                `/adoption/start/${id}`
+              )
+          );
+          return;
+        }
+
+        const questionnaire: QuestionnaireData = {
+          proprietaire_animal:
+            data.adopter_experience ||
+            "",
+          animal_actuel:
+            data.current_animals ||
+            "Aucun",
+          adoption_pour:
+            data.adoption_for ||
+            "Moi / Ma famille",
+          enfants:
+            data.children_age ||
+            "Non",
+          jardin:
+            data.garden_type ||
+            "Pas de jardin",
+          age_souhaite:
+            data.ideal_age || "",
+          sexe_souhaite:
+            data.ideal_sex || "",
+          taille_souhaitee:
+            data.ideal_size || "",
+          activite_souhaitee:
+            data.ideal_activity ||
+            "Pas de préférence",
+          hypoallergenique:
+            data.hypoallergenic ||
+            "Pas de préférence",
+          proprete:
+            data.cleanliness ||
+            "Pas de préférence",
+          besoins_speciaux:
+            data.special_needs ||
+            "Non",
+          race_souhaitee:
+            data.ideal_breed || "",
+        };
+
+        setMatchResult(
+          compatibilityService.calculate(
+            questionnaire,
+            animal
+          )
+        );
+      } catch (error: unknown) {
+        console.error(
+          "Erreur calcul compatibilité :",
+          error
+        );
+
+        setMatchError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de calculer la compatibilité."
+        );
+      } finally {
+        setMatchLoading(false);
+      }
+    }, [animal, id, router]);
+
+  useEffect(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
+
+    const shouldShowAdoption =
+      new URLSearchParams(
+        window.location.search
+      ).get("adoption") === "1";
+
+    setAdoptionMode(
+      shouldShowAdoption
+    );
+
+    if (
+      shouldShowAdoption &&
+      animal
+    ) {
+      queueMicrotask(
+        () =>
+          void loadCompatibility()
+      );
+    }
+  }, [animal, loadCompatibility]);
+
+  /* =========================================================
+     CHARGEMENT
+  ========================================================= */
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
+        <p className="text-xl font-black">
+          Chargement de la fiche animal...
+        </p>
+      </main>
+    );
+  }
+
+  /* =========================================================
+     ERREUR
+  ========================================================= */
+
+  if (
+    errorMessage ||
+    !animal
+  ) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] px-4 text-[#064b42]">
+        <div className="rounded-3xl bg-white p-8 text-center shadow">
+          <h1 className="text-2xl font-black">
+            Fiche introuvable
+          </h1>
+
+          <p className="mt-3 text-gray-600">
+            {errorMessage}
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.back()
+            }
+            className="mt-6 rounded-xl bg-[#064b42] px-5 py-3 font-bold text-white"
+          >
+            Retour
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  /* =========================================================
+     INFORMATIONS
+  ========================================================= */
+
+  const name =
+    animal.animal_name ||
+    animal.nom ||
+    "Animal";
+
+  const type =
+    animal.animal_type ||
+    animal.type ||
+    "";
+
+  const sexe =
+    animal.sex ||
+    animal.sexe ||
+    "";
+
+  const age =
+    animal.age_label ||
+    animal.age ||
+    "";
+
+  const race =
+    animal.breed ||
+    animal.race ||
+    "";
+
+  const taille =
+    animal.size_label ||
+    animal.taille ||
+    "";
+
+  const poids =
+    animal.weight_kg
+      ? `${animal.weight_kg} kg`
+      : animal.poids ||
+        "";
+
+  const ile =
+    animal.island ||
+    animal.ile ||
+    "";
+
+  const localisation =
+    animal.city ||
+    animal.localisation ||
+    "";
+
+  const association =
+    animal.owner_profile
+      ?.organization_name ||
+    animal.association_name ||
+    animal.association_id ||
+    "";
+
+  const ownerProfileId =
+    animal.owner_profile?.id ||
+    animal.owner_id ||
+    animal.profile_id ||
+    animal.created_by ||
+    animal.user_id ||
+    "";
+
+  const statut =
+    animal.is_published
+      ? "À adopter"
+      : "Brouillon";
+
+  /* =========================================================
+     PHOTOS
+  ========================================================= */
+
+  const photos =
+    animal.animal_photos &&
+    animal.animal_photos.length >
+      0
+      ? [
+          ...animal.animal_photos,
+        ].sort(
+          (
+            a: any,
+            b: any
+          ) => {
+            if (
+              a.is_cover
+            ) {
+              return -1;
+            }
+
+            if (
+              b.is_cover
+            ) {
+              return 1;
+            }
+
+            return (
+              (a.sort_order ??
+                0) -
+              (b.sort_order ??
+                0)
+            );
+          }
+        )
+      : animal.photo_url
+        ? [
+            {
+              id: "main",
+
+              photo_url:
+                animal.photo_url,
+
+              is_cover:
+                true,
+            },
+          ]
+        : [];
+
+  /* =========================================================
+     VIDEOS
+  ========================================================= */
+
+  const sortedVideos =
+    [...videos].sort(
+      (a, b) =>
+        (a.sort_order ??
+          0) -
+        (b.sort_order ??
+          0)
+    );
+
+  /* =========================================================
+     PAGE
+  ========================================================= */
+
+  return (
+    <main className="min-h-screen bg-[#f4eee3] px-4 py-6 text-[#064b42]">
+      <div className="mx-auto max-w-6xl">
+
+        {/* =====================================================
+            GALERIE + INFORMATIONS
+        ====================================================== */}
+
+        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <AnimalGallery
+            photos={
+              photos
+            }
+            name={
+              name
+            }
+          />
+
+          <div>
+            <AnimalHeader
+              nom={
+                name
+              }
+              statut={
+                statut
+              }
+              type={
+                type
+              }
+              sexe={
+                sexe
+              }
+              age={
+                age
+              }
+              race={
+                race
+              }
+              taille={
+                taille
+              }
+              poids={
+                poids
+              }
+              ile={
+                ile
+              }
+              localisation={
+                localisation
+              }
+              association={
+                association
+              }
+            />
+
+            <AnimalActions
+              animalId={
+                animal.id
+              }
+              animalName={
+                name
+              }
+              ownerProfileId={
+                ownerProfileId
+              }
+            />
+
+            {adoptionMode && (
+              <section className="mt-5 rounded-[28px] border-2 border-[#df8995] bg-[#fff8f8] p-5 shadow-lg">
+                <h2 className="text-center text-2xl font-black text-[#064b42]">
+                  Votre compatibilité avec {name}
+                </h2>
+
+                {matchLoading && (
+                  <div className="py-8 text-center">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
+                    <p className="mt-4 font-bold">
+                      Calcul de votre compatibilité...
+                    </p>
+                  </div>
+                )}
+
+                {!matchLoading &&
+                  matchError && (
+                    <div className="mt-5 rounded-2xl bg-red-50 p-4 text-center font-bold text-red-700">
+                      {matchError}
+                    </div>
+                  )}
+
+                {!matchLoading &&
+                  matchResult && (
+                    <>
+                      <div className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full bg-[#064b42] text-white shadow-xl">
+                        <div className="text-center">
+                          <div className="text-4xl font-black">
+                            {Math.round(
+                              matchResult.score
+                            )}
+                            %
+                          </div>
+                          <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white/80">
+                            compatibilité
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-center text-lg font-black text-[#df8995]">
+                        {matchResult.level}
+                      </p>
+
+                      <p className="mt-3 text-center text-sm leading-6 text-gray-600">
+                        Ce taux est indicatif. L’association reste la mieux placée pour confirmer si votre foyer correspond aux besoins de {name}.
+                      </p>
+
+                      <div className="mt-6 rounded-2xl bg-white p-4 text-center shadow-sm">
+                        <p className="font-black text-[#064b42]">
+                          Souhaitez-vous confirmer votre intérêt et entrer en contact avec {association || "l’association"} ?
+                        </p>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdoptionMode(
+                              false
+                            );
+                            router.replace(
+                              `/animal/${id}`
+                            );
+                          }}
+                          className="rounded-full bg-gray-100 px-5 py-4 font-black text-gray-700"
+                        >
+                          Pas maintenant
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/adoption/start/${id}?confirm=1`
+                            )
+                          }
+                          className="rounded-full bg-[#df8995] px-5 py-4 font-black text-white shadow-lg transition hover:bg-[#cf7481]"
+                        >
+                          Confirmer et contacter
+                        </button>
+                      </div>
+                    </>
+                  )}
+              </section>
+            )}
+          </div>
+        </section>
+
+        {/* =====================================================
+            VIDEO
+            Rien n'est affiché si aucune vidéo n'existe.
+        ====================================================== */}
+
+        {sortedVideos.length >
+          0 && (
+          <section className="mt-6 overflow-hidden rounded-[2rem] bg-white shadow">
+            <div className="flex items-center gap-3 border-b border-[#eee4d5] px-6 py-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff0f2]">
+                <Video
+                  size={
+                    22
+                  }
+                  className="text-[#df8995]"
+                />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-black text-[#064b42]">
+                  En vidéo
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  Découvrez{" "}
+                  {name}{" "}
+                  en mouvement
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {sortedVideos.map(
+                (
+                  video
+                ) => (
+                  <div
+                    key={
+                      video.id
+                    }
+                    className="overflow-hidden rounded-2xl bg-black"
+                  >
+                    <video
+                      src={
+                        video.video_url
+                      }
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="max-h-[650px] w-full object-contain"
+                    >
+                      Votre navigateur ne permet pas la lecture de cette vidéo.
+                    </video>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* =====================================================
+            INFORMATIONS COMPLEMENTAIRES
+        ====================================================== */}
+
+        <section className="mt-6 grid gap-6 lg:grid-cols-3">
+          <AnimalHistory
+            histoire={
+              animal.story ||
+              animal.histoire ||
+              ""
+            }
+            lieuCapture={
+              animal.capture_location ||
+              animal.lieu_capture ||
+              ""
+            }
+            tempsRue={
+              animal.street_duration ||
+              animal.temps_rue ||
+              ""
+            }
+          />
+
+          <AnimalHealth
+            sterilise={
+              animal.sterilized ??
+              animal.sterilise ??
+              false
+            }
+            vaccine={
+              animal.vaccinated ??
+              animal.vaccine ??
+              false
+            }
+            identifie={
+              animal.microchipped ??
+              animal.identifie ??
+              false
+            }
+            sante={
+              animal.health_status ||
+              animal.sante ||
+              ""
+            }
+          />
+
+          <AnimalCompatibility
+            compatibleChiens={
+              animal.compatible_chiens ||
+              null
+            }
+            compatibleChats={
+              animal.compatible_chats ||
+              null
+            }
+            compatibleEnfants={
+              animal.compatible_enfants ||
+              null
+            }
+          />
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: .\app\components\LostFoundPushPreferences.tsx
+============================================================
+"use client";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
+type AlertPreference =
+  | "lost"
+  | "found"
+  | "both";
+
+type PushState =
+  | "loading"
+  | "ready"
+  | "enabled"
+  | "denied"
+  | "unsupported"
+  | "error";
+
+function urlBase64ToUint8Array(
+  base64String: string
+) {
+  const padding =
+    "=".repeat(
+      (4 -
+        (base64String.length %
+          4)) %
+        4
+    );
+
+  const base64 =
+    (
+      base64String +
+      padding
+    )
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+  const rawData =
+    window.atob(
+      base64
+    );
+
+  return Uint8Array.from(
+    [...rawData].map(
+      (character) =>
+        character.charCodeAt(
+          0
+        )
+    )
+  );
+}
+
+function preferenceToValues(
+  preference: AlertPreference
+) {
+  return {
+    alertLost:
+      preference ===
+        "lost" ||
+      preference ===
+        "both",
+
+    alertFound:
+      preference ===
+        "found" ||
+      preference ===
+        "both",
+  };
+}
+
+function getPermissionState() {
+  if (
+    typeof window ===
+      "undefined" ||
+    !(
+      "Notification" in
+      window
+    )
+  ) {
+    return null;
+  }
+
+  return Notification.permission;
+}
+
+export default function LostFoundPushPreferences() {
+  const [
+    state,
+    setState,
+  ] =
+    useState<PushState>(
+      "loading"
+    );
+
+  const [
+    selected,
+    setSelected,
+  ] =
+    useState<AlertPreference | null>(
+      null
+    );
+
+  const [
+    message,
+    setMessage,
+  ] =
+    useState("");
+
+  const [
+    activating,
+    setActivating,
+  ] =
+    useState<AlertPreference | null>(
+      null
+    );
+
+  useEffect(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
+
+    if (
+      !(
+        "serviceWorker" in
+        navigator
+      ) ||
+      !(
+        "PushManager" in
+        window
+      ) ||
+      !(
+        "Notification" in
+        window
+      )
+    ) {
+      setState(
+        "unsupported"
+      );
+
+      return;
+    }
+
+    const permission =
+      Notification.permission;
+
+    if (
+      permission ===
+      "denied"
+    ) {
+      setState(
+        "denied"
+      );
+    } else if (
+      permission ===
+      "granted"
+    ) {
+      setState(
+        "enabled"
+      );
+    } else {
+      setState(
+        "ready"
+      );
+    }
+
+    const stored =
+      window.localStorage
+        .getItem(
+          "taui-push-preference"
+        );
+
+    if (
+      stored ===
+        "lost" ||
+      stored ===
+        "found" ||
+      stored ===
+        "both"
+    ) {
+      setSelected(
+        stored
+      );
+    }
+  }, []);
+
+  async function getServiceWorkerRegistration() {
+    if (
+      !(
+        "serviceWorker" in
+        navigator
+      )
+    ) {
+      throw new Error(
+        "Service Worker non disponible."
+      );
+    }
+
+    /*
+     * On cherche d'abord
+     * un worker déjà installé.
+     */
+
+    let registration =
+      await navigator
+        .serviceWorker
+        .getRegistration(
+          "/"
+        );
+
+    /*
+     * Sinon on installe le
+     * Service Worker Taui Te Ora.
+     */
+
+    if (!registration) {
+      registration =
+        await navigator
+          .serviceWorker
+          .register(
+            "/sw.js",
+            {
+              scope: "/",
+            }
+          );
+    }
+
+    /*
+     * Attend qu'un Service Worker
+     * soit réellement actif.
+     */
+
+    const readyRegistration =
+      await navigator
+        .serviceWorker
+        .ready;
+
+    return (
+      readyRegistration ||
+      registration
+    );
+  }
+
+  async function activate(
+    preference: AlertPreference
+  ) {
+    if (
+      activating !==
+      null
+    ) {
+      return;
+    }
+
+    setActivating(
+      preference
+    );
+
+    setMessage("");
+
+    try {
+      /*
+       * Vérification navigateur
+       */
+
+      if (
+        typeof window ===
+          "undefined" ||
+        !(
+          "serviceWorker" in
+          navigator
+        ) ||
+        !(
+          "PushManager" in
+          window
+        ) ||
+        !(
+          "Notification" in
+          window
+        )
+      ) {
+        setState(
+          "unsupported"
+        );
+
+        throw new Error(
+          "Les notifications push ne sont pas disponibles sur cet appareil ou ce navigateur."
+        );
+      }
+
+      /*
+       * Vérification clé VAPID
+       */
+
+      const publicKey =
+        process.env
+          .NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+      if (!publicKey) {
+        throw new Error(
+          "La clé NEXT_PUBLIC_VAPID_PUBLIC_KEY n'est pas configurée."
+        );
+      }
+
+      /*
+       * Demande d'autorisation.
+       *
+       * IMPORTANT :
+       * elle est déclenchée directement
+       * suite au clic utilisateur.
+       */
+
+      let permission =
+        Notification.permission;
+
+      if (
+        permission ===
+        "default"
+      ) {
+        permission =
+          await Notification
+            .requestPermission();
+      }
+
+      if (
+        permission ===
+        "denied"
+      ) {
+        setState(
+          "denied"
+        );
+
+        throw new Error(
+          "Les notifications sont bloquées. Autorisez-les dans les réglages de votre navigateur ou téléphone."
+        );
+      }
+
+      if (
+        permission !==
+        "granted"
+      ) {
+        throw new Error(
+          "L'autorisation de notification n'a pas été accordée."
+        );
+      }
+
+      /*
+       * Service Worker
+       */
+
+      const registration =
+        await getServiceWorkerRegistration();
+
+      if (
+        !registration
+          .pushManager
+      ) {
+        throw new Error(
+          "PushManager indisponible."
+        );
+      }
+
+      /*
+       * Cherche abonnement existant
+       */
+
+      let subscription =
+        await registration
+          .pushManager
+          .getSubscription();
+
+      /*
+       * Sinon crée l'abonnement
+       */
+
+      if (
+        !subscription
+      ) {
+        subscription =
+          await registration
+            .pushManager
+            .subscribe({
+              userVisibleOnly:
+                true,
+
+              applicationServerKey:
+                urlBase64ToUint8Array(
+                  publicKey
+                ),
+            });
+      }
+
+      if (
+        !subscription
+      ) {
+        throw new Error(
+          "Impossible de créer l'abonnement push."
+        );
+      }
+
+      const json =
+        subscription.toJSON();
+
+      const p256dh =
+        json.keys?.p256dh;
+
+      const auth =
+        json.keys?.auth;
+
+      if (
+        !subscription.endpoint ||
+        !p256dh ||
+        !auth
+      ) {
+        throw new Error(
+          "L'abonnement push généré par le navigateur est incomplet."
+        );
+      }
+
+      /*
+       * Préférences utilisateur
+       */
+
+      const values =
+        preferenceToValues(
+          preference
+        );
+
+      /*
+       * Enregistrement serveur
+       */
+
+      const response =
+        await fetch(
+          "/api/push/subscribe",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                endpoint:
+                  subscription.endpoint,
+
+                p256dh,
+
+                auth,
+
+                alertLost:
+                  values.alertLost,
+
+                alertFound:
+                  values.alertFound,
+              }),
+          }
+        );
+
+      let result:
+        | {
+            ok?: boolean;
+            error?: string;
+          }
+        | null =
+        null;
+
+      try {
+        result =
+          await response.json();
+      } catch {
+        result =
+          null;
+      }
+
+      if (
+        !response.ok
+      ) {
+        throw new Error(
+          result?.error ||
+            `Erreur serveur ${response.status}.`
+        );
+      }
+
+      /*
+       * Sauvegarde préférence locale
+       */
+
+      window.localStorage
+        .setItem(
+          "taui-push-preference",
+          preference
+        );
+
+      setSelected(
+        preference
+      );
+
+      setState(
+        "enabled"
+      );
+
+      if (
+        preference ===
+        "lost"
+      ) {
+        setMessage(
+          "✅ Notifications pour les animaux perdus activées."
+        );
+      } else if (
+        preference ===
+        "found"
+      ) {
+        setMessage(
+          "✅ Notifications pour les animaux trouvés activées."
+        );
+      } else {
+        setMessage(
+          "✅ Notifications animaux perdus et trouvés activées."
+        );
+      }
+    } catch (
+      caughtError
+    ) {
+      console.error(
+        "Activation push Taui Te Ora :",
+        caughtError
+      );
+
+      const permission =
+        getPermissionState();
+
+      if (
+        permission ===
+        "denied"
+      ) {
+        setState(
+          "denied"
+        );
+      } else {
+        setState(
+          "error"
+        );
+      }
+
+      setMessage(
+        caughtError instanceof
+          Error
+          ? caughtError.message
+          : "Impossible d'activer les notifications."
+      );
+    } finally {
+      setActivating(
+        null
+      );
+    }
+  }
+
+  if (
+    state ===
+    "unsupported"
+  ) {
+    return (
+      <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-lg sm:p-8">
+        <div className="text-center">
+          <div className="text-4xl">
+            🔕
+          </div>
+
+          <h2 className="mt-3 text-xl font-black text-[#064b42] sm:text-2xl">
+            Notifications non disponibles
+          </h2>
+
+          <p className="mt-3 text-sm leading-6 text-[#6f5a47]">
+            Ce navigateur ou cet appareil ne permet pas encore les notifications push.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-lg sm:p-8">
+      <div className="text-center">
+        <div className="text-4xl">
+          🔔
+        </div>
+
+        <h2 className="mt-3 text-2xl font-black text-[#064b42]">
+          Recevoir les alertes
+        </h2>
+
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6f5a47]">
+          Soyez prévenu immédiatement lorsqu&apos;un animal est signalé perdu ou trouvé.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <PushButton
+          active={
+            selected ===
+            "lost"
+          }
+          loading={
+            activating ===
+            "lost"
+          }
+          disabled={
+            activating !==
+            null
+          }
+          onClick={() =>
+            void activate(
+              "lost"
+            )
+          }
+          icon="🔎"
+          title="Animaux perdus"
+        />
+
+        <PushButton
+          active={
+            selected ===
+            "found"
+          }
+          loading={
+            activating ===
+            "found"
+          }
+          disabled={
+            activating !==
+            null
+          }
+          onClick={() =>
+            void activate(
+              "found"
+            )
+          }
+          icon="🐾"
+          title="Animaux trouvés"
+        />
+
+        <PushButton
+          active={
+            selected ===
+            "both"
+          }
+          loading={
+            activating ===
+            "both"
+          }
+          disabled={
+            activating !==
+            null
+          }
+          onClick={() =>
+            void activate(
+              "both"
+            )
+          }
+          icon="🚨"
+          title="Les deux"
+        />
+      </div>
+
+      {state ===
+        "denied" && (
+        <div className="mt-5 rounded-2xl bg-red-50 px-4 py-4 text-center text-sm font-semibold text-red-700">
+          🔕 Les notifications sont actuellement bloquées sur cet appareil.
+          <br />
+          Autorisez les notifications pour Taui Te Ora dans les réglages du navigateur.
+        </div>
+      )}
+
+      {message && (
+        <div
+          className={`mt-5 rounded-2xl px-4 py-4 text-center text-sm font-semibold ${
+            state ===
+            "enabled"
+              ? "bg-green-50 text-green-800"
+              : "bg-amber-50 text-amber-800"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
+      <p className="mt-5 text-center text-xs leading-5 text-gray-500">
+        Lors du premier choix, votre téléphone ou navigateur vous demandera l&apos;autorisation d&apos;envoyer des notifications.
+      </p>
+    </section>
+  );
+}
+
+function PushButton({
+  active,
+  loading,
+  disabled,
+  onClick,
+  icon,
+  title,
+}: {
+  active: boolean;
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  icon: string;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={
+        onClick
+      }
+      disabled={
+        disabled
+      }
+      className={`rounded-[22px] border-2 px-4 py-5 text-center transition active:scale-[0.98] ${
+        active
+          ? "border-[#064b42] bg-[#064b42] text-white"
+          : "border-[#eadfce] bg-[#faf7f2] text-[#064b42]"
+      } disabled:cursor-not-allowed disabled:opacity-60`}
+    >
+      <div className="text-3xl">
+        {icon}
+      </div>
+
+      <div className="mt-2 font-black">
+        {loading
+          ? "Activation..."
+          : title}
+      </div>
+
+      {active && (
+        <div className="mt-1 text-xs font-bold">
+          ✓ Activé
+        </div>
+      )}
+    </button>
+  );
+}
+
+============================================================
+FILE: .\app\components\admin\VisualPageEditor.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
+import { supabase } from "../../lib/supabase";
+
+type TextOverride = {
+  id?: string;
+  pathname: string;
+  original_text: string;
+  occurrence_index: number;
+  replacement_text: string;
+};
+
+const EDITABLE_SELECTOR =
+  "h1,h2,h3,h4,h5,h6,p,span,button,a,label,legend,li,option,blockquote";
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function isEditorChrome(element: Element) {
+  return Boolean(element.closest("[data-taui-editor-ui='true']"));
+}
+
+function shouldIgnore(element: HTMLElement) {
+  if (isEditorChrome(element)) return true;
+  if (element.closest("nav")) return true;
+  if (element.closest("[role='dialog']")) return true;
+  if (element.closest("script,style,noscript")) return true;
+  if (element.children.length > 0) return true;
+
+  const text = normalizeText(element.textContent || "");
+  if (!text || text.length > 800) return true;
+
+  return false;
+}
+
+function collectEditableElements() {
+  return Array.from(document.querySelectorAll<HTMLElement>(EDITABLE_SELECTOR)).filter(
+    (element) => !shouldIgnore(element)
+  );
+}
+
+function buildOccurrenceMap(elements: HTMLElement[]) {
+  const counters = new Map<string, number>();
+  return elements.map((element) => {
+    const original = normalizeText(element.dataset.tauiOriginalText || element.textContent || "");
+    const occurrence = counters.get(original) || 0;
+    counters.set(original, occurrence + 1);
+    return { element, original, occurrence };
+  });
+}
+
+function applyOverridesToPage(overrides: TextOverride[]) {
+  const elements = collectEditableElements();
+  const mapped = buildOccurrenceMap(elements);
+
+  for (const { element, original, occurrence } of mapped) {
+    if (!element.dataset.tauiOriginalText) {
+      element.dataset.tauiOriginalText = original;
+    }
+
+    const match = overrides.find(
+      (item) =>
+        item.original_text === original && item.occurrence_index === occurrence
+    );
+
+    if (match) {
+      element.textContent = match.replacement_text;
+    }
+  }
+}
+
+export default function VisualPageEditor() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [editMode, setEditMode] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [overrides, setOverrides] = useState<TextOverride[]>([]);
+  const observerRef = useRef<MutationObserver | null>(null);
+  const changeMapRef = useRef<Map<string, TextOverride>>(new Map());
+
+  const editorActive = useMemo(() => editMode && isAdmin, [editMode, isAdmin]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setEditMode(params.get("edit") === "1");
+  }, [pathname]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function initialize() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        let admin = false;
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          const role = String(profile?.role || "").trim().toLowerCase();
+          admin = role === "admin" || role === "administrateur";
+        }
+
+        if (!active) return;
+
+        setIsAdmin(admin);
+
+        const { data, error } = await supabase
+          .from("page_text_overrides")
+          .select(
+            "id, pathname, original_text, occurrence_index, replacement_text"
+          )
+          .eq("pathname", pathname);
+
+        if (!active) return;
+
+        if (error) {
+          console.error("Erreur chargement textes administrables :", error);
+        } else {
+          const rows = (data || []) as TextOverride[];
+          setOverrides(rows);
+
+          window.setTimeout(() => {
+            applyOverridesToPage(rows);
+          }, 0);
+        }
+      } finally {
+        if (active) setReady(true);
+      }
+    }
+
+    void initialize();
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const apply = () => applyOverridesToPage(overrides);
+
+    apply();
+
+    const observer = new MutationObserver(() => {
+      if (editorActive) return;
+      apply();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    observerRef.current = observer;
+
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+    };
+  }, [editorActive, overrides, ready]);
+
+  useEffect(() => {
+    if (!editorActive) return;
+
+    observerRef.current?.disconnect();
+
+    const cleanupMap = new Map<HTMLElement, () => void>();
+    let scheduled = false;
+
+    function makePageEditable() {
+      scheduled = false;
+
+      const elements = collectEditableElements();
+      const mapped = buildOccurrenceMap(elements);
+
+      mapped.forEach(({ element, original, occurrence }) => {
+        if (cleanupMap.has(element)) return;
+
+        if (!element.dataset.tauiOriginalText) {
+          element.dataset.tauiOriginalText = original;
+        }
+
+        const existingOverride = overrides.find(
+          (item) =>
+            item.original_text === original &&
+            item.occurrence_index === occurrence
+        );
+
+        if (existingOverride && normalizeText(element.textContent || "") !== existingOverride.replacement_text) {
+          element.textContent = existingOverride.replacement_text;
+        }
+
+        element.contentEditable = "true";
+        element.spellcheck = true;
+        element.dataset.tauiEditable = "true";
+        element.style.outline = "2px dashed rgba(223,137,149,.78)";
+        element.style.outlineOffset = "3px";
+        element.style.cursor = "text";
+        element.style.borderRadius = "6px";
+
+        const onFocus = () => {
+          element.style.outline = "3px solid rgba(223,137,149,.95)";
+          element.style.backgroundColor = "rgba(255,245,247,.72)";
+        };
+
+        const onBlur = () => {
+          element.style.outline = "2px dashed rgba(223,137,149,.78)";
+          element.style.backgroundColor = "";
+        };
+
+        const onInput = () => {
+          const replacement = normalizeText(element.textContent || "");
+          const baseOriginal =
+            element.dataset.tauiOriginalText || original;
+          const key = `${baseOriginal}::${occurrence}`;
+
+          if (replacement === baseOriginal) {
+            changeMapRef.current.delete(key);
+            return;
+          }
+
+          changeMapRef.current.set(key, {
+            pathname,
+            original_text: baseOriginal,
+            occurrence_index: occurrence,
+            replacement_text: replacement,
+          });
+        };
+
+        element.addEventListener("focus", onFocus);
+        element.addEventListener("blur", onBlur);
+        element.addEventListener("input", onInput);
+
+        cleanupMap.set(element, () => {
+          element.removeEventListener("focus", onFocus);
+          element.removeEventListener("blur", onBlur);
+          element.removeEventListener("input", onInput);
+          element.contentEditable = "false";
+          delete element.dataset.tauiEditable;
+          element.style.outline = "";
+          element.style.outlineOffset = "";
+          element.style.cursor = "";
+          element.style.borderRadius = "";
+          element.style.backgroundColor = "";
+        });
+      });
+    }
+
+    function scheduleEditableRefresh() {
+      if (scheduled) return;
+      scheduled = true;
+
+      window.requestAnimationFrame(() => {
+        makePageEditable();
+      });
+    }
+
+    makePageEditable();
+
+    const observer = new MutationObserver(() => {
+      scheduleEditableRefresh();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    observerRef.current = observer;
+
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+      cleanupMap.forEach((cleanup) => cleanup());
+      cleanupMap.clear();
+    };
+  }, [editorActive, overrides, pathname]);
+
+  async function saveChanges() {
+    if (saving) return;
+
+    const changes = Array.from(changeMapRef.current.values());
+
+    if (!changes.length) {
+      setNotice("Aucune modification à enregistrer.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setNotice("");
+
+      const payload = changes.map((item) => ({
+        pathname: item.pathname,
+        original_text: item.original_text,
+        occurrence_index: item.occurrence_index,
+        replacement_text: item.replacement_text,
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { error } = await supabase
+        .from("page_text_overrides")
+        .upsert(payload, {
+          onConflict: "pathname,original_text,occurrence_index",
+        });
+
+      if (error) throw error;
+
+      changeMapRef.current.clear();
+      setNotice("Modifications enregistrées.");
+
+      const { data } = await supabase
+        .from("page_text_overrides")
+        .select(
+          "id, pathname, original_text, occurrence_index, replacement_text"
+        )
+        .eq("pathname", pathname);
+
+      setOverrides((data || []) as TextOverride[]);
+    } catch (error) {
+      console.error("Erreur sauvegarde édition visuelle :", error);
+      setNotice(
+        error instanceof Error ? error.message : "Impossible d’enregistrer."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function exitEditor() {
+    router.replace(pathname);
+  }
+
+  if (!editMode || !isAdmin) return null;
+
+  return (
+    <div
+      data-taui-editor-ui="true"
+      className="fixed inset-x-0 top-0 z-[9999] border-b border-[#eadfd8] bg-[#064b42]/95 px-3 py-3 text-white shadow-xl backdrop-blur"
+    >
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#f6c4cc]">
+            Mode administration
+          </p>
+          <p className="text-sm font-bold">
+            Cliquez directement sur un texte pour le modifier.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {notice ? (
+            <span className="hidden rounded-full bg-white/10 px-3 py-2 text-xs font-bold sm:inline">
+              {notice}
+            </span>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={exitEditor}
+            className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-black"
+          >
+            Annuler
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void saveChanges()}
+            disabled={saving}
+            className="rounded-full bg-[#df8995] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
+          >
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: .\app\reseau-aide\page.tsx
+============================================================
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  HeartHandshake,
+  MapPin,
+  Phone,
+  Mail,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
+
+import { supabase } from "../lib/supabase";
+
+type Helper = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  email: string | null;
+  island: string | null;
+  city: string | null;
+  help_foster: boolean;
+  help_transport: boolean;
+  help_capture: boolean;
+  help_food_material: boolean;
+  help_vet: boolean;
+  help_volunteer: boolean;
+  help_notes: string | null;
+  help_updated_at: string | null;
+};
+
+type HelpFilter =
+  | "all"
+  | "help_foster"
+  | "help_transport"
+  | "help_capture"
+  | "help_food_material"
+  | "help_vet"
+  | "help_volunteer";
+
+const HELP_FILTERS: Array<{
+  key: HelpFilter;
+  label: string;
+  icon: string;
+}> = [
+  { key: "all", label: "Tous", icon: "🤝" },
+  { key: "help_foster", label: "Famille d’accueil", icon: "🏠" },
+  { key: "help_transport", label: "Transport", icon: "🚗" },
+  { key: "help_capture", label: "Capture", icon: "🛟" },
+  { key: "help_food_material", label: "Nourriture / matériel", icon: "🥣" },
+  { key: "help_vet", label: "Vétérinaire", icon: "🩺" },
+  { key: "help_volunteer", label: "Bénévolat", icon: "🐾" },
+];
+
+function displayName(helper: Helper) {
+  const value = [helper.first_name, helper.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return value || "Bénévole";
+}
+
+export default function HelpNetworkPage() {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [helpers, setHelpers] = useState<Helper[]>([]);
+  const [search, setSearch] = useState("");
+  const [island, setIsland] = useState("");
+  const [city, setCity] = useState("");
+  const [helpFilter, setHelpFilter] = useState<HelpFilter>("all");
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login?redirect=/reseau-aide");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      const role = String(profile?.role || "")
+        .trim()
+        .toLowerCase();
+
+      if (!["admin", "administrateur", "association", "refuge", "fourriere", "benevole"].includes(role)) {
+        router.replace("/");
+        return;
+      }
+
+      const { data, error: rpcError } = await supabase.rpc(
+        "get_help_network"
+      );
+
+      if (rpcError) throw rpcError;
+
+      setHelpers((data || []) as Helper[]);
+    } catch (caught) {
+      console.error("Chargement réseau d’aide :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de charger le réseau d’aide."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const islands = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          helpers
+            .map((item) => String(item.island || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "fr")),
+    [helpers]
+  );
+
+  const cities = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          helpers
+            .filter(
+              (item) =>
+                !island ||
+                String(item.island || "").trim() === island
+            )
+            .map((item) => String(item.city || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "fr")),
+    [helpers, island]
+  );
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return helpers.filter((helper) => {
+      if (
+        island &&
+        String(helper.island || "").trim() !== island
+      ) {
+        return false;
+      }
+
+      if (
+        city &&
+        String(helper.city || "").trim() !== city
+      ) {
+        return false;
+      }
+
+      if (
+        helpFilter !== "all" &&
+        !helper[helpFilter]
+      ) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      const haystack = [
+        helper.first_name,
+        helper.last_name,
+        helper.island,
+        helper.city,
+        helper.help_notes,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [helpers, search, island, city, helpFilter]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[#fbf7ef]">
+        <p className="font-black text-[#064b42]">
+          Chargement du réseau d’aide...
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 pb-28 pt-24 sm:px-6">
+      <section className="mx-auto max-w-7xl">
+        <div className="rounded-[30px] bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#e7f3ef] text-[#064b42]">
+                <HeartHandshake size={30} />
+              </div>
+
+              <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#df8995]">
+                TAUI TE ORA
+              </p>
+              <h1 className="mt-1 text-3xl font-black text-[#064b42] sm:text-4xl">
+                Réseau d’aide
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#756d67]">
+                Retrouvez les personnes qui ont choisi de se rendre disponibles pour aider les animaux.
+                Les coordonnées sont réservées aux associations et à l’administration.
+              </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push("/sos-aide")}
+              className="flex items-center justify-center gap-2 rounded-full bg-[#df8995] px-6 py-3 font-black text-white shadow-md"
+            >
+              🚨 Créer / gérer un SOS
+            </button>
+          </div>
+
+          <div className="mt-7 grid gap-3 lg:grid-cols-4">
+            <div className="relative lg:col-span-2">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Rechercher un nom, une commune..."
+                className="w-full rounded-2xl border border-[#e5ddd5] bg-white py-3 pl-11 pr-4 outline-none focus:border-[#064b42]"
+              />
+            </div>
+
+            <select
+              value={island}
+              onChange={(event) => {
+                setIsland(event.target.value);
+                setCity("");
+              }}
+              className="rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+            >
+              <option value="">Toutes les îles</option>
+              {islands.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={city}
+              onChange={(event) => setCity(event.target.value)}
+              className="rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+            >
+              <option value="">Toutes les communes</option>
+              {cities.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {HELP_FILTERS.map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => setHelpFilter(filter.key)}
+                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                  helpFilter === filter.key
+                    ? "bg-[#064b42] text-white"
+                    : "bg-[#f8f4ec] text-[#064b42]"
+                }`}
+              >
+                {filter.icon} {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error ? (
+          <div className="mt-6 rounded-2xl bg-red-50 p-4 font-semibold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <p className="font-black text-[#064b42]">
+            {filtered.length} personne{filtered.length > 1 ? "s" : ""} disponible{filtered.length > 1 ? "s" : ""}
+          </p>
+
+          <div className="flex items-center gap-2 text-xs font-bold text-[#756d67]">
+            <ShieldCheck size={16} />
+            Accès privé
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="mt-5 rounded-[26px] bg-white p-8 text-center shadow-sm">
+            <p className="font-black text-[#064b42]">
+              Aucun bénévole ne correspond à ces filtres.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((helper) => {
+              const badges = HELP_FILTERS
+                .filter(
+                  (filter) =>
+                    filter.key !== "all" &&
+                    helper[filter.key]
+                );
+
+              return (
+                <article
+                  key={helper.id}
+                  className="rounded-[26px] bg-white p-5 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-black text-[#064b42]">
+                        {displayName(helper)}
+                      </h2>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#756d67]">
+                        <MapPin size={16} />
+                        <span>
+                          {[helper.city, helper.island]
+                            .filter(Boolean)
+                            .join(" · ") || "Localisation non renseignée"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="rounded-full bg-[#e7f3ef] px-3 py-1 text-xs font-black text-[#064b42]">
+                      Disponible
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {badges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className="rounded-full bg-[#f8f4ec] px-3 py-2 text-xs font-black text-[#5f554d]"
+                      >
+                        {badge.icon} {badge.label}
+                      </span>
+                    ))}
+                  </div>
+
+                  {helper.help_notes ? (
+                    <p className="mt-4 rounded-2xl bg-[#fffaf5] p-4 text-sm leading-6 text-[#6f665f]">
+                      {helper.help_notes}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                    {helper.phone ? (
+                      <a
+                        href={`tel:${helper.phone}`}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#064b42] px-4 py-3 text-sm font-black text-white"
+                      >
+                        <Phone size={16} />
+                        Appeler
+                      </a>
+                    ) : null}
+
+                    {helper.email ? (
+                      <a
+                        href={`mailto:${helper.email}`}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42]"
+                      >
+                        <Mail size={16} />
+                        Email
+                      </a>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: .\app\sos-aide\page.tsx
+============================================================
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  Clock3,
+  MapPin,
+  Plus,
+  Search,
+  ShieldAlert,
+  X,
+} from "lucide-react";
+
+import { supabase } from "../lib/supabase";
+
+type HelpType =
+  | "famille_accueil"
+  | "transport"
+  | "capture"
+  | "nourriture_materiel"
+  | "veterinaire"
+  | "benevolat";
+
+type Urgency = "normale" | "urgente" | "critique";
+type SosStatus = "ouvert" | "en_cours" | "cloture";
+
+type HelpSos = {
+  id: string;
+  created_by: string;
+  title: string;
+  help_type: HelpType;
+  island: string;
+  city: string | null;
+  message: string;
+  urgency: Urgency;
+  status: SosStatus;
+  animal_id: string | null;
+  animal_type?: string | null;
+  animals_count?: number | null;
+  push_sent_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+};
+
+type MatchingHelper = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  organization_name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  island?: string | null;
+  city?: string | null;
+  help_notes?: string | null;
+  foster_capacity?: number | null;
+  foster_duration?: string | null;
+  foster_accepts_dogs?: boolean | null;
+  foster_accepts_cats?: boolean | null;
+  help_has_transport?: boolean | null;
+};
+
+const HELP_TYPES: Array<{
+  value: HelpType;
+  label: string;
+  icon: string;
+}> = [
+  { value: "famille_accueil", label: "Famille d’accueil", icon: "🏠" },
+  { value: "transport", label: "Transport", icon: "🚗" },
+  { value: "capture", label: "Capture / sauvetage", icon: "🛟" },
+  { value: "nourriture_materiel", label: "Nourriture / matériel", icon: "🥣" },
+  { value: "veterinaire", label: "Accompagnement vétérinaire", icon: "🩺" },
+  { value: "benevolat", label: "Bénévolat", icon: "🤝" },
+];
+
+const EMPTY_FORM = {
+  title: "",
+  help_type: "famille_accueil" as HelpType,
+  island: "",
+  city: "",
+  message: "",
+  urgency: "urgente" as Urgency,
+};
+
+function helpTypeLabel(value: HelpType) {
+  return HELP_TYPES.find((item) => item.value === value)?.label || value;
+}
+
+function helpTypeIcon(value: HelpType) {
+  return HELP_TYPES.find((item) => item.value === value)?.icon || "🤝";
+}
+
+function urgencyClasses(value: Urgency) {
+  if (value === "critique") return "bg-red-100 text-red-700";
+  if (value === "urgente") return "bg-amber-100 text-amber-800";
+  return "bg-[#e7f3ef] text-[#064b42]";
+}
+
+function statusLabel(value: SosStatus) {
+  if (value === "en_cours") return "En cours";
+  if (value === "cloture") return "Clôturé";
+  return "Ouvert";
+}
+
+export default function HelpSosPage() {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sosList, setSosList] = useState<HelpSos[]>([]);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | SosStatus>("all");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [matchingHelpers, setMatchingHelpers] = useState<Record<string, MatchingHelper[]>>({});
+  const [matchingLoading, setMatchingLoading] = useState<Record<string, boolean>>({});
+  const [expandedMatching, setExpandedMatching] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState<Record<string, boolean>>({});
+  const [notificationResults, setNotificationResults] = useState<
+    Record<string, string>
+  >({});
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login?redirect=/sos-aide");
+        return;
+      }
+
+      setCurrentUserId(user.id);
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      const role = String(profile?.role || "").trim().toLowerCase();
+
+      if (!["admin", "administrateur", "association", "refuge", "fourriere", "benevole"].includes(role)) {
+        router.replace("/");
+        return;
+      }
+
+      setIsAdmin(role === "admin" || role === "administrateur");
+
+      const { data, error: listError } = await supabase
+        .from("help_sos")
+        .select(
+          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at"
+        )
+        .order("created_at", { ascending: false });
+
+      if (listError) throw listError;
+
+      setSosList((data || []) as HelpSos[]);
+    } catch (caught) {
+      console.error("Chargement SOS aide :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de charger les SOS."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function createSos(event: FormEvent) {
+    event.preventDefault();
+
+    if (!currentUserId) return;
+
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      if (!form.title.trim()) {
+        throw new Error("Indiquez un titre.");
+      }
+
+      if (!form.island.trim()) {
+        throw new Error("Indiquez l’île concernée.");
+      }
+
+      if (!form.message.trim()) {
+        throw new Error("Décrivez le besoin.");
+      }
+
+      const { error: insertError } = await supabase
+        .from("help_sos")
+        .insert({
+          created_by: currentUserId,
+          title: form.title.trim(),
+          help_type: form.help_type,
+          island: form.island.trim(),
+          city: form.city.trim() || null,
+          message: form.message.trim(),
+          urgency: form.urgency,
+          status: "ouvert",
+        });
+
+      if (insertError) throw insertError;
+
+      setForm(EMPTY_FORM);
+      setCreating(false);
+      setMessage("SOS créé. Il est maintenant visible dans le réseau d’aide.");
+      await load();
+    } catch (caught) {
+      console.error("Création SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de créer le SOS."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateStatus(item: HelpSos, status: SosStatus) {
+    try {
+      setError("");
+      setMessage("");
+
+      const { error: updateError } = await supabase
+        .from("help_sos")
+        .update({ status })
+        .eq("id", item.id);
+
+      if (updateError) throw updateError;
+
+      setMessage(
+        status === "cloture"
+          ? "SOS clôturé."
+          : status === "en_cours"
+            ? "SOS passé en cours."
+            : "SOS rouvert."
+      );
+
+      await load();
+    } catch (caught) {
+      console.error("Mise à jour SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de mettre à jour le SOS."
+      );
+    }
+  }
+
+  async function loadMatchingHelpers(item: HelpSos) {
+    if (expandedMatching === item.id) {
+      setExpandedMatching(null);
+      return;
+    }
+
+    setExpandedMatching(item.id);
+
+    if (matchingHelpers[item.id]) return;
+
+    try {
+      setMatchingLoading((current) => ({ ...current, [item.id]: true }));
+      setError("");
+
+      const { data, error: matchingError } = await supabase.rpc(
+        "get_matching_helpers_for_sos",
+        { p_sos_id: item.id }
+      );
+
+      if (matchingError) throw matchingError;
+
+      setMatchingHelpers((current) => ({
+        ...current,
+        [item.id]: (data || []) as MatchingHelper[],
+      }));
+    } catch (caught) {
+      console.error("Matching SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de rechercher les personnes compatibles."
+      );
+    } finally {
+      setMatchingLoading((current) => ({ ...current, [item.id]: false }));
+    }
+  }
+
+  async function notifyMatchingHelpers(item: HelpSos) {
+    try {
+      setNotifying((current) => ({ ...current, [item.id]: true }));
+      setError("");
+      setMessage("");
+
+      const {
+        data: sessionData,
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Votre session a expiré. Reconnectez-vous.");
+      }
+
+      const response = await fetch("/api/push/sos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          sosId: item.id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            "Impossible d’envoyer les notifications SOS."
+        );
+      }
+
+      let resultMessage = "";
+
+      if (result?.alreadySent) {
+        resultMessage = "Les personnes compatibles ont déjà été notifiées.";
+      } else if (Number(result?.matched || 0) === 0) {
+        resultMessage = "Aucune personne compatible à notifier pour le moment.";
+      } else {
+        const matched = Number(result?.matched || 0);
+        const sent = Number(result?.sent || 0);
+
+        resultMessage =
+          `${matched} personne${matched > 1 ? "s" : ""} ciblée${
+            matched > 1 ? "s" : ""
+          } · ${sent} notification${sent > 1 ? "s" : ""} envoyée${
+            sent > 1 ? "s" : ""
+          }.`;
+      }
+
+      setNotificationResults((current) => ({
+        ...current,
+        [item.id]: resultMessage,
+      }));
+
+      setMessage(resultMessage);
+      await load();
+    } catch (caught) {
+      console.error("Notification SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible d’envoyer les notifications SOS."
+      );
+    } finally {
+      setNotifying((current) => ({ ...current, [item.id]: false }));
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return sosList.filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      return [
+        item.title,
+        item.island,
+        item.city,
+        item.message,
+        helpTypeLabel(item.help_type),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [sosList, search, statusFilter]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[#fbf7ef]">
+        <p className="font-black text-[#064b42]">Chargement des SOS...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 pb-28 pt-24 sm:px-6">
+      <section className="mx-auto max-w-7xl">
+        <div className="rounded-[30px] bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <ShieldAlert size={30} />
+              </div>
+
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#df8995]">
+                  TAUI TE ORA
+                </p>
+
+                <h1 className="mt-1 text-3xl font-black text-[#064b42] sm:text-4xl">
+                  SOS réseau d’aide
+                </h1>
+
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#756d67]">
+                  Créez un besoin ciblé pour une famille d’accueil, un transport,
+                  une capture, du matériel, un accompagnement vétérinaire ou du bénévolat.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="flex items-center justify-center gap-2 rounded-full bg-[#df8995] px-6 py-3 font-black text-white shadow-md"
+            >
+              <Plus size={19} />
+              Créer un SOS
+            </button>
+          </div>
+
+          <div className="mt-7 grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Rechercher un SOS..."
+                className="w-full rounded-2xl border border-[#e5ddd5] bg-white py-3 pl-11 pr-4 outline-none focus:border-[#064b42]"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as "all" | SosStatus)
+              }
+              className="rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="ouvert">Ouverts</option>
+              <option value="en_cours">En cours</option>
+              <option value="cloture">Clôturés</option>
+            </select>
+          </div>
+        </div>
+
+        {message ? (
+          <div className="mt-5 rounded-2xl bg-green-50 p-4 font-semibold text-green-800">
+            {message}
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="mt-5 rounded-2xl bg-red-50 p-4 font-semibold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        {creating ? (
+          <section className="mt-6 rounded-[30px] bg-white p-6 shadow-lg sm:p-8">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-[#064b42]">
+                  Nouveau SOS
+                </h2>
+                <p className="mt-1 text-sm text-[#756d67]">
+                  Après publication, TAUI TE ORA pourra rechercher les personnes compatibles avec ce SOS.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCreating(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f8f4ec] text-[#064b42]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={createSos} className="mt-6 space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label>
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Titre *
+                  </span>
+                  <input
+                    value={form.title}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }))
+                    }
+                    placeholder="Ex. Famille d’accueil urgente pour 3 chiots"
+                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Type d’aide *
+                  </span>
+                  <select
+                    value={form.help_type}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        help_type: event.target.value as HelpType,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 font-bold text-[#064b42]"
+                  >
+                    {HELP_TYPES.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.icon} {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Île *
+                  </span>
+                  <input
+                    value={form.island}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        island: event.target.value,
+                      }))
+                    }
+                    placeholder="Ex. Tahiti"
+                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-black text-[#064b42]">
+                    Commune
+                  </span>
+                  <input
+                    value={form.city}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        city: event.target.value,
+                      }))
+                    }
+                    placeholder="Ex. Punaauia"
+                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
+                  />
+                </label>
+              </div>
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Niveau d’urgence
+                </span>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(["normale", "urgente", "critique"] as Urgency[]).map(
+                    (value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            urgency: value,
+                          }))
+                        }
+                        className={`rounded-2xl border-2 px-4 py-4 font-black capitalize ${
+                          form.urgency === value
+                            ? value === "critique"
+                              ? "border-red-500 bg-red-50 text-red-700"
+                              : value === "urgente"
+                                ? "border-amber-500 bg-amber-50 text-amber-800"
+                                : "border-[#064b42] bg-[#eef7f4] text-[#064b42]"
+                            : "border-[#eee5dc] bg-white text-[#756d67]"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    )
+                  )}
+                </div>
+              </label>
+
+              <label>
+                <span className="mb-2 block text-sm font-black text-[#064b42]">
+                  Description du besoin *
+                </span>
+                <textarea
+                  value={form.message}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      message: event.target.value,
+                    }))
+                  }
+                  rows={5}
+                  placeholder="Décrivez précisément la situation et l’aide recherchée..."
+                  className="w-full resize-y rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
+                />
+              </label>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-full bg-[#064b42] px-7 py-3 font-black text-white disabled:opacity-60"
+                >
+                  {saving ? "Création..." : "Publier le SOS"}
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : null}
+
+        <div className="mt-6 grid gap-4">
+          {filtered.length === 0 ? (
+            <div className="rounded-[26px] bg-white p-8 text-center shadow-sm">
+              <p className="font-black text-[#064b42]">
+                Aucun SOS pour le moment.
+              </p>
+            </div>
+          ) : (
+            filtered.map((item) => {
+              const canManage =
+                isAdmin || item.created_by === currentUserId;
+
+              return (
+                <article
+                  key={item.id}
+                  className="rounded-[26px] bg-white p-5 shadow-sm sm:p-6"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black ${urgencyClasses(
+                            item.urgency
+                          )}`}
+                        >
+                          {item.urgency === "critique"
+                            ? "🚨 Critique"
+                            : item.urgency === "urgente"
+                              ? "⚠️ Urgente"
+                              : "ℹ️ Normale"}
+                        </span>
+
+                        <span className="rounded-full bg-[#f8f4ec] px-3 py-1 text-xs font-black text-[#5f554d]">
+                          {helpTypeIcon(item.help_type)}{" "}
+                          {helpTypeLabel(item.help_type)}
+                        </span>
+
+                        <span className="rounded-full bg-[#edf7f4] px-3 py-1 text-xs font-black text-[#064b42]">
+                          {statusLabel(item.status)}
+                        </span>
+                      </div>
+
+                      <h2 className="mt-3 text-2xl font-black text-[#064b42]">
+                        {item.title}
+                      </h2>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm font-semibold text-[#756d67]">
+                        <span className="flex items-center gap-1.5">
+                          <MapPin size={16} />
+                          {[item.city, item.island]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+
+                        <span className="flex items-center gap-1.5">
+                          <Clock3 size={16} />
+                          {new Date(item.created_at).toLocaleString("fr-FR")}
+                        </span>
+                      </div>
+
+                      <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#5f554d]">
+                        {item.message}
+                      </p>
+                    </div>
+
+                    <div className="grid min-w-[220px] gap-2">
+                      {canManage ? (
+                        <button
+                          type="button"
+                          onClick={() => void loadMatchingHelpers(item)}
+                          disabled={matchingLoading[item.id]}
+                          className="rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42] disabled:opacity-60"
+                        >
+                          {matchingLoading[item.id]
+                            ? "Recherche..."
+                            : matchingHelpers[item.id]
+                              ? `${matchingHelpers[item.id].length} personne${
+                                  matchingHelpers[item.id].length > 1 ? "s" : ""
+                                } compatible${
+                                  matchingHelpers[item.id].length > 1 ? "s" : ""
+                                }`
+                              : "Voir les personnes compatibles"}
+                        </button>
+                      ) : null}
+
+                      {canManage && item.status !== "cloture" ? (
+                        <button
+                          type="button"
+                          onClick={() => void notifyMatchingHelpers(item)}
+                          disabled={notifying[item.id] || Boolean(item.push_sent_at)}
+                          className="flex items-center justify-center gap-2 rounded-xl bg-[#df8995] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Bell size={17} />
+                          {notifying[item.id]
+                            ? "Notification..."
+                            : item.push_sent_at
+                              ? "Personnes déjà notifiées"
+                              : "Notifier les personnes compatibles"}
+                        </button>
+                      ) : null}
+
+                      {notificationResults[item.id] ? (
+                        <p className="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold leading-5 text-green-800">
+                          {notificationResults[item.id]}
+                        </p>
+                      ) : null}
+
+                      {canManage ? (
+                      <div className="grid gap-2">
+                        {item.status !== "en_cours" && item.status !== "cloture" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void updateStatus(item, "en_cours")
+                            }
+                            className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-800"
+                          >
+                            Prendre en cours
+                          </button>
+                        ) : null}
+
+                        {item.status !== "cloture" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void updateStatus(item, "cloture")
+                            }
+                            className="flex items-center justify-center gap-2 rounded-xl bg-[#064b42] px-4 py-3 text-sm font-black text-white"
+                          >
+                            <CheckCircle2 size={17} />
+                            Clôturer
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void updateStatus(item, "ouvert")
+                            }
+                            className="rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42]"
+                          >
+                            Rouvrir
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                    </div>
+                  </div>
+
+                  {expandedMatching === item.id ? (
+                    <div className="mt-5 border-t border-[#eee5dc] pt-5">
+                      <h3 className="text-lg font-black text-[#064b42]">
+                        Personnes compatibles
+                      </h3>
+
+                      {matchingLoading[item.id] ? (
+                        <p className="mt-3 text-sm font-semibold text-[#756d67]">
+                          Recherche des personnes disponibles...
+                        </p>
+                      ) : (matchingHelpers[item.id] || []).length === 0 ? (
+                        <div className="mt-3 rounded-2xl bg-[#fbf7ef] p-4 text-sm font-semibold text-[#756d67]">
+                          Aucune personne compatible trouvée pour le moment.
+                        </div>
+                      ) : (
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {(matchingHelpers[item.id] || []).map((helper) => {
+                            const name =
+                              [helper.first_name, helper.last_name]
+                                .filter(Boolean)
+                                .join(" ") ||
+                              helper.organization_name ||
+                              "Membre du réseau";
+
+                            return (
+                              <div
+                                key={helper.id}
+                                className="rounded-2xl bg-[#fbf7ef] p-4"
+                              >
+                                <p className="font-black text-[#064b42]">
+                                  {name}
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-[#756d67]">
+                                  {[helper.city, helper.island]
+                                    .filter(Boolean)
+                                    .join(" · ") || "Localisation non renseignée"}
+                                </p>
+
+                                {helper.phone ? (
+                                  <a
+                                    href={`tel:${helper.phone}`}
+                                    className="mt-3 block text-sm font-black text-[#064b42]"
+                                  >
+                                    📞 {helper.phone}
+                                  </a>
+                                ) : null}
+
+                                {helper.email ? (
+                                  <a
+                                    href={`mailto:${helper.email}`}
+                                    className="mt-1 block break-all text-sm font-black text-[#064b42]"
+                                  >
+                                    ✉️ {helper.email}
+                                  </a>
+                                ) : null}
+
+                                {item.help_type === "famille_accueil" ? (
+                                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
+                                    {helper.foster_capacity ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        Capacité : {helper.foster_capacity}
+                                      </span>
+                                    ) : null}
+                                    {helper.foster_accepts_dogs ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        🐶 Chiens
+                                      </span>
+                                    ) : null}
+                                    {helper.foster_accepts_cats ? (
+                                      <span className="rounded-full bg-white px-3 py-1">
+                                        🐱 Chats
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: .\app\admin\pages\page.tsx
+============================================================
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ExternalLink,
+  Search,
+} from "lucide-react";
+
+import { supabase } from "../../lib/supabase";
+
+type DynamicPage = {
+  id: string;
+  slug: string;
+  menu_label: string;
+  menu_icon: string | null;
+  title: string;
+  is_published: boolean;
+  show_in_menu: boolean;
+};
+
+type ManagedPage = {
+  key: string;
+  label: string;
+  icon: string;
+  href: string;
+  type: "system" | "dynamic";
+};
+
+const SYSTEM_PAGES: ManagedPage[] = [
+  { key: "accueil", label: "Accueil", icon: "🏠", href: "/", type: "system" },
+  { key: "alimentation", label: "Alimentation", icon: "🥣", href: "/alimentation", type: "system" },
+  { key: "arpap", label: "ARPAP", icon: "🐾", href: "/arpap", type: "system" },
+  { key: "associations", label: "Associations", icon: "🤝", href: "/associations", type: "system" },
+  { key: "balades", label: "Balades & Copains", icon: "🐾", href: "/balades", type: "system" },
+  { key: "boutique", label: "Boutique", icon: "🛍️", href: "/boutique", type: "system" },
+  { key: "conseils-sante", label: "Conseils santé", icon: "❤️‍🩹", href: "/conseils-sante", type: "system" },
+  { key: "dons", label: "Dons", icon: "💝", href: "/dons", type: "system" },
+  { key: "education", label: "Éducation", icon: "🎓", href: "/education", type: "system" },
+  { key: "gardiennage", label: "Gardiennage", icon: "🏡", href: "/gardiennage", type: "system" },
+  { key: "hommage", label: "Hommage", icon: "🕯️", href: "/hommage", type: "system" },
+  { key: "les-veilleurs-de-kali", label: "Les Veilleurs de Kali", icon: "🐾", href: "/association/lesveilleursdekali", type: "system" },
+  { key: "pension", label: "Pension", icon: "🛏️", href: "/pension", type: "system" },
+  { key: "toilettage", label: "Toilettage", icon: "✂️", href: "/toilettage", type: "system" },
+  { key: "veterinaires", label: "Vétérinaires", icon: "🩺", href: "/veterinaires", type: "system" },
+];
+
+export default function AdminPagesPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [dynamicPages, setDynamicPages] = useState<DynamicPage[]>([]);
+  const [search, setSearch] = useState("");
+
+  const initialize = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login?redirect=/admin/pages");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const role = String(profile?.role || "").trim().toLowerCase();
+
+      if (!["admin", "administrateur"].includes(role)) {
+        router.replace("/");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("site_pages")
+        .select("id, slug, menu_label, menu_icon, title, is_published, show_in_menu")
+        .order("menu_label", { ascending: true });
+
+      if (error) throw error;
+
+      setDynamicPages((data || []) as DynamicPage[]);
+    } catch (error) {
+      console.error("Erreur gestion des pages :", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void initialize();
+  }, [initialize]);
+
+  const pages = useMemo<ManagedPage[]>(() => {
+    const systemSlugs = new Set(SYSTEM_PAGES.map((page) => page.key));
+
+    const dynamic = dynamicPages
+      .filter((page) => !systemSlugs.has(String(page.slug).trim().toLowerCase()))
+      .map<ManagedPage>((page) => ({
+        key: page.id,
+        label: page.menu_label || page.title || page.slug,
+        icon: page.menu_icon || "📄",
+        href: `/pages/${encodeURIComponent(page.slug)}`,
+        type: "dynamic",
+      }));
+
+    return [...SYSTEM_PAGES, ...dynamic].sort((a, b) =>
+      a.label.localeCompare(b.label, "fr", {
+        sensitivity: "base",
+        ignorePunctuation: true,
+      })
+    );
+  }, [dynamicPages]);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return pages;
+
+    return pages.filter((page) =>
+      `${page.label} ${page.href}`.toLowerCase().includes(query)
+    );
+  }, [pages, search]);
+
+  function editPage(page: ManagedPage) {
+    router.push(`${page.href}?edit=1`);
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[#fbf7ef]">
+        <p className="font-black text-[#064b42]">Chargement des pages...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 pb-24 pt-24 sm:px-6 sm:pt-24">
+      <section className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#df8995]">
+              TAUI TE ORA
+            </p>
+            <h1 className="mt-1 text-4xl font-black text-[#064b42]">
+              Gestion des pages
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#756d67]">
+              Ouvre une page telle qu’elle apparaît dans l’application puis modifie directement ses textes.
+              Le design reste verrouillé.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="relative mt-7">
+          <Search
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Rechercher une page..."
+            className="w-full rounded-[18px] border bg-white py-3 pl-11 pr-4"
+          />
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((page) => (
+            <article
+              key={`${page.type}-${page.key}`}
+              className="rounded-[26px] bg-white p-5 shadow-md"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8f4ec] text-2xl">
+                  {page.icon}
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="truncate text-xl font-black text-[#064b42]">
+                    {page.label}
+                  </h2>
+                  <p className="truncate text-sm text-gray-500">{page.href}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => editPage(page)}
+                  className="rounded-xl bg-[#064b42] px-4 py-3 font-black text-white"
+                >
+                  Modifier la page
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => router.push(page.href)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[#edf7f4] px-4 py-3 font-black text-[#064b42]"
+                >
+                  <ExternalLink size={16} />
+                  Voir
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+

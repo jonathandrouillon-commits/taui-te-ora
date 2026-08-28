@@ -133,6 +133,37 @@ export default function AnimalPublicPage() {
     setMatchError,
   ] = useState("");
 
+  const [
+    likesCount,
+    setLikesCount,
+  ] = useState(0);
+
+  const loadLikesCount = useCallback(async () => {
+    const {
+      count,
+      error,
+    } = await supabase
+      .from("favorites")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("animal_id", id);
+
+    if (error) {
+      console.error(
+        "Erreur compteur coups de coeur :",
+        error
+      );
+
+      return;
+    }
+
+    setLikesCount(
+      count || 0
+    );
+  }, [id]);
+
   const loadAnimal = useCallback(async () => {
     try {
       setLoading(true);
@@ -189,8 +220,33 @@ export default function AnimalPublicPage() {
   }, [id]);
 
   useEffect(() => {
-    queueMicrotask(() => void loadAnimal());
-  }, [id, loadAnimal]);
+    queueMicrotask(() => {
+      void loadAnimal();
+      void loadLikesCount();
+    });
+
+    const channel = supabase
+      .channel(`animal-page-favorites-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "favorites",
+          filter: `animal_id=eq.${id}`,
+        },
+        () => {
+          void loadLikesCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(
+        channel
+      );
+    };
+  }, [id, loadAnimal, loadLikesCount]);
 
   const loadCompatibility =
     useCallback(async () => {
@@ -625,6 +681,9 @@ export default function AnimalPublicPage() {
               }
               association={
                 association
+              }
+              likesCount={
+                likesCount
               }
             />
 

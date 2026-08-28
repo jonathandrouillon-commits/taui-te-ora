@@ -88,7 +88,7 @@ export default function AnimalSwipeCard({
     async function loadLikesCount() {
       const { count, error } =
         await supabase
-          .from("likes")
+          .from("favorites")
           .select("id", {
             count: "exact",
             head: true,
@@ -125,7 +125,7 @@ export default function AnimalSwipeCard({
           {
             event: "*",
             schema: "public",
-            table: "likes",
+            table: "favorites",
             filter:
               `animal_id=eq.${animal.id}`,
           },
@@ -1106,33 +1106,6 @@ export default function AnimalSwipeCard({
                   {animalName}
                 </h2>
 
-                <button
-                  type="button"
-                  onClick={handleInformation}
-                  className="
-                    mb-0.5
-                    flex
-                    h-9
-                    w-9
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#fffaf7]
-                    text-base
-                    font-black
-                    text-[#60605d]
-                    shadow-lg
-                    transition
-                    active:scale-95
-                    sm:h-10
-                    sm:w-10
-                    sm:text-lg
-                  "
-                  aria-label="Informations"
-                >
-                  i
-                </button>
               </div>
             </div>
 
@@ -1201,7 +1174,8 @@ export default function AnimalSwipeCard({
               )}
 
               {onOpenFilter && (
-                <button
+                <div className="flex flex-col items-center gap-2">
+                  <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1239,7 +1213,42 @@ export default function AnimalSwipeCard({
                       ? `Filtres (${filterCount})`
                       : "Choisir"}
                   </span>
-                </button>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleInformation();
+                    }}
+                    aria-label="Informations"
+                    title="Informations"
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      border-white
+                      bg-[#fffaf7]/95
+                      text-base
+                      font-black
+                      text-[#60605d]
+                      shadow-lg
+                      backdrop-blur
+                      transition
+                      active:scale-95
+                      sm:h-10
+                      sm:w-10
+                      sm:text-lg
+                    "
+                  >
+                    i
+                  </button>
+                </div>
               )}
             </div>
           </div>

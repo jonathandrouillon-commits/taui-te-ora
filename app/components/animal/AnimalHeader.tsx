@@ -10,6 +10,7 @@ type AnimalHeaderProps = {
   ile?: string | null;
   localisation?: string | null;
   association?: string | null;
+  likesCount?: number;
 };
 
 export default function AnimalHeader({
@@ -24,6 +25,7 @@ export default function AnimalHeader({
   ile,
   localisation,
   association,
+  likesCount = 0,
 }: AnimalHeaderProps) {
   return (
     <div className="rounded-3xl bg-white p-6 shadow">
@@ -31,9 +33,19 @@ export default function AnimalHeader({
         {statut || "Disponible"}
       </p>
 
-      <h1 className="text-4xl font-black text-[#064b42]">
-        {nom || "Animal sans nom"}
-      </h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-4xl font-black text-[#064b42]">
+          {nom || "Animal sans nom"}
+        </h1>
+
+        <div
+          className="shrink-0 rounded-full bg-[#fff0f2] px-4 py-2 font-black text-[#df687c]"
+          title={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
+          aria-label={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
+        >
+          ❤️ {likesCount}
+        </div>
+      </div>
 
       <p className="mt-2 text-gray-600">
         {type || "Animal"} • {sexe || "Sexe non renseigné"} •{" "}
@@ -52,11 +64,22 @@ export default function AnimalHeader({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-[#f4eee3] p-4">
-      <p className="text-xs font-black uppercase text-[#b68b2f]">{label}</p>
-      <p className="mt-1 break-words font-bold text-[#064b42]">{value}</p>
+      <p className="text-xs font-black uppercase text-[#b68b2f]">
+        {label}
+      </p>
+
+      <p className="mt-1 break-words font-bold text-[#064b42]">
+        {value}
+      </p>
     </div>
   );
 }
