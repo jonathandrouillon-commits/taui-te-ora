@@ -1,4 +1,4 @@
-import {
+﻿import {
   NextResponse,
 } from "next/server";
 
@@ -91,7 +91,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Corps de requête invalide.",
+            "Corps de requÃªte invalide.",
         },
         {
           status: 400,
@@ -187,7 +187,7 @@ export async function POST(
       getAdmin();
 
     /*
-     * On rattache l'abonnement push au profil connecté.
+     * On rattache l'abonnement push au profil connectÃ©.
      * C'est indispensable pour envoyer un SOS seulement
      * aux personnes compatibles.
      */
@@ -229,40 +229,96 @@ export async function POST(
       }
     }
 
-    const {
-      error,
-    } =
-      await supabase
-        .from(
-          "push_subscriptions"
-        )
-        .upsert(
-          {
-            endpoint,
-            p256dh,
-            auth,
+    const subscriptionData = {
+      endpoint,
+      p256dh,
+      auth,
 
-            user_id:
-              userId,
+      alert_lost:
+        alertLost,
 
-            alert_lost:
-              alertLost,
+      alert_found:
+        alertFound,
 
-            alert_found:
-              alertFound,
+      alert_sos:
+        alertSos,
 
-            alert_sos:
-              alertSos,
+      updated_at:
+        new Date()
+          .toISOString(),
+    };
 
-            updated_at:
-              new Date()
-                .toISOString(),
-          },
-          {
-            onConflict:
-              "endpoint",
-          }
-        );
+    let error;
+
+    if (userId) {
+      const result =
+        await supabase
+          .from(
+            "push_subscriptions"
+          )
+          .upsert(
+            {
+              ...subscriptionData,
+
+              user_id:
+                userId,
+            },
+            {
+              onConflict:
+                "endpoint",
+            }
+          );
+
+      error =
+        result.error;
+    } else {
+      const {
+        data:
+          existing,
+        error:
+          existingError,
+      } =
+        await supabase
+          .from(
+            "push_subscriptions"
+          )
+          .select(
+            "user_id"
+          )
+          .eq(
+            "endpoint",
+            endpoint
+          )
+          .maybeSingle();
+
+      if (
+        existingError
+      ) {
+        throw existingError;
+      }
+
+      const result =
+        await supabase
+          .from(
+            "push_subscriptions"
+          )
+          .upsert(
+            {
+              ...subscriptionData,
+
+              user_id:
+                existing?.user_id ??
+                null,
+            },
+            {
+              onConflict:
+                "endpoint",
+            }
+          );
+
+      error =
+        result.error;
+    }
 
     if (error) {
       console.error(
@@ -274,7 +330,7 @@ export async function POST(
         {
           error:
             error.message ||
-            "Impossible d'enregistrer ce téléphone.",
+            "Impossible d'enregistrer ce tÃ©lÃ©phone.",
         },
         {
           status: 500,

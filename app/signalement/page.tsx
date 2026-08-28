@@ -855,12 +855,23 @@ export default function SignalementPage() {
         )
       ) {
         try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (!session?.access_token) {
+            throw new Error(
+              "Session utilisateur introuvable pour le matching."
+            );
+          }
+
           const matchingResponse = await fetch(
             "/api/matching/signalement",
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
               },
               body: JSON.stringify({
                 signalementId: signalement.id,

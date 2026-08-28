@@ -1,4 +1,4 @@
-import {
+﻿import {
   NextResponse,
 } from "next/server";
 
@@ -78,6 +78,26 @@ function getAdmin() {
   );
 }
 
+function getBearerToken(
+  request: Request
+) {
+  const header =
+    request.headers.get(
+      "authorization"
+    ) || "";
+
+  if (
+    !header
+      .toLowerCase()
+      .startsWith("bearer ")
+  ) {
+    return "";
+  }
+
+  return header
+    .slice(7)
+    .trim();
+}
 function configureWebPush() {
   const publicKey =
     process.env
@@ -97,7 +117,7 @@ function configureWebPush() {
     !privateKey
   ) {
     throw new Error(
-      "Clés VAPID manquantes."
+      "ClÃ©s VAPID manquantes."
     );
   }
 
@@ -168,14 +188,14 @@ function buildBody(
   }
 
   let body =
-    parts.join(" • ");
+    parts.join(" â€¢ ");
 
   if (
     description.length >
     0
   ) {
     body +=
-      ` — ${description.join(
+      ` â€” ${description.join(
         ", "
       )}`;
   }
@@ -232,7 +252,8 @@ export async function POST(
           city,
           color,
           breed,
-          push_sent_at
+          push_sent_at,
+          user_id
         `
         )
         .eq(
@@ -265,13 +286,13 @@ export async function POST(
 
     const isFound =
       signalement.type_signalement ===
-      "Animal trouvé";
+      "Animal trouvÃ©";
 
     /*
      * Les autres types :
-     * errant, blessé,
-     * maltraité, etc.
-     * ne déclenchent pas
+     * errant, blessÃ©,
+     * maltraitÃ©, etc.
+     * ne dÃ©clenchent pas
      * cette alerte.
      */
     if (
@@ -286,8 +307,8 @@ export async function POST(
     }
 
     /*
-     * Empêche d'envoyer
-     * plusieurs fois le même
+     * EmpÃªche d'envoyer
+     * plusieurs fois le mÃªme
      * signalement.
      */
     if (
@@ -336,8 +357,8 @@ export async function POST(
     }
 
     /*
-     * Une autre requête a
-     * éventuellement déjà
+     * Une autre requÃªte a
+     * Ã©ventuellement dÃ©jÃ 
      * pris en charge l'alerte.
      */
     if (
@@ -398,8 +419,8 @@ export async function POST(
 
     const title =
       isLost
-        ? "🚨 Animal perdu"
-        : "🐾 Animal trouvé";
+        ? "ðŸš¨ Animal perdu"
+        : "ðŸ¾ Animal trouvÃ©";
 
     const payload =
       JSON.stringify({
@@ -470,8 +491,8 @@ export async function POST(
           };
 
         /*
-         * Le téléphone ou
-         * navigateur a supprimé
+         * Le tÃ©lÃ©phone ou
+         * navigateur a supprimÃ©
          * l'abonnement.
          */
         if (
@@ -524,3 +545,4 @@ export async function POST(
     );
   }
 }
+
