@@ -31,9 +31,15 @@ export default function GlobalBackButton() {
   const isAdminPage = pathname.startsWith("/admin");
 
   /*
-   * En mode edition visuelle, le bouton Retour doit toujours etre visible,
-   * y compris sur /dons et /balades.
+   * Dashboards qui possèdent déjà leur propre en-tête TAUI TE ORA.
+   * Ici le bouton doit rester compact pour ne jamais cacher le logo / nom.
    */
+  const isPublisherDashboard =
+    pathname === "/association/dashboard" ||
+    pathname === "/benevole/dashboard" ||
+    pathname === "/refuge/dashboard" ||
+    pathname === "/fourriere/dashboard";
+
   if (
     !queryReady ||
     (!editMode &&
@@ -45,9 +51,6 @@ export default function GlobalBackButton() {
   }
 
   function handleBack() {
-    /*
-     * Depuis l'editeur visuel, on revient toujours a la gestion des pages.
-     */
     if (editMode) {
       router.push("/admin/pages");
       return;
@@ -64,10 +67,6 @@ export default function GlobalBackButton() {
   return (
     <>
       {isAdminPage && !editMode ? (
-        /*
-         * Ce spacer reserve une vraie zone au-dessus des pages admin.
-         * Le bouton fixe ne recouvre donc plus "Administration" ou les titres.
-         */
         <div
           aria-hidden="true"
           className="h-16 sm:h-[72px]"
@@ -79,23 +78,20 @@ export default function GlobalBackButton() {
         onClick={handleBack}
         aria-label={
           editMode
-            ? "Retour a la gestion des pages"
+            ? "Retour à la gestion des pages"
             : "Retour"
         }
         className={`
           fixed
-          left-4
           z-[9900]
           flex
-          min-h-[44px]
           items-center
-          gap-1.5
+          justify-center
+          gap-1
           rounded-full
           border
           border-[#eadfd8]
           bg-white/95
-          px-4
-          text-sm
           font-black
           text-[#064b42]
           shadow-md
@@ -103,19 +99,44 @@ export default function GlobalBackButton() {
           transition
           hover:bg-white
           active:scale-[0.96]
+
           ${
             editMode
-              ? "top-[84px] sm:top-[78px]"
-              : "top-4"
+              ? "left-4 top-[84px] min-h-[44px] px-4 text-sm sm:top-[78px]"
+              : isPublisherDashboard
+                ? `
+                    left-3
+                    top-4
+                    h-11
+                    min-w-[108px]
+                    px-3
+                    text-[13px]
+
+                    sm:left-4
+                    sm:h-12
+                    sm:min-w-[116px]
+                    sm:px-3.5
+                    sm:text-sm
+
+                    lg:left-5
+                  `
+                : `
+                    left-4
+                    top-4
+                    min-h-[44px]
+                    px-4
+                    text-sm
+                  `
           }
         `}
       >
         <ChevronLeft
           size={18}
           strokeWidth={3}
+          className="shrink-0"
         />
 
-        <span>
+        <span className="whitespace-nowrap">
           {editMode
             ? "Retour à la gestion"
             : "Retour"}
