@@ -209,19 +209,19 @@ export default function ConseilsSantePage() {
           </div>
 
           <h2 className="mt-4 text-2xl font-black">
-            Prendre soin d'eux, c'est aussi les protéger
+            Prendre soin d&apos;eux, c&apos;est aussi les protéger
           </h2>
 
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-white/80">
             Au Fenua, prendre soin de son animal signifie aussi
             anticiper les particularités de notre environnement :
-            chaleur, humidité, parasites, accès à l'extérieur et
+            chaleur, humidité, parasites, accès à l&apos;extérieur et
             risques de divagation.
           </p>
 
           <p className="mx-auto mt-4 max-w-3xl font-bold text-[#f1d8b4]">
             Observer son animal et remarquer rapidement ce qui change
-            reste l'un des meilleurs moyens de prendre soin de lui.
+            reste l&apos;un des meilleurs moyens de prendre soin de lui.
           </p>
 
         </section>
@@ -241,7 +241,7 @@ export default function ConseilsSantePage() {
         >
           <p className="text-sm font-bold leading-6 text-[#6f5b40]">
             Ces conseils sont généraux et ne remplacent jamais
-            l'avis, l'examen ou le diagnostic d'un vétérinaire.
+            l&apos;avis, l&apos;examen ou le diagnostic d&apos;un vétérinaire.
           </p>
         </section>
 

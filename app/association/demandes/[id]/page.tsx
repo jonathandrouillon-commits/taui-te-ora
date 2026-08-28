@@ -87,11 +87,11 @@ export default function AssociationDemandeDetailPage() {
           ? "La demande a été acceptée."
           : "La demande a été refusée."
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Erreur lors de la mise à jour."
       );
     } finally {

@@ -216,9 +216,11 @@ export default function AddAnimalPage() {
     }
   }, [router]);
 
-  function updateField(
-    field: string,
-    value: any
+  function updateField<
+    K extends keyof typeof animal
+  >(
+    field: K,
+    value: (typeof animal)[K]
   ) {
     setAnimal((previousAnimal) => ({
       ...previousAnimal,
@@ -227,13 +229,17 @@ export default function AddAnimalPage() {
   }
 
   function updateCharacterField(
-    field: string,
+    field: keyof typeof animal | "vigilance_points",
     value: string | string[]
   ) {
     if (field === "vigilance_points") {
       setVigilancePoints(
         Array.isArray(value) ? value : []
       );
+      return;
+    }
+
+    if (Array.isArray(value)) {
       return;
     }
 
@@ -450,7 +456,7 @@ export default function AddAnimalPage() {
 
           is_published:
             publish,
-        } as any);
+        });
 
       if (photos.length > 0) {
         await photoService.uploadMany(
@@ -475,14 +481,14 @@ export default function AddAnimalPage() {
       router.push(
         getAnimalsPath()
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur enregistrement animal :",
         error
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Erreur lors de l’enregistrement de l’animal."
       );
     } finally {

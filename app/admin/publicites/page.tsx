@@ -629,7 +629,7 @@ export default function AdminPublicitesPage() {
 
             <p className="mt-2 max-w-2xl text-[#776b61]">
               Gérez les campagnes partenaires affichées dans
-              l'application.
+              l&apos;application.
             </p>
           </div>
 

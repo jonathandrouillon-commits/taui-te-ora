@@ -1,51 +1,104 @@
-type AnimalForm = Record<string, string | number | boolean | undefined>;
+type HealthField =
+  | "health_status"
+  | "vaccinated"
+  | "sterilized"
+  | "microchipped";
 
-type StepProps = {
-  animal: AnimalForm;
-  updateField: (field: string, value: string | boolean) => void;
+type HealthAnimal = {
+  health_status: string;
+  vaccinated: boolean;
+  sterilized: boolean;
+  microchipped: boolean;
 };
 
-export default function Step3Health({ animal, updateField }: StepProps) {
+type StepProps = {
+  animal: HealthAnimal;
+  updateField: (
+    field: HealthField,
+    value: string | boolean
+  ) => void;
+};
+
+export default function Step3Health({
+  animal,
+  updateField,
+}: StepProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-black">Santé</h2>
+      <h2 className="text-3xl font-black">
+        Santé
+      </h2>
 
       <select
         className="input"
-        value={String(animal.health_status ?? "")}
-        onChange={(e) => updateField("health_status", e.target.value)}
+        value={animal.health_status}
+        onChange={(event) =>
+          updateField(
+            "health_status",
+            event.target.value
+          )
+        }
       >
-        <option value="">État de santé</option>
-        <option>Mauvaise</option>
-        <option>Bonne</option>
-        <option>Très bonne</option>
+        <option value="">
+          État de santé
+        </option>
+
+        <option value="Mauvaise">
+          Mauvaise
+        </option>
+
+        <option value="Bonne">
+          Bonne
+        </option>
+
+        <option value="Très bonne">
+          Très bonne
+        </option>
       </select>
 
       <div className="grid gap-4 md:grid-cols-3">
         <label className="box">
           <input
             type="checkbox"
-            checked={Boolean(animal.vaccinated)}
-            onChange={(e) => updateField("vaccinated", e.target.checked)}
+            checked={animal.vaccinated}
+            onChange={(event) =>
+              updateField(
+                "vaccinated",
+                event.target.checked
+              )
+            }
           />
+
           Vacciné
         </label>
 
         <label className="box">
           <input
             type="checkbox"
-            checked={Boolean(animal.sterilized)}
-            onChange={(e) => updateField("sterilized", e.target.checked)}
+            checked={animal.sterilized}
+            onChange={(event) =>
+              updateField(
+                "sterilized",
+                event.target.checked
+              )
+            }
           />
+
           Stérilisé
         </label>
 
         <label className="box">
           <input
             type="checkbox"
-            checked={Boolean(animal.microchipped)}
-            onChange={(e) => updateField("microchipped", e.target.checked)}
+            checked={animal.microchipped}
+            onChange={(event) =>
+              updateField(
+                "microchipped",
+                event.target.checked
+              )
+            }
           />
+
           Identifié
         </label>
       </div>

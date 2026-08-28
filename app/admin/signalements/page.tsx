@@ -355,7 +355,7 @@ export default function AdminSignalementsPage() {
         nextStatuses
       );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur chargement signalements :",
@@ -363,7 +363,7 @@ export default function AdminSignalementsPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Erreur lors du chargement des signalements."
       );
     } finally {
@@ -565,7 +565,7 @@ export default function AdminSignalementsPage() {
           : "Signalement sauvegardé. Aucun profil connecté n'est lié à ce signalement, donc aucune notification in-app n'a été envoyée."
       );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur sauvegarde signalement :",
@@ -573,7 +573,7 @@ export default function AdminSignalementsPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Erreur lors de la sauvegarde."
       );
     } finally {
@@ -1157,7 +1157,7 @@ export default function AdminSignalementsPage() {
                                 text-orange-700
                               "
                             >
-                              Ce signalement n'est lié à aucun compte connecté : notification in-app impossible.
+                              Ce signalement n&apos;est lié à aucun compte connecté : notification in-app impossible.
                             </p>
                           )}
                         </div>

@@ -215,7 +215,7 @@ export default function DashboardAdoptions({
           )
       );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur annulation demande :",
@@ -223,7 +223,7 @@ export default function DashboardAdoptions({
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible d'annuler la demande."
       );
     } finally {

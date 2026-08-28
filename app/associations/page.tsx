@@ -112,7 +112,7 @@ export default function AssociationsPage() {
         (data || []) as AnimalAssociation[]
       );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur chargement associations :",
@@ -120,7 +120,7 @@ export default function AssociationsPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de charger les associations."
       );
     } finally {

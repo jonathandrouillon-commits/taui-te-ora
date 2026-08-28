@@ -24,6 +24,7 @@ import AnimalCompatibility from "../../components/animal/AnimalCompatibility";
 
 import {
   animalService,
+type Animal,
 } from "../../services/animal.service";
 
 import {
@@ -65,6 +66,12 @@ type QuestionnaireData = {
 type MatchResult = ReturnType<
   typeof compatibilityService.calculate
 >;
+type AnimalPhoto = {
+  id?: string;
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+  sort_order?: number | null;
+};
 
 export default function AnimalPublicPage() {
   const router =
@@ -80,7 +87,7 @@ export default function AnimalPublicPage() {
     animal,
     setAnimal,
   ] =
-    useState<any | null>(
+    useState<Animal | null>(
       null
     );
 
@@ -362,19 +369,28 @@ export default function AnimalPublicPage() {
         window.location.search
       ).get("adoption") === "1";
 
-    setAdoptionMode(
-      shouldShowAdoption
-    );
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          setAdoptionMode(
+            shouldShowAdoption
+          );
 
-    if (
-      shouldShowAdoption &&
-      animal
-    ) {
-      queueMicrotask(
-        () =>
-          void loadCompatibility()
+          if (
+            shouldShowAdoption &&
+            animal
+          ) {
+            void loadCompatibility();
+          }
+        },
+        0
       );
-    }
+
+    return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+    };
   }, [animal, loadCompatibility]);
 
   /* =========================================================
@@ -484,9 +500,7 @@ export default function AnimalPublicPage() {
   const ownerProfileId =
     animal.owner_profile?.id ||
     animal.owner_id ||
-    animal.profile_id ||
     animal.created_by ||
-    animal.user_id ||
     "";
 
   const statut =
@@ -506,8 +520,7 @@ export default function AnimalPublicPage() {
           ...animal.animal_photos,
         ].sort(
           (
-            a: any,
-            b: any
+            a: AnimalPhoto, b: AnimalPhoto
           ) => {
             if (
               a.is_cover

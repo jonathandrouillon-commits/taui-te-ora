@@ -37,7 +37,7 @@ export default function PensionPage() {
           <p className="mt-4 text-lg leading-8 text-[#6f5a47]">
             Les établissements référencés proposent des infrastructures
             adaptées, des espaces de détente, des promenades quotidiennes
-            ainsi qu'un accompagnement personnalisé selon les besoins de
+            ainsi qu&apos;un accompagnement personnalisé selon les besoins de
             chaque animal.
           </p>
 
@@ -82,7 +82,7 @@ export default function PensionPage() {
           <p className="mt-5 text-lg leading-8 text-[#6f5a47]">
             Les partenaires de TAUI TE ORA sont sélectionnés pour leur sérieux,
             leur passion des animaux et la qualité de leurs installations afin
-            d'assurer un séjour agréable et sécurisé à votre compagnon.
+            d&apos;assurer un séjour agréable et sécurisé à votre compagnon.
           </p>
 
         </div>

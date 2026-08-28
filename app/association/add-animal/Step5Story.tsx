@@ -1,8 +1,24 @@
 "use client";
 
+type StoryField =
+  | "capture_location"
+  | "street_duration_number"
+  | "street_duration_unit"
+  | "story";
+
+type StoryAnimal = {
+  capture_location: string;
+  street_duration_number: string;
+  street_duration_unit: string;
+  story: string;
+};
+
 type Props = {
-  animal: Record<string, string | number | boolean | undefined>;
-  updateField: (field: string, value: string) => void;
+  animal: StoryAnimal;
+  updateField: (
+    field: StoryField,
+    value: string
+  ) => void;
 };
 
 const villes = [
@@ -32,7 +48,10 @@ const villes = [
   "Autre",
 ];
 
-export default function Step5Story({ animal, updateField }: Props) {
+export default function Step5Story({
+  animal,
+  updateField,
+}: Props) {
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-black text-[#064b42]">
@@ -40,16 +59,29 @@ export default function Step5Story({ animal, updateField }: Props) {
       </h2>
 
       <div>
-        <label className="mb-2 block text-lg font-bold">Lieu de capture</label>
+        <label className="mb-2 block text-lg font-bold">
+          Lieu de capture
+        </label>
 
         <select
-            value={String(animal.capture_location ?? "")}
-          onChange={(e) => updateField("capture_location", e.target.value)}
+          value={animal.capture_location}
+          onChange={(event) =>
+            updateField(
+              "capture_location",
+              event.target.value
+            )
+          }
           className="w-full rounded-2xl border bg-white p-4 text-lg outline-none"
         >
-          <option value="">Sélectionner une ville</option>
+          <option value="">
+            Sélectionner une ville
+          </option>
+
           {villes.map((ville) => (
-            <option key={ville} value={ville}>
+            <option
+              key={ville}
+              value={ville}
+            >
               {ville}
             </option>
           ))}
@@ -66,40 +98,61 @@ export default function Step5Story({ animal, updateField }: Props) {
             type="number"
             min="0"
             placeholder="Ex : 3"
-            value={String(animal.street_duration_number ?? "")}
-            onChange={(e) =>
-              updateField("street_duration_number", e.target.value)
+            value={animal.street_duration_number}
+            onChange={(event) =>
+              updateField(
+                "street_duration_number",
+                event.target.value
+              )
             }
             className="w-full rounded-2xl border bg-white p-4 text-lg outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-lg font-bold">Unité</label>
+          <label className="mb-2 block text-lg font-bold">
+            Unité
+          </label>
 
           <select
-            value={String(animal.street_duration_unit ?? "jours")}
-            onChange={(e) =>
-              updateField("street_duration_unit", e.target.value)
+            value={animal.street_duration_unit}
+            onChange={(event) =>
+              updateField(
+                "street_duration_unit",
+                event.target.value
+              )
             }
             className="w-full rounded-2xl border bg-white p-4 text-lg outline-none"
           >
-            <option value="jours">Jour(s)</option>
-            <option value="mois">Mois</option>
-            <option value="années">Année(s)</option>
+            <option value="jours">
+              Jour(s)
+            </option>
+
+            <option value="mois">
+              Mois
+            </option>
+
+            <option value="années">
+              Année(s)
+            </option>
           </select>
         </div>
       </div>
 
       <div>
         <label className="mb-2 block text-lg font-bold">
-          Histoire de l'animal
+          Histoire de l&apos;animal
         </label>
 
         <textarea
           placeholder="Racontez son histoire..."
-          value={String(animal.story ?? "")}
-          onChange={(e) => updateField("story", e.target.value)}
+          value={animal.story}
+          onChange={(event) =>
+            updateField(
+              "story",
+              event.target.value
+            )
+          }
           className="min-h-52 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
         />
       </div>

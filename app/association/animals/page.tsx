@@ -142,11 +142,7 @@ export default function AssociationAnimalsPage() {
       "all"
     );
 
-  useEffect(() => {
-    void loadAnimals();
-  }, []);
-
-  async function loadAnimals() {
+async function loadAnimals() {
     try {
       setLoading(true);
 
@@ -175,6 +171,22 @@ export default function AssociationAnimalsPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void loadAnimals();
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+    };
+  }, []);
 
   async function deleteAnimal(
     animal: Animal

@@ -86,8 +86,8 @@ export default function AdoptantProfilePage() {
         cleanliness: data?.cleanliness || "",
         special_needs: data?.special_needs || "",
       });
-    } catch (error: any) {
-      alert(error.message || "Erreur lors du chargement du profil.");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Erreur lors du chargement du profil.");
     } finally {
       setLoading(false);
     }
@@ -141,8 +141,8 @@ export default function AdoptantProfilePage() {
 
       alert("Profil mis � jour avec succ�s.");
       router.push("/profile");
-    } catch (error: any) {
-      alert(error.message || "Impossible d'enregistrer le profil.");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Impossible d'enregistrer le profil.");
     } finally {
       setSaving(false);
     }

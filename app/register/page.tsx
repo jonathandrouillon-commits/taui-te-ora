@@ -775,12 +775,20 @@ export default function RegisterPage() {
   ======================================================= */
 
 function isRateLimitError(
-    error: any
+    error: unknown
   ) {
+    const details =
+      error &&
+      typeof error === "object"
+        ? (error as Record<string, unknown>)
+        : {};
+
     const message =
-      String(
-        error?.message || ""
-      ).toLowerCase();
+      typeof details.message === "string"
+        ? details.message.toLowerCase()
+        : error instanceof Error
+          ? error.message.toLowerCase()
+          : "";
 
     return (
       message.includes(
@@ -797,7 +805,6 @@ function isRateLimitError(
       )
     );
   }
-
   function getRegistrationErrorMessage(
     error: unknown
   ) {
@@ -1238,7 +1245,7 @@ approved_at:
             notificationDestination
           )
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "ERREUR CREATION COMPTE COMPLETE:",
         error
@@ -1865,7 +1872,7 @@ approved_at:
                 text-[#76545b]
               "
             >
-              Après la création de votre compte, vous compléterez votre questionnaire adoptant. Les personnes résidant en France ou à l'étranger peuvent également déposer une demande d'adoption.
+              Après la création de votre compte, vous compléterez votre questionnaire adoptant. Les personnes résidant en France ou à l&apos;étranger peuvent également déposer une demande d&apos;adoption.
             </div>
           ) : (
             <div
@@ -1878,7 +1885,7 @@ approved_at:
                 text-[#48675e]
               "
             >
-              Ce type de compte permet de créer et gérer des fiches d'animaux sur Taui Te Ora.
+              Ce type de compte permet de créer et gérer des fiches d&apos;animaux sur Taui Te Ora.
             </div>
           )}
 

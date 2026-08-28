@@ -1,5 +1,8 @@
 "use client";
 
+import type { Animal } from "./services/animal.service";
+
+
 import Link from "next/link";
 import {
   useCallback,
@@ -41,7 +44,7 @@ type SwipeItem =
   | {
       kind: "animal";
       id: string;
-      animal: any;
+      animal: Animal;
     }
   | {
       kind: "ad";
@@ -59,7 +62,7 @@ export default function HomePage() {
   const router = useRouter();
 
   const [animals, setAnimals] =
-    useState<any[]>([]);
+    useState<Animal[]>([]);
 
   const [ads, setAds] =
     useState<Ad[]>([]);

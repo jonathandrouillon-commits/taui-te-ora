@@ -109,8 +109,8 @@ export default function SearchPage() {
       if (error) throw error;
 
       setAnimals(data || []);
-    } catch (error: any) {
-      alert(error.message || "Erreur pendant la recherche.");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Erreur pendant la recherche.");
     } finally {
       setLoading(false);
     }

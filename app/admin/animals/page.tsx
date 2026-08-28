@@ -164,7 +164,17 @@ export default function AdminAnimalsPage() {
     }, [loadAnimals, router]);
 
   useEffect(() => {
-    void initialize();
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void initialize();
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [initialize]);
 
   const publishedCount =

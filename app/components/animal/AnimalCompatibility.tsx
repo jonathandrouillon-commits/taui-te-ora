@@ -1,7 +1,7 @@
 type AnimalCompatibilityProps = {
-  compatibleChiens?: boolean | null;
-  compatibleChats?: boolean | null;
-  compatibleEnfants?: boolean | null;
+  compatibleChiens?: string | null;
+  compatibleChats?: string | null;
+  compatibleEnfants?: string | null;
 };
 
 export default function AnimalCompatibility({
@@ -16,9 +16,20 @@ export default function AnimalCompatibility({
       </h2>
 
       <div className="grid gap-3">
-        <Compatibility label="Chiens" value={compatibleChiens} />
-        <Compatibility label="Chats" value={compatibleChats} />
-        <Compatibility label="Enfants" value={compatibleEnfants} />
+        <Compatibility
+          label="Chiens"
+          value={compatibleChiens}
+        />
+
+        <Compatibility
+          label="Chats"
+          value={compatibleChats}
+        />
+
+        <Compatibility
+          label="Enfants"
+          value={compatibleEnfants}
+        />
       </div>
     </div>
   );
@@ -29,13 +40,21 @@ function Compatibility({
   value,
 }: {
   label: string;
-  value?: boolean | null;
+  value?: string | null;
 }) {
+  const displayValue =
+    typeof value === "string" && value.trim()
+      ? value.trim()
+      : "Non renseigné";
+
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-[#f4eee3] p-4">
-      <span className="font-bold text-[#064b42]">{label}</span>
-      <span className="font-black text-[#064b42]">
-        {value === null || value === undefined ? "Non renseigné" : value ? "Oui" : "Non"}
+    <div className="flex items-center justify-between gap-4 rounded-2xl bg-[#f4eee3] p-4">
+      <span className="font-bold text-[#064b42]">
+        {label}
+      </span>
+
+      <span className="text-right font-black text-[#064b42]">
+        {displayValue}
       </span>
     </div>
   );

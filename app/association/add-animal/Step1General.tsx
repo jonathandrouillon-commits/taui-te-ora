@@ -1,5 +1,5 @@
 const ages = [
-  "Inf�rieur � 1 mois",
+  "Inférieur à 1 mois",
   "1 mois",
   "2 mois",
   "3 mois",
@@ -34,70 +34,158 @@ const ages = [
   "Plus de 20 ans",
 ];
 
-const weights = Array.from({ length: 81 }, (_, i) => `${i}`);
+const weights = Array.from(
+  { length: 81 },
+  (_, index) => `${index}`
+);
 
-type AnimalForm = Record<string, string | number | boolean | undefined>;
+type Step1Field =
+  | "animal_name"
+  | "animal_type"
+  | "breed"
+  | "sex"
+  | "age_label"
+  | "size_label"
+  | "weight_kg";
 
-type StepProps = {
-  animal: AnimalForm;
-  updateField: (field: string, value: string) => void;
+type Step1Animal = {
+  animal_name: string;
+  animal_type: string;
+  breed: string;
+  sex: string;
+  age_label: string;
+  size_label: string;
+  weight_kg: string;
 };
 
-export default function Step1General({ animal, updateField }: StepProps) {
+type StepProps = {
+  animal: Step1Animal;
+  updateField: (
+    field: Step1Field,
+    value: string
+  ) => void;
+};
+
+export default function Step1General({
+  animal,
+  updateField,
+}: StepProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-black">Informations g�n�rales</h2>
+      <h2 className="text-3xl font-black">
+        Informations générales
+      </h2>
 
       <div className="grid gap-5 md:grid-cols-2">
-
         <input
           className="input"
           placeholder="Nom de l'animal"
-          value={String(animal.animal_name ?? "")}
-          onChange={(e) => updateField("animal_name", e.target.value)}
+          value={animal.animal_name}
+          onChange={(event) =>
+            updateField(
+              "animal_name",
+              event.target.value
+            )
+          }
         />
 
         <select
           className="input"
-          value={String(animal.animal_type ?? "")}
-          onChange={(e) => updateField("animal_type", e.target.value)}
+          value={animal.animal_type}
+          onChange={(event) =>
+            updateField(
+              "animal_type",
+              event.target.value
+            )
+          }
         >
-          <option value="">Cat�gorie de l'animal</option>
-          <option value="Chien">Chien</option>
-          <option value="Chat">Chat</option>
-          <option value="Cheval">Cheval</option>
-          <option value="Oiseau">Oiseau</option>
-          <option value="Lapin">Lapin</option>
-          <option value="Autres">Autres</option>
+          <option value="">
+            Catégorie de l&apos;animal
+          </option>
+
+          <option value="Chien">
+            Chien
+          </option>
+
+          <option value="Chat">
+            Chat
+          </option>
+
+          <option value="Cheval">
+            Cheval
+          </option>
+
+          <option value="Oiseau">
+            Oiseau
+          </option>
+
+          <option value="Lapin">
+            Lapin
+          </option>
+
+          <option value="Autres">
+            Autres
+          </option>
         </select>
 
         <input
           className="input"
           placeholder="Race"
-          value={String(animal.breed ?? "")}
-          onChange={(e) => updateField("breed", e.target.value)}
+          value={animal.breed}
+          onChange={(event) =>
+            updateField(
+              "breed",
+              event.target.value
+            )
+          }
         />
 
         <select
           className="input"
-          value={String(animal.sex ?? "")}
-          onChange={(e) => updateField("sex", e.target.value)}
+          value={animal.sex}
+          onChange={(event) =>
+            updateField(
+              "sex",
+              event.target.value
+            )
+          }
         >
-          <option value="">Sexe</option>
-          <option value="Femelle">Femelle</option>
-          <option value="M�le">M�le</option>
-          <option value="Inconnu">Inconnu</option>
+          <option value="">
+            Sexe
+          </option>
+
+          <option value="Femelle">
+            Femelle
+          </option>
+
+          <option value="Mâle">
+            Mâle
+          </option>
+
+          <option value="Inconnu">
+            Inconnu
+          </option>
         </select>
 
         <select
           className="input"
-          value={String(animal.age_label ?? "")}
-          onChange={(e) => updateField("age_label", e.target.value)}
+          value={animal.age_label}
+          onChange={(event) =>
+            updateField(
+              "age_label",
+              event.target.value
+            )
+          }
         >
-          <option value="">�ge de l'animal</option>
+          <option value="">
+            Âge de l&apos;animal
+          </option>
 
           {ages.map((age) => (
-            <option key={age} value={age}>
+            <option
+              key={age}
+              value={age}
+            >
               {age}
             </option>
           ))}
@@ -105,30 +193,58 @@ export default function Step1General({ animal, updateField }: StepProps) {
 
         <select
           className="input"
-          value={String(animal.size_label ?? "")}
-          onChange={(e) => updateField("size_label", e.target.value)}
+          value={animal.size_label}
+          onChange={(event) =>
+            updateField(
+              "size_label",
+              event.target.value
+            )
+          }
         >
-          <option value="">Taille de l'animal</option>
-          <option value="Petit">Petit</option>
-          <option value="Moyen">Moyen</option>
-          <option value="Grand">Grand</option>
-          <option value="Hors cat�gorie">Hors cat�gorie</option>
+          <option value="">
+            Taille de l&apos;animal
+          </option>
+
+          <option value="Petit">
+            Petit
+          </option>
+
+          <option value="Moyen">
+            Moyen
+          </option>
+
+          <option value="Grand">
+            Grand
+          </option>
+
+          <option value="Hors catégorie">
+            Hors catégorie
+          </option>
         </select>
 
         <select
           className="input"
-          value={String(animal.weight_kg ?? "")}
-          onChange={(e) => updateField("weight_kg", e.target.value)}
+          value={animal.weight_kg}
+          onChange={(event) =>
+            updateField(
+              "weight_kg",
+              event.target.value
+            )
+          }
         >
-          <option value="">Poids en kg</option>
+          <option value="">
+            Poids en kg
+          </option>
 
           {weights.map((weight) => (
-            <option key={weight} value={weight}>
+            <option
+              key={weight}
+              value={weight}
+            >
               {weight} kg
             </option>
           ))}
         </select>
-
       </div>
     </div>
   );

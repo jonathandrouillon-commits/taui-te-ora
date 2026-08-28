@@ -1,3 +1,47 @@
+
+export type CompatibilityQuestionnaire = {
+  proprietaire_animal: string;
+  animal_actuel: string;
+  adoption_pour: string;
+  enfants: string;
+  jardin: string;
+  age_souhaite: string;
+  sexe_souhaite: string;
+  taille_souhaitee: string;
+  activite_souhaitee: string;
+  hypoallergenique: string;
+  proprete: string;
+  besoins_speciaux: string;
+  race_souhaitee: string;
+
+  type_logement?: string;
+  current_animals?: string;
+  rythme_vie?: string;
+  adopter_experience?: string;
+};
+export type CompatibilityAnimal = {
+  id?: string | null;
+  animal_name?: string | null;
+  owner_id?: string | null;
+
+  garden_requirement?: string | null;
+
+  enfants_moins_8?: string | null;
+  enfants_8_14?: string | null;
+  enfants_15_plus?: string | null;
+
+  foyer_chiens?: string | null;
+  foyer_chats?: string | null;
+  foyer_autres?: string | null;
+
+  activity_level?: string | null;
+  experience_recommandee?: string | null;
+
+  handicap?: unknown;
+  traitement_regulier?: unknown;
+  craintif_traumatise?: unknown;
+  education_a_poursuivre?: unknown;
+};
 export type MatchDetails = {
   logement: number;
   famille: number;
@@ -48,8 +92,8 @@ function clampScore(score: number) {
 }
 
 export function calculateCompatibility(
-  questionnaire: any,
-  animal: any
+  questionnaire: CompatibilityQuestionnaire,
+  animal: CompatibilityAnimal
 ): MatchResult {
   const strengths: string[] = [];
   const warnings: string[] = [];

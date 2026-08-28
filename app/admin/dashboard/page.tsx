@@ -44,6 +44,41 @@ import {
   supabase,
 } from "../../lib/supabase";
 
+
+type AdminProfile =
+  Awaited<
+    ReturnType<
+      typeof profileService.getCurrentProfile
+    >
+  >;
+
+type AdminUser =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof profileService.getAllProfiles
+      >
+    >
+  >[number];
+
+type AdminAnimal =
+  NonNullable<
+    Awaited<
+      ReturnType<
+        typeof animalService.getAllWithPhotos
+      >
+    >
+  >[number];
+
+type AdminSignalement = {
+  id: string;
+  created_at?: string | null;
+  status?: string | null;
+  type_signalement?: string | null;
+  animal_type?: string | null;
+  island?: string | null;
+  city?: string | null;
+};
 export default function AdminDashboardPage() {
   const router = useRouter();
 
@@ -60,22 +95,22 @@ export default function AdminDashboardPage() {
   const [
     profile,
     setProfile,
-  ] = useState<any>(null);
+  ] = useState<AdminProfile>(null);
 
   const [
     users,
     setUsers,
-  ] = useState<any[]>([]);
+  ] = useState<AdminUser[]>([]);
 
   const [
     animals,
     setAnimals,
-  ] = useState<any[]>([]);
+  ] = useState<AdminAnimal[]>([]);
 
   const [
     signalements,
     setSignalements,
-  ] = useState<any[]>([]);
+  ] = useState<AdminSignalement[]>([]);
 
   const [
     analytics,
@@ -173,7 +208,7 @@ export default function AdminDashboardPage() {
         );
       }
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur dashboard admin :",
@@ -181,7 +216,7 @@ export default function AdminDashboardPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de charger le dashboard."
       );
     } finally {
@@ -230,7 +265,7 @@ export default function AdminDashboardPage() {
 
       router.refresh();
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur déconnexion admin :",
@@ -238,7 +273,7 @@ export default function AdminDashboardPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de vous déconnecter."
       );
 

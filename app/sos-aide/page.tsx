@@ -3,7 +3,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   Bell,
   CheckCircle2,
   Clock3,
@@ -183,7 +182,19 @@ export default function HelpSosPage() {
   }, [router]);
 
   useEffect(() => {
-    void load();
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void load();
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+    };
   }, [load]);
 
   async function createSos(event: FormEvent) {

@@ -1,10 +1,13 @@
 "use client";
 
+import type { Animal } from "../services/animal.service";
+
+
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export function useAnimals() {
-  const [animals, setAnimals] = useState<any[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

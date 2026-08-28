@@ -37,7 +37,7 @@ export default function InstallAppButton() {
       ).matches;
 
     const iosStandalone =
-      (window.navigator as any)
+      (window.navigator as Navigator & { standalone?: boolean })
         .standalone === true;
 
     if (

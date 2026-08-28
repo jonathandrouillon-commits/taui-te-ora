@@ -124,68 +124,80 @@ export default function LostFoundPushPreferences() {
       return;
     }
 
-    if (
-      !(
-        "serviceWorker" in
-        navigator
-      ) ||
-      !(
-        "PushManager" in
-        window
-      ) ||
-      !(
-        "Notification" in
-        window
-      )
-    ) {
-      setState(
-        "unsupported"
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          if (
+            !(
+              "serviceWorker" in
+              navigator
+            ) ||
+            !(
+              "PushManager" in
+              window
+            ) ||
+            !(
+              "Notification" in
+              window
+            )
+          ) {
+            setState(
+              "unsupported"
+            );
+
+            return;
+          }
+
+          const permission =
+            Notification.permission;
+
+          if (
+            permission ===
+            "denied"
+          ) {
+            setState(
+              "denied"
+            );
+          } else if (
+            permission ===
+            "granted"
+          ) {
+            setState(
+              "enabled"
+            );
+          } else {
+            setState(
+              "ready"
+            );
+          }
+
+          const stored =
+            window.localStorage
+              .getItem(
+                "taui-push-preference"
+              );
+
+          if (
+            stored ===
+              "lost" ||
+            stored ===
+              "found" ||
+            stored ===
+              "both"
+          ) {
+            setSelected(
+              stored
+            );
+          }
+        },
+        0
       );
 
-      return;
-    }
-
-    const permission =
-      Notification.permission;
-
-    if (
-      permission ===
-      "denied"
-    ) {
-      setState(
-        "denied"
+    return () => {
+      window.clearTimeout(
+        timeoutId
       );
-    } else if (
-      permission ===
-      "granted"
-    ) {
-      setState(
-        "enabled"
-      );
-    } else {
-      setState(
-        "ready"
-      );
-    }
-
-    const stored =
-      window.localStorage
-        .getItem(
-          "taui-push-preference"
-        );
-
-    if (
-      stored ===
-        "lost" ||
-      stored ===
-        "found" ||
-      stored ===
-        "both"
-    ) {
-      setSelected(
-        stored
-      );
-    }
+    };
   }, []);
 
   async function getServiceWorkerRegistration() {

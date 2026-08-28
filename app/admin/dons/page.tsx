@@ -215,7 +215,17 @@ export default function AdminDonationPage() {
   }, [router]);
 
   useEffect(() => {
-    void loadData();
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void loadData();
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadData]);
 
   const financeSummary = useMemo(() => {

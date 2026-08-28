@@ -268,7 +268,17 @@ export default function EditAnimalPage() {
     }, [animalId, router]);
 
   useEffect(() => {
-    void checkAdminAndLoadAnimal();
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void checkAdminAndLoadAnimal();
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [
     checkAdminAndLoadAnimal,
   ]);
@@ -1012,9 +1022,9 @@ export default function EditAnimalPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          La suppression d�finitive n'est plus propos�e ici.
-          Utilisez l'archivage pour conserver l'historique des
-          adoptions, conversations et donn�es li�es � l'animal.
+          La suppression d�finitive n&apos;est plus propos�e ici.
+          Utilisez l&apos;archivage pour conserver l&apos;historique des
+          adoptions, conversations et donn�es li�es � l&apos;animal.
         </div>
       </section>
     </main>

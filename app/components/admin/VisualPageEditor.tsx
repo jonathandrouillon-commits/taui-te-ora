@@ -89,8 +89,26 @@ export default function VisualPageEditor() {
   const editorActive = useMemo(() => editMode && isAdmin, [editMode, isAdmin]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setEditMode(params.get("edit") === "1");
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          setEditMode(
+            params.get("edit") === "1"
+          );
+        },
+        0
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+    };
   }, [pathname]);
 
   useEffect(() => {

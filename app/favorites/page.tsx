@@ -6,12 +6,47 @@ import { useRouter } from "next/navigation";
 
 import { favoriteService } from "../services/favorite.service";
 
+type FavoriteAnimalPhoto = {
+  id?: string;
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+  sort_order?: number | null;
+};
+
+type FavoriteAnimal = {
+  id?: string;
+
+  animal_name?: string | null;
+  nom?: string | null;
+
+  animal_type?: string | null;
+  type?: string | null;
+
+  age_label?: string | null;
+  age?: string | null;
+
+  sex?: string | null;
+  sexe?: string | null;
+
+  breed?: string | null;
+  size_label?: string | null;
+
+  city?: string | null;
+  localisation?: string | null;
+
+  island?: string | null;
+  ile?: string | null;
+
+  photo_url?: string | null;
+  animal_photos?: FavoriteAnimalPhoto[] | null;
+};
+
 type FavoriteItem = {
   id: string;
   created_at?: string | null;
   profile_id: string;
   animal_id: string;
-  animals?: any;
+  animals?: FavoriteAnimal | null;
 };
 
 export default function FavoritesPage() {
@@ -36,15 +71,15 @@ export default function FavoritesPage() {
       setFavorites(
         (data || []) as FavoriteItem[]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur chargement coups de cœur :",
         error
       );
 
       if (
-        error?.message ===
-        "LOGIN_REQUIRED"
+        error instanceof Error &&
+        error.message === "LOGIN_REQUIRED"
       ) {
         router.push(
           "/login?redirect=" +
@@ -65,7 +100,9 @@ export default function FavoritesPage() {
   }, [router]);
 
   useEffect(() => {
-    queueMicrotask(() => void loadFavorites());
+    queueMicrotask(
+      () => void loadFavorites()
+    );
   }, [loadFavorites]);
 
   async function removeFavorite(
@@ -90,7 +127,7 @@ export default function FavoritesPage() {
               animalId
           )
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         "Erreur suppression coup de cœur :",
         error
@@ -346,13 +383,14 @@ function FavoriteCard({
 
   const cover =
     photos.find(
-      (photo: any) =>
+      (photo: FavoriteAnimalPhoto) =>
         photo?.is_cover
     );
 
   const coverPhoto =
     cover?.photo_url ||
     photos[0]?.photo_url ||
+    animal?.photo_url ||
     "";
 
   const animalName =

@@ -251,7 +251,7 @@ export default function SupportButton({
       setMessage("");
       setCategory("bug");
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur support :",
@@ -259,7 +259,7 @@ export default function SupportButton({
       );
 
       setErrorMessage(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible d'envoyer votre demande."
       );
     } finally {
@@ -402,7 +402,7 @@ export default function SupportButton({
                   text-gray-500
                 "
               >
-                Votre message sera transmis directement à l'administration de Taui Te Ora.
+                Votre message sera transmis directement à l&apos;administration de Taui Te Ora.
               </p>
             </div>
 
@@ -438,7 +438,7 @@ export default function SupportButton({
                       text-[#557067]
                     "
                   >
-                    Votre demande a bien été transmise à l'administration.
+                    Votre demande a bien été transmise à l&apos;administration.
                   </p>
                 </div>
 

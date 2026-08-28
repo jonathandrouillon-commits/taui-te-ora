@@ -973,27 +973,53 @@ export default function SignalementPage() {
         "/"
       );
     } catch (
-      caughtError: any
+      caughtError: unknown
     ) {
       console.error(
         "ERREUR COMPLETE SIGNALEMENT :",
         caughtError
       );
 
+      const errorDetails =
+        caughtError &&
+        typeof caughtError === "object"
+          ? (caughtError as Record<string, unknown>)
+          : {};
+
+      const errorDescription =
+        typeof errorDetails.error_description === "string"
+          ? errorDetails.error_description
+          : "";
+
+      const details =
+        typeof errorDetails.details === "string"
+          ? errorDetails.details
+          : "";
+
+      const hint =
+        typeof errorDetails.hint === "string"
+          ? errorDetails.hint
+          : "";
+
+      const serializedError = (() => {
+        if (typeof caughtError === "string") {
+          return caughtError;
+        }
+
+        try {
+          return JSON.stringify(caughtError);
+        } catch {
+          return "";
+        }
+      })();
+
       const message =
-        caughtError?.message ||
-        caughtError?.error_description ||
-        caughtError?.details ||
-        caughtError?.hint ||
-        (typeof caughtError === "string"
-          ? caughtError
-          : (() => {
-              try {
-                return JSON.stringify(caughtError);
-              } catch {
-                return "";
-              }
-            })());
+        caughtError instanceof Error
+          ? caughtError.message
+          : errorDescription ||
+            details ||
+            hint ||
+            serializedError;
 
       alert(
         message ||

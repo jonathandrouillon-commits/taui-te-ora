@@ -38,7 +38,6 @@ const cities = [
   "Faaone",
   "Tautira",
   "Faaa",
-  "Paea",
   "Afareaitu",
   "Haapiti",
   "Papetoai",
@@ -60,38 +59,79 @@ const cities = [
   "Autre",
 ];
 
-type AnimalForm = Record<string, string | number | boolean | undefined>;
+type LocationField =
+  | "island"
+  | "city";
 
-type StepProps = {
-  animal: AnimalForm;
-  updateField: (field: string, value: string | number) => void;
+type LocationAnimal = {
+  island: string;
+  city: string;
 };
 
-export default function Step6Location({ animal, updateField }: StepProps) {
+type StepProps = {
+  animal: LocationAnimal;
+  updateField: (
+    field: LocationField,
+    value: string
+  ) => void;
+};
+
+export default function Step6Location({
+  animal,
+  updateField,
+}: StepProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-black">Localisation</h2>
+      <h2 className="text-3xl font-black">
+        Localisation
+      </h2>
 
       <div className="grid gap-5 md:grid-cols-2">
         <select
           className="input"
-          value={String(animal.island ?? "")}
-          onChange={(e) => updateField("island", e.target.value)}
+          value={animal.island}
+          onChange={(event) =>
+            updateField(
+              "island",
+              event.target.value
+            )
+          }
         >
-          <option value="">Île</option>
+          <option value="">
+            Île
+          </option>
+
           {islands.map((island) => (
-            <option key={island}>{island}</option>
+            <option
+              key={island}
+              value={island}
+            >
+              {island}
+            </option>
           ))}
         </select>
 
         <select
           className="input"
-          value={String(animal.city ?? "")}
-          onChange={(e) => updateField("city", e.target.value)}
+          value={animal.city}
+          onChange={(event) =>
+            updateField(
+              "city",
+              event.target.value
+            )
+          }
         >
-          <option value="">Ville / commune</option>
+          <option value="">
+            Ville / commune
+          </option>
+
           {cities.map((city) => (
-            <option key={city}>{city}</option>
+            <option
+              key={city}
+              value={city}
+            >
+              {city}
+            </option>
           ))}
         </select>
       </div>

@@ -26,13 +26,13 @@ export default function GardiennagePage() {
 
           <p className="mt-6 text-lg leading-8 text-[#6f5a47]">
             <strong>Sev ORA Animaux - Tahiti</strong> accompagne les propriétaires
-            d'animaux avec sérieux, douceur et attention.
+            d&apos;animaux avec sérieux, douceur et attention.
           </p>
 
           <p className="mt-4 text-lg leading-8 text-[#6f5a47]">
-            L'objectif est d'assurer le confort, la sécurité et le bien-être de
-            votre compagnon lorsque vous avez besoin d'un service de gardiennage
-            ou d'une présence de confiance.
+            L&apos;objectif est d&apos;assurer le confort, la sécurité et le bien-être de
+            votre compagnon lorsque vous avez besoin d&apos;un service de gardiennage
+            ou d&apos;une présence de confiance.
           </p>
         </div>
 
@@ -68,7 +68,7 @@ export default function GardiennagePage() {
 
           <p className="mt-5 text-lg leading-8 text-[#6f5a47]">
             Chaque animal est unique. Son rythme, ses habitudes et ses besoins
-            sont respectés afin qu'il reste serein durant votre absence.
+            sont respectés afin qu&apos;il reste serein durant votre absence.
           </p>
 
           <p className="mt-4 text-lg leading-8 text-[#6f5a47]">

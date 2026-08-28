@@ -113,7 +113,7 @@ export default function ChooseRolePage() {
             onClick={() => router.push("/login")}
             className="text-sm font-bold text-[#df8995] underline underline-offset-4"
           >
-            J'ai déjà un compte
+            J&apos;ai déjà un compte
           </button>
         </div>
       </div>

@@ -280,9 +280,9 @@ export default function AdoptantQuestionnairePage() {
     queueMicrotask(() => void loadQuestionnaire());
   }, [loadQuestionnaire]);
 
-  function updateField(
-    field: keyof FormData,
-    value: any
+  function updateField<K extends keyof FormData>(
+    field: K,
+    value: FormData[K]
   ) {
     setForm((previous) => ({
       ...previous,
@@ -606,14 +606,14 @@ export default function AdoptantQuestionnairePage() {
       );
 
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur sauvegarde profil adoptant :",
         error
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible d'enregistrer votre profil adoptant."
       );
     } finally {

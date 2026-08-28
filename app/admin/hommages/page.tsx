@@ -10,7 +10,6 @@ import {
 import {
   ArrowLeft,
   Check,
-  Clock3,
   Eye,
   Mail,
   PawPrint,
@@ -231,11 +230,10 @@ export default function AdminHommagesPage() {
       [hommages]
     );
 
-  function updateLocal(
+  function updateLocal<K extends keyof Hommage>(
     id: string,
-    field:
-      keyof Hommage,
-    value: any
+    field: K,
+    value: Hommage[K]
   ) {
     setHommages(
       (

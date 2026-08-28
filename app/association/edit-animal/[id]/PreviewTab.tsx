@@ -1,20 +1,51 @@
 "use client";
 
-type Props = {
-  animal: any;
-  photos: any[];
+type PreviewAnimal = {
+  id?: string;
+  animal_name?: string | null;
+  animal_type?: string | null;
+  age_label?: string | null;
+  sex?: string | null;
+  breed?: string | null;
+  size_label?: string | null;
+  city?: string | null;
+  island?: string | null;
+  description_character?: string | null;
+  health_status?: string | null;
+  story?: string | null;
+  status?: string | null;
+  vaccinated?: boolean | null;
+  sterilized?: boolean | null;
+  microchipped?: boolean | null;
+  is_published?: boolean | null;
+  is_adopted?: boolean | null;
 };
 
-export default function PreviewTab({ animal, photos }: Props) {
+type PreviewPhoto = {
+  id?: string;
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+  sort_order?: number | null;
+};
+
+type Props = {
+  animal: PreviewAnimal;
+  photos: PreviewPhoto[];
+};
+
+export default function PreviewTab({
+  animal,
+  photos,
+}: Props) {
   const cover =
-    photos?.find((photo) => photo.is_cover)?.photo_url ||
-    photos?.[0]?.photo_url ||
+    photos.find((photo) => photo.is_cover)?.photo_url ||
+    photos[0]?.photo_url ||
     "/placeholder-animal.png";
 
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black text-[#064b42]">
-        Aper�u de la fiche
+        Aperçu de la fiche
       </h2>
 
       <div className="overflow-hidden rounded-3xl bg-white shadow-xl">
@@ -36,22 +67,31 @@ export default function PreviewTab({ animal, photos }: Props) {
           </div>
 
           <p className="text-gray-600">
-            {animal.breed || "Race non renseign�e"} �{" "}
-            {animal.sex || "Sexe non renseign�"} �{" "}
-            {animal.age_label || "�ge non renseign�"}
+            {animal.breed || "Race non renseignée"} •{" "}
+            {animal.sex || "Sexe non renseigné"} •{" "}
+            {animal.age_label || "Âge non renseigné"}
           </p>
 
           <p className="text-gray-700">
             {animal.description_character ||
-              "Aucune description du caract�re pour le moment."}
+              "Aucune description du caractère pour le moment."}
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {animal.vaccinated && <Badge label="Vaccin�" />}
-            {animal.sterilized && <Badge label="St�rilis�" />}
-            {animal.microchipped && <Badge label="Identifi�" />}
+            {animal.vaccinated && (
+              <Badge label="Vacciné" />
+            )}
+
+            {animal.sterilized && (
+              <Badge label="Stérilisé" />
+            )}
+
+            {animal.microchipped && (
+              <Badge label="Identifié" />
+            )}
+
             {animal.is_published ? (
-              <Badge label="Publi�" />
+              <Badge label="Publié" />
             ) : (
               <Badge label="Brouillon" />
             )}
@@ -62,7 +102,11 @@ export default function PreviewTab({ animal, photos }: Props) {
   );
 }
 
-function Badge({ label }: { label: string }) {
+function Badge({
+  label,
+}: {
+  label: string;
+}) {
   return (
     <span className="rounded-full bg-[#f4eee3] px-4 py-2 text-sm font-black text-[#064b42]">
       {label}

@@ -1,5 +1,61 @@
 "use client";
 
+type StructureProfile = {
+  id: string;
+  role?: string | null;
+  organization_name?: string | null;
+  avatar_url?: string | null;
+
+  island?: string | null;
+  ile?: string | null;
+
+  city?: string | null;
+  commune?: string | null;
+
+  first_name?: string | null;
+  last_name?: string | null;
+
+  description?: string | null;
+  bio?: string | null;
+  about?: string | null;
+};
+type StructureAnimalPhoto = {
+  id?: string;
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+  sort_order?: number | null;
+};
+
+type StructureAnimal = {
+  id: string;
+
+  animal_name?: string | null;
+  nom?: string | null;
+
+  animal_type?: string | null;
+  type?: string | null;
+
+  age_label?: string | null;
+  age?: string | null;
+
+  sex?: string | null;
+  sexe?: string | null;
+
+  breed?: string | null;
+  size_label?: string | null;
+
+  city?: string | null;
+  island?: string | null;
+
+  status?: string | null;
+  photo_url?: string | null;
+
+  is_published?: boolean | null;
+  is_adopted?: boolean | null;
+
+  animal_photos?: StructureAnimalPhoto[] | null;
+};
+
 import Link from "next/link";
 import {
   useCallback,
@@ -29,12 +85,12 @@ export default function StructurePage() {
   const [
     profile,
     setProfile,
-  ] = useState<any>(null);
+  ] = useState<StructureProfile | null>(null);
 
   const [
     animals,
     setAnimals,
-  ] = useState<any[]>([]);
+  ] = useState<StructureAnimal[]>([]);
 
   const [
     errorMessage,
@@ -100,7 +156,7 @@ export default function StructurePage() {
       setAnimals(
         animalsData || []
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur structure :",
         error
@@ -123,7 +179,7 @@ export default function StructurePage() {
 
   const roleLabel =
     formatRole(
-      profile?.role
+      profile?.role ?? undefined
     );
 
   const city =
@@ -759,7 +815,7 @@ function StatCard({
 function AnimalCard({
   animal,
 }: {
-  animal: any;
+  animal: StructureAnimal;
 }) {
   const photo =
     getAnimalPhoto(
@@ -887,7 +943,7 @@ function AnimalCard({
 ========================================================= */
 
 function getAnimalPhoto(
-  animal: any
+  animal: StructureAnimal
 ) {
   const photos =
     Array.isArray(
@@ -898,7 +954,7 @@ function getAnimalPhoto(
 
   const cover =
     photos.find(
-      (photo: any) =>
+      (photo: StructureAnimalPhoto) =>
         photo?.is_cover
     );
 
@@ -911,7 +967,7 @@ function getAnimalPhoto(
 }
 
 function getAnimalType(
-  animal: any
+  animal: StructureAnimal
 ) {
   return String(
     animal?.animal_type ||
@@ -923,7 +979,7 @@ function getAnimalType(
 }
 
 function isDog(
-  animal: any
+  animal: StructureAnimal
 ) {
   const type =
     getAnimalType(
@@ -941,7 +997,7 @@ function isDog(
 }
 
 function isCat(
-  animal: any
+  animal: StructureAnimal
 ) {
   const type =
     getAnimalType(
@@ -959,7 +1015,7 @@ function isCat(
 }
 
 function isHorse(
-  animal: any
+  animal: StructureAnimal
 ) {
   const type =
     getAnimalType(

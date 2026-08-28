@@ -473,7 +473,7 @@ export default function SignalementDetailPage() {
           signalementId
         );
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur signalement :",
@@ -481,7 +481,7 @@ export default function SignalementDetailPage() {
       );
 
       setErrorMessage(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de charger le signalement."
       );
     } finally {
@@ -615,7 +615,7 @@ export default function SignalementDetailPage() {
 
       const payload: Record<
         string,
-        any
+        unknown
       > = {
         status:
           selectedStatus,
@@ -682,7 +682,7 @@ export default function SignalementDetailPage() {
 
       await loadData();
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur sauvegarde signalement :",
@@ -690,7 +690,7 @@ export default function SignalementDetailPage() {
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de sauvegarder le signalement."
       );
     } finally {
@@ -776,10 +776,10 @@ export default function SignalementDetailPage() {
 
       await loadData();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de prendre l'intervention."
       );
     } finally {
@@ -844,10 +844,10 @@ export default function SignalementDetailPage() {
 
       await loadData();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de d�marrer l'intervention."
       );
     } finally {
@@ -929,10 +929,10 @@ export default function SignalementDetailPage() {
 
       await loadData();
     } catch (
-      error: any
+      error: unknown
     ) {
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de cl�turer l'intervention."
       );
     } finally {
@@ -962,8 +962,8 @@ export default function SignalementDetailPage() {
       setUpdateMessage(""); setUpdateObservationAt(""); setUpdateLatitude(""); setUpdateLongitude("");
       alert(isAdmin ? "Information ajout�e et v�rifi�e." : "Information envoy�e. Elle sera publi�e apr�s v�rification par un administrateur.");
       await loadData();
-    } catch (error: any) {
-      alert(error?.message || "Impossible d'ajouter cette information.");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Impossible d'ajouter cette information.");
     } finally { setActionLoading(false); }
   }
 
@@ -978,8 +978,8 @@ export default function SignalementDetailPage() {
       }).eq("id", updateId);
       if (error) throw error;
       await loadData();
-    } catch (error: any) {
-      alert(error?.message || "Impossible de v�rifier cette information.");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Impossible de v�rifier cette information.");
     } finally { setActionLoading(false); }
   }
 

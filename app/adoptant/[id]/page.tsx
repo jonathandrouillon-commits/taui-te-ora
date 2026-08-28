@@ -547,7 +547,7 @@ export default function AdoptantPublicProfilePage() {
         }
       }
     } catch (
-      error: any
+      error: unknown
     ) {
       console.error(
         "Erreur profil adoptant :",
@@ -555,7 +555,7 @@ export default function AdoptantPublicProfilePage() {
       );
 
       setErrorMessage(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de charger le profil adoptant."
       );
     } finally {

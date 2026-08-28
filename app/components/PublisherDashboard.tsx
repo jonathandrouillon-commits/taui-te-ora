@@ -289,7 +289,10 @@ export default function PublisherDashboard({
         )
       ) as string[];
 
-      let requesterProfiles: any[] = [];
+      let requesterProfiles:
+        NonNullable<
+          AdoptionRequest["requester"]
+        >[] = [];
 
       if (requesterIds.length > 0) {
         const {
@@ -404,14 +407,14 @@ export default function PublisherDashboard({
 
       router.replace("/login");
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur déconnexion :",
         error
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de se déconnecter."
       );
     }
@@ -447,13 +450,13 @@ export default function PublisherDashboard({
       if (error) throw error;
 
       await loadDashboard();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur retrait animal :",
         error
       );
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de retirer cet animal."
       );
     } finally {
@@ -553,14 +556,14 @@ export default function PublisherDashboard({
       }
 
       await loadDashboard();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Erreur changement statut adoption :",
         error
       );
 
       alert(
-        error?.message ||
+        error instanceof Error ? error.message :
           "Impossible de modifier le statut de cette demande."
       );
     } finally {
@@ -1499,7 +1502,7 @@ export default function PublisherDashboard({
               </h2>
 
               <p className="mt-1 text-sm text-[#6f5a47]">
-                Une erreur, un bug ou un problème avec votre compte ? Contactez directement l'administration.
+                Une erreur, un bug ou un problème avec votre compte ? Contactez directement l&apos;administration.
               </p>
             </div>
 

@@ -1,8 +1,41 @@
 "use client";
 
+type CharacterField =
+  | "energy_level"
+  | "human_contact"
+  | "daily_activity_need"
+  | "housing_need"
+  | "alone_tolerance"
+  | "adopter_experience_required"
+  | "education_level"
+  | "compatible_chiens"
+  | "compatible_chats"
+  | "compatible_enfants"
+  | "description_character"
+  | "ideal_family";
+
+type CharacterAnimal = {
+  energy_level: string;
+  human_contact: string;
+  daily_activity_need: string;
+  housing_need: string;
+  alone_tolerance: string;
+  adopter_experience_required: string;
+  education_level: string;
+  compatible_chiens: string;
+  compatible_chats: string;
+  compatible_enfants: string;
+  description_character: string;
+  ideal_family: string;
+  vigilance_points: string[];
+};
+
 type Props = {
-  animal: Record<string, string | number | boolean | string[] | undefined>;
-  updateField: (field: string, value: string | string[]) => void;
+  animal: CharacterAnimal;
+  updateField: (
+    field: CharacterField | "vigilance_points",
+    value: string | string[]
+  ) => void;
 };
 
 const SELECT_OPTIONS = {
@@ -15,6 +48,7 @@ const SELECT_OPTIONS = {
     ["tres_actif", "Très actif"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   human_contact: [
     ["", "Sélectionner"],
     ["tres_proche", "Très proche de l'humain"],
@@ -24,6 +58,7 @@ const SELECT_OPTIONS = {
     ["tres_craintif", "Très craintif"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   daily_activity_need: [
     ["", "Sélectionner"],
     ["faible", "Faible"],
@@ -32,6 +67,7 @@ const SELECT_OPTIONS = {
     ["tres_important", "Très important"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   housing_need: [
     ["", "Sélectionner"],
     ["appartement_ok", "Appartement OK"],
@@ -41,6 +77,7 @@ const SELECT_OPTIONS = {
     ["jardin_cloture_obligatoire", "Jardin clôturé obligatoire"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   alone_tolerance: [
     ["", "Sélectionner"],
     ["supporte_bien", "Supporte bien la solitude"],
@@ -49,6 +86,7 @@ const SELECT_OPTIONS = {
     ["a_travailler", "À travailler"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   adopter_experience_required: [
     ["", "Sélectionner"],
     ["premiere_adoption_ok", "Première adoption OK"],
@@ -56,6 +94,7 @@ const SELECT_OPTIONS = {
     ["experimente", "Adoptant expérimenté"],
     ["inconnu", "❓ Inconnu / non évalué"],
   ],
+
   education_level: [
     ["", "Sélectionner"],
     ["facile", "Facile / bonnes bases"],
@@ -117,21 +156,21 @@ export default function Step4Character({
         <div className="mt-5 grid gap-5 md:grid-cols-3">
           <QuickSelect
             title="Niveau d'énergie"
-            value={String(animal.energy_level ?? "")}
+            value={animal.energy_level}
             options={SELECT_OPTIONS.energy_level}
             onChange={(value) => updateField("energy_level", value)}
           />
 
           <QuickSelect
             title="Contact humain"
-            value={String(animal.human_contact ?? "")}
+            value={animal.human_contact}
             options={SELECT_OPTIONS.human_contact}
             onChange={(value) => updateField("human_contact", value)}
           />
 
           <QuickSelect
             title="Besoin d'activité quotidienne"
-            value={String(animal.daily_activity_need ?? "")}
+            value={animal.daily_activity_need}
             options={SELECT_OPTIONS.daily_activity_need}
             onChange={(value) =>
               updateField("daily_activity_need", value)
@@ -148,14 +187,14 @@ export default function Step4Character({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <QuickSelect
             title="Habitat"
-            value={String(animal.housing_need ?? "")}
+            value={animal.housing_need}
             options={SELECT_OPTIONS.housing_need}
             onChange={(value) => updateField("housing_need", value)}
           />
 
           <QuickSelect
             title="Tolérance à la solitude"
-            value={String(animal.alone_tolerance ?? "")}
+            value={animal.alone_tolerance}
             options={SELECT_OPTIONS.alone_tolerance}
             onChange={(value) =>
               updateField("alone_tolerance", value)
@@ -172,9 +211,7 @@ export default function Step4Character({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <QuickSelect
             title="Expérience adoptant nécessaire"
-            value={String(
-              animal.adopter_experience_required ?? ""
-            )}
+            value={animal.adopter_experience_required}
             options={SELECT_OPTIONS.adopter_experience_required}
             onChange={(value) =>
               updateField("adopter_experience_required", value)
@@ -183,7 +220,7 @@ export default function Step4Character({
 
           <QuickSelect
             title="Niveau d'éducation"
-            value={String(animal.education_level ?? "")}
+            value={animal.education_level}
             options={SELECT_OPTIONS.education_level}
             onChange={(value) =>
               updateField("education_level", value)
@@ -198,14 +235,14 @@ export default function Step4Character({
         </h3>
 
         <p className="mt-1 text-sm text-[#6f5a47]">
-          « À tester » ou « Inconnu » n'est jamais considéré comme une
+          « À tester » ou « Inconnu » n&apos;est jamais considéré comme une
           incompatibilité.
         </p>
 
         <div className="mt-5 grid gap-6 md:grid-cols-3">
           <CompatibilitySelect
             title="Avec les chiens"
-            value={String(animal.compatible_chiens ?? "")}
+            value={animal.compatible_chiens}
             onChange={(value) =>
               updateField("compatible_chiens", value)
             }
@@ -213,7 +250,7 @@ export default function Step4Character({
 
           <CompatibilitySelect
             title="Avec les chats"
-            value={String(animal.compatible_chats ?? "")}
+            value={animal.compatible_chats}
             onChange={(value) =>
               updateField("compatible_chats", value)
             }
@@ -221,7 +258,7 @@ export default function Step4Character({
 
           <CompatibilitySelect
             title="Avec les enfants"
-            value={String(animal.compatible_enfants ?? "")}
+            value={animal.compatible_enfants}
             onChange={(value) =>
               updateField("compatible_enfants", value)
             }
@@ -278,14 +315,14 @@ export default function Step4Character({
       <section className="space-y-5">
         <div>
           <label className="mb-2 block text-lg font-bold">
-            Caractère de l'animal
+            Caractère de l&apos;animal
           </label>
 
           <textarea
             placeholder="Quelques mots suffisent : affectueux, joueur, calme, timide..."
-            value={String(animal.description_character ?? "")}
-            onChange={(e) =>
-              updateField("description_character", e.target.value)
+            value={animal.description_character}
+            onChange={(event) =>
+              updateField("description_character", event.target.value)
             }
             className="min-h-36 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
           />
@@ -301,9 +338,9 @@ export default function Step4Character({
 
           <textarea
             placeholder="Exemple : famille calme, présente, avec jardin clôturé..."
-            value={String(animal.ideal_family ?? "")}
-            onChange={(e) =>
-              updateField("ideal_family", e.target.value)
+            value={animal.ideal_family}
+            onChange={(event) =>
+              updateField("ideal_family", event.target.value)
             }
             className="min-h-28 w-full rounded-2xl border bg-white p-5 text-lg outline-none"
           />
@@ -330,11 +367,14 @@ function QuickSelect({
 
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-2xl border bg-white p-4 text-base outline-none"
       >
         {options.map(([optionValue, label]) => (
-          <option key={optionValue || "empty"} value={optionValue}>
+          <option
+            key={optionValue || "empty"}
+            value={optionValue}
+          >
             {label}
           </option>
         ))}
@@ -358,7 +398,7 @@ function CompatibilitySelect({
 
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-2xl border bg-white p-4 text-lg outline-none"
       >
         <option value="">Sélectionner</option>

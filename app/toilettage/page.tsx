@@ -31,12 +31,12 @@ export default function ToilettagePage() {
 
           <p className="mt-6 text-lg leading-8 text-[#6f5a47]">
             Chez <strong>Toilettage Tahiti by Elodie</strong>, chaque chien et
-            chaque chat bénéficie d'une attention particulière dans un
+            chaque chat bénéficie d&apos;une attention particulière dans un
             environnement calme, propre et sécurisé.
           </p>
 
           <p className="mt-4 text-lg leading-8 text-[#6f5a47]">
-            Notre priorité est d'offrir un toilettage de qualité tout en
+            Notre priorité est d&apos;offrir un toilettage de qualité tout en
             respectant le rythme, le confort et la personnalité de chaque
             animal.
           </p>

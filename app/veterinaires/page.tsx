@@ -1218,7 +1218,7 @@ export default function VeterinairesPage() {
               text-[#6f5b40]
             "
           >
-            En cas d'urgence vitale,
+            En cas d&apos;urgence vitale,
             contactez directement le vétérinaire
             le plus proche.
           </p>
