@@ -592,6 +592,22 @@ export default function PublisherDashboard({
     return counts;
   }, [data?.adoptionRequests]);
 
+  const adoptionRequestGroups = useMemo(() => {
+    const groups = new Map<string, AdoptionRequest[]>();
+
+    for (const request of data?.adoptionRequests || []) {
+      const key = request.animal_id || `request-${request.id}`;
+      const current = groups.get(key) || [];
+      current.push(request);
+      groups.set(key, current);
+    }
+
+    return Array.from(groups, ([animalId, requests]) => ({
+      animalId,
+      requests,
+    }));
+  }, [data?.adoptionRequests]);
+
   if (loading) {
     return (
       <main className="min-h-[100dvh] bg-[#f4eee3] p-8 text-center text-[#064b42]">
@@ -866,13 +882,49 @@ export default function PublisherDashboard({
             Retrouvez l&apos;adoptant, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-5 space-y-6">
             {data.adoptionRequests.length === 0 ? (
               <div className="rounded-3xl bg-[#f8f4ec] p-6 text-center">
                 Aucune demande pour le moment.
               </div>
             ) : (
-              data.adoptionRequests.map((request) => {
+              adoptionRequestGroups.map((group) => {
+                const featuredRequest = group.requests[0];
+                const featuredAnimal = featuredRequest.animals;
+                const featuredPhoto = featuredAnimal
+                  ? getCoverPhoto(featuredAnimal)
+                  : "";
+
+                return (
+                  <article
+                    key={group.animalId}
+                    className="rounded-[28px] border border-[#eadfce] bg-[#f8f4ec] p-4 shadow-sm sm:p-5"
+                  >
+                    <div className="mx-auto max-w-[260px] overflow-hidden rounded-[24px] bg-[#eadfce] shadow-sm">
+                      <div className="relative aspect-square">
+                        {featuredPhoto ? (
+                          <img
+                            src={featuredPhoto}
+                            alt={featuredAnimal?.animal_name || "Animal"}
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-6xl">🐾</div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                          <h3 className="text-2xl font-black">
+                            {featuredAnimal?.animal_name || "Animal"}
+                          </h3>
+                          <p className="mt-1 text-sm font-bold text-white/85">
+                            {group.requests.length} demande{group.requests.length > 1 ? "s" : ""} d&apos;adoption
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {group.requests.map((request) => {
                 const conversation =
                   data.conversations.find(
                     (item) =>
@@ -886,12 +938,9 @@ export default function PublisherDashboard({
                   }`.trim() ||
                   "Adoptant";
 
-                const animalPhoto =
-                  request.animals
-                    ? getCoverPhoto(
-                        request.animals
-                      )
-                    : "";
+                const animalPhoto = request.animals
+                  ? getCoverPhoto(request.animals)
+                  : "";
 
                 const currentStatus =
                   String(
@@ -926,33 +975,24 @@ export default function PublisherDashboard({
                       open:rounded-[28px]
                     "
                   >
-                    <summary className="relative aspect-square cursor-pointer list-none overflow-hidden bg-[#eadfce] marker:hidden group-open:mx-auto group-open:mt-4 group-open:w-full group-open:max-w-[220px] group-open:rounded-[22px]">
-                      {animalPhoto ? (
+                    <summary className="flex cursor-pointer list-none items-center gap-3 bg-white p-3 marker:hidden sm:p-4">
+                      {request.requester?.avatar_url ? (
                         <img
-                          src={animalPhoto}
-                          alt={request.animals?.animal_name || "Animal"}
-                          className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          src={request.requester.avatar_url}
+                          alt={requesterName}
+                          className="h-12 w-12 shrink-0 rounded-full object-cover shadow-sm"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-5xl">🐾</div>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f4eee3] text-xl">👤</div>
                       )}
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
-
-                      {typeof request.match_score === "number" && (
-                        <span className="absolute right-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-xs font-black text-[#064b42] shadow">
-                          ❤️ {request.match_score}%
-                        </span>
-                      )}
-
-                      <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-                        <p className="truncate text-base font-black">
-                          {request.animals?.animal_name || "Animal"}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-white/85">
-                          {requesterName}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-black text-[#2f241c]">{requesterName}</p>
+                        <p className="mt-0.5 text-xs font-bold text-[#6f5a47]">{getRequestStatusLabel(currentStatus)}</p>
                       </div>
+                      <span className="shrink-0 rounded-full bg-[#e8f5f1] px-3 py-1.5 text-sm font-black text-[#064b42]">
+                        ❤️ {typeof request.match_score === "number" ? `${request.match_score}%` : "—"}
+                      </span>
+                      <span className="text-lg font-black text-[#9c7b54] transition group-open:rotate-180">⌄</span>
                     </summary>
 
                     <div className="border-t border-[#eadfce] p-4 sm:p-5">
@@ -1388,6 +1428,10 @@ export default function PublisherDashboard({
                     )}
                     </div>
                   </details>
+                );
+                      })}
+                    </div>
+                  </article>
                 );
               })
             )}
