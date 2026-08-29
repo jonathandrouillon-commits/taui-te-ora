@@ -225,6 +225,45 @@ export default function AnimalSwipeCard({
     "";
 
   /*
+   * BADGE ADOPTED
+   * L'animal reste dans le swipe pendant 5 jours
+   * à partir de adopted_at.
+   */
+  const adoptedDate =
+    animal?.adopted_at ||
+    "";
+
+  const isAdopted =
+    Boolean(animal?.is_adopted) ||
+    String(animal?.status || "")
+      .trim()
+      .toLowerCase() === "adopted";
+
+  const recentlyAdopted = (() => {
+    if (!isAdopted || !adoptedDate) {
+      return false;
+    }
+
+    const adoptedTime =
+      new Date(adoptedDate).getTime();
+
+    if (!Number.isFinite(adoptedTime)) {
+      return false;
+    }
+
+    const ageInMilliseconds =
+      Date.now() - adoptedTime;
+
+    const fiveDays =
+      5 * 24 * 60 * 60 * 1000;
+
+    return (
+      ageInMilliseconds >= 0 &&
+      ageInMilliseconds <= fiveDays
+    );
+  })();
+
+  /*
    * BADGE "NOUVEAU DÉPART"
    * Un animal est considéré comme nouveau pendant
    * les 7 jours suivant sa publication/création.
@@ -257,6 +296,7 @@ export default function AnimalSwipeCard({
       7 * 24 * 60 * 60 * 1000;
 
     return (
+      !recentlyAdopted &&
       ageInMilliseconds >= 0 &&
       ageInMilliseconds <= sevenDays
     );
@@ -399,6 +439,7 @@ export default function AnimalSwipeCard({
   async function handleFavorite() {
     if (
       actionLoading ||
+      recentlyAdopted ||
       !animal?.id
     ) {
       return;
@@ -479,7 +520,12 @@ export default function AnimalSwipeCard({
   }
 
   function handleAdopt() {
-    if (!animal?.id) return;
+    if (
+      !animal?.id ||
+      recentlyAdopted
+    ) {
+      return;
+    }
 
     router.push(
       `/animal/${animal.id}?adoption=1`
@@ -826,6 +872,37 @@ export default function AnimalSwipeCard({
                 md:w-[96px]
               "
             />
+          </div>
+        )}
+
+        {recentlyAdopted && (
+          <div
+            className="
+              pointer-events-none
+              absolute
+              left-1/2
+              top-[116px]
+              z-[70]
+              -translate-x-1/2
+              -rotate-6
+              rounded-xl
+              border-4
+              border-white
+              bg-[#ef8196]
+              px-6
+              py-3
+              text-2xl
+              font-black
+              uppercase
+              tracking-[0.18em]
+              text-white
+              shadow-xl
+              sm:top-[132px]
+              sm:text-3xl
+            "
+            aria-label="Adopted"
+          >
+            ADOPTED
           </div>
         )}
 
@@ -1436,9 +1513,16 @@ export default function AnimalSwipeCard({
         >
           <button
             type="button"
-            disabled={actionLoading}
+            disabled={
+              actionLoading ||
+              recentlyAdopted
+            }
             onClick={handleAdopt}
-            aria-label="Je veux adopter"
+            aria-label={
+              recentlyAdopted
+                ? "Animal adopté"
+                : "Je veux adopter"
+            }
             style={{
               backgroundColor:
                 genderColor,
@@ -1479,7 +1563,9 @@ export default function AnimalSwipeCard({
               text-[#3e3a37]
             "
           >
-            Je veux adopter
+            {recentlyAdopted
+              ? "Adopté ❤️"
+              : "Je veux adopter"}
           </span>
         </div>
 
@@ -1492,7 +1578,10 @@ export default function AnimalSwipeCard({
         >
           <button
             type="button"
-            disabled={actionLoading}
+            disabled={
+              actionLoading ||
+              recentlyAdopted
+            }
             onClick={
               handleFavorite
             }
@@ -1529,7 +1618,9 @@ export default function AnimalSwipeCard({
               text-[#3e3a37]
             "
           >
-            Coup de cœur
+            {recentlyAdopted
+              ? "Déjà adopté"
+              : "Coup de cœur"}
           </span>
         </div>
       </div>

@@ -101,6 +101,9 @@ export default function EditAnimalPage() {
   const [deleting, setDeleting] =
     useState(false);
 
+  const [adoptedAt, setAdoptedAt] =
+    useState<string | null>(null);
+
   const [form, setForm] =
     useState<AnimalForm>(
       EMPTY_FORM
@@ -178,6 +181,10 @@ export default function EditAnimalPage() {
           );
           return;
         }
+
+        setAdoptedAt(
+          data.adopted_at || null
+        );
 
         setForm({
           reference_number:
@@ -417,6 +424,12 @@ export default function EditAnimalPage() {
           "available" &&
         form.is_published;
 
+      const nextAdoptedAt =
+        normalizedStatus === "adopted"
+          ? adoptedAt ||
+            new Date().toISOString()
+          : null;
+
       const { error } =
         await supabase
           .from("animals")
@@ -471,6 +484,8 @@ export default function EditAnimalPage() {
             is_adopted:
               normalizedStatus ===
               "adopted",
+            adopted_at:
+              nextAdoptedAt,
             vaccinated:
               form.vaccinated,
             sterilized:
@@ -1002,7 +1017,7 @@ export default function EditAnimalPage() {
                 "adopted"
               }
               title="Adopté"
-              description="Retiré automatiquement des annonces."
+              description="Visible 5 jours dans le swipe avec le badge ADOPTED."
               onClick={() =>
                 changeStatus(
                   "adopted"

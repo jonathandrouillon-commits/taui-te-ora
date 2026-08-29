@@ -1,4 +1,4 @@
-import type { User } from "@supabase/supabase-js";
+﻿import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
 export type AnimalPhoto = {
@@ -15,6 +15,15 @@ export type Animal = {
 
   created_at?: string;
   updated_at?: string;
+
+  /*
+   * Date à laquelle l'animal
+   * a officiellement été adopté.
+   *
+   * Utilisée pour afficher le badge
+   * ADOPTED pendant 5 jours.
+   */
+  adopted_at?: string | null;
 
   reference_number?: string | null;
 
@@ -41,6 +50,9 @@ export type Animal = {
   special_needs?: string | null;
 
   is_published?: boolean | null;
+  is_adopted?: boolean | null;
+
+  status?: string | null;
 
   latitude?: number | null;
   longitude?: number | null;
@@ -84,10 +96,14 @@ export type Animal = {
   } | null;
 
   /*
-   * Anciens champs conserv├®s
-   * pour compatibilit├® avec les
-   * anciennes pages.
+   * =========================================================
+   * ANCIENS CHAMPS
+   * =========================================================
+   *
+   * Conservés pour compatibilité
+   * avec les anciennes pages.
    */
+
   nom?: string | null;
   type?: string | null;
   sexe?: string | null;
@@ -142,7 +158,7 @@ const PUBLISHER_ROLES: AppRole[] = [
 ];
 
 /* =========================================================
-   PROFILS CR├ëATEURS
+   PROFILS CRÉATEURS
 ========================================================= */
 
 async function attachOwnerProfiles(
@@ -177,7 +193,9 @@ async function attachOwnerProfiles(
     data: profiles,
     error,
   } = await supabase
-    .from("public_structure_profiles")
+    .from(
+      "public_structure_profiles"
+    )
     .select(
       `
         id,
@@ -212,7 +230,7 @@ async function attachOwnerProfiles(
 }
 
 /* =========================================================
-   UTILISATEUR CONNECT├ë
+   UTILISATEUR CONNECTÉ
 ========================================================= */
 
 async function getCurrentUser() {
@@ -227,7 +245,7 @@ async function getCurrentUser() {
     !user
   ) {
     throw new Error(
-      "Utilisateur non connect├®."
+      "Utilisateur non connecté."
     );
   }
 
@@ -235,11 +253,12 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   V├ëRIFICATION DROIT DE PUBLICATION
+   VÉRIFICATION DROIT DE PUBLICATION
 ========================================================= */
 
 async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
-  const user = await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
   const {
     data: profile,
@@ -249,7 +268,10 @@ async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
     .select(
       "role, approval_status, is_active"
     )
-    .eq("id", user.id)
+    .eq(
+      "id",
+      user.id
+    )
     .maybeSingle();
 
   if (error) {
@@ -265,7 +287,9 @@ async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
 
   const role =
     normalizedRole
-      ? (normalizedRole as AppRole)
+      ? (
+          normalizedRole as AppRole
+        )
       : null;
 
   const approvalStatus =
@@ -281,10 +305,14 @@ async function getCurrentUserAccess(): Promise<CurrentUserAccess> {
 
   const canPublishAnimals =
     role !== null &&
-    PUBLISHER_ROLES.includes(role) &&
+    PUBLISHER_ROLES.includes(
+      role
+    ) &&
     isActive &&
-    approvalStatus !== "rejected" &&
-    approvalStatus !== "suspended";
+    approvalStatus !==
+      "rejected" &&
+    approvalStatus !==
+      "suspended";
 
   return {
     userId: user.id,
@@ -306,7 +334,9 @@ async function getPublisherUser() {
   const access =
     await getCurrentUserAccess();
 
-  if (!access.canPublishAnimals) {
+  if (
+    !access.canPublishAnimals
+  ) {
     throw new Error(
       "Votre compte ne permet pas actuellement de créer des fiches d'animaux."
     );
@@ -319,7 +349,7 @@ async function getPublisherUser() {
 }
 
 /* =========================================================
-   NOM DU CR├ëATEUR / STRUCTURE
+   NOM DU CRÉATEUR / STRUCTURE
 ========================================================= */
 
 function getPublisherName(
@@ -341,7 +371,8 @@ function getPublisherName(
   const fullName =
     String(
       user.user_metadata
-        ?.full_name || ""
+        ?.full_name ||
+        ""
     ).trim();
 
   if (
@@ -353,13 +384,15 @@ function getPublisherName(
   const firstName =
     String(
       user.user_metadata
-        ?.first_name || ""
+        ?.first_name ||
+        ""
     ).trim();
 
   const lastName =
     String(
       user.user_metadata
-        ?.last_name || ""
+        ?.last_name ||
+        ""
     ).trim();
 
   const name =
@@ -483,10 +516,39 @@ async function getById(
 }
 
 /* =========================================================
-   ANIMAUX PUBLI├ëS POUR SWIPE CARD
+   ANIMAUX POUR SWIPE CARD
+
+   RÈGLES :
+
+   1. Animal disponible + publié
+      → visible normalement.
+
+   2. Animal adopté depuis moins
+      de 5 jours
+      → reste visible avec badge
+        ADOPTED.
+
+   3. Animal adopté depuis plus
+      de 5 jours
+      → retiré automatiquement
+        du swipe.
 ========================================================= */
 
 async function getPublishedWithPhotos() {
+  /*
+   * Date limite :
+   * maintenant moins 5 jours.
+   */
+  const fiveDaysAgo =
+    new Date(
+      Date.now() -
+        5 *
+          24 *
+          60 *
+          60 *
+          1000
+    ).toISOString();
+
   const {
     data,
     error,
@@ -498,9 +560,18 @@ async function getPublishedWithPhotos() {
         animal_photos (*)
       `
     )
-    .eq(
-      "is_published",
-      true
+    /*
+     * On accepte :
+     *
+     * - les animaux publiés ;
+     *
+     * OU
+     *
+     * - les animaux adoptés
+     *   depuis moins de 5 jours.
+     */
+    .or(
+      `is_published.eq.true,and(is_adopted.eq.true,adopted_at.gte.${fiveDaysAgo})`
     )
     .order(
       "created_at",
@@ -513,8 +584,79 @@ async function getPublishedWithPhotos() {
     throw error;
   }
 
+  /*
+   * Sécurité supplémentaire
+   * côté JavaScript.
+   *
+   * Cela évite qu'une ligne
+   * incohérente apparaisse.
+   */
+  const now =
+    Date.now();
+
+  const fiveDays =
+    5 *
+    24 *
+    60 *
+    60 *
+    1000;
+
+  const filteredAnimals =
+    (data || []).filter(
+      (animal) => {
+        /*
+         * Animal non adopté :
+         * il doit simplement être
+         * publié.
+         */
+        if (
+          !animal.is_adopted &&
+          animal.status !==
+            "adopted"
+        ) {
+          return (
+            animal.is_published ===
+            true
+          );
+        }
+
+        /*
+         * Animal adopté :
+         * adopted_at obligatoire.
+         */
+        if (
+          !animal.adopted_at
+        ) {
+          return false;
+        }
+
+        const adoptedTime =
+          new Date(
+            animal.adopted_at
+          ).getTime();
+
+        if (
+          !Number.isFinite(
+            adoptedTime
+          )
+        ) {
+          return false;
+        }
+
+        const elapsed =
+          now -
+          adoptedTime;
+
+        return (
+          elapsed >= 0 &&
+          elapsed <=
+            fiveDays
+        );
+      }
+    );
+
   return attachOwnerProfiles(
-    data || []
+    filteredAnimals
   ) as Promise<Animal[]>;
 }
 
@@ -551,7 +693,7 @@ async function getAllWithPhotos() {
 }
 
 /* =========================================================
-   CR├ëER UN ANIMAL
+   CRÉER UN ANIMAL
 ========================================================= */
 
 async function create(
@@ -571,12 +713,13 @@ async function create(
    * IMPORTANT :
    *
    * owner_id est TOUJOURS
-   * l'utilisateur connect├®.
+   * l'utilisateur connecté.
    *
    * On ignore volontairement
-   * animal.owner_id envoy├®
+   * animal.owner_id envoyé
    * depuis le navigateur.
    */
+
   const animalToCreate = {
     ...animal,
 
@@ -585,22 +728,11 @@ async function create(
 
     /*
      * Si association_name
-     * n'a pas ├®t├® fourni,
+     * n'a pas été fourni,
      * on utilise automatiquement
-     * le nom du cr├®ateur.
-     *
-     * Association :
-     * Les Veilleurs de Kali
-     *
-     * Refuge :
-     * SIGFA
-     *
-     * B├®n├®vole :
-     * Jonathan Drouillon
-     *
-     * Fourri├¿re :
-     * nom de la structure
+     * le nom du créateur.
      */
+
     association_name:
       animal.association_name ||
       publisherName,
@@ -642,8 +774,10 @@ async function update(
    * owner_id n'est jamais
    * modifiable depuis le formulaire.
    */
+
   const {
-    owner_id: _ignoredOwnerId,
+    owner_id:
+      _ignoredOwnerId,
     ...safeAnimal
   } = animal;
 
@@ -677,7 +811,7 @@ async function update(
 }
 
 /* =========================================================
-   PUBLIER / D├ëPUBLIER
+   PUBLIER / DÉPUBLIER
 ========================================================= */
 
 async function togglePublished(
