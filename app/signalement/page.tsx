@@ -1,1925 +1,1038 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
-  useRef,
+  useMemo,
   useState,
 } from "react";
 
-import {
-  useRouter,
-} from "next/navigation";
+import Link from "next/link";
 
 import {
-  supabase,
-} from "../lib/supabase";
+  AlertTriangle,
+  CalendarDays,
+  MapPin,
+  Search,
+} from "lucide-react";
 
-import LostFoundPushPreferences from "../components/LostFoundPushPreferences";
+import { supabase } from "../lib/supabase";
 
-const MAX_FILES = 5;
+type SignalementStatus =
+  | "nouveau"
+  | "en_cours"
+  | "animal_retrouve"
+  | "cloture";
 
-const MAX_FILE_SIZE =
-  8 * 1024 * 1024;
+type Signalement = {
+  id: string;
 
-const ALLOWED_FILE_TYPES =
-  new Set([
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ]);
+  created_at: string;
 
-const SAFE_EXTENSIONS: Record<
-  string,
-  string
-> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
+  type_signalement: string | null;
+
+  animal_type: string | null;
+
+  animal_name: string | null;
+
+  island: string | null;
+
+  city: string | null;
+
+  address: string | null;
+
+  situation: string | null;
+
+  description: string | null;
+
+  status: string | null;
+
+  photo_url?: string | null;
+
+  image_url?: string | null;
+
+  is_verified?: boolean | null;
+
+  resolution_note?: string | null;
+
+  resolved_at?: string | null;
 };
 
-function validateFile(
-  file: File
-) {
-  if (
-    !ALLOWED_FILE_TYPES.has(
-      file.type
-    )
-  ) {
-    throw new Error(
-      `Le fichier "${file.name}" n'est pas autorisé. Formats acceptés : JPG, PNG et WEBP.`
-    );
-  }
+const TYPE_FILTERS = [
+  {
+    value: "all",
+    label: "Tout confondu",
+  },
+  {
+    value: "perdu",
+    label: "Perdus",
+  },
+  {
+    value: "trouve",
+    label: "Trouvés",
+  },
+  {
+    value: "errant",
+    label: "Errants",
+  },
+  {
+    value: "blesse",
+    label: "Blessés",
+  },
+  {
+    value: "maltraitance",
+    label: "Maltraitance",
+  },
+  {
+    value: "abandon",
+    label: "Abandons",
+  },
+  {
+    value: "autre",
+    label: "Autres",
+  },
+];
 
-  if (
-    file.size <= 0
-  ) {
-    throw new Error(
-      `Le fichier "${file.name}" est vide.`
-    );
-  }
+const STATUS_FILTERS = [
+  {
+    value: "all",
+    label: "Tous les états",
+  },
+  {
+    value: "nouveau",
+    label: "Nouveau",
+  },
+  {
+    value: "en_cours",
+    label: "En cours",
+  },
+  {
+    value: "animal_retrouve",
+    label: "Animal retrouvé",
+  },
+  {
+    value: "cloture",
+    label: "Clôturé",
+  },
+];
 
-  if (
-    file.size >
-    MAX_FILE_SIZE
-  ) {
-    throw new Error(
-      `Le fichier "${file.name}" dépasse la taille maximale de 8 Mo.`
-    );
-  }
-}
-
-function buildSafeFilePath(
-  signalementId: string,
-  file: File
-) {
-  const extension =
-    SAFE_EXTENSIONS[
-      file.type
-    ];
-
-  if (
-    !extension
-  ) {
-    throw new Error(
-      "Type de fichier non autorisé."
-    );
-  }
-
-  const randomId =
-    typeof crypto !==
-      "undefined" &&
-    "randomUUID" in
-      crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}`;
-
-  return `${signalementId}/${randomId}.${extension}`;
-}
-
-type LeafletModule =
-  typeof import("leaflet");
-
-type LeafletMap =
-  import("leaflet").Map;
-
-type LeafletMarker =
-  import("leaflet").Marker;
-
-export default function SignalementPage() {
-  const router =
-    useRouter();
-
-  const mapRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
-
-  const leafletMap =
-    useRef<LeafletMap | null>(
-      null
-    );
-
-  const markerRef =
-    useRef<LeafletMarker | null>(
-      null
-    );
-
-  const leafletRef =
-    useRef<LeafletModule | null>(
-      null
-    );
-
+export default function SignalementsPublicPage() {
   const [
     loading,
     setLoading,
-  ] =
-    useState(false);
+  ] = useState(true);
 
   const [
-    gpsLoading,
-    setGpsLoading,
-  ] =
-    useState(false);
+    signalements,
+    setSignalements,
+  ] = useState<Signalement[]>([]);
 
   const [
-    files,
-    setFiles,
-  ] =
-    useState<File[]>([]);
+    search,
+    setSearch,
+  ] = useState("");
 
   const [
-    form,
-    setForm,
-  ] =
-    useState({
-      type_signalement:
-        "",
-
-      animal_type:
-        "",
-
-      animal_name:
-        "",
-
-      sex: "",
-
-      age_label:
-        "",
-
-      color: "",
-
-      breed: "",
-
-      collar_color: "",
-
-      distinctive_features: "",
-
-      identification_number: "",
-
-      island: "",
-
-      city: "",
-
-      address: "",
-
-      address_details:
-        "",
-
-      latitude: "",
-
-      longitude:
-        "",
-
-      disappearance_date:
-        "",
-
-      disappearance_time:
-        "",
-
-      disappearance_time_unknown:
-        false,
-
-      found_date:
-        "",
-
-      found_time:
-        "",
-
-      found_time_unknown:
-        false,
-
-      situation: "",
-
-      description:
-        "",
-
-      reporter_name:
-        "",
-
-      reporter_phone:
-        "",
-
-      reporter_email:
-        "",
-
-      anonymous:
-        false,
-
-      wants_contact:
-        true,
-    });
-
-  const updateField =
-    useCallback(
-      (
-        name: string,
-        value:
-          | string
-          | boolean
-      ) => {
-        setForm(
-          (
-            previous
-          ) => ({
-            ...previous,
-            [name]:
-              value,
-          })
-        );
-      },
-      []
-    );
-
-  const setPosition =
-    useCallback(
-      (
-        lat: number,
-        lng: number
-      ) => {
-        updateField(
-          "latitude",
-          String(lat)
-        );
-
-        updateField(
-          "longitude",
-          String(lng)
-        );
-
-        const L =
-          leafletRef.current;
-
-        const map =
-          leafletMap.current;
-
-        if (
-          !L ||
-          !map
-        ) {
-          return;
-        }
-
-        const icon =
-          L.divIcon({
-            className:
-              "",
-
-            html:
-              '<div style="font-size:34px;">📍</div>',
-
-            iconSize: [
-              34,
-              34,
-            ],
-
-            iconAnchor: [
-              17,
-              34,
-            ],
-          });
-
-        if (
-          !markerRef.current
-        ) {
-          const marker =
-            L.marker(
-              [
-                lat,
-                lng,
-              ],
-              {
-                draggable:
-                  true,
-
-                icon,
-              }
-            ).addTo(
-              map
-            );
-
-          markerRef.current =
-            marker;
-
-          marker.on(
-            "dragend",
-            () => {
-              const pos =
-                marker.getLatLng();
-
-              updateField(
-                "latitude",
-                String(
-                  pos.lat
-                )
-              );
-
-              updateField(
-                "longitude",
-                String(
-                  pos.lng
-                )
-              );
-            }
-          );
-        } else {
-          markerRef.current.setLatLng(
-            [
-              lat,
-              lng,
-            ]
-          );
-        }
-
-        map.setView(
-          [
-            lat,
-            lng,
-          ],
-          16
-        );
-      },
-      [
-        updateField,
-      ]
-    );
-
-  useEffect(
-    () => {
-      let cancelled =
-        false;
-
-      async function initMap() {
-        if (
-          !mapRef.current ||
-          leafletMap.current
-        ) {
-          return;
-        }
-
-        const L =
-          await import(
-            "leaflet"
-          );
-
-        if (
-          cancelled ||
-          !mapRef.current
-        ) {
-          return;
-        }
-
-        leafletRef.current =
-          L;
-
-        const map =
-          L.map(
-            mapRef.current
-          ).setView(
-            [
-              -17.5516,
-              -149.5585,
-            ],
-            10
-          );
-
-        leafletMap.current =
-          map;
-
-        L.tileLayer(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          {
-            attribution:
-              "© OpenStreetMap",
-          }
-        ).addTo(
-          map
-        );
-
-        map.on(
-          "click",
-          (
-            event:
-              import(
-                "leaflet"
-              ).LeafletMouseEvent
-          ) => {
-            setPosition(
-              event.latlng.lat,
-              event.latlng.lng
-            );
-          }
-        );
-      }
-
-      void initMap();
-
-      return () => {
-        cancelled =
-          true;
-      };
-    },
-    [
-      setPosition,
-    ]
-  );
-
-  function handleFilesChange(
-    event:
-      React.ChangeEvent<HTMLInputElement>
-  ) {
-    try {
-      const selectedFiles =
-        Array.from(
-          event.target
-            .files ||
-            []
-        );
-
-      selectedFiles.forEach(
-        validateFile
-      );
-
-      if (files.length + selectedFiles.length > MAX_FILES) {
-        throw new Error(
-          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
-        );
-      }
-
-      setFiles((previousFiles) => [
-        ...previousFiles,
-        ...selectedFiles,
-      ]);
-
-      event.target.value = "";
-    } catch (
-      caughtError
-    ) {
-      event.target.value =
-        "";
-
-      alert(
-        caughtError instanceof
-          Error
-          ? caughtError.message
-          : "Fichier non autorisé."
-      );
-    }
-  }
-
-  function removeFile(indexToRemove: number) {
-    setFiles((previousFiles) =>
-      previousFiles.filter((_, index) => index !== indexToRemove)
-    );
-  }
-
-  function useMyLocation() {
-    if (
-      !navigator.geolocation
-    ) {
-      alert(
-        "La géolocalisation n'est pas disponible."
-      );
-
-      return;
-    }
-
-    setGpsLoading(
-      true
-    );
-
-    navigator.geolocation.getCurrentPosition(
-      (
-        position
-      ) => {
-        setPosition(
-          position.coords
-            .latitude,
-          position.coords
-            .longitude
-        );
-
-        setGpsLoading(
-          false
-        );
-      },
-      () => {
-        alert(
-          "Impossible de récupérer votre position."
-        );
-
-        setGpsLoading(
-          false
-        );
-      }
-    );
-  }
-
-  async function sendSignalement() {
-    try {
-      setLoading(
-        true
-      );
-
-      if (
-        !form.type_signalement ||
-        !form.animal_type ||
-        !form.island ||
-        !form.city
-      ) {
-        alert(
-          "Merci de remplir le type de signalement, l'animal, l'île et la commune."
-        );
-
-        return;
-      }
-
-      if (
-        form.type_signalement ===
-          "Animal perdu" &&
-        !form.disappearance_date
-      ) {
-        alert(
-          "Merci d'indiquer la date approximative de disparition."
-        );
-
-        return;
-      }
-
-      if (
-        form.type_signalement ===
-          "Animal trouvé" &&
-        !form.found_date
-      ) {
-        alert(
-          "Merci d'indiquer la date approximative de découverte."
-        );
-
-        return;
-      }
-
-      if (
-        files.length >
-        MAX_FILES
-      ) {
-        throw new Error(
-          `Vous pouvez ajouter au maximum ${MAX_FILES} photos.`
-        );
-      }
-
-      files.forEach(
-        validateFile
-      );
-
-      const {
-        data: {
-          user,
-        },
-        error: authError,
-      } =
-        await supabase.auth.getUser();
-
-      if (authError) {
-        console.error(
-          "ERREUR AUTH SIGNALEMENT :",
-          authError
-        );
-
-        throw new Error(
-          `Session Supabase invalide : ${authError.message}`
-        );
-      }
-
-      console.log(
-        "USER SIGNALEMENT :",
-        user?.id || null
-      );
-
-      const {
-        data:
-          signalement,
-        error,
-      } =
-        await supabase
-          .from(
-            "signalements"
-          )
-          .insert({
-            user_id:
-              user?.id ||
-              null,
-
-            type_signalement:
-              form.type_signalement,
-
-            animal_type:
-              form.animal_type,
-
-            animal_name:
-              form.animal_name,
-
-            sex:
-              form.sex,
-
-            age_label:
-              form.age_label,
-
-            color:
-              form.color,
-
-            breed:
-              form.breed,
-
-            collar_color:
-              form.collar_color.trim() || null,
-
-            distinctive_features:
-              form.distinctive_features.trim() || null,
-
-            identification_number:
-              form.identification_number.trim() || null,
-
-            island:
-              form.island,
-
-            city:
-              form.city,
-
-            address:
-              form.address,
-
-            latitude:
-              form.latitude
-                ? Number(
-                    form.latitude
-                  )
-                : null,
-
-            longitude:
-              form.longitude
-                ? Number(
-                    form.longitude
-                  )
-                : null,
-
-            disappearance_at:
-              form.type_signalement ===
-                "Animal perdu" &&
-              form.disappearance_date
-                ? new Date(
-                    `${form.disappearance_date}T${
-                      form.disappearance_time_unknown ||
-                      !form.disappearance_time
-                        ? "12:00"
-                        : form.disappearance_time
-                    }:00`
-                  ).toISOString()
-                : null,
-
-            found_at:
-              form.type_signalement ===
-                "Animal trouvé" &&
-              form.found_date
-                ? new Date(
-                    `${form.found_date}T${
-                      form.found_time_unknown ||
-                      !form.found_time
-                        ? "12:00"
-                        : form.found_time
-                    }:00`
-                  ).toISOString()
-                : null,
-
-            situation:
-              form.situation,
-
-            description:
-              `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
-
-            reporter_name:
-              form.anonymous
-                ? ""
-                : form.reporter_name,
-
-            reporter_phone:
-              form.anonymous
-                ? ""
-                : form.reporter_phone,
-
-            reporter_email:
-              form.anonymous
-                ? ""
-                : form.reporter_email,
-
-            anonymous:
-              form.anonymous,
-
-            wants_contact:
-              form.wants_contact,
-
-            status:
-              "nouveau",
-          })
-          .select(
-            "id"
-          )
-          .single();
-
-      if (
-        error
-      ) {
-        throw error;
-      }
-
-      if (
-        files.length >
-          0 &&
-        signalement?.id
-      ) {
-        for (
-          const file
-          of files
-        ) {
-          validateFile(
-            file
-          );
-
-          const filePath =
-            buildSafeFilePath(
-              signalement.id,
-              file
-            );
-
-          const {
-            error:
-              uploadError,
-          } =
-            await supabase.storage
-              .from(
-                "signalements"
-              )
-              .upload(
-                filePath,
-                file,
-                {
-                  cacheControl:
-                    "3600",
-
-                  upsert:
-                    false,
-
-                  contentType:
-                    file.type,
-                }
-              );
-
-          if (
-            uploadError
-          ) {
-            throw uploadError;
-          }
-
-          const {
-            data:
-              publicUrlData,
-          } =
-            supabase.storage
-              .from(
-                "signalements"
-              )
-              .getPublicUrl(
-                filePath
-              );
-
-          const {
-            error:
-              mediaError,
-          } =
-            await supabase
-              .from(
-                "signalement_medias"
-              )
-              .insert({
-                signalement_id:
-                  signalement.id,
-
-                file_url:
-                  publicUrlData.publicUrl,
-
-                file_type:
-                  file.type,
-
-                file_name:
-                  file.name,
-              });
-
-          if (
-            mediaError
-          ) {
-            throw mediaError;
-          }
-        }
-      }
-
-      /*
-       * Matching automatique perdu <-> trouvé.
-       * Une erreur de matching ne doit jamais annuler le signalement.
-       */
-      if (
-        signalement?.id &&
-        (
-          form.type_signalement === "Animal perdu" ||
-          form.type_signalement === "Animal trouvé"
-        )
-      ) {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-
-          if (!session?.access_token) {
-            throw new Error(
-              "Session utilisateur introuvable pour le matching."
-            );
-          }
-
-          const matchingResponse = await fetch(
-            "/api/matching/signalement",
+    typeFilter,
+    setTypeFilter,
+  ] = useState("all");
+
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] = useState("all");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSignalements() {
+      try {
+        setLoading(true);
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("signalements")
+          .select(`
+            id,
+            created_at,
+            type_signalement,
+            animal_type,
+            animal_name,
+            island,
+            city,
+            address,
+            situation,
+            description,
+            status,
+            photo_url,
+            image_url,
+            is_verified,
+            resolution_note,
+            resolved_at
+          `)
+          .order(
+            "created_at",
             {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                signalementId: signalement.id,
-              }),
+              ascending: false,
             }
           );
 
-          if (!matchingResponse.ok) {
-            const matchingResult = await matchingResponse
-              .json()
-              .catch(() => null);
+        if (error) {
+          throw error;
+        }
 
-            console.error(
-              "Matching signalement :",
-              matchingResult
-            );
-          }
-        } catch (matchingError) {
-          console.error(
-            "Matching signalement :",
-            matchingError
-          );
+        if (!active) {
+          return;
+        }
+
+        setSignalements(
+          (data || []) as Signalement[]
+        );
+      } catch (error) {
+        console.error(
+          "Erreur chargement signalements publics :",
+          error
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
         }
       }
-
-      /*
-       * Notifications push :
-       * uniquement pour
-       * Animal perdu et
-       * Animal trouvé.
-       *
-       * Une erreur de push
-       * ne doit jamais
-       * annuler le signalement.
-       */
-      if (
-        signalement?.id &&
-        (
-          form.type_signalement ===
-            "Animal perdu" ||
-          form.type_signalement ===
-            "Animal trouvé"
-        )
-      ) {
-        try {
-          const response =
-            await fetch(
-              "/api/push/signalement",
-              {
-                method:
-                  "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-
-                body:
-                  JSON.stringify(
-                    {
-                      signalementId:
-                        signalement.id,
-                    }
-                  ),
-              }
-            );
-
-          if (
-            !response.ok
-          ) {
-            const result =
-              await response
-                .json()
-                .catch(
-                  () =>
-                    null
-                );
-
-            console.error(
-              "Notification signalement :",
-              result
-            );
-          }
-        } catch (
-          pushError
-        ) {
-          console.error(
-            "Notification signalement :",
-            pushError
-          );
-        }
-      }
-
-      alert(
-        "Signalement envoyé avec succès."
-      );
-
-      router.push(
-        "/"
-      );
-    } catch (
-      caughtError: unknown
-    ) {
-      console.error(
-        "ERREUR COMPLETE SIGNALEMENT :",
-        caughtError
-      );
-
-      const errorDetails =
-        caughtError &&
-        typeof caughtError === "object"
-          ? (caughtError as Record<string, unknown>)
-          : {};
-
-      const errorDescription =
-        typeof errorDetails.error_description === "string"
-          ? errorDetails.error_description
-          : "";
-
-      const details =
-        typeof errorDetails.details === "string"
-          ? errorDetails.details
-          : "";
-
-      const hint =
-        typeof errorDetails.hint === "string"
-          ? errorDetails.hint
-          : "";
-
-      const serializedError = (() => {
-        if (typeof caughtError === "string") {
-          return caughtError;
-        }
-
-        try {
-          return JSON.stringify(caughtError);
-        } catch {
-          return "";
-        }
-      })();
-
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : errorDescription ||
-            details ||
-            hint ||
-            serializedError;
-
-      alert(
-        message ||
-          "Erreur lors de l'envoi."
-      );
-    } finally {
-      setLoading(
-        false
-      );
     }
+
+    void loadSignalements();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredSignalements =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
+
+      return signalements.filter(
+        (item) => {
+          const normalizedType =
+            normalizeSignalementType(
+              item.type_signalement
+            );
+
+          const normalizedStatus =
+            normalizeStatus(
+              item.status
+            );
+
+          const matchesType =
+            typeFilter === "all" ||
+            normalizedType ===
+              typeFilter;
+
+          const matchesStatus =
+            statusFilter === "all" ||
+            normalizedStatus ===
+              statusFilter;
+
+          const haystack = [
+            item.animal_name,
+            item.animal_type,
+            item.city,
+            item.island,
+            item.address,
+            item.situation,
+            item.description,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          const matchesSearch =
+            !query ||
+            haystack.includes(
+              query
+            );
+
+          return (
+            matchesType &&
+            matchesStatus &&
+            matchesSearch
+          );
+        }
+      );
+    }, [
+      signalements,
+      typeFilter,
+      statusFilter,
+      search,
+    ]);
+
+  if (loading) {
+    return (
+      <main
+        className="
+          flex
+          min-h-screen
+          items-center
+          justify-center
+          bg-[#fbf7ef]
+        "
+      >
+        <p
+          className="
+            font-black
+            text-[#064b42]
+          "
+        >
+          Chargement des signalements...
+        </p>
+      </main>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f4ec] px-5 pb-52 pt-20 md:pb-10 md:pt-20">
-      <div className="mx-auto max-w-7xl">
-        <div className="text-center">
-          <h1 className="text-3xl font-black text-[#064b42] sm:text-4xl">
-            🚨 Signaler un animal
-          </h1>
-        </div>
-
-        <LostFoundPushPreferences />
-
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-          <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            Informations générales
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <Select
-              label="Type de signalement"
-              value={
-                form.type_signalement
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "type_signalement",
-                  value
-                )
-              }
-              options={[
-                "Animal errant",
-                "Animal perdu",
-                "Animal trouvé",
-                "Animal blessé",
-                "Animal maltraité",
-                "Animal décédé",
-                "Autre",
-              ]}
-            />
-
-            <Select
-              label="Type d'animal"
-              value={
-                form.animal_type
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "animal_type",
-                  value
-                )
-              }
-              options={[
-                "Chien",
-                "Chat",
-                "Oiseau",
-                "Autre",
-              ]}
-            />
-
-            <Input
-              label="Nom si connu"
-              value={
-                form.animal_name
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "animal_name",
-                  value
-                )
-              }
-            />
-
-            <Select
-              label="Sexe"
-              value={
-                form.sex
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "sex",
-                  value
-                )
-              }
-              options={[
-                "Inconnu",
-                "Mâle",
-                "Femelle",
-              ]}
-            />
-
-            <Input
-              label="Âge estimé"
-              value={
-                form.age_label
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "age_label",
-                  value
-                )
-              }
-            />
-
-            <Input
-              label="Couleur"
-              value={
-                form.color
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "color",
-                  value
-                )
-              }
-            />
-
-            <Input
-              label="Race"
-              value={
-                form.breed
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "breed",
-                  value
-                )
-              }
-            />
-
-            {(form.type_signalement === "Animal perdu" ||
-              form.type_signalement === "Animal trouvé") && (
-              <>
-                <Input
-                  label="Couleur du collier"
-                  value={form.collar_color}
-                  onChange={(value) => updateField("collar_color", value)}
-                />
-
-                <Input
-                  label="Numéro d'identification (puce ou tatouage)"
-                  value={form.identification_number}
-                  onChange={(value) => updateField("identification_number", value)}
-                />
-
-                <div className="md:col-span-2">
-                  <Textarea
-                    label="Signes particuliers"
-                    value={form.distinctive_features}
-                    onChange={(value) => updateField("distinctive_features", value)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <h2 className="text-2xl font-black text-[#064b42]">
-              📍 Localisation
-            </h2>
-
-            <button
-              type="button"
-              onClick={
-                useMyLocation
-              }
-              disabled={
-                gpsLoading
-              }
-              className="rounded-full bg-[#064b42] px-6 py-3 font-bold text-white disabled:opacity-60"
-            >
-              {gpsLoading
-                ? "Localisation..."
-                : "📍 Utiliser ma position"}
-            </button>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="space-y-5">
-              <Input
-                label="Île"
-                value={
-                  form.island
-                }
-                onChange={(
-                  value
-                ) =>
-                  updateField(
-                    "island",
-                    value
-                  )
-                }
-              />
-
-              <Input
-                label="Commune"
-                value={
-                  form.city
-                }
-                onChange={(
-                  value
-                ) =>
-                  updateField(
-                    "city",
-                    value
-                  )
-                }
-              />
-
-              <Input
-                label="Adresse ou repère"
-                value={
-                  form.address
-                }
-                onChange={(
-                  value
-                ) =>
-                  updateField(
-                    "address",
-                    value
-                  )
-                }
-              />
-
-              <Textarea
-                label="Informations complémentaires"
-                value={
-                  form.address_details
-                }
-                onChange={(
-                  value
-                ) =>
-                  updateField(
-                    "address_details",
-                    value
-                  )
-                }
-              />
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input
-                  label="Latitude"
-                  value={
-                    form.latitude
-                  }
-                  onChange={(
-                    value
-                  ) =>
-                    updateField(
-                      "latitude",
-                      value
-                    )
-                  }
-                />
-
-                <Input
-                  label="Longitude"
-                  value={
-                    form.longitude
-                  }
-                  onChange={(
-                    value
-                  ) =>
-                    updateField(
-                      "longitude",
-                      value
-                    )
-                  }
-                />
-              </div>
-            </div>
-
-            <div
-              ref={
-                mapRef
-              }
-              className="h-[420px] overflow-hidden rounded-[28px] border shadow sm:h-[500px]"
-            />
-          </div>
-        </section>
-
-        {form.type_signalement ===
-          "Animal perdu" && (
-          <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-            <h2 className="mb-2 text-2xl font-black text-[#064b42]">
-              🔎 Disparition
-            </h2>
-
-            <p className="mb-6 text-sm text-[#6f5a47]">
-              Indiquez le moment où
-              l&apos;animal a été vu
-              pour la dernière fois.
-              Une heure approximative
-              suffit.
-            </p>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-bold text-[#064b42]">
-                  Date de disparition
-                </label>
-
-                <input
-                  type="date"
-                  value={
-                    form.disappearance_date
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateField(
-                      "disappearance_date",
-                      event.target
-                        .value
-                    )
-                  }
-                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block font-bold text-[#064b42]">
-                  Heure approximative
-                </label>
-
-                <input
-                  type="time"
-                  value={
-                    form.disappearance_time
-                  }
-                  disabled={
-                    form.disappearance_time_unknown
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateField(
-                      "disappearance_time",
-                      event.target
-                        .value
-                    )
-                  }
-                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 disabled:opacity-50"
-                />
-              </div>
-            </div>
-
-            <label className="mt-5 flex items-center gap-3 font-semibold text-[#064b42]">
-              <input
-                type="checkbox"
-                checked={
-                  form.disappearance_time_unknown
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateField(
-                    "disappearance_time_unknown",
-                    event.target
-                      .checked
-                  )
-                }
-              />
-
-              Heure inconnue
-            </label>
-
-            <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
-              Le point GPS placé sur
-              la carte ci-dessus
-              correspond au{" "}
-              <strong>
-                dernier lieu connu de
-                disparition
-              </strong>
-              .
-            </div>
-          </section>
-        )}
-
-        {form.type_signalement ===
-          "Animal trouvé" && (
-          <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-            <h2 className="mb-2 text-2xl font-black text-[#064b42]">
-              📍 Découverte de
-              l&apos;animal
-            </h2>
-
-            <p className="mb-6 text-sm text-[#6f5a47]">
-              Indiquez le moment où
-              l&apos;animal a été
-              découvert. Une heure
-              approximative suffit.
-            </p>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-bold text-[#064b42]">
-                  Date de découverte
-                </label>
-
-                <input
-                  type="date"
-                  value={
-                    form.found_date
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateField(
-                      "found_date",
-                      event.target
-                        .value
-                    )
-                  }
-                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block font-bold text-[#064b42]">
-                  Heure approximative
-                </label>
-
-                <input
-                  type="time"
-                  value={
-                    form.found_time
-                  }
-                  disabled={
-                    form.found_time_unknown
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateField(
-                      "found_time",
-                      event.target
-                        .value
-                    )
-                  }
-                  className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 disabled:opacity-50"
-                />
-              </div>
-            </div>
-
-            <label className="mt-5 flex items-center gap-3 font-semibold text-[#064b42]">
-              <input
-                type="checkbox"
-                checked={
-                  form.found_time_unknown
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateField(
-                    "found_time_unknown",
-                    event.target
-                      .checked
-                  )
-                }
-              />
-
-              Heure inconnue
-            </label>
-
-            <div className="mt-5 rounded-[22px] bg-[#faf7f2] p-4 text-sm text-[#6f5a47]">
-              Le point GPS placé sur
-              la carte ci-dessus sera
-              utilisé comme{" "}
-              <strong>
-                lieu de découverte de
-                l&apos;animal
-              </strong>
-              .
-            </div>
-          </section>
-        )}
-
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-          <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            État de l&apos;animal
-          </h2>
-
-          <Textarea
-            label="Situation"
-            value={
-              form.situation
-            }
-            onChange={(
-              value
-            ) =>
-              updateField(
-                "situation",
-                value
-              )
-            }
-          />
-
-          <div className="mt-5">
-            <Textarea
-              label="Description complète"
-              value={
-                form.description
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "description",
-                  value
-                )
-              }
-            />
-          </div>
-        </section>
-
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-          <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            📷 Photos
-          </h2>
-
-          <input
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp"
-            onChange={
-              handleFilesChange
-            }
-            className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
-          />
-
-          <p className="mt-3 text-sm text-gray-500">
-            Vous pouvez ajouter
-            jusqu&apos;à 5 photos
-            (JPG, PNG ou WEBP), 8 Mo
-            maximum par photo, pour
-            aider à identifier
-            l&apos;animal.
+    <main
+      className="
+        min-h-screen
+        bg-[#fbf7ef]
+        px-4
+        pb-24
+        pt-24
+        text-[#064b42]
+        sm:px-8
+      "
+    >
+      <section
+        className="
+          mx-auto
+          max-w-7xl
+        "
+      >
+        <div
+          className="
+            max-w-3xl
+          "
+        >
+          <p
+            className="
+              text-xs
+              font-black
+              uppercase
+              tracking-[0.22em]
+              text-[#df8995]
+            "
+          >
+            TAUI TE ORA
           </p>
 
-          {files.length >
-            0 && (
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {files.map(
-                (
-                  file,
-                  index
-                ) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    className="overflow-hidden rounded-2xl border border-[#eadfce] bg-[#faf7f2]"
+          <h1
+            className="
+              mt-1
+              text-4xl
+              font-black
+              sm:text-5xl
+            "
+          >
+            Signalements
+          </h1>
+
+          <p
+            className="
+              mt-3
+              text-base
+              leading-7
+              text-[#756d67]
+            "
+          >
+            Consultez les signalements
+            d&apos;animaux perdus,
+            trouvés, errants,
+            blessés ou en danger,
+            ainsi que leur état
+            d&apos;avancement.
+          </p>
+        </div>
+
+        {/* FILTRES */}
+
+        <section
+          className="
+            mt-8
+            rounded-[28px]
+            border
+            border-[#eadfd8]
+            bg-white
+            p-5
+            shadow-sm
+          "
+        >
+          <div
+            className="
+              grid
+              gap-4
+              lg:grid-cols-[1fr_220px_220px]
+            "
+          >
+            <div
+              className="
+                relative
+              "
+            >
+              <Search
+                size={19}
+                className="
+                  absolute
+                  left-4
+                  top-1/2
+                  -translate-y-1/2
+                  text-gray-400
+                "
+              />
+
+              <input
+                type="text"
+                value={search}
+                onChange={(
+                  event
+                ) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Rechercher un animal, une commune..."
+                className="
+                  min-h-[48px]
+                  w-full
+                  rounded-2xl
+                  border
+                  border-[#eadfd8]
+                  bg-white
+                  py-3
+                  pl-11
+                  pr-4
+                  outline-none
+                  focus:border-[#064b42]
+                "
+              />
+            </div>
+
+            <select
+              value={
+                typeFilter
+              }
+              onChange={(
+                event
+              ) =>
+                setTypeFilter(
+                  event.target.value
+                )
+              }
+              className="
+                min-h-[48px]
+                rounded-2xl
+                border
+                border-[#eadfd8]
+                bg-white
+                px-4
+                font-bold
+                outline-none
+                focus:border-[#064b42]
+              "
+            >
+              {TYPE_FILTERS.map(
+                (option) => (
+                  <option
+                    key={
+                      option.value
+                    }
+                    value={
+                      option.value
+                    }
                   >
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`Aperçu ${index + 1}`}
-                      className="h-48 w-full object-cover"
-                    />
-
-                    <div className="p-4">
-                      <p className="break-all text-sm font-semibold text-[#064b42]">
-                        {file.name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} Mo
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        disabled={loading}
-                        className="mt-3 rounded-full bg-red-50 px-4 py-2 text-sm font-bold text-red-600 disabled:opacity-50"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
+                    {
+                      option.label
+                    }
+                  </option>
                 )
               )}
-            </div>
-          )}
-        </section>
+            </select>
 
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
-          <h2 className="mb-6 text-2xl font-black text-[#064b42]">
-            Vos coordonnées
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Nom"
+            <select
               value={
-                form.reporter_name
-              }
-              disabled={
-                form.anonymous
+                statusFilter
               }
               onChange={(
-                value
+                event
               ) =>
-                updateField(
-                  "reporter_name",
-                  value
+                setStatusFilter(
+                  event.target.value
                 )
               }
-            />
-
-            <Input
-              label="Téléphone"
-              value={
-                form.reporter_phone
-              }
-              disabled={
-                form.anonymous
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "reporter_phone",
-                  value
+              className="
+                min-h-[48px]
+                rounded-2xl
+                border
+                border-[#eadfd8]
+                bg-white
+                px-4
+                font-bold
+                outline-none
+                focus:border-[#064b42]
+              "
+            >
+              {STATUS_FILTERS.map(
+                (option) => (
+                  <option
+                    key={
+                      option.value
+                    }
+                    value={
+                      option.value
+                    }
+                  >
+                    {
+                      option.label
+                    }
+                  </option>
                 )
-              }
-            />
-
-            <Input
-              label="Email"
-              value={
-                form.reporter_email
-              }
-              disabled={
-                form.anonymous
-              }
-              onChange={(
-                value
-              ) =>
-                updateField(
-                  "reporter_email",
-                  value
-                )
-              }
-            />
+              )}
+            </select>
           </div>
 
-          <div className="mt-6 space-y-3">
-            <label className="flex gap-3 font-semibold">
-              <input
-                type="checkbox"
-                checked={
-                  form.wants_contact
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateField(
-                    "wants_contact",
-                    event.target
-                      .checked
-                  )
-                }
-              />
-
-              Je souhaite être
-              recontacté
-            </label>
-
-            <label className="flex gap-3 font-semibold">
-              <input
-                type="checkbox"
-                checked={
-                  form.anonymous
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateField(
-                    "anonymous",
-                    event.target
-                      .checked
-                  )
-                }
-              />
-
-              Je souhaite rester
-              anonyme
-            </label>
-          </div>
-        </section>
-
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-          <button
-            type="button"
-            onClick={
-              sendSignalement
-            }
-            disabled={
-              loading
-            }
-            className="rounded-full bg-red-600 px-8 py-4 text-lg font-black text-white disabled:opacity-60"
+          <p
+            className="
+              mt-4
+              text-sm
+              font-bold
+              text-[#756d67]
+            "
           >
-            {loading
-              ? "Envoi..."
-              : "🚨 Envoyer le signalement"}
-          </button>
+            {
+              filteredSignalements.length
+            }{" "}
+            signalement
+            {
+              filteredSignalements.length ===
+              1
+                ? ""
+                : "s"
+            }
+          </p>
+        </section>
 
-          <button
-            type="button"
-            onClick={() =>
-              router.push(
-                "/"
+        {/* LISTE */}
+
+        {filteredSignalements.length ===
+        0 ? (
+          <div
+            className="
+              mt-8
+              rounded-[28px]
+              border
+              border-[#eadfd8]
+              bg-white
+              p-10
+              text-center
+            "
+          >
+            <AlertTriangle
+              size={44}
+              className="
+                mx-auto
+                text-[#df8995]
+              "
+            />
+
+            <h2
+              className="
+                mt-4
+                text-2xl
+                font-black
+              "
+            >
+              Aucun signalement
+            </h2>
+
+            <p
+              className="
+                mt-2
+                text-gray-500
+              "
+            >
+              Aucun résultat
+              ne correspond
+              à vos filtres.
+            </p>
+          </div>
+        ) : (
+          <div
+            className="
+              mt-8
+              grid
+              gap-6
+              md:grid-cols-2
+              xl:grid-cols-3
+            "
+          >
+            {filteredSignalements.map(
+              (
+                item
+              ) => (
+                <SignalementCard
+                  key={
+                    item.id
+                  }
+                  item={
+                    item
+                  }
+                />
               )
-            }
-            disabled={
-              loading
-            }
-            className="rounded-full bg-white px-8 py-4 font-bold text-[#064b42] shadow disabled:opacity-60"
-          >
-            Annuler
-          </button>
-        </div>
-      </div>
+            )}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
 
-type InputProps = {
-  label: string;
+function SignalementCard({
+  item,
+}: {
+  item: Signalement;
+}) {
+  const status =
+    normalizeStatus(
+      item.status
+    );
 
-  value: string;
+  const type =
+    normalizeSignalementType(
+      item.type_signalement
+    );
 
-  onChange: (
-    value: string
-  ) => void;
+  const imageUrl =
+    item.photo_url ||
+    item.image_url ||
+    "";
 
-  disabled?: boolean;
-};
-
-function Input({
-  label,
-  value,
-  onChange,
-  disabled = false,
-}: InputProps) {
   return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">
-        {label}
-      </label>
-
-      <input
-        value={
-          value
-        }
-        disabled={
-          disabled
-        }
-        onChange={(
-          event
-        ) =>
-          onChange(
-            event.target
-              .value
-          )
-        }
-        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 disabled:cursor-not-allowed disabled:opacity-50"
-      />
-    </div>
-  );
-}
-
-type SelectProps = {
-  label: string;
-
-  value: string;
-
-  onChange: (
-    value: string
-  ) => void;
-
-  options: string[];
-};
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: SelectProps) {
-  return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">
-        {label}
-      </label>
-
-      <select
-        value={
-          value
-        }
-        onChange={(
-          event
-        ) =>
-          onChange(
-            event.target
-              .value
-          )
-        }
-        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
+    <Link
+      href={`/signalement/${item.id}`}
+      className="
+        overflow-hidden
+        rounded-[28px]
+        border
+        border-[#eadfd8]
+        bg-white
+        shadow-sm
+        transition
+        hover:-translate-y-0.5
+        hover:shadow-md
+      "
+    >
+      <div
+        className="
+          aspect-[4/3]
+          overflow-hidden
+          bg-[#f4eee5]
+        "
       >
-        <option value="">
-          Sîlectionner
-        </option>
-
-        {options.map(
-          (
-            option
-          ) => (
-            <option
-              key={
-                option
-              }
-              value={
-                option
-              }
-            >
-              {
-                option
-              }
-            </option>
-          )
+        {imageUrl ? (
+          <img
+            src={
+              imageUrl
+            }
+            alt={
+              item.animal_name ||
+              "Signalement animal"
+            }
+            className="
+              h-full
+              w-full
+              object-cover
+            "
+          />
+        ) : (
+          <div
+            className="
+              flex
+              h-full
+              items-center
+              justify-center
+              text-6xl
+            "
+          >
+            {
+              getSignalementIcon(
+                type
+              )
+            }
+          </div>
         )}
-      </select>
-    </div>
+      </div>
+
+      <div
+        className="
+          p-5
+        "
+      >
+        <div
+          className="
+            flex
+            flex-wrap
+            gap-2
+          "
+        >
+          <span
+            className="
+              rounded-full
+              bg-[#fff0f3]
+              px-3
+              py-1
+              text-xs
+              font-black
+              text-[#c85f72]
+            "
+          >
+            {
+              getSignalementTypeLabel(
+                type
+              )
+            }
+          </span>
+
+          <span
+            className={`
+              rounded-full
+              border
+              px-3
+              py-1
+              text-xs
+              font-black
+              ${getStatusClasses(
+                status
+              )}
+            `}
+          >
+            {
+              getStatusLabel(
+                status
+              )
+            }
+          </span>
+        </div>
+
+        <h2
+          className="
+            mt-3
+            text-2xl
+            font-black
+            text-[#2f241c]
+          "
+        >
+          {item.animal_name ||
+            item.animal_type ||
+            "Animal signalé"}
+        </h2>
+
+        <div
+          className="
+            mt-4
+            space-y-2
+            text-sm
+            font-semibold
+            text-[#756d67]
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+            "
+          >
+            <CalendarDays
+              size={17}
+            />
+
+            <span>
+              {formatDate(
+                item.created_at
+              )}
+            </span>
+          </div>
+
+          {(item.city ||
+            item.island) && (
+            <div
+              className="
+                flex
+                items-start
+                gap-2
+              "
+            >
+              <MapPin
+                size={17}
+                className="
+                  mt-0.5
+                  shrink-0
+                "
+              />
+
+              <span>
+                {[
+                  item.city,
+                  item.island,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {(item.situation ||
+          item.description) && (
+          <p
+            className="
+              mt-4
+              line-clamp-3
+              text-sm
+              leading-6
+              text-gray-500
+            "
+          >
+            {item.situation ||
+              item.description}
+          </p>
+        )}
+
+        <div
+          className="
+            mt-5
+            rounded-2xl
+            bg-[#064b42]
+            px-4
+            py-3
+            text-center
+            font-black
+            text-white
+          "
+        >
+          Voir le signalement
+        </div>
+      </div>
+    </Link>
   );
 }
 
-type TextareaProps = {
-  label: string;
+function normalizeStatus(
+  status:
+    | string
+    | null
+    | undefined
+): SignalementStatus {
+  const value =
+    String(
+      status || ""
+    )
+      .trim()
+      .toLowerCase();
 
-  value: string;
+  if (
+    value === "en_cours" ||
+    value ===
+      "pris_en_charge" ||
+    value ===
+      "en_intervention"
+  ) {
+    return "en_cours";
+  }
 
-  onChange: (
-    value: string
-  ) => void;
-};
+  if (
+    value ===
+      "animal_retrouve" ||
+    value ===
+      "retrouve"
+  ) {
+    return "animal_retrouve";
+  }
 
-function Textarea({
-  label,
-  value,
-  onChange,
-}: TextareaProps) {
-  return (
-    <div>
-      <label className="mb-2 block font-bold text-[#064b42]">
-        {label}
-      </label>
+  if (
+    value ===
+      "cloture" ||
+    value ===
+      "resolu" ||
+    value ===
+      "regle"
+  ) {
+    return "cloture";
+  }
 
-      <textarea
-        value={
-          value
-        }
-        onChange={(
-          event
-        ) =>
-          onChange(
-            event.target
-              .value
-          )
-        }
-        rows={
-          5
-        }
-        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
-      />
-    </div>
-  );
+  return "nouveau";
+}
+
+function getStatusLabel(
+  status: SignalementStatus
+) {
+  switch (status) {
+    case "en_cours":
+      return "🟠 En cours";
+
+    case "animal_retrouve":
+      return "🟢 Animal retrouvé";
+
+    case "cloture":
+      return "✅ Clôturé";
+
+    default:
+      return "🟡 Nouveau";
+  }
+}
+
+function getStatusClasses(
+  status: SignalementStatus
+) {
+  switch (status) {
+    case "en_cours":
+      return "border-orange-200 bg-orange-100 text-orange-800";
+
+    case "animal_retrouve":
+      return "border-green-200 bg-green-100 text-green-800";
+
+    case "cloture":
+      return "border-[#064b42] bg-[#064b42] text-white";
+
+    default:
+      return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+}
+
+function normalizeSignalementType(
+  value:
+    | string
+    | null
+    | undefined
+) {
+  const type =
+    String(
+      value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    type.includes("perdu") ||
+    type.includes("disparu")
+  ) {
+    return "perdu";
+  }
+
+  if (
+    type.includes("trouv")
+  ) {
+    return "trouve";
+  }
+
+  if (
+    type.includes("errant")
+  ) {
+    return "errant";
+  }
+
+  if (
+    type.includes("bless")
+  ) {
+    return "blesse";
+  }
+
+  if (
+    type.includes("maltrait")
+  ) {
+    return "maltraitance";
+  }
+
+  if (
+    type.includes("abandon")
+  ) {
+    return "abandon";
+  }
+
+  return "autre";
+}
+
+function getSignalementTypeLabel(
+  type: string
+) {
+  switch (type) {
+    case "perdu":
+      return "Animal perdu";
+
+    case "trouve":
+      return "Animal trouvé";
+
+    case "errant":
+      return "Animal errant";
+
+    case "blesse":
+      return "Animal blessé";
+
+    case "maltraitance":
+      return "Maltraitance";
+
+    case "abandon":
+      return "Abandon";
+
+    default:
+      return "Autre signalement";
+  }
+}
+
+function getSignalementIcon(
+  type: string
+) {
+  switch (type) {
+    case "perdu":
+      return "🔎";
+
+    case "trouve":
+      return "🐾";
+
+    case "errant":
+      return "🐕";
+
+    case "blesse":
+      return "🩹";
+
+    case "maltraitance":
+      return "⚠️";
+
+    case "abandon":
+      return "💔";
+
+    default:
+      return "🚨";
+  }
+}
+
+function formatDate(
+  value: string
+) {
+  try {
+    return new Intl.DateTimeFormat(
+      "fr-FR",
+      {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }
+    ).format(
+      new Date(value)
+    );
+  } catch {
+    return value;
+  }
 }
