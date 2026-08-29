@@ -4,22 +4,11 @@ import { supabase } from "../lib/supabase";
    TYPES
 ========================================================= */
 
-export type EventType =
-  | "journee_animaux"
-  | "collecte_croquettes"
-  | "tombola"
-  | "journee_adoption"
-  | "sterilisation_solidaire"
-  | "collecte_dons"
-  | "evenement_association"
-  | "autre";
-
 export type EventItem = {
   id: string;
 
   title: string;
-  event_type: EventType | string;
-
+  event_type: string;
   description: string | null;
 
   start_date: string;
@@ -40,14 +29,12 @@ export type EventItem = {
   contact_email: string | null;
 
   external_url: string | null;
-
   image_url: string | null;
 
   is_free: boolean;
   price_label: string | null;
 
   is_published: boolean;
-
   facebook_share_enabled: boolean;
 
   created_by: string | null;
@@ -56,7 +43,7 @@ export type EventItem = {
   updated_at: string;
 };
 
-export type EventFormData = {
+export type EventInput = {
   title: string;
   event_type: string;
 
@@ -80,22 +67,209 @@ export type EventFormData = {
   contact_email?: string | null;
 
   external_url?: string | null;
-
   image_url?: string | null;
 
   is_free?: boolean;
   price_label?: string | null;
 
   is_published?: boolean;
-
   facebook_share_enabled?: boolean;
 };
 
 /* =========================================================
-   VÉRIFICATION ADMIN
+   TYPES D'ÉVÉNEMENTS
 ========================================================= */
 
-async function requireAdmin() {
+export const EVENT_TYPES = [
+  {
+    value: "journee_animaux",
+    label: "Journée des animaux",
+    icon: "🐾",
+  },
+  {
+    value: "collecte_croquettes",
+    label: "Collecte de croquettes",
+    icon: "🥫",
+  },
+  {
+    value: "tombola",
+    label: "Tombola",
+    icon: "🎟️",
+  },
+  {
+    value: "journee_adoption",
+    label: "Journée adoption",
+    icon: "❤️",
+  },
+  {
+    value: "sterilisation_solidaire",
+    label: "Stérilisation solidaire",
+    icon: "🩺",
+  },
+  {
+    value: "collecte_dons",
+    label: "Collecte de dons",
+    icon: "💝",
+  },
+  {
+    value: "evenement_association",
+    label: "Événement association",
+    icon: "🤝",
+  },
+  {
+    value: "autre",
+    label: "Autre",
+    icon: "📅",
+  },
+] as const;
+
+/* =========================================================
+   OUTILS
+========================================================= */
+
+function clean(
+  value: string | null | undefined
+): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const result = String(value).trim();
+
+  return result || null;
+}
+
+function getTypeLabel(
+  type: string | null | undefined
+): string {
+  const found = EVENT_TYPES.find(
+    (item) => item.value === type
+  );
+
+  return found?.label || "Événement";
+}
+
+function getTypeIcon(
+  type: string | null | undefined
+): string {
+  const found = EVENT_TYPES.find(
+    (item) => item.value === type
+  );
+
+  return found?.icon || "📅";
+}
+
+/* =========================================================
+   TOUS LES ÉVÉNEMENTS — ADMIN
+========================================================= */
+
+async function getAllAdmin(): Promise<EventItem[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .order("start_date", {
+      ascending: true,
+    });
+
+  if (error) {
+    console.error(
+      "Erreur récupération événements admin :",
+      error
+    );
+
+    throw error;
+  }
+
+  return (data || []) as EventItem[];
+}
+
+/* =========================================================
+   ÉVÉNEMENTS PUBLICS
+========================================================= */
+
+async function getPublished(): Promise<EventItem[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("is_published", true)
+    .order("start_date", {
+      ascending: true,
+    });
+
+  if (error) {
+    console.error(
+      "Erreur récupération événements publics :",
+      error
+    );
+
+    throw error;
+  }
+
+  return (data || []) as EventItem[];
+}
+
+/* =========================================================
+   UN ÉVÉNEMENT PUBLIC
+========================================================= */
+
+async function getById(
+  id: string
+): Promise<EventItem | null> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Erreur récupération événement :",
+      error
+    );
+
+    throw error;
+  }
+
+  return data
+    ? (data as EventItem)
+    : null;
+}
+
+/* =========================================================
+   UN ÉVÉNEMENT — ADMIN
+========================================================= */
+
+async function getByIdAdmin(
+  id: string
+): Promise<EventItem | null> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Erreur récupération événement admin :",
+      error
+    );
+
+    throw error;
+  }
+
+  return data
+    ? (data as EventItem)
+    : null;
+}
+
+/* =========================================================
+   CRÉER
+========================================================= */
+
+async function create(
+  input: EventInput
+): Promise<EventItem> {
   const {
     data: { user },
     error: userError,
@@ -107,444 +281,92 @@ async function requireAdmin() {
 
   if (!user) {
     throw new Error(
-      "Vous devez être connecté pour effectuer cette action."
-    );
-  }
-
-  const {
-    data: profile,
-    error: profileError,
-  } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    throw profileError;
-  }
-
-  const role = String(
-    profile?.role || ""
-  )
-    .trim()
-    .toLowerCase();
-
-  if (
-    role !== "admin" &&
-    role !== "administrateur"
-  ) {
-    throw new Error(
-      "Cette action est réservée à l'administration."
-    );
-  }
-
-  return user;
-}
-
-/* =========================================================
-   NETTOYAGE DES VALEURS
-========================================================= */
-
-function cleanText(
-  value: string | null | undefined
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return null;
-  }
-
-  const cleaned =
-    String(value).trim();
-
-  return cleaned || null;
-}
-
-/* =========================================================
-   ÉVÉNEMENTS PUBLIÉS
-   PUBLIC / LECTURE SEULE
-========================================================= */
-
-async function getPublished() {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .eq(
-      "is_published",
-      true
-    )
-    .order(
-      "start_date",
-      {
-        ascending: true,
-      }
-    )
-    .order(
-      "start_time",
-      {
-        ascending: true,
-        nullsFirst: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return (
-    data || []
-  ) as EventItem[];
-}
-
-/* =========================================================
-   ÉVÉNEMENTS À VENIR
-========================================================= */
-
-async function getUpcoming() {
-  const today =
-    new Date()
-      .toISOString()
-      .slice(
-        0,
-        10
-      );
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .eq(
-      "is_published",
-      true
-    )
-    .gte(
-      "start_date",
-      today
-    )
-    .order(
-      "start_date",
-      {
-        ascending: true,
-      }
-    )
-    .order(
-      "start_time",
-      {
-        ascending: true,
-        nullsFirst: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return (
-    data || []
-  ) as EventItem[];
-}
-
-/* =========================================================
-   ÉVÉNEMENTS PASSÉS
-========================================================= */
-
-async function getPast() {
-  const today =
-    new Date()
-      .toISOString()
-      .slice(
-        0,
-        10
-      );
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .eq(
-      "is_published",
-      true
-    )
-    .lt(
-      "start_date",
-      today
-    )
-    .order(
-      "start_date",
-      {
-        ascending: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return (
-    data || []
-  ) as EventItem[];
-}
-
-/* =========================================================
-   UN ÉVÉNEMENT PUBLIC
-========================================================= */
-
-async function getById(
-  eventId: string
-) {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .eq(
-      "id",
-      eventId
-    )
-    .eq(
-      "is_published",
-      true
-    )
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data) {
-    throw new Error(
-      "Événement introuvable."
-    );
-  }
-
-  return data as EventItem;
-}
-
-/* =========================================================
-   TOUS LES ÉVÉNEMENTS
-   ADMIN UNIQUEMENT
-========================================================= */
-
-async function getAllAdmin() {
-  await requireAdmin();
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .order(
-      "start_date",
-      {
-        ascending: false,
-      }
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return (
-    data || []
-  ) as EventItem[];
-}
-
-/* =========================================================
-   UN ÉVÉNEMENT ADMIN
-========================================================= */
-
-async function getByIdAdmin(
-  eventId: string
-) {
-  await requireAdmin();
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("events")
-    .select("*")
-    .eq(
-      "id",
-      eventId
-    )
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data) {
-    throw new Error(
-      "Événement introuvable."
-    );
-  }
-
-  return data as EventItem;
-}
-
-/* =========================================================
-   CRÉER UN ÉVÉNEMENT
-========================================================= */
-
-async function create(
-  form: EventFormData
-) {
-  const user =
-    await requireAdmin();
-
-  if (
-    !form.title
-      .trim()
-  ) {
-    throw new Error(
-      "Le titre de l'événement est obligatoire."
-    );
-  }
-
-  if (
-    !form.start_date
-  ) {
-    throw new Error(
-      "La date de l'événement est obligatoire."
+      "Vous devez être connecté."
     );
   }
 
   const payload = {
-    title:
-      form.title.trim(),
+    title: input.title.trim(),
 
     event_type:
-      form.event_type ||
-      "autre",
+      input.event_type || "autre",
 
     description:
-      cleanText(
-        form.description
-      ),
+      clean(input.description),
 
     start_date:
-      form.start_date,
+      input.start_date,
 
     end_date:
-      cleanText(
-        form.end_date
-      ),
+      clean(input.end_date),
 
     start_time:
-      cleanText(
-        form.start_time
-      ),
+      clean(input.start_time),
 
     end_time:
-      cleanText(
-        form.end_time
-      ),
+      clean(input.end_time),
 
     location_name:
-      cleanText(
-        form.location_name
-      ),
+      clean(input.location_name),
 
     island:
-      cleanText(
-        form.island
-      ),
+      clean(input.island),
 
     city:
-      cleanText(
-        form.city
-      ),
+      clean(input.city),
 
     address:
-      cleanText(
-        form.address
-      ),
+      clean(input.address),
 
     organizer_name:
-      cleanText(
-        form.organizer_name
-      ),
+      clean(input.organizer_name),
 
     contact_name:
-      cleanText(
-        form.contact_name
-      ),
+      clean(input.contact_name),
 
     contact_phone:
-      cleanText(
-        form.contact_phone
-      ),
+      clean(input.contact_phone),
 
     contact_email:
-      cleanText(
-        form.contact_email
-      ),
+      clean(input.contact_email),
 
     external_url:
-      cleanText(
-        form.external_url
-      ),
+      clean(input.external_url),
 
     image_url:
-      cleanText(
-        form.image_url
-      ),
+      clean(input.image_url),
 
     is_free:
-      form.is_free !==
-      false,
+      input.is_free ?? true,
 
     price_label:
-      cleanText(
-        form.price_label
-      ),
+      clean(input.price_label),
 
     is_published:
-      form.is_published ===
-      true,
+      input.is_published ?? false,
 
     facebook_share_enabled:
-      form.facebook_share_enabled !==
-      false,
+      input.facebook_share_enabled ?? true,
 
     created_by:
       user.id,
 
     updated_at:
-      new Date()
-        .toISOString(),
+      new Date().toISOString(),
   };
 
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("events")
-    .insert(
-      payload
-    )
+    .insert(payload)
     .select("*")
     .single();
 
   if (error) {
+    console.error(
+      "Erreur création événement :",
+      error
+    );
+
     throw error;
   }
 
@@ -552,239 +374,136 @@ async function create(
 }
 
 /* =========================================================
-   MODIFIER UN ÉVÉNEMENT
+   MODIFIER
 ========================================================= */
 
 async function update(
-  eventId: string,
-  form: Partial<EventFormData>
-) {
-  await requireAdmin();
-
-  const payload: Record<
-    string,
-    unknown
-  > = {
-    updated_at:
-      new Date()
-        .toISOString(),
+  id: string,
+  input: Partial<EventInput>
+): Promise<EventItem> {
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
   };
 
-  if (
-    form.title !==
-    undefined
-  ) {
-    payload.title =
-      form.title.trim();
+  if (input.title !== undefined) {
+    payload.title = input.title.trim();
   }
 
-  if (
-    form.event_type !==
-    undefined
-  ) {
+  if (input.event_type !== undefined) {
     payload.event_type =
-      form.event_type ||
-      "autre";
+      input.event_type || "autre";
   }
 
-  if (
-    form.description !==
-    undefined
-  ) {
+  if (input.description !== undefined) {
     payload.description =
-      cleanText(
-        form.description
-      );
+      clean(input.description);
   }
 
-  if (
-    form.start_date !==
-    undefined
-  ) {
+  if (input.start_date !== undefined) {
     payload.start_date =
-      form.start_date;
+      input.start_date;
   }
 
-  if (
-    form.end_date !==
-    undefined
-  ) {
+  if (input.end_date !== undefined) {
     payload.end_date =
-      cleanText(
-        form.end_date
-      );
+      clean(input.end_date);
   }
 
-  if (
-    form.start_time !==
-    undefined
-  ) {
+  if (input.start_time !== undefined) {
     payload.start_time =
-      cleanText(
-        form.start_time
-      );
+      clean(input.start_time);
   }
 
-  if (
-    form.end_time !==
-    undefined
-  ) {
+  if (input.end_time !== undefined) {
     payload.end_time =
-      cleanText(
-        form.end_time
-      );
+      clean(input.end_time);
   }
 
-  if (
-    form.location_name !==
-    undefined
-  ) {
+  if (input.location_name !== undefined) {
     payload.location_name =
-      cleanText(
-        form.location_name
-      );
+      clean(input.location_name);
   }
 
-  if (
-    form.island !==
-    undefined
-  ) {
+  if (input.island !== undefined) {
     payload.island =
-      cleanText(
-        form.island
-      );
+      clean(input.island);
   }
 
-  if (
-    form.city !==
-    undefined
-  ) {
+  if (input.city !== undefined) {
     payload.city =
-      cleanText(
-        form.city
-      );
+      clean(input.city);
   }
 
-  if (
-    form.address !==
-    undefined
-  ) {
+  if (input.address !== undefined) {
     payload.address =
-      cleanText(
-        form.address
-      );
+      clean(input.address);
   }
 
-  if (
-    form.organizer_name !==
-    undefined
-  ) {
+  if (input.organizer_name !== undefined) {
     payload.organizer_name =
-      cleanText(
-        form.organizer_name
-      );
+      clean(input.organizer_name);
   }
 
-  if (
-    form.contact_name !==
-    undefined
-  ) {
+  if (input.contact_name !== undefined) {
     payload.contact_name =
-      cleanText(
-        form.contact_name
-      );
+      clean(input.contact_name);
   }
 
-  if (
-    form.contact_phone !==
-    undefined
-  ) {
+  if (input.contact_phone !== undefined) {
     payload.contact_phone =
-      cleanText(
-        form.contact_phone
-      );
+      clean(input.contact_phone);
   }
 
-  if (
-    form.contact_email !==
-    undefined
-  ) {
+  if (input.contact_email !== undefined) {
     payload.contact_email =
-      cleanText(
-        form.contact_email
-      );
+      clean(input.contact_email);
   }
 
-  if (
-    form.external_url !==
-    undefined
-  ) {
+  if (input.external_url !== undefined) {
     payload.external_url =
-      cleanText(
-        form.external_url
-      );
+      clean(input.external_url);
   }
 
-  if (
-    form.image_url !==
-    undefined
-  ) {
+  if (input.image_url !== undefined) {
     payload.image_url =
-      cleanText(
-        form.image_url
-      );
+      clean(input.image_url);
   }
 
-  if (
-    form.is_free !==
-    undefined
-  ) {
+  if (input.is_free !== undefined) {
     payload.is_free =
-      form.is_free;
+      input.is_free;
   }
 
-  if (
-    form.price_label !==
-    undefined
-  ) {
+  if (input.price_label !== undefined) {
     payload.price_label =
-      cleanText(
-        form.price_label
-      );
+      clean(input.price_label);
   }
 
-  if (
-    form.is_published !==
-    undefined
-  ) {
+  if (input.is_published !== undefined) {
     payload.is_published =
-      form.is_published;
+      input.is_published;
   }
 
   if (
-    form.facebook_share_enabled !==
-    undefined
+    input.facebook_share_enabled !== undefined
   ) {
     payload.facebook_share_enabled =
-      form.facebook_share_enabled;
+      input.facebook_share_enabled;
   }
 
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("events")
-    .update(
-      payload
-    )
-    .eq(
-      "id",
-      eventId
-    )
+    .update(payload)
+    .eq("id", id)
     .select("*")
     .single();
 
   if (error) {
+    console.error(
+      "Erreur modification événement :",
+      error
+    );
+
     throw error;
   }
 
@@ -796,77 +515,80 @@ async function update(
 ========================================================= */
 
 async function setPublished(
-  eventId: string,
-  published: boolean
-) {
-  return update(
-    eventId,
-    {
-      is_published:
-        published,
-    }
-  );
+  id: string,
+  isPublished: boolean
+): Promise<EventItem> {
+  const { data, error } = await supabase
+    .from("events")
+    .update({
+      is_published: isPublished,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error(
+      "Erreur publication événement :",
+      error
+    );
+
+    throw error;
+  }
+
+  return data as EventItem;
 }
 
 /* =========================================================
    SUPPRIMER
 ========================================================= */
 
-async function remove(
-  eventId: string
-) {
-  await requireAdmin();
-
-  const {
-    error,
-  } = await supabase
+async function deleteEvent(
+  id: string
+): Promise<void> {
+  const { error } = await supabase
     .from("events")
     .delete()
-    .eq(
-      "id",
-      eventId
-    );
+    .eq("id", id);
 
   if (error) {
+    console.error(
+      "Erreur suppression événement :",
+      error
+    );
+
     throw error;
   }
-
-  return true;
 }
 
 /* =========================================================
-   UPLOAD DE L'AFFICHE
+   UPLOAD IMAGE
 ========================================================= */
 
 async function uploadImage(
   file: File
-) {
-  const user =
-    await requireAdmin();
+): Promise<{
+  publicUrl: string;
+  path: string;
+}> {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ];
 
-  if (
-    !file.type.startsWith(
-      "image/"
-    )
-  ) {
+  if (!allowedTypes.includes(file.type)) {
     throw new Error(
-      "Le fichier sélectionné doit être une image."
+      "Format d'image non autorisé."
     );
   }
 
-  /*
-   * Limite de 8 Mo.
-   */
-
   const maxSize =
-    8 *
-    1024 *
-    1024;
+    8 * 1024 * 1024;
 
-  if (
-    file.size >
-    maxSize
-  ) {
+  if (file.size > maxSize) {
     throw new Error(
       "L'image ne doit pas dépasser 8 Mo."
     );
@@ -876,219 +598,119 @@ async function uploadImage(
     file.name
       .split(".")
       .pop()
-      ?.toLowerCase() ||
-    "jpg";
+      ?.toLowerCase() || "jpg";
 
-  const safeExtension =
-    extension.replace(
-      /[^a-z0-9]/g,
-      ""
-    ) || "jpg";
-
-  const filename =
-    `${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
+  const fileName =
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${extension}`;
 
   const path =
-    `${user.id}/${filename}`;
+    `events/${fileName}`;
 
-  const {
-    error: uploadError,
-  } =
-    await supabase.storage
-      .from(
-        "event-images"
-      )
-      .upload(
-        path,
-        file,
-        {
-          cacheControl:
-            "3600",
-
-          upsert:
-            false,
-        }
-      );
-
-  if (uploadError) {
-    throw uploadError;
-  }
-
-  const {
-    data,
-  } =
-    supabase.storage
-      .from(
-        "event-images"
-      )
-      .getPublicUrl(
-        path
-      );
-
-  if (
-    !data.publicUrl
-  ) {
-    throw new Error(
-      "Impossible de récupérer l'adresse de l'image."
+  const { error } = await supabase.storage
+    .from("event-images")
+    .upload(
+      path,
+      file,
+      {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      }
     );
+
+  if (error) {
+    console.error(
+      "Erreur upload image événement :",
+      error
+    );
+
+    throw error;
   }
+
+  const { data } = supabase.storage
+    .from("event-images")
+    .getPublicUrl(path);
 
   return {
-    path,
     publicUrl:
       data.publicUrl,
+
+    path,
   };
 }
 
 /* =========================================================
-   SUPPRESSION IMAGE
+   SUPPRIMER IMAGE
 ========================================================= */
 
 async function deleteImage(
-  storagePath: string
-) {
-  await requireAdmin();
-
-  if (
-    !storagePath.trim()
-  ) {
+  path: string
+): Promise<void> {
+  if (!path) {
     return;
   }
 
-  const {
-    error,
-  } =
-    await supabase.storage
-      .from(
-        "event-images"
-      )
-      .remove([
-        storagePath,
-      ]);
+  const { error } = await supabase.storage
+    .from("event-images")
+    .remove([path]);
 
   if (error) {
+    console.error(
+      "Erreur suppression image événement :",
+      error
+    );
+
     throw error;
   }
 }
 
 /* =========================================================
-   TYPE D'ÉVÉNEMENT
-========================================================= */
-
-function getTypeLabel(
-  type: string | null | undefined
-) {
-  switch (type) {
-    case "journee_animaux":
-      return "Journée des animaux";
-
-    case "collecte_croquettes":
-      return "Collecte de croquettes";
-
-    case "tombola":
-      return "Tombola";
-
-    case "journee_adoption":
-      return "Journée adoption";
-
-    case "sterilisation_solidaire":
-      return "Stérilisation solidaire";
-
-    case "collecte_dons":
-      return "Collecte de dons";
-
-    case "evenement_association":
-      return "Événement association";
-
-    default:
-      return "Autre événement";
-  }
-}
-
-/* =========================================================
-   ICÔNE TYPE
-========================================================= */
-
-function getTypeIcon(
-  type: string | null | undefined
-) {
-  switch (type) {
-    case "journee_animaux":
-      return "🐾";
-
-    case "collecte_croquettes":
-      return "🥫";
-
-    case "tombola":
-      return "🎟️";
-
-    case "journee_adoption":
-      return "❤️";
-
-    case "sterilisation_solidaire":
-      return "🩺";
-
-    case "collecte_dons":
-      return "💝";
-
-    case "evenement_association":
-      return "🤝";
-
-    default:
-      return "📅";
-  }
-}
-
-/* =========================================================
-   PARTAGE FACEBOOK
+   FACEBOOK
 ========================================================= */
 
 function getFacebookShareUrl(
   eventId: string
-) {
+): string {
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://www.taui-te-ora.com";
+
   const eventUrl =
-    `https://www.taui-te-ora.com/evenements/${eventId}`;
+    `${baseUrl}/evenements/${encodeURIComponent(
+      eventId
+    )}`;
 
   return (
     "https://www.facebook.com/sharer/sharer.php?u=" +
-    encodeURIComponent(
-      eventUrl
-    )
+    encodeURIComponent(eventUrl)
   );
 }
 
 /* =========================================================
-   EXPORT
+   EXPORT SERVICE
 ========================================================= */
 
 export const eventService = {
+  getAllAdmin,
   getPublished,
 
-  getUpcoming,
-
-  getPast,
-
   getById,
-
-  getAllAdmin,
-
   getByIdAdmin,
 
   create,
-
   update,
 
   setPublished,
 
-  delete:
-    remove,
+  delete: deleteEvent,
 
   uploadImage,
-
   deleteImage,
 
   getTypeLabel,
-
   getTypeIcon,
 
   getFacebookShareUrl,

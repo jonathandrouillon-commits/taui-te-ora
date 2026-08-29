@@ -151,6 +151,10 @@ export default function EditEventPage() {
 
     async function initialize() {
       if (!eventId) {
+        router.replace(
+          "/admin/evenements"
+        );
+
         return;
       }
 
@@ -226,10 +230,22 @@ export default function EditEventPage() {
           return;
         }
 
-        const event =
+        const loadedEvent =
           await eventService.getByIdAdmin(
             eventId
           );
+
+        /*
+         * IMPORTANT :
+         * getByIdAdmin peut retourner null.
+         * On vérifie donc avant d'accéder
+         * à loadedEvent.title, etc.
+         */
+        if (!loadedEvent) {
+          throw new Error(
+            "Événement introuvable."
+          );
+        }
 
         if (!active) {
           return;
@@ -237,100 +253,100 @@ export default function EditEventPage() {
 
         setForm({
           title:
-            event.title ||
+            loadedEvent.title ||
             "",
 
           event_type:
-            event.event_type ||
+            loadedEvent.event_type ||
             "autre",
 
           description:
-            event.description ||
+            loadedEvent.description ||
             "",
 
           start_date:
-            event.start_date ||
+            loadedEvent.start_date ||
             "",
 
           end_date:
-            event.end_date ||
+            loadedEvent.end_date ||
             "",
 
           start_time:
-            event.start_time
-              ? event.start_time.slice(
+            loadedEvent.start_time
+              ? loadedEvent.start_time.slice(
                   0,
                   5
                 )
               : "",
 
           end_time:
-            event.end_time
-              ? event.end_time.slice(
+            loadedEvent.end_time
+              ? loadedEvent.end_time.slice(
                   0,
                   5
                 )
               : "",
 
           location_name:
-            event.location_name ||
+            loadedEvent.location_name ||
             "",
 
           island:
-            event.island ||
+            loadedEvent.island ||
             "",
 
           city:
-            event.city ||
+            loadedEvent.city ||
             "",
 
           address:
-            event.address ||
+            loadedEvent.address ||
             "",
 
           organizer_name:
-            event.organizer_name ||
+            loadedEvent.organizer_name ||
             "",
 
           contact_name:
-            event.contact_name ||
+            loadedEvent.contact_name ||
             "",
 
           contact_phone:
-            event.contact_phone ||
+            loadedEvent.contact_phone ||
             "",
 
           contact_email:
-            event.contact_email ||
+            loadedEvent.contact_email ||
             "",
 
           external_url:
-            event.external_url ||
+            loadedEvent.external_url ||
             "",
 
           image_url:
-            event.image_url ||
+            loadedEvent.image_url ||
             "",
 
           is_free:
-            event.is_free !==
+            loadedEvent.is_free !==
             false,
 
           price_label:
-            event.price_label ||
+            loadedEvent.price_label ||
             "",
 
           is_published:
-            event.is_published ===
+            loadedEvent.is_published ===
             true,
 
           facebook_share_enabled:
-            event.facebook_share_enabled !==
+            loadedEvent.facebook_share_enabled !==
             false,
         });
 
         setPreviewUrl(
-          event.image_url ||
+          loadedEvent.image_url ||
             ""
         );
       } catch (
@@ -371,7 +387,7 @@ export default function EditEventPage() {
   ]);
 
   /* =========================================================
-     CHAMP
+     MODIFICATION CHAMP
   ========================================================= */
 
   function updateField<
@@ -381,15 +397,18 @@ export default function EditEventPage() {
     value: FormState[K]
   ) {
     setForm(
-      (previous) => ({
+      (
+        previous
+      ) => ({
         ...previous,
-        [field]: value,
+        [field]:
+          value,
       })
     );
   }
 
   /* =========================================================
-     NOUVELLE AFFICHE
+     IMAGE
   ========================================================= */
 
   async function handleImageChange(
@@ -451,7 +470,7 @@ export default function EditEventPage() {
   }
 
   /* =========================================================
-     RETIRER L'AFFICHE DE L'EVENEMENT
+     RETIRER IMAGE
   ========================================================= */
 
   function removeImage() {
@@ -736,7 +755,8 @@ export default function EditEventPage() {
               onClick={() =>
                 window.open(
                   `/evenements/${eventId}`,
-                  "_blank"
+                  "_blank",
+                  "noopener,noreferrer"
                 )
               }
               className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 font-black shadow-sm"
@@ -748,6 +768,7 @@ export default function EditEventPage() {
               Voir la page publique
             </button>
           )}
+
         </div>
 
         <form
@@ -756,6 +777,8 @@ export default function EditEventPage() {
           }
           className="mt-8 space-y-6"
         >
+
+          {/* INFOS */}
 
           <Section title="Informations principales">
 
@@ -869,7 +892,7 @@ export default function EditEventPage() {
 
           </Section>
 
-          {/* AFFICHE */}
+          {/* IMAGE */}
 
           <Section title="Affiche / visuel">
 
@@ -1096,7 +1119,7 @@ export default function EditEventPage() {
 
           </Section>
 
-          {/* ORGANISATEUR */}
+          {/* CONTACT */}
 
           <Section title="Organisateur et contact">
 
@@ -1308,7 +1331,7 @@ export default function EditEventPage() {
 
           </Section>
 
-          {/* ENREGISTRER */}
+          {/* SAUVEGARDER */}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
 
@@ -1345,7 +1368,7 @@ export default function EditEventPage() {
 
         </form>
 
-        {/* DANGER */}
+        {/* SUPPRESSION */}
 
         <section className="mt-12 rounded-[28px] border-2 border-red-200 bg-red-50 p-6">
 
@@ -1417,7 +1440,10 @@ function Field({
   label: string;
   value: string;
   onChange:
-    (value: string) =>
+    (
+      value:
+        string
+    ) =>
       void;
   placeholder?: string;
 }) {
@@ -1462,7 +1488,10 @@ function InputField({
     | "time";
   value: string;
   onChange:
-    (value: string) =>
+    (
+      value:
+        string
+    ) =>
       void;
 }) {
   return (
@@ -1502,7 +1531,10 @@ function SelectField({
   label: string;
   value: string;
   onChange:
-    (value: string) =>
+    (
+      value:
+        string
+    ) =>
       void;
   options: Array<{
     value: string;
@@ -1530,7 +1562,9 @@ function SelectField({
         className="min-h-[48px] w-full rounded-2xl border border-[#eadfd8] bg-white px-4 py-3 outline-none focus:border-[#064b42]"
       >
         {options.map(
-          (option) => (
+          (
+            option
+          ) => (
             <option
               key={
                 option.value
