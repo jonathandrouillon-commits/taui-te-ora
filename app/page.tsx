@@ -1911,9 +1911,15 @@ function BottomMenu() {
       }) => page
     ),
     ...dynamicMenuPages,
-  ].sort(
-    (a, b) =>
-      a.sortOrder - b.sortOrder
+  ].sort((a, b) =>
+    a.label.localeCompare(
+      b.label,
+      "fr",
+      {
+        sensitivity: "base",
+        ignorePunctuation: true,
+      }
+    )
   );
 
   function closeMenu() {
