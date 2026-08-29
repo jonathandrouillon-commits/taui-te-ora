@@ -44,41 +44,6 @@ import {
   supabase,
 } from "../../lib/supabase";
 
-
-type AdminProfile =
-  Awaited<
-    ReturnType<
-      typeof profileService.getCurrentProfile
-    >
-  >;
-
-type AdminUser =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof profileService.getAllProfiles
-      >
-    >
-  >[number];
-
-type AdminAnimal =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof animalService.getAllWithPhotos
-      >
-    >
-  >[number];
-
-type AdminSignalement = {
-  id: string;
-  created_at?: string | null;
-  status?: string | null;
-  type_signalement?: string | null;
-  animal_type?: string | null;
-  island?: string | null;
-  city?: string | null;
-};
 export default function AdminDashboardPage() {
   const router = useRouter();
 
@@ -95,22 +60,22 @@ export default function AdminDashboardPage() {
   const [
     profile,
     setProfile,
-  ] = useState<AdminProfile>(null);
+  ] = useState<any>(null);
 
   const [
     users,
     setUsers,
-  ] = useState<AdminUser[]>([]);
+  ] = useState<any[]>([]);
 
   const [
     animals,
     setAnimals,
-  ] = useState<AdminAnimal[]>([]);
+  ] = useState<any[]>([]);
 
   const [
     signalements,
     setSignalements,
-  ] = useState<AdminSignalement[]>([]);
+  ] = useState<any[]>([]);
 
   const [
     analytics,
@@ -208,7 +173,7 @@ export default function AdminDashboardPage() {
         );
       }
     } catch (
-      error: unknown
+      error: any
     ) {
       console.error(
         "Erreur dashboard admin :",
@@ -216,7 +181,7 @@ export default function AdminDashboardPage() {
       );
 
       alert(
-        error instanceof Error ? error.message :
+        error?.message ||
           "Impossible de charger le dashboard."
       );
     } finally {
@@ -265,7 +230,7 @@ export default function AdminDashboardPage() {
 
       router.refresh();
     } catch (
-      error: unknown
+      error: any
     ) {
       console.error(
         "Erreur déconnexion admin :",
@@ -273,7 +238,7 @@ export default function AdminDashboardPage() {
       );
 
       alert(
-        error instanceof Error ? error.message :
+        error?.message ||
           "Impossible de vous déconnecter."
       );
 
@@ -981,11 +946,11 @@ export default function AdminDashboardPage() {
               variant="secondary"
               onClick={() =>
                 router.push(
-                  "/association/animals"
+                  "/admin/animals"
                 )
               }
             >
-              Voir les animaux
+              Gérer les animaux
             </Button>
 
             {/* SIGNALEMENTS */}
