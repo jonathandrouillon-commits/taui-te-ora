@@ -14,7 +14,9 @@ import {
   Eye,
   EyeOff,
   Pencil,
+  Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
@@ -427,6 +429,92 @@ export default function AdminAnimalsPage() {
     );
   }
 
+  async function deleteAnimal(
+    animal: Animal
+  ) {
+    const firstConfirmation =
+      window.confirm(
+        `Supprimer définitivement ${
+          animal.animal_name ||
+          "cet animal"
+        } ?`
+      );
+
+    if (!firstConfirmation) return;
+
+    const secondConfirmation =
+      window.confirm(
+        "ATTENTION : cette suppression est définitive. Confirmer une seconde fois ?"
+      );
+
+    if (!secondConfirmation) return;
+
+    try {
+      setActionId(animal.id);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw (
+          userError ||
+          new Error(
+            "Utilisateur non connecté."
+          )
+        );
+      }
+
+      const {
+        data: profile,
+        error: profileError,
+      } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (
+        String(profile?.role || "")
+          .trim()
+          .toLowerCase() !== "admin"
+      ) {
+        throw new Error(
+          "Seul un administrateur peut supprimer définitivement un animal."
+        );
+      }
+
+      const { error } = await supabase
+        .from("animals")
+        .delete()
+        .eq("id", animal.id);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadAnimals();
+    } catch (error: unknown) {
+      console.error(
+        "Erreur suppression animal :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer cet animal."
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function restoreAnimal(
     animal: Animal
   ) {
@@ -493,7 +581,21 @@ export default function AdminAnimalsPage() {
             </p>
           </div>
 
-          <div className="relative w-full lg:max-w-sm">
+          <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:items-center">
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/association/add-animal"
+                )
+              }
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#064b42] px-5 py-4 font-black text-white shadow"
+            >
+              <Plus size={19} />
+              Créer un animal
+            </button>
+
+            <div className="relative w-full lg:w-96">
             <Search
               size={19}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -509,6 +611,7 @@ export default function AdminAnimalsPage() {
               placeholder="Rechercher un animal..."
               className="w-full rounded-2xl border border-[#eadfce] bg-white py-4 pl-12 pr-4 font-bold outline-none"
             />
+            </div>
           </div>
         </div>
 
@@ -696,6 +799,18 @@ export default function AdminAnimalsPage() {
                             size={17}
                           />
                           Modifier
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={processing}
+                          onClick={() =>
+                            deleteAnimal(animal)
+                          }
+                          className="flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-3 font-black text-red-700 disabled:opacity-50"
+                        >
+                          <Trash2 size={17} />
+                          Supprimer
                         </button>
 
                         {!adopted &&

@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Save,
+  Trash2,
 } from "lucide-react";
 import {
   useParams,
@@ -95,6 +96,9 @@ export default function EditAnimalPage() {
     useState(true);
 
   const [saving, setSaving] =
+    useState(false);
+
+  const [deleting, setDeleting] =
     useState(false);
 
   const [form, setForm] =
@@ -502,6 +506,97 @@ export default function EditAnimalPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteAnimal() {
+    const firstConfirmation =
+      window.confirm(
+        `Supprimer définitivement "${
+          form.animal_name ||
+          "cet animal"
+        }" ?`
+      );
+
+    if (!firstConfirmation) return;
+
+    const secondConfirmation =
+      window.confirm(
+        "ATTENTION : cette opération est définitive. Confirmer une seconde fois ?"
+      );
+
+    if (!secondConfirmation) return;
+
+    try {
+      setDeleting(true);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw (
+          userError ||
+          new Error(
+            "Utilisateur non connecté."
+          )
+        );
+      }
+
+      const {
+        data: profile,
+        error: profileError,
+      } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (
+        String(profile?.role || "")
+          .trim()
+          .toLowerCase() !== "admin"
+      ) {
+        throw new Error(
+          "Seul un administrateur peut supprimer définitivement un animal."
+        );
+      }
+
+      const { error } = await supabase
+        .from("animals")
+        .delete()
+        .eq("id", animalId);
+
+      if (error) {
+        throw error;
+      }
+
+      alert(
+        "Animal supprimé définitivement."
+      );
+
+      router.replace(
+        "/admin/animals"
+      );
+      router.refresh();
+    } catch (error: unknown) {
+      console.error(
+        "Erreur suppression animal :",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible de supprimer cet animal."
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -1021,10 +1116,27 @@ export default function EditAnimalPage() {
           </button>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          La suppression définitive n&apos;est plus proposée ici.
-          Utilisez l&apos;archivage pour conserver l&apos;historique des
-          adoptions, conversations et données liées à l&apos;animal.
+        <div className="mt-8 rounded-3xl border border-red-200 bg-red-50 p-6">
+          <h3 className="font-black text-red-800">
+            Zone dangereuse
+          </h3>
+
+          <p className="mt-2 text-sm text-red-700">
+            La suppression définitive est réservée à l&apos;administration.
+            Si des données liées existent encore, Supabase peut refuser la suppression afin de préserver leur intégrité.
+          </p>
+
+          <button
+            type="button"
+            onClick={deleteAnimal}
+            disabled={deleting}
+            className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 py-3 font-black text-white disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            {deleting
+              ? "Suppression..."
+              : "Supprimer définitivement l'animal"}
+          </button>
         </div>
       </section>
     </main>

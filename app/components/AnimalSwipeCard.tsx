@@ -224,6 +224,44 @@ export default function AnimalSwipeCard({
     animal?.association_id ||
     "";
 
+  /*
+   * BADGE "NOUVEAU DÉPART"
+   * Un animal est considéré comme nouveau pendant
+   * les 7 jours suivant sa publication/création.
+   */
+  const animalDates =
+    animal as Animal & {
+      published_at?: string | null;
+      created_at?: string | null;
+    };
+
+  const newDepartureDate =
+    animalDates.published_at ||
+    animalDates.created_at ||
+    "";
+
+  const isNewDeparture = (() => {
+    if (!newDepartureDate) return false;
+
+    const publishedTime =
+      new Date(newDepartureDate).getTime();
+
+    if (!Number.isFinite(publishedTime)) {
+      return false;
+    }
+
+    const ageInMilliseconds =
+      Date.now() - publishedTime;
+
+    const sevenDays =
+      7 * 24 * 60 * 60 * 1000;
+
+    return (
+      ageInMilliseconds >= 0 &&
+      ageInMilliseconds <= sevenDays
+    );
+  })();
+
   const photoUrls = useMemo(() => {
     const rows = Array.isArray(
       animal?.animal_photos
@@ -759,6 +797,37 @@ export default function AnimalSwipeCard({
             "
           />
         </div>
+
+        {isNewDeparture && (
+          <div
+            className="
+              pointer-events-none
+              absolute
+              left-3
+              top-3
+              z-50
+              sm:left-4
+              sm:top-4
+            "
+            title="Nouveau départ"
+          >
+            <img
+              src="/badges/nouveau-depart.png"
+              alt="Nouveau départ"
+              draggable={false}
+              className="
+                h-[76px]
+                w-[76px]
+                object-contain
+                drop-shadow-[0_4px_10px_rgba(0,0,0,.28)]
+                sm:h-[88px]
+                sm:w-[88px]
+                md:h-[96px]
+                md:w-[96px]
+              "
+            />
+          </div>
+        )}
 
         {photoUrls.length > 1 && (
           <div
