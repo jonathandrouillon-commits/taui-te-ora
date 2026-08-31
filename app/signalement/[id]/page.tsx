@@ -15,6 +15,8 @@ import {
   supabase,
 } from "../../lib/supabase";
 
+import SignalementObservationPanel from "../../components/SignalementObservationPanel";
+
 type Signalement = {
   id: string;
   created_at?: string | null;
@@ -1262,6 +1264,12 @@ export default function SignalementDetailPage() {
             </div>
           </div>
         </section>
+
+        {isLostOrFoundAnimal && (
+          <SignalementObservationPanel
+            signalementId={signalement.id}
+          />
+        )}
 
         {isLostOrFoundAnimal && (
           <section className="mt-6 rounded-[30px] bg-white p-6 shadow">

@@ -50,11 +50,16 @@ type Signalement = {
 
   image_url?: string | null;
 
-  is_verified?: boolean | null;
 
   resolution_note?: string | null;
 
   resolved_at?: string | null;
+};
+
+type SignalementMedia = {
+  signalement_id: string;
+  file_url: string;
+  file_type?: string | null;
 };
 
 const TYPE_FILTERS = [
@@ -165,9 +170,6 @@ export default function SignalementsPublicPage() {
             situation,
             description,
             status,
-            photo_url,
-            image_url,
-            is_verified,
             resolution_note,
             resolved_at
           `)
@@ -182,12 +184,67 @@ export default function SignalementsPublicPage() {
           throw error;
         }
 
+        const rows =
+          (data || []) as Signalement[];
+
+        const ids = rows.map(
+          (item) => item.id
+        );
+
+        let medias: SignalementMedia[] = [];
+
+        if (ids.length > 0) {
+          const {
+            data: mediaData,
+            error: mediaError,
+          } = await supabase
+            .from("signalement_medias")
+            .select(`
+              signalement_id,
+              file_url,
+              file_type
+            `)
+            .in(
+              "signalement_id",
+              ids
+            );
+
+          if (mediaError) {
+            console.error(
+              "Erreur chargement médias signalements :",
+              mediaError
+            );
+          } else {
+            medias =
+              (mediaData || []) as SignalementMedia[];
+          }
+        }
+
         if (!active) {
           return;
         }
 
+        const rowsWithPhotos =
+          rows.map((item) => {
+            const media = medias.find(
+              (candidate) =>
+                candidate.signalement_id === item.id &&
+                (
+                  !candidate.file_type ||
+                  candidate.file_type.startsWith("image/")
+                )
+            );
+
+            return {
+              ...item,
+              photo_url:
+                media?.file_url || null,
+              image_url: null,
+            };
+          });
+
         setSignalements(
-          (data || []) as Signalement[]
+          rowsWithPhotos
         );
       } catch (error) {
         console.error(

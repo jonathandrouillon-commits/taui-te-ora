@@ -31,6 +31,11 @@ const ALLOWED_ROLES: PublisherRole[] = [
   "admin",
 ];
 
+type SiblingGroupOption = {
+  id: string;
+  label: string;
+};
+
 const ROLE_LABELS: Record<PublisherRole, string> = {
   association: "Association",
   refuge: "Refuge / SIGFA",
@@ -53,6 +58,7 @@ export default function AddAnimalPage() {
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<PublisherRole | null>(null);
   const [publisherName, setPublisherName] = useState("");
+  const [siblingGroups, setSiblingGroups] = useState<SiblingGroupOption[]>([]);
 
   const [animal, setAnimal] = useState({
     animal_name: "",
@@ -62,6 +68,7 @@ export default function AddAnimalPage() {
     age_label: "",
     size_label: "",
     weight_kg: "",
+    sibling_group_id: "",
     island: "",
     city: "",
     capture_location: "",
@@ -180,6 +187,49 @@ export default function AddAnimalPage() {
 
       setUserId(user.id);
       setRole(validRole);
+
+      const {
+        data: siblingRows,
+        error: siblingRowsError,
+      } = await supabase
+        .from("animals")
+        .select("animal_name, sibling_group_id, created_at")
+        .eq("owner_id", user.id)
+        .not("sibling_group_id", "is", null)
+        .order("created_at", { ascending: true });
+
+      if (siblingRowsError) {
+        console.error(
+          "Erreur chargement des fratries :",
+          siblingRowsError
+        );
+      } else {
+        const groups = new Map<string, string[]>();
+
+        for (const row of siblingRows || []) {
+          const groupId = String(row.sibling_group_id || "").trim();
+          if (!groupId) continue;
+
+          const names = groups.get(groupId) || [];
+          const animalName = String(row.animal_name || "").trim();
+
+          if (animalName && !names.includes(animalName)) {
+            names.push(animalName);
+          }
+
+          groups.set(groupId, names);
+        }
+
+        setSiblingGroups(
+          Array.from(groups.entries()).map(([id, names], index) => ({
+            id,
+            label:
+              names.length > 0
+                ? `Fratrie : ${names.slice(0, 3).join(", ")}${names.length > 3 ? "…" : ""}`
+                : `Fratrie ${index + 1}`,
+          }))
+        );
+      }
 
       const organizationName =
         profileData.organization_name ||
@@ -383,6 +433,9 @@ export default function AddAnimalPage() {
               ? Number(animal.weight_kg)
               : null,
 
+          sibling_group_id:
+            animal.sibling_group_id || null,
+
           island:
             animal.island || null,
 
@@ -483,13 +536,40 @@ export default function AddAnimalPage() {
       );
     } catch (error: unknown) {
       console.error(
-        "Erreur enregistrement animal :",
+        "Erreur enregistrement animal COMPLETE :",
         error
       );
 
+      const supabaseError =
+        error as {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+        };
+
+      const errorLines = [
+        supabaseError.code
+          ? `Code : ${supabaseError.code}`
+          : null,
+
+        supabaseError.message
+          ? `Message : ${supabaseError.message}`
+          : null,
+
+        supabaseError.details
+          ? `Détails : ${supabaseError.details}`
+          : null,
+
+        supabaseError.hint
+          ? `Aide : ${supabaseError.hint}`
+          : null,
+      ].filter(Boolean);
+
       alert(
-        error instanceof Error ? error.message :
-          "Erreur lors de l’enregistrement de l’animal."
+        errorLines.length > 0
+          ? errorLines.join("\n")
+          : "Erreur inconnue lors de l’enregistrement de l’animal."
       );
     } finally {
       setSaving(false);
@@ -567,6 +647,7 @@ export default function AddAnimalPage() {
           {step === 1 && (
             <Step1General
               animal={animal}
+              siblingGroups={siblingGroups}
               updateField={updateField}
             />
           )}

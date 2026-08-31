@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 export default function GlobalBackButton() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [editMode, setEditMode] = useState(false);
-  const [queryReady, setQueryReady] = useState(false);
+  const [editMode, setEditMode] =
+    useState(false);
+
+  const [queryReady, setQueryReady] =
+    useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
 
     setEditMode(
       params.get("edit") === "1"
@@ -58,12 +66,9 @@ export default function GlobalBackButton() {
    * Dashboards Publisher :
    * Association / bénévole / refuge / fourrière.
    *
-   * Sur PC et tablette, nous recréons le bloc gauche du header :
+   * Sur PC et tablette :
    *
-   * [ Retour ] [ logo TAUI TE ORA + nom + slogan ]
-   *
-   * Cela empêche définitivement le bouton Retour de cacher
-   * le logo ou le nom de l'application.
+   * [ Retour ] [ TAUI TE ORA + slogan ]
    */
   const isPublisherDashboard =
     pathname ===
@@ -119,11 +124,8 @@ export default function GlobalBackButton() {
   }
 
   /*
-   * VERSION DASHBOARDS ASSOCIATION / BENEVOLE / REFUGE / FOURRIERE
-   *
-   * On ajoute un fond blanc derrière la zone gauche du header afin
-   * de masquer proprement l'ancien emplacement de la marque.
-   * Aucun changement n'est fait au reste du dashboard.
+   * VERSION PC / TABLETTE
+   * ASSOCIATION / BENEVOLE / REFUGE / FOURRIERE
    */
   if (
     isPublisherDashboard &&
@@ -147,11 +149,11 @@ export default function GlobalBackButton() {
           md:flex
         "
       >
+        {/* RETOUR */}
+
         <button
           type="button"
-          onClick={
-            handleBack
-          }
+          onClick={handleBack}
           aria-label="Retour"
           className="
             flex
@@ -185,35 +187,16 @@ export default function GlobalBackButton() {
           </span>
         </button>
 
+        {/* MARQUE TAUI TE ORA */}
+
         <div
           className="
-            ml-5
+            ml-6
             flex
-            min-w-[245px]
+            min-w-[190px]
             items-center
-            gap-3
           "
         >
-          <div
-            className="
-              relative
-              h-[58px]
-              w-[58px]
-              shrink-0
-            "
-          >
-            <Image
-              src="/logo.png"
-              alt="Logo TAUI TE ORA"
-              fill
-              priority
-              sizes="58px"
-              className="
-                object-contain
-              "
-            />
-          </div>
-
           <div
             className="
               min-w-0
@@ -255,8 +238,8 @@ export default function GlobalBackButton() {
 
   /*
    * VERSION MOBILE DES DASHBOARDS PUBLISHER
-   * Le logo reste géré par le header existant.
-   * On garde seulement un petit bouton Retour.
+   *
+   * On garde seulement le bouton Retour.
    */
   if (
     isPublisherDashboard &&
@@ -301,6 +284,10 @@ export default function GlobalBackButton() {
     );
   }
 
+  /*
+   * AUTRES PAGES
+   */
+
   return (
     <>
       {isAdminPage &&
@@ -342,6 +329,7 @@ export default function GlobalBackButton() {
           shadow-md
           backdrop-blur-md
           transition
+
           hover:bg-white
           active:scale-[0.96]
 

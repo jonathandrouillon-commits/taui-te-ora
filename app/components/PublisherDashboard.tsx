@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -12,6 +12,7 @@ export type PublisherRole =
   | "association"
   | "refuge"
   | "fourriere"
+  | "sigfa"
   | "benevole";
 
 type Profile = {
@@ -91,6 +92,7 @@ const ROLE_LABELS: Record<PublisherRole, string> = {
   association: "Association",
   refuge: "Refuge / SIGFA",
   fourriere: "Fourrière",
+  sigfa: "SIGFA",
   benevole: "Bénévole indépendant",
 };
 
@@ -108,6 +110,23 @@ function getEditAnimalPath(
 ) {
   return `/association/edit-animal/${animalId}`;
 }
+
+type DashboardSectionKey =
+  | "stats"
+  | "animals"
+  | "adoptions"
+  | "messages"
+  | "help"
+  | "support";
+
+const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = {
+  stats: true,
+  animals: true,
+  adoptions: true,
+  messages: true,
+  help: true,
+  support: true,
+};
 
 type PublisherDashboardProps = {
   expectedRole: PublisherRole;
@@ -127,24 +146,78 @@ export default function PublisherDashboard({
   const [actionId, setActionId] =
     useState<string | null>(null);
 
+  const [sectionVisibility, setSectionVisibility] = useState<
+    Record<DashboardSectionKey, boolean>
+  >(DEFAULT_SECTION_VISIBILITY);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(
+        `taui-publisher-dashboard-sections-${expectedRole}`
+      );
+
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved) as Partial<
+        Record<DashboardSectionKey, boolean>
+      >;
+
+      setSectionVisibility({
+        ...DEFAULT_SECTION_VISIBILITY,
+        ...parsed,
+      });
+    } catch (error) {
+      console.warn("Impossible de charger l’affichage du dashboard :", error);
+    }
+  }, [expectedRole]);
+
+  function setSectionVisible(
+    key: DashboardSectionKey,
+    visible: boolean
+  ) {
+    setSectionVisibility((current) => {
+      const next = { ...current, [key]: visible };
+
+      try {
+        window.localStorage.setItem(
+          `taui-publisher-dashboard-sections-${expectedRole}`,
+          JSON.stringify(next)
+        );
+      } catch (error) {
+        console.warn("Impossible de mémoriser l’affichage du dashboard :", error);
+      }
+
+      return next;
+    });
+  }
+
+  function setAllSections(visible: boolean) {
+    const next = Object.fromEntries(
+      Object.keys(DEFAULT_SECTION_VISIBILITY).map((key) => [key, visible])
+    ) as Record<DashboardSectionKey, boolean>;
+
+    setSectionVisibility(next);
+
+    try {
+      window.localStorage.setItem(
+        `taui-publisher-dashboard-sections-${expectedRole}`,
+        JSON.stringify(next)
+      );
+    } catch (error) {
+      console.warn("Impossible de mémoriser l’affichage du dashboard :", error);
+    }
+  }
+
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
 
       const {
-        data: sessionData,
-        error: sessionError,
-      } = await supabase.auth.getSession();
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (sessionError) {
-        console.error(
-          "Erreur récupération session :",
-          sessionError
-        );
-      }
-
-      const user =
-        sessionData.session?.user;
+      if (userError) throw userError;
 
       if (!user) {
         router.replace(
@@ -289,10 +362,7 @@ export default function PublisherDashboard({
         )
       ) as string[];
 
-      let requesterProfiles:
-        NonNullable<
-          AdoptionRequest["requester"]
-        >[] = [];
+      let requesterProfiles: any[] = [];
 
       if (requesterIds.length > 0) {
         const {
@@ -407,14 +477,14 @@ export default function PublisherDashboard({
 
       router.replace("/login");
       router.refresh();
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error(
         "Erreur déconnexion :",
         error
       );
 
       alert(
-        error instanceof Error ? error.message :
+        error?.message ||
           "Impossible de se déconnecter."
       );
     }
@@ -422,10 +492,9 @@ export default function PublisherDashboard({
 
 
   async function archiveAnimal(animalId: string) {
-    const confirmed =
-      window.confirm(
-        "Retirer cet animal des animaux visibles ? Sa fiche et son historique seront conservés."
-      );
+    const confirmed = window.confirm(
+      "Retirer cet animal de l’adoption ? Sa fiche, ses photos, ses vidéos et son historique seront conservés."
+    );
 
     if (!confirmed) return;
 
@@ -434,30 +503,55 @@ export default function PublisherDashboard({
 
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (userError) throw userError;
+      if (!user) {
+        throw new Error("Utilisateur non connecté.");
+      }
 
-      const { error } = await supabase
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      let query = supabase
         .from("animals")
         .update({
           is_published: false,
           status: "archive",
         })
-        .eq("id", animalId)
-        .eq("owner_id", user.id);
+        .eq("id", animalId);
+
+      // Une association, un refuge, une fourrière ou un bénévole
+      // ne peut retirer que ses propres animaux.
+      // Un administrateur peut retirer n’importe quel animal.
+      if (String(profile?.role || "").trim().toLowerCase() !== "admin") {
+        query = query.eq("owner_id", user.id);
+      }
+
+      const { data: updatedAnimal, error } = await query
+        .select("id, is_published, status")
+        .maybeSingle();
 
       if (error) throw error;
 
+      if (!updatedAnimal) {
+        throw new Error(
+          "Impossible de retirer cet animal : vous n’êtes pas son propriétaire ou vous n’avez pas les droits nécessaires."
+        );
+      }
+
       await loadDashboard();
-    } catch (error: unknown) {
-      console.error(
-        "Erreur retrait animal :",
-        error
-      );
+    } catch (error: any) {
+      console.error("Erreur retrait animal :", error);
       alert(
-        error instanceof Error ? error.message :
-          "Impossible de retirer cet animal."
+        error?.message ||
+          "Impossible de retirer cet animal de l’adoption."
       );
     } finally {
       setActionId(null);
@@ -493,77 +587,81 @@ export default function PublisherDashboard({
     try {
       setActionId(request.id);
 
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user) {
+        throw new Error(
+          "Utilisateur non connecté."
+        );
+      }
+
+      const {
+        error: requestError,
+      } = await supabase
+        .from("adoption_requests")
+        .update({
+          status: nextStatus,
+        })
+        .eq(
+          "id",
+          request.id
+        )
+        .eq(
+          "owner_id",
+          user.id
+        );
+
+      if (requestError) {
+        throw requestError;
+      }
+
       /*
-       * L'acceptation définitive passe par une transaction
-       * Supabase atomique via finalize_adoption().
+       * Lorsqu'une adoption est validée,
+       * on marque aussi l'animal comme adopté.
        */
-      if (nextStatus === "accepted") {
+      if (
+        nextStatus === "accepted" &&
+        request.animal_id
+      ) {
         const {
-          error: finalizeError,
-        } =
-          await supabase.rpc(
-            "finalize_adoption",
-            {
-              p_request_id: request.id,
-            }
+          error: animalError,
+        } = await supabase
+          .from("animals")
+          .update({
+            is_adopted: true,
+            is_published: false,
+            status: "adopted",
+          })
+          .eq(
+            "id",
+            request.animal_id
+          )
+          .eq(
+            "owner_id",
+            user.id
           );
 
-        if (finalizeError) {
-          throw finalizeError;
-        }
-      } else {
-        /*
-         * Rencontre / refus :
-         * mise à jour classique protégée par RLS
-         * et protect_adoption_request_fields().
-         */
-        const {
-          data: { user },
-          error: userError,
-        } =
-          await supabase.auth.getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          throw new Error(
-            "Utilisateur non connecté."
-          );
-        }
-
-        const {
-          error: requestError,
-        } =
-          await supabase
-            .from("adoption_requests")
-            .update({
-              status: nextStatus,
-            })
-            .eq(
-              "id",
-              request.id
-            )
-            .eq(
-              "owner_id",
-              user.id
-            );
-
-        if (requestError) {
-          throw requestError;
+        if (animalError) {
+          throw animalError;
         }
       }
 
       await loadDashboard();
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error(
         "Erreur changement statut adoption :",
         error
       );
 
       alert(
-        error instanceof Error ? error.message :
+        error?.message ||
           "Impossible de modifier le statut de cette demande."
       );
     } finally {
@@ -597,22 +695,6 @@ export default function PublisherDashboard({
     }
 
     return counts;
-  }, [data?.adoptionRequests]);
-
-  const adoptionRequestGroups = useMemo(() => {
-    const groups = new Map<string, AdoptionRequest[]>();
-
-    for (const request of data?.adoptionRequests || []) {
-      const key = request.animal_id || `request-${request.id}`;
-      const current = groups.get(key) || [];
-      current.push(request);
-      groups.set(key, current);
-    }
-
-    return Array.from(groups, ([animalId, requests]) => ({
-      animalId,
-      requests,
-    }));
   }, [data?.adoptionRequests]);
 
   if (loading) {
@@ -751,6 +833,39 @@ export default function PublisherDashboard({
           </div>
         </header>
 
+        <section className="mt-6 rounded-[26px] bg-white p-4 shadow-md sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                Affichage du dashboard
+              </p>
+              <h2 className="mt-1 text-xl font-black">Afficher par catégorie</h2>
+              <p className="mt-1 text-sm text-[#6f5a47]">
+                Masquez les détails inutiles. Vos choix sont mémorisés sur cet appareil.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setAllSections(true)} className="rounded-full bg-[#064b42] px-4 py-2 text-xs font-black text-white">
+                Tout afficher
+              </button>
+              <button type="button" onClick={() => setAllSections(false)} className="rounded-full border border-[#064b42] bg-white px-4 py-2 text-xs font-black text-[#064b42]">
+                Tout masquer
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <SectionToggle label="Statistiques" icon="📊" active={sectionVisibility.stats} onClick={() => setSectionVisible("stats", !sectionVisibility.stats)} />
+            <SectionToggle label="Mes animaux" icon="🐾" active={sectionVisibility.animals} onClick={() => setSectionVisible("animals", !sectionVisibility.animals)} />
+            <SectionToggle label="Adoptions" icon="📩" active={sectionVisibility.adoptions} onClick={() => setSectionVisible("adoptions", !sectionVisibility.adoptions)} />
+            <SectionToggle label="Messages" icon="💬" active={sectionVisibility.messages} onClick={() => setSectionVisible("messages", !sectionVisibility.messages)} />
+            <SectionToggle label="Réseau d’aide" icon="🤝" active={sectionVisibility.help} onClick={() => setSectionVisible("help", !sectionVisibility.help)} />
+            <SectionToggle label="Assistance" icon="🛟" active={sectionVisibility.support} onClick={() => setSectionVisible("support", !sectionVisibility.support)} />
+          </div>
+        </section>
+
+        {sectionVisibility.stats && (
         <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Stat label="Animaux" value={data.animals.length} icon="🐾" />
           <Stat label="Publiés" value={published} icon="✅" />
@@ -761,7 +876,9 @@ export default function PublisherDashboard({
             <Stat label="Messages" value={data.conversations.length} icon="💬" />
           </Link>
         </div>
+        )}
 
+        {sectionVisibility.animals && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
@@ -879,7 +996,9 @@ export default function PublisherDashboard({
             </div>
           )}
         </section>
+        )}
 
+        {sectionVisibility.adoptions && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <h2 className="text-2xl font-black">
             Demandes d&apos;adoption
@@ -889,49 +1008,13 @@ export default function PublisherDashboard({
             Retrouvez l&apos;adoptant, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
           </p>
 
-          <div className="mt-5 space-y-6">
+          <div className="mt-5 space-y-4">
             {data.adoptionRequests.length === 0 ? (
               <div className="rounded-3xl bg-[#f8f4ec] p-6 text-center">
                 Aucune demande pour le moment.
               </div>
             ) : (
-              adoptionRequestGroups.map((group) => {
-                const featuredRequest = group.requests[0];
-                const featuredAnimal = featuredRequest.animals;
-                const featuredPhoto = featuredAnimal
-                  ? getCoverPhoto(featuredAnimal)
-                  : "";
-
-                return (
-                  <article
-                    key={group.animalId}
-                    className="rounded-[28px] border border-[#eadfce] bg-[#f8f4ec] p-4 shadow-sm sm:p-5"
-                  >
-                    <div className="mx-auto max-w-[260px] overflow-hidden rounded-[24px] bg-[#eadfce] shadow-sm">
-                      <div className="relative aspect-square">
-                        {featuredPhoto ? (
-                          <img
-                            src={featuredPhoto}
-                            alt={featuredAnimal?.animal_name || "Animal"}
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-6xl">🐾</div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                          <h3 className="text-2xl font-black">
-                            {featuredAnimal?.animal_name || "Animal"}
-                          </h3>
-                          <p className="mt-1 text-sm font-bold text-white/85">
-                            {group.requests.length} demande{group.requests.length > 1 ? "s" : ""} d&apos;adoption
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      {group.requests.map((request) => {
+              data.adoptionRequests.map((request) => {
                 const conversation =
                   data.conversations.find(
                     (item) =>
@@ -945,9 +1028,12 @@ export default function PublisherDashboard({
                   }`.trim() ||
                   "Adoptant";
 
-                const animalPhoto = request.animals
-                  ? getCoverPhoto(request.animals)
-                  : "";
+                const animalPhoto =
+                  request.animals
+                    ? getCoverPhoto(
+                        request.animals
+                      )
+                    : "";
 
                 const currentStatus =
                   String(
@@ -968,41 +1054,17 @@ export default function PublisherDashboard({
                     "cancelled";
 
                 return (
-                  <details
+                  <article
                     key={request.id}
                     className="
-                      group
-                      overflow-hidden
-                      rounded-[24px]
+                      rounded-[28px]
                       border
                       border-[#eadfce]
                       bg-[#f8f4ec]
-                      shadow-sm
-                      open:col-span-full
-                      open:rounded-[28px]
+                      p-4
+                      sm:p-5
                     "
                   >
-                    <summary className="flex cursor-pointer list-none items-center gap-3 bg-white p-3 marker:hidden sm:p-4">
-                      {request.requester?.avatar_url ? (
-                        <img
-                          src={request.requester.avatar_url}
-                          alt={requesterName}
-                          className="h-12 w-12 shrink-0 rounded-full object-cover shadow-sm"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f4eee3] text-xl">👤</div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-black text-[#2f241c]">{requesterName}</p>
-                        <p className="mt-0.5 text-xs font-bold text-[#6f5a47]">{getRequestStatusLabel(currentStatus)}</p>
-                      </div>
-                      <span className="shrink-0 rounded-full bg-[#e8f5f1] px-3 py-1.5 text-sm font-black text-[#064b42]">
-                        ❤️ {typeof request.match_score === "number" ? `${request.match_score}%` : "—"}
-                      </span>
-                      <span className="text-lg font-black text-[#9c7b54] transition group-open:rotate-180">⌄</span>
-                    </summary>
-
-                    <div className="border-t border-[#eadfce] p-4 sm:p-5">
                     <div
                       className="
                         grid
@@ -1433,63 +1495,45 @@ export default function PublisherDashboard({
                         </div>
                       </div>
                     )}
-                    </div>
-                  </details>
-                );
-                      })}
-                    </div>
                   </article>
                 );
               })
             )}
           </div>
         </section>
+        )}
 
-        <div className="mt-7">
-          <DashboardMessages />
-        </div>
-
-        {/* =====================================================
-            RESEAU D'AIDE / SOS
-            Un seul bloc commun à Association, Refuge,
-            Fourrière, SIGFA et Bénévole.
-        ====================================================== */}
-
-        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
-                Entraide
-              </p>
-
-              <h2 className="mt-1 text-2xl font-black">
-                🤝 Réseau d’aide
-              </h2>
-
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-[#6f5a47]">
-                Consultez les personnes disponibles par île, commune et type d’aide,
-                et accédez aux SOS du réseau TAUI TE ORA.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/reseau-aide"
-                className="rounded-full bg-[#064b42] px-5 py-2.5 text-sm font-black text-white shadow transition hover:bg-[#08695d]"
-              >
-                Voir le réseau d’aide
-              </Link>
-
-              <Link
-                href="/sos-aide"
-                className="rounded-full bg-[#df8995] px-5 py-2.5 text-sm font-black text-white shadow transition hover:bg-[#d87584]"
-              >
-                🚨 SOS
-              </Link>
-            </div>
+        {sectionVisibility.messages && (
+          <div className="mt-7">
+            <DashboardMessages />
           </div>
-        </section>
+        )}
 
+        {sectionVisibility.help && (
+          <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">
+                  Entraide
+                </p>
+                <h2 className="mt-1 text-2xl font-black">🤝 Réseau d’aide</h2>
+                <p className="mt-1 text-sm text-[#6f5a47]">
+                  Consultez le réseau d’entraide et les SOS actifs.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/reseau-aide" className="rounded-full bg-[#064b42] px-5 py-2.5 text-sm font-black text-white">
+                  Voir le réseau
+                </Link>
+                <Link href="/sos-aide" className="rounded-full bg-[#df8995] px-5 py-2.5 text-sm font-black text-white">
+                  🚨 SOS
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {sectionVisibility.support && (
         <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1502,7 +1546,7 @@ export default function PublisherDashboard({
               </h2>
 
               <p className="mt-1 text-sm text-[#6f5a47]">
-                Une erreur, un bug ou un problème avec votre compte ? Contactez directement l&apos;administration.
+                Une erreur, un bug ou un problème avec votre compte ? Contactez directement l'administration.
               </p>
             </div>
 
@@ -1511,6 +1555,7 @@ export default function PublisherDashboard({
             </div>
           </div>
         </section>
+        )}
       </section>
     </main>
   );
@@ -1530,6 +1575,8 @@ function getPublisherDestination(
     case "fourriere":
       return "/fourriere/dashboard";
 
+    case "sigfa":
+      return "/sigfa/dashboard";
 
     case "benevole":
       return "/benevole/dashboard";
@@ -1600,6 +1647,33 @@ function getCoverPhoto(animal: Animal) {
       )[0];
 
   return cover?.photo_url || "";
+}
+
+function SectionToggle({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full border px-4 py-2 text-xs font-black transition ${
+        active
+          ? "border-[#064b42] bg-[#e8f5f1] text-[#064b42]"
+          : "border-[#ded6ce] bg-[#f8f4ec] text-[#80766e]"
+      }`}
+    >
+      {icon} {label} {active ? "▲" : "▼"}
+    </button>
+  );
 }
 
 function Stat({

@@ -12,6 +12,9 @@ import {
 import {
   Building2,
   Camera,
+  ClipboardCheck,
+  GripVertical,
+  Plus,
   CheckCircle2,
   LogOut,
   Save,
@@ -63,6 +66,20 @@ type ProfileForm = {
   postal_code: string;
   organization_name: string;
 };
+
+type AdoptionConditionDraft = {
+  id?: string;
+  label: string;
+};
+
+const DEFAULT_ADOPTION_CONDITIONS: AdoptionConditionDraft[] = [
+  { label: "Je m’engage à assurer les soins vétérinaires nécessaires à l’animal." },
+  { label: "Je m’engage à ne pas céder, vendre ou abandonner l’animal à un tiers." },
+  { label: "Si je ne peux plus garder l’animal, je contacte en priorité la structure qui me l’a confié." },
+  { label: "J’accepte un suivi post-adoption lorsque la structure le juge nécessaire." },
+  { label: "Je m’engage à respecter les obligations de stérilisation, d’identification et de vaccination prévues pour l’animal." },
+  { label: "Je reconnais avoir pris connaissance de l’état de santé et des besoins connus de l’animal." },
+];
 
 const EMPTY_FORM: ProfileForm = {
   first_name: "",
@@ -176,12 +193,16 @@ export default function ProfilePage() {
   const [isActive, setIsActive] = useState(true);
 
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
+  const [adoptionConditions, setAdoptionConditions] = useState<AdoptionConditionDraft[]>([]);
+  const [conditionsSaving, setConditionsSaving] = useState(false);
+  const [conditionsSaved, setConditionsSaved] = useState(false);
 
   const isStructure = useMemo(
     () =>
       role === "association" ||
       role === "refuge" ||
-      role === "fourriere",
+      role === "fourriere" ||
+      role === "benevole",
     [role]
   );
 
@@ -248,6 +269,38 @@ export default function ProfilePage() {
         postal_code: profile.postal_code || "",
         organization_name: profile.organization_name || "",
       });
+
+      const normalizedRole = normalizeRole(profile.role);
+      const publisherRole =
+        normalizedRole === "association" ||
+        normalizedRole === "refuge" ||
+        normalizedRole === "fourriere" ||
+        normalizedRole === "benevole";
+
+      if (publisherRole) {
+        const { data: conditionRows, error: conditionError } = await supabase
+          .from("adoption_conditions")
+          .select("id, label, sort_order")
+          .eq("owner_id", profile.id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+
+        if (conditionError) throw conditionError;
+
+        const loadedConditions = (conditionRows || []).map((row) => ({
+          id: row.id,
+          label: row.label || "",
+        }));
+
+        setAdoptionConditions(
+          loadedConditions.length > 0
+            ? loadedConditions
+            : DEFAULT_ADOPTION_CONDITIONS.map((item) => ({ ...item }))
+        );
+      } else {
+        setAdoptionConditions([]);
+      }
     } catch (error: unknown) {
       console.error("Erreur chargement profil :", error);
 
@@ -415,6 +468,94 @@ export default function ProfilePage() {
           ? error.message
           : "Impossible de se déconnecter."
       );
+    }
+  }
+
+  function updateCondition(index: number, value: string) {
+    setConditionsSaved(false);
+    setAdoptionConditions((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, label: value } : item
+      )
+    );
+  }
+
+  function addCondition() {
+    setConditionsSaved(false);
+    setAdoptionConditions((previous) => [
+      ...previous,
+      { label: "" },
+    ]);
+  }
+
+  function removeCondition(index: number) {
+    setConditionsSaved(false);
+    setAdoptionConditions((previous) =>
+      previous.filter((_, itemIndex) => itemIndex !== index)
+    );
+  }
+
+  function moveCondition(index: number, direction: -1 | 1) {
+    setConditionsSaved(false);
+    setAdoptionConditions((previous) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= previous.length) return previous;
+
+      const next = [...previous];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  }
+
+  async function saveAdoptionConditions() {
+    if (!profileId || !isStructure || conditionsSaving) return;
+
+    const cleaned = adoptionConditions
+      .map((item) => item.label.trim())
+      .filter(Boolean);
+
+    if (cleaned.length === 0) {
+      alert("Ajoutez au moins une condition d’adoption.");
+      return;
+    }
+
+    try {
+      setConditionsSaving(true);
+      setConditionsSaved(false);
+
+      const { error: deleteError } = await supabase
+        .from("adoption_conditions")
+        .delete()
+        .eq("owner_id", profileId);
+
+      if (deleteError) throw deleteError;
+
+      const { error: insertError } = await supabase
+        .from("adoption_conditions")
+        .insert(
+          cleaned.map((label, index) => ({
+            owner_id: profileId,
+            label,
+            sort_order: index,
+            is_active: true,
+          }))
+        );
+
+      if (insertError) throw insertError;
+
+      setAdoptionConditions(cleaned.map((label) => ({ label })));
+      setConditionsSaved(true);
+      window.setTimeout(() => setConditionsSaved(false), 4000);
+    } catch (error: unknown) {
+      console.error("Erreur sauvegarde conditions d’adoption :", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible d’enregistrer les conditions d’adoption."
+      );
+    } finally {
+      setConditionsSaving(false);
     }
   }
 
@@ -620,6 +761,105 @@ export default function ProfilePage() {
                     updateField("organization_name", value)
                   }
                 />
+              </section>
+            )}
+
+            {isStructure && (
+              <section
+                id="adoption-conditions"
+                className="mt-8 rounded-[28px] border border-[#eadfce] bg-[#fffaf7] p-5 sm:p-6"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <ClipboardCheck size={26} className="mt-1 text-[#c76d7b]" />
+                    <div>
+                      <h2 className="text-2xl font-black text-[#064b42]">
+                        Conditions d&apos;adoption
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f665f]">
+                        Elles seront visibles sur votre profil. Avant d&apos;envoyer une demande, l&apos;adoptant devra toutes les cocher puis signer en ligne.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addCondition}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#df8995] bg-white px-5 py-3 font-black text-[#b95f70]"
+                  >
+                    <Plus size={18} />
+                    Ajouter
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  {adoptionConditions.map((condition, index) => (
+                    <div
+                      key={`${condition.id || "new"}-${index}`}
+                      className="rounded-[20px] border border-[#eadfce] bg-white p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <GripVertical className="mt-3 shrink-0 text-[#b9aa9c]" size={20} />
+
+                        <textarea
+                          rows={3}
+                          value={condition.label}
+                          onChange={(event) => updateCondition(index, event.target.value)}
+                          placeholder={`Condition ${index + 1}`}
+                          className="min-h-[92px] flex-1 resize-y rounded-[16px] border border-[#e5d8cd] bg-[#fffaf7] px-4 py-3 outline-none focus:border-[#df8995]"
+                        />
+
+                        <div className="flex shrink-0 flex-col gap-2">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveCondition(index, -1)}
+                            className="rounded-xl bg-[#f8f4ec] px-3 py-2 font-black disabled:opacity-30"
+                            aria-label="Monter la condition"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === adoptionConditions.length - 1}
+                            onClick={() => moveCondition(index, 1)}
+                            className="rounded-xl bg-[#f8f4ec] px-3 py-2 font-black disabled:opacity-30"
+                            aria-label="Descendre la condition"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCondition(index)}
+                            className="rounded-xl bg-red-50 px-3 py-2 font-black text-red-600"
+                            aria-label="Supprimer la condition"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    onClick={saveAdoptionConditions}
+                    disabled={conditionsSaving}
+                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#df8995] px-6 py-3.5 font-black text-white shadow disabled:opacity-60"
+                  >
+                    <Save size={18} />
+                    {conditionsSaving ? "Enregistrement..." : "Enregistrer les conditions"}
+                  </button>
+
+                  {conditionsSaved && (
+                    <div className="flex items-center gap-2 font-black text-green-700">
+                      <CheckCircle2 size={20} />
+                      Conditions enregistrées
+                    </div>
+                  )}
+                </div>
               </section>
             )}
 

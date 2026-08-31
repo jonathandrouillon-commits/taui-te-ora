@@ -69,6 +69,7 @@ export type Animal = {
   microchipped?: boolean | null;
 
   owner_id?: string | null;
+  sibling_group_id?: string | null;
 
   compatible_chiens?: string | null;
   compatible_chats?: string | null;

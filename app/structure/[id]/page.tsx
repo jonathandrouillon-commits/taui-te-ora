@@ -1,62 +1,15 @@
-"use client";
-
-type StructureProfile = {
-  id: string;
-  role?: string | null;
-  organization_name?: string | null;
-  avatar_url?: string | null;
-
-  island?: string | null;
-  ile?: string | null;
-
-  city?: string | null;
-  commune?: string | null;
-
-  first_name?: string | null;
-  last_name?: string | null;
-
-  description?: string | null;
-  bio?: string | null;
-  about?: string | null;
-};
-type StructureAnimalPhoto = {
-  id?: string;
-  photo_url?: string | null;
-  is_cover?: boolean | null;
-  sort_order?: number | null;
-};
-
-type StructureAnimal = {
-  id: string;
-
-  animal_name?: string | null;
-  nom?: string | null;
-
-  animal_type?: string | null;
-  type?: string | null;
-
-  age_label?: string | null;
-  age?: string | null;
-
-  sex?: string | null;
-  sexe?: string | null;
-
-  breed?: string | null;
-  size_label?: string | null;
-
-  city?: string | null;
-  island?: string | null;
-
-  status?: string | null;
-  photo_url?: string | null;
-
-  is_published?: boolean | null;
-  is_adopted?: boolean | null;
-
-  animal_photos?: StructureAnimalPhoto[] | null;
-};
+﻿"use client";
 
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  Heart,
+  MapPin,
+  PawPrint,
+  ShieldCheck,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -69,118 +22,434 @@ import {
 } from "next/navigation";
 
 import { supabase } from "../../lib/supabase";
+import StructureAdoptionConditions from "../../components/structure/StructureAdoptionConditions";
+
+type StructureProfile = {
+  id: string;
+  role?: string | null;
+  organization_name?: string | null;
+  avatar_url?: string | null;
+  island?: string | null;
+  ile?: string | null;
+  city?: string | null;
+  commune?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  description?: string | null;
+  bio?: string | null;
+  about?: string | null;
+  is_verified?: boolean | null;
+  approval_status?: string | null;
+  is_active?: boolean | null;
+};
+
+type StructureAnimalPhoto = {
+  id?: string;
+  photo_url?: string | null;
+  is_cover?: boolean | null;
+  sort_order?: number | null;
+};
+
+type StructureAnimal = {
+  id: string;
+  animal_name?: string | null;
+  nom?: string | null;
+  animal_type?: string | null;
+  type?: string | null;
+  age_label?: string | null;
+  age?: string | number | null;
+  sex?: string | null;
+  sexe?: string | null;
+  breed?: string | null;
+  race?: string | null;
+  size_label?: string | null;
+  taille?: string | null;
+  city?: string | null;
+  commune?: string | null;
+  island?: string | null;
+  ile?: string | null;
+  status?: string | null;
+  photo_url?: string | null;
+  is_published?: boolean | null;
+  is_adopted?: boolean | null;
+  adopted?: boolean | null;
+  created_at?: string | null;
+  animal_photos?: StructureAnimalPhoto[] | null;
+};
+
+function normalizeRole(
+  value: string | null | undefined
+) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function roleLabel(
+  value: string | null | undefined
+) {
+  const role = normalizeRole(value);
+
+  if (role === "association") {
+    return "Association";
+  }
+
+  if (role === "refuge") {
+    return "Refuge / SIGFA";
+  }
+
+  if (role === "fourriere") {
+    return "Fourrière";
+  }
+
+  if (role === "benevole") {
+    return "Bénévole indépendant";
+  }
+
+  if (
+    role === "admin" ||
+    role === "administrateur"
+  ) {
+    return "Administration";
+  }
+
+  return "Acteur animalier";
+}
+
+function getAnimalName(
+  animal: StructureAnimal
+) {
+  return (
+    animal.animal_name ||
+    animal.nom ||
+    "Animal"
+  );
+}
+
+function getAnimalType(
+  animal: StructureAnimal
+) {
+  return (
+    animal.animal_type ||
+    animal.type ||
+    "Animal"
+  );
+}
+
+function getAnimalSex(
+  animal: StructureAnimal
+) {
+  return (
+    animal.sex ||
+    animal.sexe ||
+    "Sexe non renseigné"
+  );
+}
+
+function getAnimalBreed(
+  animal: StructureAnimal
+) {
+  return (
+    animal.breed ||
+    animal.race ||
+    "Race non renseignée"
+  );
+}
+
+function getAnimalAge(
+  animal: StructureAnimal
+) {
+  if (animal.age_label) {
+    return animal.age_label;
+  }
+
+  if (
+    animal.age === null ||
+    animal.age === undefined ||
+    animal.age === ""
+  ) {
+    return "Âge non renseigné";
+  }
+
+  return String(animal.age);
+}
+
+function getAnimalLocation(
+  animal: StructureAnimal
+) {
+  const city =
+    animal.city ||
+    animal.commune ||
+    "";
+
+  const island =
+    animal.island ||
+    animal.ile ||
+    "";
+
+  return (
+    [city, island]
+      .filter(Boolean)
+      .join(" · ") ||
+    "Localisation non renseignée"
+  );
+}
+
+function isAnimalPublished(
+  animal: StructureAnimal
+) {
+  return animal.is_published !== false;
+}
+
+function isAnimalAdopted(
+  animal: StructureAnimal
+) {
+  if (
+    animal.is_adopted === true ||
+    animal.adopted === true
+  ) {
+    return true;
+  }
+
+  const status = String(
+    animal.status || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return (
+    status === "adopte" ||
+    status === "adopté" ||
+    status === "adoptee" ||
+    status === "adoptée"
+  );
+}
+
+function getAnimalCover(
+  animal: StructureAnimal
+) {
+  const photos =
+    Array.isArray(animal.animal_photos)
+      ? [...animal.animal_photos]
+      : [];
+
+  const cover = photos.find(
+    (photo) =>
+      photo.is_cover &&
+      photo.photo_url
+  );
+
+  if (cover?.photo_url) {
+    return cover.photo_url;
+  }
+
+  photos.sort(
+    (a, b) =>
+      (a.sort_order ?? 9999) -
+      (b.sort_order ?? 9999)
+  );
+
+  const firstPhoto = photos.find(
+    (photo) =>
+      Boolean(photo.photo_url)
+  );
+
+  return (
+    firstPhoto?.photo_url ||
+    animal.photo_url ||
+    ""
+  );
+}
 
 export default function StructurePage() {
   const params = useParams();
   const router = useRouter();
 
-  const structureId =
-    String(params.id || "");
+  const structureId = Array.isArray(
+    params.id
+  )
+    ? params.id[0]
+    : String(params.id || "");
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [
-    profile,
-    setProfile,
-  ] = useState<StructureProfile | null>(null);
+  const [profile, setProfile] =
+    useState<StructureProfile | null>(
+      null
+    );
 
-  const [
-    animals,
-    setAnimals,
-  ] = useState<StructureAnimal[]>([]);
+  const [animals, setAnimals] =
+    useState<StructureAnimal[]>([]);
 
   const [
     errorMessage,
     setErrorMessage,
   ] = useState("");
 
-  const loadStructure = useCallback(async () => {
-    try {
-      setLoading(true);
-      setErrorMessage("");
+  const loadStructure =
+    useCallback(async () => {
+      if (!structureId) {
+        setErrorMessage(
+          "Structure introuvable."
+        );
 
-      const {
-        data: profileData,
-        error: profileError,
-      } =
-        await supabase
-          .from("public_structure_profiles")
-          .select(
-            "id, role, organization_name, avatar_url, island, city, first_name, last_name"
-          )
-          .eq(
-            "id",
-            structureId
-          )
-          .single();
-
-      if (profileError) {
-        throw profileError;
+        setLoading(false);
+        return;
       }
 
-      setProfile(
-        profileData
-      );
+      try {
+        setLoading(true);
+        setErrorMessage("");
 
-      const {
-        data: animalsData,
-        error: animalsError,
-      } =
-        await supabase
+        const {
+          data: profileData,
+          error: profileError,
+        } = await supabase
+          .from("public_structure_profiles")
+          .select("*")
+          .eq("id", structureId)
+          .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (!profileData) {
+          setProfile(null);
+          setAnimals([]);
+
+          setErrorMessage(
+            "Cette structure est introuvable."
+          );
+
+          return;
+        }
+
+        const nextProfile =
+          profileData as StructureProfile;
+
+        // public_structure_profiles ne renvoie que les structures
+        // destinées à être visibles publiquement. On ne refait donc
+        // pas ici un contrôle sur approval_status/is_active, champs
+        // qui ne sont pas exposés par cette vue publique.
+        setProfile(nextProfile);
+
+        const {
+          data: animalsData,
+          error: animalsError,
+        } = await supabase
           .from("animals")
           .select(
-            "*, animal_photos (*)"
+            "*, animal_photos(*)"
           )
           .eq(
             "owner_id",
             structureId
           )
-          .eq(
-            "is_published",
-            true
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false,
-            }
-          );
+          .eq("is_published", true)
+          .order("created_at", {
+            ascending: false,
+          });
 
-      if (animalsError) {
-        throw animalsError;
+        if (animalsError) {
+          throw animalsError;
+        }
+
+        setAnimals(
+          (animalsData ||
+            []) as StructureAnimal[]
+        );
+      } catch (error: unknown) {
+        console.error(
+          "Erreur chargement structure publique :",
+          error
+        );
+
+        const message =
+          error &&
+          typeof error === "object" &&
+          "message" in error &&
+          typeof (
+            error as {
+              message?: unknown;
+            }
+          ).message === "string"
+            ? String(
+                (
+                  error as {
+                    message: string;
+                  }
+                ).message
+              )
+            : "Impossible de charger cette structure.";
+
+        setErrorMessage(message);
+        setProfile(null);
+        setAnimals([]);
+      } finally {
+        setLoading(false);
+      }
+    }, [structureId]);
+
+  useEffect(() => {
+    queueMicrotask(
+      () => void loadStructure()
+    );
+  }, [loadStructure]);
+
+  const publishedAnimals =
+    useMemo(
+      () =>
+        animals.filter(
+          isAnimalPublished
+        ),
+      [animals]
+    );
+
+  const availableAnimals =
+    useMemo(
+      () =>
+        publishedAnimals.filter(
+          (animal) =>
+            !isAnimalAdopted(animal)
+        ),
+      [publishedAnimals]
+    );
+
+  const adoptedAnimals =
+    useMemo(
+      () =>
+        publishedAnimals.filter(
+          isAnimalAdopted
+        ),
+      [publishedAnimals]
+    );
+
+  const structureName = useMemo(
+    () => {
+      if (!profile) {
+        return "Structure";
       }
 
-      setAnimals(
-        animalsData || []
-      );
-    } catch (error: unknown) {
-      console.error(
-        "Erreur structure :",
-        error
-      );
+      const fullName = [
+        profile.first_name,
+        profile.last_name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
 
-      setErrorMessage(
-        "Impossible de charger cette structure."
+      return (
+        profile.organization_name ||
+        fullName ||
+        roleLabel(profile.role)
       );
-    } finally {
-      setLoading(false);
-    }
-  }, [structureId]);
-
-  const structureName =
-    profile?.organization_name ||
-    [profile?.first_name, profile?.last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    "Structure animale";
-
-  const roleLabel =
-    formatRole(
-      profile?.role ?? undefined
-    );
+    },
+    [profile]
+  );
 
   const city =
     profile?.city ||
@@ -192,100 +461,38 @@ export default function StructurePage() {
     profile?.ile ||
     "";
 
+  const location = [
+    city,
+    island,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const description =
     profile?.description ||
     profile?.bio ||
     profile?.about ||
     "";
 
-  const logo =
-    profile?.avatar_url ||
-    "";
-
-  const dogCount =
-    useMemo(
-      () =>
-        animals.filter(
-          (animal) =>
-            isDog(
-              animal
-            )
-        ).length,
-      [animals]
-    );
-
-  const catCount =
-    useMemo(
-      () =>
-        animals.filter(
-          (animal) =>
-            isCat(
-              animal
-            )
-        ).length,
-      [animals]
-    );
-
-  const horseCount =
-    useMemo(
-      () =>
-        animals.filter(
-          (animal) =>
-            isHorse(
-              animal
-            )
-        ).length,
-      [animals]
-    );
-
-  useEffect(() => {
-    if (structureId) {
-      queueMicrotask(() => void loadStructure());
-    }
-  }, [structureId, loadStructure]);
+  /*
+   * is_verified reste ici
+   * uniquement pour le badge
+   * "Profil vérifié".
+   *
+   * La permission d'être visible
+   * publiquement est gérée plus haut
+   * par approval_status.
+   */
+  const verified =
+    profile?.is_verified === true;
 
   if (loading) {
     return (
-      <main
-        className="
-          flex
-          min-h-[100dvh]
-          items-center
-          justify-center
-          bg-[#f8f3ed]
-          px-5
-        "
-      >
-        <div
-          className="
-            rounded-[28px]
-            bg-white
-            px-8
-            py-7
-            text-center
-            shadow-xl
-          "
-        >
-          <div
-            className="
-              mx-auto
-              h-10
-              w-10
-              animate-spin
-              rounded-full
-              border-4
-              border-[#efd5d7]
-              border-t-[#df8995]
-            "
-          />
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[#f8f4ec] px-5">
+        <div className="rounded-[30px] bg-white px-8 py-8 text-center shadow-xl">
+          <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-[#eadfd8] border-t-[#064b42]" />
 
-          <p
-            className="
-              mt-4
-              font-bold
-              text-[#667568]
-            "
-          >
+          <p className="mt-4 font-black text-[#064b42]">
             Chargement de la structure...
           </p>
         </div>
@@ -293,472 +500,274 @@ export default function StructurePage() {
     );
   }
 
-  if (
-    errorMessage ||
-    !profile
-  ) {
+  if (!profile) {
     return (
-      <main
-        className="
-          flex
-          min-h-[100dvh]
-          items-center
-          justify-center
-          bg-[#f8f3ed]
-          px-5
-        "
-      >
-        <div
-          className="
-            w-full
-            max-w-md
-            rounded-[30px]
-            bg-white
-            p-8
-            text-center
-            shadow-xl
-          "
-        >
-          <div className="text-5xl">
-            🐾
-          </div>
+      <main className="min-h-[100dvh] bg-[#f8f4ec] px-5 py-10 text-[#064b42]">
+        <section className="mx-auto max-w-xl rounded-[32px] bg-white p-8 text-center shadow-xl">
+          <Building2
+            className="mx-auto text-[#df8995]"
+            size={46}
+          />
 
-          <h1
-            className="
-              mt-4
-              text-2xl
-              font-black
-              text-[#064b42]
-            "
-          >
-            Structure introuvable
+          <h1 className="mt-5 text-3xl font-black">
+            Structure non disponible
           </h1>
 
-          <p
-            className="
-              mt-2
-              text-sm
-              text-[#756d67]
-            "
-          >
-            {errorMessage}
+          <p className="mt-3 leading-7 text-[#6f665f]">
+            {errorMessage ||
+              "Cette page n'est pas disponible."}
           </p>
 
           <button
             type="button"
             onClick={() =>
-              router.push("/")
+              router.back()
             }
-            className="
-              mt-6
-              rounded-full
-              bg-[#ef8196]
-              px-6
-              py-3
-              font-black
-              text-white
-            "
+            className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#064b42] px-6 py-3.5 font-black text-white"
           >
-            Retour aux animaux
+            <ArrowLeft size={18} />
+            Retour
           </button>
-        </div>
+        </section>
       </main>
     );
   }
 
   return (
-    <main
-      className="
-        min-h-[100dvh]
-        bg-[#f8f3ed]
-        pb-12
-        text-[#443c37]
-      "
-    >
-      {/* HEADER */}
-
-      <div
-        className="
-          sticky
-          top-0
-          z-50
-          border-b
-          border-[#eadfd8]
-          bg-[#fffaf7]/90
-          px-4
-          py-3
-          backdrop-blur-xl
-        "
-      >
-        <div
-          className="
-            mx-auto
-            flex
-            max-w-5xl
-            items-center
-            justify-between
-          "
+    <main className="min-h-[100dvh] bg-[#f8f4ec] pb-28 text-[#064b42]">
+      <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
+        <button
+          type="button"
+          onClick={() =>
+            router.back()
+          }
+          className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-black shadow-sm transition hover:-translate-y-0.5"
         >
-          <button
-            type="button"
-            onClick={() =>
-              router.back()
-            }
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-full
-              bg-white
-              text-xl
-              shadow-sm
-            "
-          >
-            ‹
-          </button>
+          <ArrowLeft size={18} />
+          Retour
+        </button>
 
-          <img
-            src="/logo-taui-te-ora.png"
-            alt="Taui Te Ora"
-            className="
-              h-12
-              w-12
-              object-contain
-            "
-          />
+        <div className="overflow-hidden rounded-[36px] bg-white shadow-xl">
+          <div className="bg-gradient-to-br from-[#f7dfe3] via-[#f7eee7] to-[#e3efe8] px-6 py-9 sm:px-9 sm:py-11">
+            <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl sm:h-32 sm:w-32">
+                  {profile.avatar_url ? (
+                    <img
+                      src={
+                        profile.avatar_url
+                      }
+                      alt={
+                        structureName
+                      }
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Building2
+                      size={48}
+                      className="text-[#c9a89a]"
+                    />
+                  )}
+                </div>
 
-          <Link
-            href="/"
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-full
-              bg-white
-              text-lg
-              shadow-sm
-            "
-          >
-            🏠
-          </Link>
-        </div>
-      </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-[#c76d7b] shadow-sm">
+                      {roleLabel(
+                        profile.role
+                      )}
+                    </span>
 
-      <div
-        className="
-          mx-auto
-          max-w-5xl
-          px-4
-          pt-6
-        "
-      >
-        {/* PRESENTATION */}
+                    {verified && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#064b42] px-3 py-1.5 text-xs font-black text-white shadow-sm">
+                        <ShieldCheck
+                          size={15}
+                        />
+                        Profil vérifié
+                      </span>
+                    )}
+                  </div>
 
-        <section
-          className="
-            overflow-hidden
-            rounded-[32px]
-            bg-white
-            shadow-[0_16px_45px_rgba(70,55,45,.10)]
-          "
-        >
-          <div
-            className="
-              bg-gradient-to-br
-              from-[#f8d8dc]
-              via-[#fff4ef]
-              to-[#d9efea]
-              px-6
-              pb-7
-              pt-8
-              text-center
-            "
-          >
-            {logo ? (
-              <div
-                className="
-                  mx-auto
-                  h-28
-                  w-28
-                  overflow-hidden
-                  rounded-full
-                  border-4
-                  border-white
-                  bg-white
-                  shadow-xl
-                "
-              >
-                <img
-                  src={logo}
-                  alt={
-                    structureName
+                  <h1 className="mt-3 text-4xl font-black leading-tight text-[#064b42] sm:text-5xl">
+                    {structureName}
+                  </h1>
+
+                  {location && (
+                    <p className="mt-3 flex items-center gap-2 font-bold text-[#6f665f]">
+                      <MapPin
+                        size={18}
+                        className="text-[#df8995]"
+                      />
+
+                      {location}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 md:min-w-[340px]">
+                <StatCard
+                  value={
+                    availableAnimals.length
                   }
-                  className="
-                    h-full
-                    w-full
-                    object-cover
-                  "
+                  label="À l'adoption"
+                  icon={
+                    <PawPrint
+                      size={20}
+                    />
+                  }
+                />
+
+                <StatCard
+                  value={
+                    adoptedAnimals.length
+                  }
+                  label="Adoptés"
+                  icon={
+                    <Heart
+                      size={20}
+                    />
+                  }
+                />
+
+                <StatCard
+                  value={
+                    publishedAnimals.length
+                  }
+                  label="Animaux"
+                  icon={
+                    <CheckCircle2
+                      size={20}
+                    />
+                  }
                 />
               </div>
-            ) : (
-              <div
-                className="
-                  mx-auto
-                  flex
-                  h-28
-                  w-28
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-4
-                  border-white
-                  bg-[#ef8196]
-                  text-5xl
-                  text-white
-                  shadow-xl
-                "
-              >
-                🐾
-              </div>
-            )}
+            </div>
+          </div>
 
-            <h1
-              className="
-                mt-4
-                text-3xl
-                font-black
-                text-[#064b42]
-              "
-            >
-              {structureName}
-            </h1>
-
-            {roleLabel && (
-              <div
-                className="
-                  mt-2
-                  inline-flex
-                  rounded-full
-                  bg-white/80
-                  px-4
-                  py-2
-                  text-xs
-                  font-black
-                  text-[#df7989]
-                  shadow-sm
-                "
-              >
-                {roleLabel}
-              </div>
-            )}
-
-            {(city ||
-              island) && (
-                <p
-                  className="
-                    mt-3
-                    text-sm
-                    font-semibold
-                    text-[#6d655f]
-                  "
-                >
-                  📍{" "}
-                  {[
-                    city,
-                    island,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+          <div className="p-6 sm:p-9">
+            {description && (
+              <section className="rounded-[28px] border border-[#eee2da] bg-[#fffaf7] p-6 sm:p-7">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#df8995]">
+                  À propos
                 </p>
-              )}
-          </div>
 
-          {description && (
-            <div
-              className="
-                px-6
-                py-6
-              "
-            >
-              <h2
-                className="
-                  text-lg
-                  font-black
-                  text-[#064b42]
-                "
-              >
-                À propos
-              </h2>
+                <h2 className="mt-2 text-2xl font-black text-[#064b42]">
+                  {structureName}
+                </h2>
 
-              <p
-                className="
-                  mt-2
-                  whitespace-pre-line
-                  text-sm
-                  leading-relaxed
-                  text-[#756d67]
-                "
-              >
-                {description}
-              </p>
-            </div>
-          )}
-        </section>
+                <p className="mt-4 whitespace-pre-wrap leading-7 text-[#5f5750]">
+                  {description}
+                </p>
+              </section>
+            )}
 
-        {/* STATISTIQUES */}
+            <StructureAdoptionConditions
+              profileId={profile.id}
+            />
 
-        <section
-          className="
-            mt-5
-            grid
-            grid-cols-2
-            gap-3
-            sm:grid-cols-4
-          "
-        >
-          <StatCard
-            value={
-              animals.length
-            }
-            label="À l'adoption"
-            icon="🐾"
-          />
+            <section className="mt-10">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#df8995]">
+                    Adoption
+                  </p>
 
-          <StatCard
-            value={dogCount}
-            label="Chiens"
-            icon="🐶"
-          />
+                  <h2 className="mt-1 text-3xl font-black text-[#064b42]">
+                    Animaux à l&apos;adoption
+                  </h2>
 
-          <StatCard
-            value={catCount}
-            label="Chats"
-            icon="🐱"
-          />
+                  <p className="mt-2 text-[#6f665f]">
+                    Découvrez les animaux actuellement proposés par{" "}
+                    {structureName}.
+                  </p>
+                </div>
 
-          <StatCard
-            value={horseCount}
-            label="Chevaux"
-            icon="🐴"
-          />
-        </section>
-
-        {/* ANIMAUX */}
-
-        <section className="mt-8">
-          <div
-            className="
-              flex
-              items-end
-              justify-between
-              gap-3
-            "
-          >
-            <div>
-              <p
-                className="
-                  text-[10px]
-                  font-black
-                  uppercase
-                  tracking-[0.2em]
-                  text-[#df8995]
-                "
-              >
-                Ils attendent leur famille
-              </p>
-
-              <h2
-                className="
-                  mt-1
-                  text-2xl
-                  font-black
-                  text-[#064b42]
-                "
-              >
-                Animaux à l&apos;adoption
-              </h2>
-            </div>
-
-            <span
-              className="
-                rounded-full
-                bg-white
-                px-3
-                py-1.5
-                text-xs
-                font-black
-                text-[#6d655f]
-                shadow-sm
-              "
-            >
-              {animals.length}
-            </span>
-          </div>
-
-          {animals.length ===
-          0 ? (
-            <div
-              className="
-                mt-5
-                rounded-[28px]
-                bg-white
-                p-8
-                text-center
-                shadow-sm
-              "
-            >
-              <div className="text-5xl">
-                🐾
+                <span className="rounded-full bg-[#edf6f2] px-4 py-2 text-sm font-black text-[#064b42]">
+                  {
+                    availableAnimals.length
+                  }{" "}
+                  disponible
+                  {availableAnimals.length >
+                  1
+                    ? "s"
+                    : ""}
+                </span>
               </div>
 
-              <p
-                className="
-                  mt-3
-                  font-bold
-                  text-[#6f6862]
-                "
-              >
-                Aucun animal publié actuellement.
-              </p>
-            </div>
-          ) : (
-            <div
-              className="
-                mt-5
-                grid
-                grid-cols-2
-                gap-4
-                sm:grid-cols-3
-                lg:grid-cols-4
-              "
-            >
-              {animals.map(
-                (animal) => (
-                  <AnimalCard
-                    key={
-                      animal.id
-                    }
-                    animal={
-                      animal
-                    }
+              {availableAnimals.length ===
+              0 ? (
+                <div className="mt-6 rounded-[28px] border border-dashed border-[#ddcfc4] bg-[#fffaf7] p-8 text-center">
+                  <PawPrint
+                    className="mx-auto text-[#df8995]"
+                    size={38}
                   />
-                )
+
+                  <h3 className="mt-4 text-xl font-black text-[#064b42]">
+                    Aucun animal publié actuellement
+                  </h3>
+
+                  <p className="mt-2 text-[#6f665f]">
+                    Revenez bientôt pour
+                    découvrir de nouveaux
+                    profils.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {availableAnimals.map(
+                    (animal) => (
+                      <AnimalCard
+                        key={
+                          animal.id
+                        }
+                        animal={
+                          animal
+                        }
+                      />
+                    )
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </section>
-      </div>
+            </section>
+
+            {adoptedAnimals.length >
+              0 && (
+              <section className="mt-12 border-t border-[#eee2da] pt-10">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#df8995]">
+                    Belles histoires
+                  </p>
+
+                  <h2 className="mt-1 text-3xl font-black text-[#064b42]">
+                    Ils ont trouvé leur
+                    famille
+                  </h2>
+                </div>
+
+                <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {adoptedAnimals.map(
+                    (animal) => (
+                      <AnimalCard
+                        key={
+                          animal.id
+                        }
+                        animal={
+                          animal
+                        }
+                        adopted
+                      />
+                    )
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
-
-/* =========================================================
-   STAT
-========================================================= */
 
 function StatCard({
   value,
@@ -767,310 +776,152 @@ function StatCard({
 }: {
   value: number;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }) {
   return (
-    <div
-      className="
-        rounded-[22px]
-        bg-white
-        p-4
-        text-center
-        shadow-sm
-      "
-    >
-      <div className="text-2xl">
+    <div className="rounded-[22px] bg-white/85 p-4 text-center shadow-sm backdrop-blur">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-[#edf6f2] text-[#064b42]">
         {icon}
       </div>
 
-      <div
-        className="
-          mt-1
-          text-2xl
-          font-black
-          text-[#064b42]
-        "
-      >
+      <p className="mt-2 text-2xl font-black text-[#064b42]">
         {value}
-      </div>
+      </p>
 
-      <div
-        className="
-          mt-0.5
-          text-[10px]
-          font-bold
-          text-[#8b817a]
-        "
-      >
+      <p className="mt-1 text-xs font-black uppercase tracking-wide text-[#8c776b]">
         {label}
-      </div>
+      </p>
     </div>
   );
 }
 
-/* =========================================================
-   ANIMAL CARD
-========================================================= */
-
 function AnimalCard({
   animal,
+  adopted = false,
 }: {
   animal: StructureAnimal;
+  adopted?: boolean;
 }) {
-  const photo =
-    getAnimalPhoto(
-      animal
-    );
+  const cover =
+    getAnimalCover(animal);
 
   const name =
-    animal?.animal_name ||
-    animal?.nom ||
-    "Animal";
+    getAnimalName(animal);
 
-  const age =
-    animal?.age_label ||
-    animal?.age ||
-    "";
+  const type =
+    getAnimalType(animal);
 
   const sex =
-    animal?.sex ||
-    animal?.sexe ||
-    "";
+    getAnimalSex(animal);
+
+  const age =
+    getAnimalAge(animal);
+
+  const breed =
+    getAnimalBreed(animal);
+
+  const location =
+    getAnimalLocation(animal);
 
   return (
     <Link
-      href={`/animal/${animal.id}`}
-      className="
-        group
-        overflow-hidden
-        rounded-[24px]
-        bg-white
-        shadow-sm
-        transition
-        active:scale-[.98]
-      "
+      href={`/animal/${encodeURIComponent(
+        animal.id
+      )}`}
+      className="group overflow-hidden rounded-[28px] border border-[#eee2da] bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl"
     >
-      <div
-        className="
-          relative
-          aspect-[4/5]
-          overflow-hidden
-          bg-[#e8e2dc]
-        "
-      >
-        {photo ? (
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#f2e9e1]">
+        {cover ? (
           <img
-            src={photo}
+            src={cover}
             alt={name}
-            className="
-              h-full
-              w-full
-              object-cover
-              transition
-              duration-300
-              group-hover:scale-105
-            "
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div
-            className="
-              flex
-              h-full
-              items-center
-              justify-center
-              text-5xl
-            "
-          >
-            🐾
+          <div className="flex h-full w-full items-center justify-center">
+            <PawPrint
+              size={50}
+              className="text-[#cfb9ab]"
+            />
           </div>
         )}
 
-        <div
-          className="
-            absolute
-            inset-x-0
-            bottom-0
-            h-1/2
-            bg-gradient-to-t
-            from-black/70
-            to-transparent
-          "
-        />
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+          <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-black text-[#064b42] shadow">
+            {type}
+          </span>
 
-        <div
-          className="
-            absolute
-            inset-x-0
-            bottom-0
-            p-3
-            text-white
-          "
-        >
-          <h3
-            className="
-              truncate
-              text-lg
-              font-black
-            "
-          >
-            {name}
-          </h3>
+          {adopted && (
+            <span className="rounded-full bg-[#df8995] px-3 py-1.5 text-xs font-black text-white shadow">
+              Adopté
+            </span>
+          )}
+        </div>
+      </div>
 
-          {(age ||
-            sex) && (
-              <p
-                className="
-                  mt-0.5
-                  truncate
-                  text-[10px]
-                  font-semibold
-                  text-white/90
-                "
-              >
-                {[age, sex]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            )}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-2xl font-black text-[#064b42]">
+              {name}
+            </h3>
+
+            <p className="mt-1 text-sm font-bold text-[#8b7568]">
+              {breed}
+            </p>
+          </div>
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff0f3] text-[#df8995]">
+            <Heart size={19} />
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <SmallBadge
+            label={sex}
+          />
+
+          <SmallBadge
+            label={age}
+          />
+
+          {animal.size_label ||
+          animal.taille ? (
+            <SmallBadge
+              label={
+                animal.size_label ||
+                animal.taille ||
+                ""
+              }
+            />
+          ) : null}
+        </div>
+
+        <p className="mt-4 flex items-start gap-2 text-sm font-bold text-[#6f665f]">
+          <MapPin
+            size={16}
+            className="mt-0.5 shrink-0 text-[#df8995]"
+          />
+
+          {location}
+        </p>
+
+        <div className="mt-5 rounded-full bg-[#064b42] px-5 py-3 text-center text-sm font-black text-white transition group-hover:bg-[#0a5f53]">
+          Voir sa fiche
         </div>
       </div>
     </Link>
   );
 }
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function getAnimalPhoto(
-  animal: StructureAnimal
-) {
-  const photos =
-    Array.isArray(
-      animal?.animal_photos
-    )
-      ? animal.animal_photos
-      : [];
-
-  const cover =
-    photos.find(
-      (photo: StructureAnimalPhoto) =>
-        photo?.is_cover
-    );
-
+function SmallBadge({
+  label,
+}: {
+  label: string;
+}) {
   return (
-    cover?.photo_url ||
-    photos[0]?.photo_url ||
-    animal?.photo_url ||
-    ""
+    <span className="rounded-full bg-[#f8f4ec] px-3 py-1.5 text-xs font-black text-[#6f5a47]">
+      {label}
+    </span>
   );
-}
-
-function getAnimalType(
-  animal: StructureAnimal
-) {
-  return String(
-    animal?.animal_type ||
-      animal?.type ||
-      ""
-  )
-    .trim()
-    .toLowerCase();
-}
-
-function isDog(
-  animal: StructureAnimal
-) {
-  const type =
-    getAnimalType(
-      animal
-    );
-
-  return (
-    type.includes(
-      "chien"
-    ) ||
-    type.includes(
-      "dog"
-    )
-  );
-}
-
-function isCat(
-  animal: StructureAnimal
-) {
-  const type =
-    getAnimalType(
-      animal
-    );
-
-  return (
-    type.includes(
-      "chat"
-    ) ||
-    type.includes(
-      "cat"
-    )
-  );
-}
-
-function isHorse(
-  animal: StructureAnimal
-) {
-  const type =
-    getAnimalType(
-      animal
-    );
-
-  return (
-    type.includes(
-      "cheval"
-    ) ||
-    type.includes(
-      "horse"
-    )
-  );
-}
-
-function formatRole(
-  role?: string
-) {
-  const value =
-    String(role || "")
-      .trim()
-      .toLowerCase();
-
-  if (
-    value ===
-    "association"
-  ) {
-    return "Association";
-  }
-
-  if (
-    value ===
-      "refuge"
-  ) {
-    return "Refuge / SIGFA";
-  }
-
-  if (
-    value ===
-      "fourriere" ||
-    value ===
-      "fourrière"
-  ) {
-    return "Fourrière";
-  }
-
-  if (
-    value ===
-      "benevole" ||
-    value ===
-      "bénévole"
-  ) {
-    return "Bénévole indépendant";
-  }
-
-  return role || "";
 }

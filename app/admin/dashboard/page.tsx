@@ -44,6 +44,28 @@ import {
   supabase,
 } from "../../lib/supabase";
 
+
+type AdminAdoptionRequest = {
+  id: string;
+  created_at?: string | null;
+  animal_id?: string | null;
+  requester_id?: string | null;
+  owner_id?: string | null;
+  status?: string | null;
+  match_score?: number | null;
+  match_level?: string | null;
+  conditions_snapshot?: unknown;
+  conditions_accepted_at?: string | null;
+  signature_signer_name?: string | null;
+  signature_data_url?: string | null;
+  signature_signed_at?: string | null;
+};
+
+type SignedCondition = {
+  id?: string | number;
+  text: string;
+};
+
 export default function AdminDashboardPage() {
   const router = useRouter();
 
@@ -76,6 +98,16 @@ export default function AdminDashboardPage() {
     signalements,
     setSignalements,
   ] = useState<any[]>([]);
+
+  const [
+    adoptionRequests,
+    setAdoptionRequests,
+  ] = useState<AdminAdoptionRequest[]>([]);
+
+  const [
+    adoptionRequestsError,
+    setAdoptionRequestsError,
+  ] = useState<string | null>(null);
 
   const [
     analytics,
@@ -139,6 +171,48 @@ export default function AdminDashboardPage() {
         console.error("Erreur chargement signalements :", signalementError);
       } else {
         setSignalements(signalementData || []);
+      }
+
+
+      const {
+        data: adoptionRequestData,
+        error: adoptionRequestError,
+      } = await supabase
+        .from("adoption_requests")
+        .select(`
+          id,
+          created_at,
+          animal_id,
+          requester_id,
+          owner_id,
+          status,
+          match_score,
+          match_level,
+          conditions_snapshot,
+          conditions_accepted_at,
+          signature_signer_name,
+          signature_data_url,
+          signature_signed_at
+        `)
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (adoptionRequestError) {
+        console.error(
+          "Erreur chargement demandes adoption admin :",
+          adoptionRequestError
+        );
+
+        setAdoptionRequestsError(
+          adoptionRequestError.message ||
+            "Impossible de charger les demandes d'adoption."
+        );
+      } else {
+        setAdoptionRequestsError(null);
+        setAdoptionRequests(
+          (adoptionRequestData || []) as AdminAdoptionRequest[]
+        );
       }
 
       const {
@@ -366,6 +440,49 @@ export default function AdminDashboardPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+
+  const signedAdoptionRequests =
+    adoptionRequests.filter(
+      (request) =>
+        Boolean(
+          request.signature_signed_at ||
+            request.conditions_accepted_at ||
+            request.signature_data_url
+        )
+    );
+
+  function getProfileNameById(
+    profileId?: string | null
+  ) {
+    if (!profileId) return "Profil inconnu";
+
+    const found = users.find(
+      (item) => item.id === profileId
+    );
+
+    if (!found) return "Profil inconnu";
+
+    return (
+      found.organization_name ||
+      `${found.first_name || ""} ${
+        found.last_name || ""
+      }`.trim() ||
+      "Profil"
+    );
+  }
+
+  function getAnimalById(
+    animalId?: string | null
+  ) {
+    if (!animalId) return null;
+
+    return (
+      animals.find(
+        (item) => item.id === animalId
+      ) || null
+    );
   }
 
   return (
@@ -698,6 +815,259 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </Card>
+        </div>
+
+
+        {/* =====================================================
+            CONDITIONS D'ADOPTION SIGNEES
+        ====================================================== */}
+
+        <div className="mt-10">
+          <div className="mb-5">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
+              Traçabilité
+            </p>
+
+            <h2 className="mt-1 text-3xl font-black">
+              Conditions d&apos;adoption signées
+            </h2>
+
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+              L&apos;administration peut consulter les conditions acceptées,
+              la signature enregistrée et l&apos;attestation associée à chaque
+              demande d&apos;adoption.
+            </p>
+          </div>
+
+          {adoptionRequestsError ? (
+            <Card className="border border-red-200 bg-red-50">
+              <p className="font-black text-red-700">
+                Impossible de charger les demandes signées.
+              </p>
+              <p className="mt-2 text-sm text-red-600">
+                {adoptionRequestsError}
+              </p>
+            </Card>
+          ) : signedAdoptionRequests.length === 0 ? (
+            <Card>
+              <div className="py-6 text-center text-gray-500">
+                Aucune demande avec conditions signées pour le moment.
+              </div>
+            </Card>
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-2">
+              {signedAdoptionRequests.map((request) => {
+                const animal =
+                  getAnimalById(request.animal_id);
+
+                const animalName =
+                  animal?.animal_name ||
+                  "Animal";
+
+                const adopterName =
+                  getProfileNameById(
+                    request.requester_id
+                  );
+
+                const structureName =
+                  getProfileNameById(
+                    request.owner_id
+                  );
+
+                const conditions =
+                  normalizeSignedConditions(
+                    request.conditions_snapshot
+                  );
+
+                const signedAt =
+                  request.signature_signed_at ||
+                  request.conditions_accepted_at ||
+                  request.created_at ||
+                  null;
+
+                return (
+                  <Card
+                    key={request.id}
+                    className="border border-[#d8e9e3]"
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#2f8f6b]">
+                            Demande signée
+                          </p>
+
+                          <h3 className="mt-1 text-2xl font-black text-[#064b42]">
+                            {animalName}
+                          </h3>
+
+                          <p className="mt-1 text-sm text-gray-500">
+                            Adoptant :{" "}
+                            <strong className="text-[#2f241c]">
+                              {adopterName}
+                            </strong>
+                          </p>
+
+                          <p className="mt-1 text-sm text-gray-500">
+                            Structure :{" "}
+                            <strong className="text-[#2f241c]">
+                              {structureName}
+                            </strong>
+                          </p>
+                        </div>
+
+                        <span className="self-start rounded-full bg-[#e8f5f1] px-3 py-1.5 text-sm font-black text-[#064b42]">
+                          {typeof request.match_score === "number"
+                            ? `Match ${request.match_score}%`
+                            : "Demande d'adoption"}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-3 rounded-2xl bg-[#f8f4ec] p-4 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
+                            Signataire
+                          </p>
+                          <p className="mt-1 font-bold text-[#2f241c]">
+                            {request.signature_signer_name ||
+                              adopterName}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
+                            Date de signature
+                          </p>
+                          <p className="mt-1 font-bold text-[#2f241c]">
+                            {formatSignedDate(signedAt)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
+                            Conditions
+                          </p>
+                          <p className="mt-1 font-bold text-[#2f241c]">
+                            {conditions.length} condition
+                            {conditions.length > 1 ? "s" : ""} enregistrée
+                            {conditions.length > 1 ? "s" : ""}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
+                            Statut
+                          </p>
+                          <p className="mt-1 font-bold text-[#2f241c]">
+                            {getAdminRequestStatusLabel(
+                              request.status
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {conditions.length > 0 && (
+                        <details className="rounded-2xl border border-[#eadfd8] bg-white p-4">
+                          <summary className="cursor-pointer font-black text-[#064b42]">
+                            Voir les conditions acceptées
+                          </summary>
+
+                          <ol className="mt-4 space-y-3">
+                            {conditions.map(
+                              (
+                                condition,
+                                index
+                              ) => (
+                                <li
+                                  key={
+                                    condition.id ??
+                                    index
+                                  }
+                                  className="flex gap-3 text-sm leading-6 text-gray-600"
+                                >
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8f5f1] text-xs font-black text-[#064b42]">
+                                    ✓
+                                  </span>
+                                  <span>
+                                    {condition.text}
+                                  </span>
+                                </li>
+                              )
+                            )}
+                          </ol>
+                        </details>
+                      )}
+
+                      {request.signature_data_url && (
+                        <details className="rounded-2xl border border-[#eadfd8] bg-white p-4">
+                          <summary className="cursor-pointer font-black text-[#064b42]">
+                            Voir la signature
+                          </summary>
+
+                          <div className="mt-4 rounded-xl border border-[#eadfd8] bg-white p-3">
+                            <img
+                              src={
+                                request.signature_data_url
+                              }
+                              alt={`Signature de ${
+                                request.signature_signer_name ||
+                                adopterName
+                              }`}
+                              className="max-h-44 w-full object-contain"
+                            />
+                          </div>
+                        </details>
+                      )}
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          disabled={
+                            !request.signature_data_url
+                          }
+                          onClick={() => {
+                            if (
+                              !request.signature_data_url
+                            ) {
+                              return;
+                            }
+
+                            downloadDataUrl(
+                              request.signature_data_url,
+                              `signature-${safeFilePart(
+                                animalName
+                              )}-${safeFilePart(
+                                request.signature_signer_name ||
+                                  adopterName
+                              )}.png`
+                            );
+                          }}
+                          className="rounded-xl border border-[#064b42] bg-white px-4 py-3 font-black text-[#064b42] transition hover:bg-[#e8f5f1] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          ↓ Télécharger la signature
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openAdminSignedCertificate({
+                              request,
+                              animalName,
+                              adopterName,
+                              structureName,
+                            })
+                          }
+                          className="rounded-xl bg-[#064b42] px-4 py-3 font-black text-white transition hover:bg-[#08695d]"
+                        >
+                          📄 Attestation signée
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* =====================================================
@@ -1238,3 +1608,349 @@ export default function AdminDashboardPage() {
     </main>
   );
 }
+
+function normalizeSignedConditions(
+  snapshot: unknown
+): SignedCondition[] {
+  if (!snapshot) return [];
+
+  let value: unknown = snapshot;
+
+  if (typeof value === "string") {
+    const stringValue = value;
+
+    try {
+      value = JSON.parse(stringValue);
+    } catch {
+      return stringValue.trim()
+        ? [{ text: stringValue.trim() }]
+        : [];
+    }
+  }
+
+  if (Array.isArray(value)) {
+    const normalized: SignedCondition[] = [];
+
+    value.forEach((item, index) => {
+      if (typeof item === "string") {
+        const itemText = item.trim();
+
+        if (itemText) {
+          normalized.push({
+            id: index,
+            text: itemText,
+          });
+        }
+
+        return;
+      }
+
+      if (
+        item &&
+        typeof item === "object"
+      ) {
+        const row =
+          item as Record<string, unknown>;
+
+        const rawText =
+          row.text ??
+          row.label ??
+          row.condition ??
+          row.content ??
+          row.title;
+
+        if (typeof rawText === "string") {
+          const itemText =
+            rawText.trim();
+
+          if (itemText) {
+            normalized.push({
+              id:
+                typeof row.id === "string" ||
+                typeof row.id === "number"
+                  ? row.id
+                  : index,
+              text: itemText,
+            });
+          }
+        }
+      }
+    });
+
+    return normalized;
+  }
+
+  if (
+    value &&
+    typeof value === "object"
+  ) {
+    const row =
+      value as Record<string, unknown>;
+
+    const nested =
+      row.conditions ??
+      row.items ??
+      row.adoption_conditions;
+
+    if (nested) {
+      return normalizeSignedConditions(
+        nested
+      );
+    }
+  }
+
+  return [];
+}
+
+function formatSignedDate(
+  value?: string | null
+) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      dateStyle: "long",
+      timeStyle: "short",
+    }
+  ).format(date);
+}
+
+function getAdminRequestStatusLabel(
+  status?: string | null
+) {
+  const value = String(
+    status || "pending"
+  )
+    .trim()
+    .toLowerCase();
+
+  switch (value) {
+    case "meeting":
+      return "Rencontre";
+    case "accepted":
+      return "Adoption validée";
+    case "rejected":
+    case "refused":
+      return "Refusée";
+    case "cancelled":
+      return "Annulée";
+    case "pending":
+    default:
+      return "En attente";
+  }
+}
+
+function safeFilePart(
+  value: string
+) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(
+        /[\u0300-\u036f]/g,
+        ""
+      )
+      .replace(
+        /[^a-zA-Z0-9_-]+/g,
+        "-"
+      )
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase() ||
+    "adoption"
+  );
+}
+
+function downloadDataUrl(
+  dataUrl: string,
+  filename: string
+) {
+  const link =
+    document.createElement("a");
+
+  link.href = dataUrl;
+  link.download = filename;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function escapeHtml(
+  value: string
+) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function openAdminSignedCertificate({
+  request,
+  animalName,
+  adopterName,
+  structureName,
+}: {
+  request: AdminAdoptionRequest;
+  animalName: string;
+  adopterName: string;
+  structureName: string;
+}) {
+  const conditions =
+    normalizeSignedConditions(
+      request.conditions_snapshot
+    );
+
+  const signerName =
+    request.signature_signer_name ||
+    adopterName;
+
+  const signedAt =
+    request.signature_signed_at ||
+    request.conditions_accepted_at ||
+    request.created_at ||
+    null;
+
+  const conditionsHtml =
+    conditions.length > 0
+      ? conditions
+          .map(
+            (condition) =>
+              `<li>${escapeHtml(
+                condition.text
+              )}</li>`
+          )
+          .join("")
+      : "<li>Aucune condition enregistrée dans le snapshot.</li>";
+
+  const signatureHtml =
+    request.signature_data_url
+      ? `<img src="${request.signature_data_url}" alt="Signature électronique" />`
+      : "<p>Signature non disponible.</p>";
+
+  const html = `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Attestation d'adoption - ${escapeHtml(
+    animalName
+  )}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #2f241c;
+      margin: 40px;
+      line-height: 1.55;
+    }
+    h1, h2 {
+      color: #064b42;
+    }
+    .meta {
+      background: #f4eee3;
+      border-radius: 16px;
+      padding: 18px;
+      margin: 20px 0;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    .signature {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+    .signature img {
+      display: block;
+      max-width: 360px;
+      max-height: 180px;
+      margin-top: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: white;
+    }
+    .note {
+      margin-top: 28px;
+      font-size: 12px;
+      color: #6f5a47;
+    }
+    @media print {
+      body {
+        margin: 20mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Attestation de conditions d'adoption</h1>
+
+  <div class="meta">
+    <strong>Animal :</strong> ${escapeHtml(
+      animalName
+    )}<br />
+    <strong>Adoptant :</strong> ${escapeHtml(
+      adopterName
+    )}<br />
+    <strong>Structure :</strong> ${escapeHtml(
+      structureName
+    )}<br />
+    <strong>Signataire :</strong> ${escapeHtml(
+      signerName
+    )}<br />
+    <strong>Date de signature :</strong> ${escapeHtml(
+      formatSignedDate(signedAt)
+    )}<br />
+    <strong>Statut :</strong> ${escapeHtml(
+      getAdminRequestStatusLabel(
+        request.status
+      )
+    )}<br />
+    <strong>Référence :</strong> ${escapeHtml(
+      request.id
+    )}
+  </div>
+
+  <h2>Conditions acceptées</h2>
+  <ol>${conditionsHtml}</ol>
+
+  <div class="signature">
+    <strong>Signature électronique</strong>
+    ${signatureHtml}
+  </div>
+
+  <p class="note">
+    Document généré depuis l'espace administration TAUI TE ORA
+    à partir des informations enregistrées au moment de la demande.
+  </p>
+
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+
+  const popup =
+    window.open("", "_blank");
+
+  if (!popup) {
+    alert(
+      "Le navigateur a bloqué l'ouverture de l'attestation. Autorisez les fenêtres pop-up puis réessayez."
+    );
+    return;
+  }
+
+  popup.opener = null;
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
+}
+
