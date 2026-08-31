@@ -34,6 +34,8 @@ type SwipeFeedback =
   | "pass"
   | null;
 
+const likesCountCache = new Map<string, number>();
+
 export default function AnimalSwipeCard({
   animal,
   onPass,
@@ -59,7 +61,11 @@ export default function AnimalSwipeCard({
     useState<SwipeFeedback>(null);
 
   const [likesCount, setLikesCount] =
-    useState(0);
+    useState<number | null>(() =>
+      animal?.id
+        ? likesCountCache.get(animal.id) ?? null
+        : null
+    );
 
   const [
     currentPhotoIndex,
@@ -79,9 +85,12 @@ export default function AnimalSwipeCard({
 
   useEffect(() => {
     if (!animal?.id) {
-      window.setTimeout(() => setLikesCount(0), 0);
+      setLikesCount(null);
       return;
     }
+
+    const cachedCount = likesCountCache.get(animal.id);
+    setLikesCount(cachedCount ?? null);
 
     let active = true;
 
@@ -107,9 +116,9 @@ export default function AnimalSwipeCard({
       }
 
       if (active) {
-        setLikesCount(
-          count || 0
-        );
+        const nextCount = count ?? 0;
+        likesCountCache.set(animal.id, nextCount);
+        setLikesCount(nextCount);
       }
     }
 
@@ -223,84 +232,6 @@ export default function AnimalSwipeCard({
     animal?.created_by ||
     animal?.association_id ||
     "";
-
-  /*
-   * BADGE ADOPTED
-   * L'animal reste dans le swipe pendant 5 jours
-   * à partir de adopted_at.
-   */
-  const adoptedDate =
-    animal?.adopted_at ||
-    "";
-
-  const isAdopted =
-    Boolean(animal?.is_adopted) ||
-    String(animal?.status || "")
-      .trim()
-      .toLowerCase() === "adopted";
-
-  const recentlyAdopted = (() => {
-    if (!isAdopted || !adoptedDate) {
-      return false;
-    }
-
-    const adoptedTime =
-      new Date(adoptedDate).getTime();
-
-    if (!Number.isFinite(adoptedTime)) {
-      return false;
-    }
-
-    const ageInMilliseconds =
-      Date.now() - adoptedTime;
-
-    const fiveDays =
-      5 * 24 * 60 * 60 * 1000;
-
-    return (
-      ageInMilliseconds >= 0 &&
-      ageInMilliseconds <= fiveDays
-    );
-  })();
-
-  /*
-   * BADGE "NOUVEAU DÉPART"
-   * Un animal est considéré comme nouveau pendant
-   * les 7 jours suivant sa publication/création.
-   */
-  const animalDates =
-    animal as Animal & {
-      published_at?: string | null;
-      created_at?: string | null;
-    };
-
-  const newDepartureDate =
-    animalDates.published_at ||
-    animalDates.created_at ||
-    "";
-
-  const isNewDeparture = (() => {
-    if (!newDepartureDate) return false;
-
-    const publishedTime =
-      new Date(newDepartureDate).getTime();
-
-    if (!Number.isFinite(publishedTime)) {
-      return false;
-    }
-
-    const ageInMilliseconds =
-      Date.now() - publishedTime;
-
-    const sevenDays =
-      7 * 24 * 60 * 60 * 1000;
-
-    return (
-      !recentlyAdopted &&
-      ageInMilliseconds >= 0 &&
-      ageInMilliseconds <= sevenDays
-    );
-  })();
 
   const photoUrls = useMemo(() => {
     const rows = Array.isArray(
@@ -439,7 +370,6 @@ export default function AnimalSwipeCard({
   async function handleFavorite() {
     if (
       actionLoading ||
-      recentlyAdopted ||
       !animal?.id
     ) {
       return;
@@ -473,10 +403,11 @@ export default function AnimalSwipeCard({
         animal.id
       );
 
-      setLikesCount(
-        (previous) =>
-          previous + 1
-      );
+      setLikesCount((previous) => {
+        const nextCount = (previous ?? 0) + 1;
+        likesCountCache.set(animal.id, nextCount);
+        return nextCount;
+      });
 
       setSwipeFeedback("favorite");
 
@@ -520,12 +451,7 @@ export default function AnimalSwipeCard({
   }
 
   function handleAdopt() {
-    if (
-      !animal?.id ||
-      recentlyAdopted
-    ) {
-      return;
-    }
+    if (!animal?.id) return;
 
     router.push(
       `/animal/${animal.id}?adoption=1`
@@ -537,6 +463,25 @@ export default function AnimalSwipeCard({
 
     router.push(
       `/animal/${animal.id}`
+    );
+  }
+
+  function handleShareFacebook() {
+    if (!animal?.id || typeof window === "undefined") return;
+
+    const animalUrl = `${window.location.origin}/animal/${encodeURIComponent(
+      animal.id
+    )}`;
+
+    const facebookUrl =
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        animalUrl
+      )}`;
+
+    window.open(
+      facebookUrl,
+      "facebook-share",
+      "width=680,height=560,noopener,noreferrer"
     );
   }
 
@@ -844,68 +789,6 @@ export default function AnimalSwipeCard({
           />
         </div>
 
-        {isNewDeparture && (
-          <div
-            className="
-              pointer-events-none
-              absolute
-              left-3
-              top-3
-              z-50
-              sm:left-4
-              sm:top-4
-            "
-            title="Nouveau départ"
-          >
-            <img
-              src="/badges/nouveau-depart.png"
-              alt="Nouveau départ"
-              draggable={false}
-              className="
-                h-[76px]
-                w-[76px]
-                object-contain
-                drop-shadow-[0_4px_10px_rgba(0,0,0,.28)]
-                sm:h-[88px]
-                sm:w-[88px]
-                md:h-[96px]
-                md:w-[96px]
-              "
-            />
-          </div>
-        )}
-
-        {recentlyAdopted && (
-          <div
-            className="
-              pointer-events-none
-              absolute
-              left-1/2
-              top-[116px]
-              z-[70]
-              -translate-x-1/2
-              -rotate-6
-              rounded-xl
-              border-4
-              border-white
-              bg-[#ef8196]
-              px-6
-              py-3
-              text-2xl
-              font-black
-              uppercase
-              tracking-[0.18em]
-              text-white
-              shadow-xl
-              sm:top-[132px]
-              sm:text-3xl
-            "
-            aria-label="Adopted"
-          >
-            ADOPTED
-          </div>
-        )}
-
         {photoUrls.length > 1 && (
           <div
             className="
@@ -969,8 +852,16 @@ export default function AnimalSwipeCard({
             sm:right-4
             sm:top-4
           "
-          title={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
-          aria-label={`${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`}
+          title={
+            likesCount === null
+              ? "Chargement des coups de cœur"
+              : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
+          }
+          aria-label={
+            likesCount === null
+              ? "Chargement des coups de cœur"
+              : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
+          }
         >
           <span
             className="
@@ -992,141 +883,8 @@ export default function AnimalSwipeCard({
               sm:text-[13px]
             "
           >
-            {likesCount}
+            {likesCount === null ? "…" : likesCount}
           </span>
-        </div>
-
-        {/* ACTIONS DROITE : INFORMATION / ASSOCIATION / FILTRE */}
-        <div
-          className="
-            absolute
-            right-3
-            bottom-[128px]
-            z-50
-            flex
-            flex-col
-            items-center
-            gap-2
-            sm:right-4
-            sm:bottom-[118px]
-          "
-        >
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleInformation();
-            }}
-            aria-label="Informations"
-            title="Informations"
-            className="
-              flex
-              h-[44px]
-              w-[44px]
-              items-center
-              justify-center
-              rounded-full
-              border-[3px]
-              border-white
-              bg-[#fffaf7]/95
-              text-lg
-              font-black
-              text-[#60605d]
-              shadow-xl
-              backdrop-blur
-              transition
-              active:scale-95
-            "
-          >
-            i
-          </button>
-
-          {creatorId && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleStructure();
-              }}
-              aria-label={
-                creatorName
-                  ? `Voir ${creatorName}`
-                  : "Voir la structure"
-              }
-              className="
-                flex
-                h-[50px]
-                w-[50px]
-                items-center
-                justify-center
-                overflow-hidden
-                rounded-full
-                border-[3px]
-                border-white
-                bg-white
-                shadow-xl
-                transition
-                active:scale-95
-              "
-            >
-              {creatorLogo ? (
-                <img
-                  src={creatorLogo}
-                  alt={creatorName || "Structure"}
-                  draggable={false}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
-                >
-                  🐾
-                </span>
-              )}
-            </button>
-          )}
-
-          {onOpenFilter && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpenFilter();
-              }}
-              aria-label="Choisir les animaux à afficher"
-              className="
-                flex
-                min-h-[42px]
-                items-center
-                justify-center
-                gap-1.5
-                rounded-full
-                border-[3px]
-                border-white
-                bg-white/95
-                px-3
-                py-2
-                text-[11px]
-                font-black
-                text-[#064b42]
-                shadow-xl
-                backdrop-blur
-                transition
-                active:scale-95
-              "
-            >
-              <span aria-hidden="true" className="text-base leading-none">
-                🐾
-              </span>
-
-              <span>
-                {filterCount > 0
-                  ? `Filtres (${filterCount})`
-                  : "Choisir"}
-              </span>
-            </button>
-          )}
         </div>
 
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
@@ -1388,6 +1146,181 @@ export default function AnimalSwipeCard({
               </div>
             </div>
 
+            <div
+              className="
+                mt-2
+                flex
+                shrink-0
+                flex-row
+                items-center
+                justify-end
+                gap-2
+                sm:mt-3
+                sm:items-end
+              "
+            >
+              {creatorId && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleStructure();
+                  }}
+                  aria-label={
+                    creatorName
+                      ? `Voir ${creatorName}`
+                      : "Voir la structure"
+                  }
+                  className="
+                    flex
+                    h-[46px]
+                    w-[46px]
+                    shrink-0
+                    items-center
+                    justify-center
+                    overflow-hidden
+                    rounded-full
+                    border-[3px]
+                    border-white
+                    bg-white
+                    shadow-xl
+                    transition
+                    active:scale-95
+                    sm:h-[52px]
+                    sm:w-[52px]
+                    md:h-[56px]
+                    md:w-[56px]
+                  "
+                >
+                  {creatorLogo ? (
+                    <img
+                      src={creatorLogo}
+                      alt={creatorName || "Structure"}
+                      draggable={false}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex h-full w-full items-center justify-center bg-[#fff0f2] text-2xl"
+                    >
+                      🐾
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onOpenFilter && (
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenFilter();
+                  }}
+                  aria-label="Choisir les animaux à afficher"
+                  className="
+                    flex
+                    min-h-[38px]
+                    shrink-0
+                    items-center
+                    justify-center
+                    gap-1.5
+                    rounded-full
+                    border-2
+                    border-white
+                    bg-white/95
+                    px-3
+                    py-2
+                    text-[11px]
+                    font-black
+                    text-[#064b42]
+                    shadow-lg
+                    backdrop-blur
+                    transition
+                    active:scale-95
+                  "
+                >
+                  <span aria-hidden="true" className="text-base leading-none">
+                    🐾
+                  </span>
+
+                  <span>
+                    {filterCount > 0
+                      ? `Filtres (${filterCount})`
+                      : "Choisir"}
+                  </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleInformation();
+                    }}
+                    aria-label="Informations"
+                    title="Informations"
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      border-white
+                      bg-[#fffaf7]/95
+                      text-base
+                      font-black
+                      text-[#60605d]
+                      shadow-lg
+                      backdrop-blur
+                      transition
+                      active:scale-95
+                      sm:h-10
+                      sm:w-10
+                      sm:text-lg
+                    "
+                  >
+                    i
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleShareFacebook();
+                    }}
+                    aria-label={`Partager ${animalName} sur Facebook`}
+                    title="Partager sur Facebook"
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      border-white
+                      bg-[#1877F2]
+                      text-[19px]
+                      font-black
+                      text-white
+                      shadow-lg
+                      transition
+                      active:scale-95
+                      sm:h-10
+                      sm:w-10
+                      sm:text-[21px]
+                    "
+                  >
+                    f
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {(city || island) && (
@@ -1513,16 +1446,9 @@ export default function AnimalSwipeCard({
         >
           <button
             type="button"
-            disabled={
-              actionLoading ||
-              recentlyAdopted
-            }
+            disabled={actionLoading}
             onClick={handleAdopt}
-            aria-label={
-              recentlyAdopted
-                ? "Animal adopté"
-                : "Je veux adopter"
-            }
+            aria-label="Je veux adopter"
             style={{
               backgroundColor:
                 genderColor,
@@ -1563,9 +1489,7 @@ export default function AnimalSwipeCard({
               text-[#3e3a37]
             "
           >
-            {recentlyAdopted
-              ? "Adopté ❤️"
-              : "Je veux adopter"}
+            Je veux adopter
           </span>
         </div>
 
@@ -1578,10 +1502,7 @@ export default function AnimalSwipeCard({
         >
           <button
             type="button"
-            disabled={
-              actionLoading ||
-              recentlyAdopted
-            }
+            disabled={actionLoading}
             onClick={
               handleFavorite
             }
@@ -1618,9 +1539,7 @@ export default function AnimalSwipeCard({
               text-[#3e3a37]
             "
           >
-            {recentlyAdopted
-              ? "Déjà adopté"
-              : "Coup de cœur"}
+            Coup de cœur
           </span>
         </div>
       </div>
