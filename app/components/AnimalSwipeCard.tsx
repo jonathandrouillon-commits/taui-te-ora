@@ -466,25 +466,6 @@ export default function AnimalSwipeCard({
     );
   }
 
-  function handleShareFacebook() {
-    if (!animal?.id || typeof window === "undefined") return;
-
-    const animalUrl = `${window.location.origin}/animal/${encodeURIComponent(
-      animal.id
-    )}`;
-
-    const facebookUrl =
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        animalUrl
-      )}`;
-
-    window.open(
-      facebookUrl,
-      "facebook-share",
-      "width=680,height=560,noopener,noreferrer"
-    );
-  }
-
   function handleStructure() {
     if (!creatorId) return;
 
@@ -1284,39 +1265,6 @@ export default function AnimalSwipeCard({
                     "
                   >
                     i
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleShareFacebook();
-                    }}
-                    aria-label={`Partager ${animalName} sur Facebook`}
-                    title="Partager sur Facebook"
-                    className="
-                      flex
-                      h-9
-                      w-9
-                      shrink-0
-                      items-center
-                      justify-center
-                      rounded-full
-                      border-2
-                      border-white
-                      bg-[#1877F2]
-                      text-[19px]
-                      font-black
-                      text-white
-                      shadow-lg
-                      transition
-                      active:scale-95
-                      sm:h-10
-                      sm:w-10
-                      sm:text-[21px]
-                    "
-                  >
-                    f
                   </button>
                 </div>
               )}
