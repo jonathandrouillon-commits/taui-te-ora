@@ -466,25 +466,6 @@ export default function AnimalSwipeCard({
     );
   }
 
-  function handleShareFacebook() {
-    if (!animal?.id || typeof window === "undefined") return;
-
-    const animalUrl = `${window.location.origin}/animal/${encodeURIComponent(
-      animal.id
-    )}`;
-
-    const facebookUrl =
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        animalUrl
-      )}`;
-
-    window.open(
-      facebookUrl,
-      "facebook-share",
-      "width=680,height=560,noopener,noreferrer"
-    );
-  }
-
   function handleStructure() {
     if (!creatorId) return;
 
@@ -827,140 +808,64 @@ export default function AnimalSwipeCard({
           </div>
         )}
 
-        {/* ACTIONS EN HAUT A DROITE : LIKES / CHOISIR / PARTAGER */}
+        {/* COMPTEUR COUPS DE COEUR */}
 
         <div
           className="
             absolute
             right-3
             top-3
-            z-[70]
+            z-50
             flex
-            flex-col
-            items-end
-            gap-2
+            min-w-[48px]
+            items-center
+            justify-center
+            gap-1.5
+            rounded-full
+            border
+            border-white/80
+            bg-white/90
+            px-3
+            py-2
+            text-[#ef8196]
+            shadow-lg
+            backdrop-blur-xl
             sm:right-4
             sm:top-4
           "
+          title={
+            likesCount === null
+              ? "Chargement des coups de cœur"
+              : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
+          }
+          aria-label={
+            likesCount === null
+              ? "Chargement des coups de cœur"
+              : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
+          }
         >
-          <div
+          <span
             className="
-              flex
-              min-w-[48px]
-              items-center
-              justify-center
-              gap-1.5
-              rounded-full
-              border
-              border-white/80
-              bg-white/90
-              px-3
-              py-2
-              text-[#ef8196]
-              shadow-lg
-              backdrop-blur-xl
+              text-[16px]
+              leading-none
+              sm:text-[18px]
             "
-            title={
-              likesCount === null
-                ? "Chargement des coups de cœur"
-                : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
-            }
-            aria-label={
-              likesCount === null
-                ? "Chargement des coups de cœur"
-                : `${likesCount} coup${likesCount > 1 ? "s" : ""} de cœur`
-            }
+            aria-hidden="true"
           >
-            <span
-              className="text-[16px] leading-none sm:text-[18px]"
-              aria-hidden="true"
-            >
-              ♥
-            </span>
+            ♥
+          </span>
 
-            <span
-              className="text-[12px] font-black leading-none text-[#5d655f] sm:text-[13px]"
-            >
-              {likesCount === null ? "…" : likesCount}
-            </span>
-          </div>
-
-          {onOpenFilter && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpenFilter();
-              }}
-              aria-label="Choisir les animaux à afficher"
-              className="
-                flex
-                min-h-[38px]
-                items-center
-                justify-center
-                gap-1.5
-                rounded-full
-                border-2
-                border-white
-                bg-white/95
-                px-3
-                py-2
-                text-[11px]
-                font-black
-                text-[#064b42]
-                shadow-lg
-                backdrop-blur
-                transition
-                active:scale-95
-              "
-            >
-              <span aria-hidden="true" className="text-base leading-none">
-                🐾
-              </span>
-              <span>
-                {filterCount > 0
-                  ? `Filtres (${filterCount})`
-                  : "Choisir"}
-              </span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleShareFacebook();
-            }}
-            aria-label={`Partager ${animalName} sur Facebook`}
-            title="Partager sur Facebook"
+          <span
             className="
-              flex
-              min-h-[38px]
-              items-center
-              justify-center
-              gap-2
-              rounded-full
-              border-2
-              border-white
-              bg-[#1877F2]
-              px-3
-              py-2
-              text-[11px]
+              text-[12px]
               font-black
-              text-white
-              shadow-lg
-              transition
-              active:scale-95
+              leading-none
+              text-[#5d655f]
+              sm:text-[13px]
             "
           >
-            <span
-              aria-hidden="true"
-              className="text-[17px] font-black leading-none"
-            >
-              f
-            </span>
-            <span>Partager</span>
-          </button>
+            {likesCount === null ? "…" : likesCount}
+          </span>
         </div>
 
         {/* INFOS GAUCHE - REPOSITIONNÉES */}
@@ -1286,39 +1191,83 @@ export default function AnimalSwipeCard({
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleInformation();
-                }}
-                aria-label="Informations"
-                title="Informations"
-                className="
-                  flex
-                  h-9
-                  w-9
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-2
-                  border-white
-                  bg-[#fffaf7]/95
-                  text-base
-                  font-black
-                  text-[#60605d]
-                  shadow-lg
-                  backdrop-blur
-                  transition
-                  active:scale-95
-                  sm:h-10
-                  sm:w-10
-                  sm:text-lg
-                "
-              >
-                i
-              </button>
+              {onOpenFilter && (
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenFilter();
+                  }}
+                  aria-label="Choisir les animaux à afficher"
+                  className="
+                    flex
+                    min-h-[38px]
+                    shrink-0
+                    items-center
+                    justify-center
+                    gap-1.5
+                    rounded-full
+                    border-2
+                    border-white
+                    bg-white/95
+                    px-3
+                    py-2
+                    text-[11px]
+                    font-black
+                    text-[#064b42]
+                    shadow-lg
+                    backdrop-blur
+                    transition
+                    active:scale-95
+                  "
+                >
+                  <span aria-hidden="true" className="text-base leading-none">
+                    🐾
+                  </span>
+
+                  <span>
+                    {filterCount > 0
+                      ? `Filtres (${filterCount})`
+                      : "Choisir"}
+                  </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleInformation();
+                    }}
+                    aria-label="Informations"
+                    title="Informations"
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      border-white
+                      bg-[#fffaf7]/95
+                      text-base
+                      font-black
+                      text-[#60605d]
+                      shadow-lg
+                      backdrop-blur
+                      transition
+                      active:scale-95
+                      sm:h-10
+                      sm:w-10
+                      sm:text-lg
+                    "
+                  >
+                    i
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
