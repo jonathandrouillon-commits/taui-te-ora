@@ -10,12 +10,6 @@ type Profile = {
   is_active: boolean | null;
 };
 
-const DELETABLE_ROLES =
-  new Set([
-    "adoptant",
-    "association",
-  ]);
-
 function getBearerToken(
   request: Request
 ) {
@@ -67,10 +61,6 @@ export async function DELETE(
       !supabaseAnonKey ||
       !serviceRoleKey
     ) {
-      console.error(
-        "Configuration Supabase administrateur manquante."
-      );
-
       return NextResponse.json(
         {
           error:
@@ -135,7 +125,8 @@ export async function DELETE(
     let body: unknown;
 
     try {
-      body = await request.json();
+      body =
+        await request.json();
     } catch {
       return NextResponse.json(
         {
@@ -176,6 +167,12 @@ export async function DELETE(
       );
     }
 
+    /*
+     * Protection :
+     * un admin ne peut pas supprimer
+     * son propre compte connecté.
+     */
+
     if (
       targetUserId ===
       authenticatedUser.id
@@ -190,28 +187,35 @@ export async function DELETE(
     }
 
     const adminHeaders = {
-      apikey: serviceRoleKey,
+      apikey:
+        serviceRoleKey,
+
       Authorization:
         `Bearer ${serviceRoleKey}`,
+
       "Content-Type":
         "application/json",
     };
+
+    /*
+     * Vérifie :
+     * - que l'utilisateur connecté est admin
+     * - que le compte cible existe
+     */
 
     const profilesResponse =
       await fetch(
         `${supabaseUrl}/rest/v1/profiles?id=in.(${authenticatedUser.id},${targetUserId})&select=id,role,is_active`,
         {
-          headers: adminHeaders,
-          cache: "no-store",
+          headers:
+            adminHeaders,
+
+          cache:
+            "no-store",
         }
       );
 
     if (!profilesResponse.ok) {
-      console.error(
-        "Lecture des profils impossible :",
-        await profilesResponse.text()
-      );
-
       return NextResponse.json(
         {
           error:
@@ -243,8 +247,10 @@ export async function DELETE(
         adminProfile?.role || ""
       )
         .trim()
-        .toLowerCase() !== "admin" ||
-      adminProfile?.is_active === false
+        .toLowerCase() !==
+        "admin" ||
+      adminProfile?.is_active ===
+        false
     ) {
       return NextResponse.json(
         {
@@ -265,48 +271,47 @@ export async function DELETE(
       );
     }
 
-    const targetRole =
-      String(
-        targetProfile.role || ""
-      )
-        .trim()
-        .toLowerCase();
+    /*
+     * =========================================================
+     * TRANSFERT DES ANIMAUX
+     * =========================================================
+     *
+     * IMPORTANT :
+     * ton système actuel utilise owner_id
+     * pour identifier le propriétaire.
+     *
+     * On transfère donc les animaux du compte
+     * vers l'admin avant suppression.
+     */
 
-    if (
-      !DELETABLE_ROLES.has(
-        targetRole
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Seuls les comptes adoptants et associations peuvent être supprimés."
-        },
-        { status: 403 }
-      );
-    }
-
-    const transferResponse =
+    const transferAnimalsResponse =
       await fetch(
-        `${supabaseUrl}/rest/v1/animals?association_id=eq.${targetUserId}`,
+        `${supabaseUrl}/rest/v1/animals?owner_id=eq.${targetUserId}`,
         {
-          method: "PATCH",
+          method:
+            "PATCH",
+
           headers: {
             ...adminHeaders,
+
             Prefer:
               "return=minimal",
           },
-          body: JSON.stringify({
-            association_id:
-              authenticatedUser.id,
-          }),
+
+          body:
+            JSON.stringify({
+              owner_id:
+                authenticatedUser.id,
+            }),
         }
       );
 
-    if (!transferResponse.ok) {
+    if (
+      !transferAnimalsResponse.ok
+    ) {
       console.error(
         "Transfert des animaux impossible :",
-        await transferResponse.text()
+        await transferAnimalsResponse.text()
       );
 
       return NextResponse.json(
@@ -318,16 +323,27 @@ export async function DELETE(
       );
     }
 
+    /*
+     * =========================================================
+     * SUPPRESSION AUTH
+     * =========================================================
+     */
+
     const deleteAuthResponse =
       await fetch(
         `${supabaseUrl}/auth/v1/admin/users/${targetUserId}`,
         {
-          method: "DELETE",
-          headers: adminHeaders,
+          method:
+            "DELETE",
+
+          headers:
+            adminHeaders,
         }
       );
 
-    if (!deleteAuthResponse.ok) {
+    if (
+      !deleteAuthResponse.ok
+    ) {
       console.error(
         "Suppression Auth impossible :",
         await deleteAuthResponse.text()
@@ -336,39 +352,55 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "Les animaux ont été transférés, mais le compte n'a pas pu être supprimé."
+            "Les données ont été préparées, mais le compte Auth n'a pas pu être supprimé."
         },
         { status: 500 }
       );
     }
 
+    /*
+     * =========================================================
+     * NETTOYAGE PROFIL
+     * =========================================================
+     */
+
     const deleteProfileResponse =
       await fetch(
         `${supabaseUrl}/rest/v1/profiles?id=eq.${targetUserId}`,
         {
-          method: "DELETE",
+          method:
+            "DELETE",
+
           headers: {
             ...adminHeaders,
+
             Prefer:
               "return=minimal",
           },
         }
       );
 
-    if (!deleteProfileResponse.ok) {
+    if (
+      !deleteProfileResponse.ok
+    ) {
       console.error(
-        "Nettoyage du profil impossible :",
+        "Nettoyage profil impossible :",
         await deleteProfileResponse.text()
       );
     }
 
     return NextResponse.json(
       {
-        success: true,
+        success:
+          true,
+
         message:
-          "Compte supprimé définitivement. Les éventuels animaux ont été transférés à votre compte administrateur."
+          "Compte supprimé définitivement. Les éventuels animaux ont été transférés au compte administrateur."
       },
-      { status: 200 }
+      {
+        status:
+          200
+      }
     );
   } catch (error) {
     console.error(
@@ -381,7 +413,10 @@ export async function DELETE(
         error:
           "Erreur serveur pendant la suppression."
       },
-      { status: 500 }
+      {
+        status:
+          500
+      }
     );
   }
 }

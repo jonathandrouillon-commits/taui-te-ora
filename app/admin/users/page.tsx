@@ -11,7 +11,9 @@ import {
   ArrowLeft,
   Check,
   CirclePause,
+  Pencil,
   RotateCcw,
+  Save,
   ShieldCheck,
   Trash2,
   Users,
@@ -55,159 +57,473 @@ type UserFilter =
   | "suspended"
   | "all";
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
+type EditForm = {
+  first_name: string;
+  last_name: string;
+  organization_name: string;
+  role: string;
+  phone: string;
+  island: string;
+  city: string;
+};
+
+const ROLE_OPTIONS = [
+  {
+    value: "adoptant",
+    label: "Adoptant",
+  },
+  {
+    value: "association",
+    label: "Association",
+  },
+  {
+    value: "refuge",
+    label: "Refuge / SIGFA",
+  },
+  {
+    value: "fourriere",
+    label: "Fourrière",
+  },
+  {
+    value: "benevole",
+    label: "Bénévole indépendant",
+  },
+  {
+    value: "admin",
+    label: "Administrateur",
+  },
+];
+
+function getErrorMessage(
+  error: unknown
+): string {
+  if (
+    error instanceof Error
+  ) {
+    return error.message;
+  }
+
+  if (
+    typeof error === "string"
+  ) {
+    return error;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null
+  ) {
+    const candidate =
+      error as {
+        message?: string;
+      };
+
+    if (
+      candidate.message
+    ) {
+      return candidate.message;
+    }
+  }
+
   return "Erreur inconnue";
 }
 
-function canDeleteAccount(
-  role: string | null
-) {
-  const normalizedRole =
-    String(role || "")
-      .trim()
-      .toLowerCase();
-
-  return (
-    normalizedRole ===
-      "adoptant" ||
-    normalizedRole ===
-      "association"
-  );
-}
-
 export default function AdminUsersPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [users, setUsers] =
+  const [
+    users,
+    setUsers,
+  ] =
     useState<Profile[]>([]);
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
-  const [actionId, setActionId] =
-    useState<string | null>(null);
+  const [
+    actionId,
+    setActionId,
+  ] =
+    useState<string | null>(
+      null
+    );
 
-  const [filter, setFilter] =
-    useState<UserFilter>("pending");
+  const [
+    filter,
+    setFilter,
+  ] =
+    useState<UserFilter>(
+      "pending"
+    );
+
+  const [
+    currentAdminId,
+    setCurrentAdminId,
+  ] =
+    useState<string>("");
+
+  const [
+    editingId,
+    setEditingId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    editForm,
+    setEditForm,
+  ] =
+    useState<EditForm>({
+      first_name: "",
+      last_name: "",
+      organization_name: "",
+      role: "adoptant",
+      phone: "",
+      island: "",
+      city: "",
+    });
 
   /* =========================================================
      CHARGEMENT
   ========================================================= */
 
-  const loadUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const {
-        data: { user },
-        error: authError,
-      } =
-        await supabase.auth.getUser();
-
-      if (
-        authError ||
-        !user
-      ) {
-        router.replace(
-          "/login?redirect=/admin/users"
+  const loadUsers =
+    useCallback(async () => {
+      try {
+        setLoading(
+          true
         );
 
-        return;
-      }
+        const {
+          data: {
+            user,
+          },
+          error:
+            authError,
+        } =
+          await supabase
+            .auth
+            .getUser();
 
-      const {
-        data: currentProfile,
-        error: currentError,
-      } = await supabase
-        .from("profiles")
-        .select(
-          "id, role, is_active"
-        )
-        .eq(
-          "id",
+        if (
+          authError ||
+          !user
+        ) {
+          router.replace(
+            "/login?redirect=/admin/users"
+          );
+
+          return;
+        }
+
+        setCurrentAdminId(
           user.id
-        )
-        .maybeSingle();
+        );
 
-      if (currentError) {
-        throw currentError;
+        const {
+          data:
+            currentProfile,
+          error:
+            currentError,
+        } =
+          await supabase
+            .from(
+              "profiles"
+            )
+            .select(
+              "id, role, is_active"
+            )
+            .eq(
+              "id",
+              user.id
+            )
+            .maybeSingle();
+
+        if (
+          currentError
+        ) {
+          throw currentError;
+        }
+
+        const currentRole =
+          String(
+            currentProfile
+              ?.role ||
+              ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if (
+          currentRole !==
+          "admin"
+        ) {
+          router.replace(
+            "/"
+          );
+
+          return;
+        }
+
+        if (
+          currentProfile
+            ?.is_active ===
+          false
+        ) {
+          router.replace(
+            "/"
+          );
+
+          return;
+        }
+
+        const {
+          data,
+          error,
+        } =
+          await supabase
+            .from(
+              "profiles"
+            )
+            .select(
+              `
+                id,
+                email,
+                first_name,
+                last_name,
+                organization_name,
+                role,
+                phone,
+                island,
+                city,
+                approval_status,
+                is_verified,
+                is_active,
+                approved_at,
+                approved_by,
+                created_at
+              `
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            );
+
+        if (
+          error
+        ) {
+          throw error;
+        }
+
+        setUsers(
+          (
+            data ||
+            []
+          ) as Profile[]
+        );
+      } catch (
+        error:
+          unknown
+      ) {
+        console.error(
+          "Erreur chargement utilisateurs :",
+          error
+        );
+
+        alert(
+          getErrorMessage(
+            error
+          ) ||
+            "Erreur lors du chargement des utilisateurs."
+        );
+      } finally {
+        setLoading(
+          false
+        );
       }
+    }, [
+      router,
+    ]);
 
-      if (
+  /* =========================================================
+     MODIFICATION PROFIL
+  ========================================================= */
+
+  function startEdit(
+    user: Profile
+  ) {
+    setEditingId(
+      user.id
+    );
+
+    setEditForm({
+      first_name:
+        user.first_name ||
+        "",
+
+      last_name:
+        user.last_name ||
+        "",
+
+      organization_name:
+        user.organization_name ||
+        "",
+
+      role:
         String(
-          currentProfile?.role ||
-            ""
+          user.role ||
+            "adoptant"
         )
           .trim()
-          .toLowerCase() !==
-        "admin"
-      ) {
-        router.replace("/");
-        return;
-      }
+          .toLowerCase(),
 
-      if (
-        currentProfile?.is_active ===
-        false
-      ) {
-        router.replace("/");
-        return;
-      }
+      phone:
+        user.phone ||
+        "",
+
+      island:
+        user.island ||
+        "",
+
+      city:
+        user.city ||
+        "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(
+      null
+    );
+
+    setEditForm({
+      first_name: "",
+      last_name: "",
+      organization_name: "",
+      role: "adoptant",
+      phone: "",
+      island: "",
+      city: "",
+    });
+  }
+
+  async function saveEdit(
+    id: string
+  ) {
+    if (
+      actionId
+    ) {
+      return;
+    }
+
+    try {
+      setActionId(
+        id
+      );
+
+      const payload = {
+        first_name:
+          editForm
+            .first_name
+            .trim() ||
+          null,
+
+        last_name:
+          editForm
+            .last_name
+            .trim() ||
+          null,
+
+        organization_name:
+          editForm
+            .organization_name
+            .trim() ||
+          null,
+
+        role:
+          editForm
+            .role
+            .trim()
+            .toLowerCase(),
+
+        phone:
+          editForm
+            .phone
+            .trim() ||
+          null,
+
+        island:
+          editForm
+            .island
+            .trim() ||
+          null,
+
+        city:
+          editForm
+            .city
+            .trim() ||
+          null,
+      };
 
       const {
-        data,
         error,
-      } = await supabase
-        .from("profiles")
-        .select(
-          `
-            id,
-            email,
-            first_name,
-            last_name,
-            organization_name,
-            role,
-            phone,
-            island,
-            city,
-            approval_status,
-            is_verified,
-            is_active,
-            approved_at,
-            approved_by,
-            created_at
-          `
-        )
-        .order(
-          "created_at",
-          {
-            ascending: false,
-          }
-        );
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .update(
+            payload
+          )
+          .eq(
+            "id",
+            id
+          );
 
-      if (error) {
+      if (
+        error
+      ) {
         throw error;
       }
 
-      setUsers(
-        (data || []) as Profile[]
+      setEditingId(
+        null
       );
-    } catch (error: unknown) {
+
+      await loadUsers();
+
+      alert(
+        "Profil modifié avec succès."
+      );
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
-        "Erreur chargement utilisateurs :",
+        "Erreur modification utilisateur :",
         error
       );
 
       alert(
-        getErrorMessage(error) ||
-          "Erreur lors du chargement des utilisateurs."
+        getErrorMessage(
+          error
+        ) ||
+          "Impossible de modifier ce compte."
       );
     } finally {
-      setLoading(false);
+      setActionId(
+        null
+      );
     }
-  }, [router]);
+  }
 
   /* =========================================================
      VALIDATION
@@ -216,18 +532,28 @@ export default function AdminUsersPage() {
   async function approveUser(
     id: string
   ) {
-    if (actionId) return;
+    if (
+      actionId
+    ) {
+      return;
+    }
 
     try {
-      setActionId(id);
+      setActionId(
+        id
+      );
 
       const {
         data: {
-          user: adminUser,
+          user:
+            adminUser,
         },
-        error: authError,
+        error:
+          authError,
       } =
-        await supabase.auth.getUser();
+        await supabase
+          .auth
+          .getUser();
 
       if (
         authError ||
@@ -240,46 +566,59 @@ export default function AdminUsersPage() {
 
       const {
         error,
-      } = await supabase
-        .from("profiles")
-        .update({
-          approval_status:
-            "approved",
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .update({
+            approval_status:
+              "approved",
 
-          is_verified:
-            true,
+            is_verified:
+              true,
 
-          is_active:
-            true,
+            is_active:
+              true,
 
-          approved_at:
-            new Date().toISOString(),
+            approved_at:
+              new Date()
+                .toISOString(),
 
-          approved_by:
-            adminUser.id,
-        })
-        .eq(
-          "id",
-          id
-        );
+            approved_by:
+              adminUser.id,
+          })
+          .eq(
+            "id",
+            id
+          );
 
-      if (error) {
+      if (
+        error
+      ) {
         throw error;
       }
 
       await loadUsers();
-    } catch (error: unknown) {
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
         "Erreur validation utilisateur :",
         error
       );
 
       alert(
-        getErrorMessage(error) ||
+        getErrorMessage(
+          error
+        ) ||
           "Impossible de valider ce compte."
       );
     } finally {
-      setActionId(null);
+      setActionId(
+        null
+      );
     }
   }
 
@@ -290,7 +629,11 @@ export default function AdminUsersPage() {
   async function rejectUser(
     id: string
   ) {
-    if (actionId) return;
+    if (
+      actionId
+    ) {
+      return;
+    }
 
     const reason =
       window.prompt(
@@ -298,48 +641,60 @@ export default function AdminUsersPage() {
         "Profil incomplet"
       );
 
-    if (reason === null) {
+    if (
+      reason ===
+      null
+    ) {
       return;
     }
 
     const confirmed =
       window.confirm(
-        "Confirmer le refus de ce compte ?"
+        "Confirmer le refus de ce compte ?\n\nSes animaux publiés seront retirés et archivés."
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
     try {
-      setActionId(id);
+      setActionId(
+        id
+      );
 
       const {
         error,
-      } = await supabase
-        .from("profiles")
-        .update({
-          approval_status:
-            "rejected",
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .update({
+            approval_status:
+              "rejected",
 
-          is_verified:
-            false,
+            is_verified:
+              false,
 
-          is_active:
-            false,
+            is_active:
+              false,
 
-          approved_at:
-            null,
+            approved_at:
+              null,
 
-          approved_by:
-            null,
-        })
-        .eq(
-          "id",
-          id
-        );
+            approved_by:
+              null,
+          })
+          .eq(
+            "id",
+            id
+          );
 
-      if (error) {
+      if (
+        error
+      ) {
         throw error;
       }
 
@@ -350,152 +705,219 @@ export default function AdminUsersPage() {
       );
 
       await loadUsers();
-    } catch (error: unknown) {
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
         "Erreur refus utilisateur :",
         error
       );
 
       alert(
-        getErrorMessage(error) ||
+        getErrorMessage(
+          error
+        ) ||
           "Impossible de refuser ce compte."
       );
     } finally {
-      setActionId(null);
+      setActionId(
+        null
+      );
     }
   }
 
   /* =========================================================
-     SUSPENSION
+     SUSPENSION / DÉSACTIVATION
   ========================================================= */
 
   async function suspendUser(
     id: string
   ) {
-    if (actionId) return;
+    if (
+      actionId
+    ) {
+      return;
+    }
 
     const confirmed =
       window.confirm(
-        "Voulez-vous suspendre ce compte ?\n\nLe profil ne sera pas supprimé et pourra être réactivé plus tard."
+        "Voulez-vous suspendre ce compte ?\n\nLe compte sera désactivé. Ses animaux publiés seront retirés et archivés. Le compte pourra être réactivé plus tard."
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
     try {
-      setActionId(id);
+      setActionId(
+        id
+      );
 
       const {
         error,
-      } = await supabase
-        .from("profiles")
-        .update({
-          approval_status:
-            "suspended",
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .update({
+            approval_status:
+              "suspended",
 
-          is_active:
-            false,
+            is_active:
+              false,
 
-          is_verified:
-            false,
-        })
-        .eq(
-          "id",
-          id
-        );
+            is_verified:
+              false,
+          })
+          .eq(
+            "id",
+            id
+          );
 
-      if (error) {
+      if (
+        error
+      ) {
         throw error;
       }
 
       await loadUsers();
-    } catch (error: unknown) {
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
         "Erreur suspension utilisateur :",
         error
       );
 
       alert(
-        getErrorMessage(error) ||
+        getErrorMessage(
+          error
+        ) ||
           "Impossible de suspendre ce compte."
       );
     } finally {
-      setActionId(null);
+      setActionId(
+        null
+      );
     }
   }
 
   /* =========================================================
-     REACTIVATION
+     RÉACTIVATION
   ========================================================= */
 
   async function reactivateUser(
     id: string
   ) {
-    if (actionId) return;
-
-    const confirmed =
-      window.confirm(
-        "Voulez-vous réactiver et valider ce compte ?"
-      );
-
-    if (!confirmed) {
+    if (
+      actionId
+    ) {
       return;
     }
 
-    await approveUser(id);
+    const confirmed =
+      window.confirm(
+        "Voulez-vous réactiver et valider ce compte ?\n\nLes animaux archivés resteront disponibles pour être republiés."
+      );
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+    await approveUser(
+      id
+    );
   }
 
   /* =========================================================
-     SUPPRESSION DÉFINITIVE D'UN COMPTE
+     SUPPRESSION DÉFINITIVE
   ========================================================= */
 
   async function deleteUser(
     user: Profile
   ) {
-    if (actionId) return;
+    if (
+      actionId
+    ) {
+      return;
+    }
 
-    if (!canDeleteAccount(user.role)) {
+    /*
+     * Protection minimale :
+     * le compte admin actuellement connecté
+     * ne peut pas se supprimer lui-même.
+     */
+
+    if (
+      user.id ===
+      currentAdminId
+    ) {
       alert(
-        "Seuls les comptes adoptants et associations peuvent être supprimés depuis cette page."
+        "Vous ne pouvez pas supprimer le compte administrateur avec lequel vous êtes actuellement connecté."
       );
+
       return;
     }
 
     const displayName =
-      getDisplayName(user);
+      getDisplayName(
+        user
+      );
 
     const confirmed =
       window.confirm(
-        `Supprimer définitivement le compte de ${displayName} ?\n\nLes éventuelles fiches animales seront transférées à votre compte administrateur. Cette action est irréversible.`
+        `Supprimer définitivement le compte de ${displayName} ?\n\nCette action supprimera le compte utilisateur. Les éventuels animaux seront transférés au compte administrateur. Cette action est irréversible.`
       );
 
-    if (!confirmed) return;
+    if (
+      !confirmed
+    ) {
+      return;
+    }
 
     const verification =
       window.prompt(
         'Pour confirmer, écrivez exactement : SUPPRIMER'
       );
 
-    if (verification !== "SUPPRIMER") {
+    if (
+      verification !==
+      "SUPPRIMER"
+    ) {
       alert(
         "Suppression annulée : le mot de confirmation est incorrect."
       );
+
       return;
     }
 
     try {
-      setActionId(user.id);
+      setActionId(
+        user.id
+      );
 
       const {
-        data: { session },
-        error: sessionError,
+        data: {
+          session,
+        },
+        error:
+          sessionError,
       } =
-        await supabase.auth.getSession();
+        await supabase
+          .auth
+          .getSession();
 
       if (
         sessionError ||
-        !session?.access_token
+        !session
+          ?.access_token
       ) {
         throw new Error(
           "Session administrateur introuvable."
@@ -506,28 +928,40 @@ export default function AdminUsersPage() {
         await fetch(
           "/api/admin/users",
           {
-            method: "DELETE",
+            method:
+              "DELETE",
+
             headers: {
               Authorization:
                 `Bearer ${session.access_token}`,
+
               "Content-Type":
                 "application/json",
             },
-            body: JSON.stringify({
-              userId: user.id,
-            }),
+
+            body:
+              JSON.stringify({
+                userId:
+                  user.id,
+              }),
           }
         );
 
       const result =
-        (await response
-          .json()
-          .catch(() => ({}))) as {
+        (
+          await response
+            .json()
+            .catch(
+              () => ({})
+            )
+        ) as {
           error?: string;
           message?: string;
         };
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         throw new Error(
           result.error ||
             "Impossible de supprimer ce compte."
@@ -540,18 +974,25 @@ export default function AdminUsersPage() {
       );
 
       await loadUsers();
-    } catch (error: unknown) {
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
         "Erreur suppression utilisateur :",
         error
       );
 
       alert(
-        getErrorMessage(error) ||
+        getErrorMessage(
+          error
+        ) ||
           "Impossible de supprimer ce compte."
       );
     } finally {
-      setActionId(null);
+      setActionId(
+        null
+      );
     }
   }
 
@@ -562,16 +1003,20 @@ export default function AdminUsersPage() {
   const filteredUsers =
     useMemo(() => {
       if (
-        filter === "all"
+        filter ===
+        "all"
       ) {
         return users;
       }
 
       return users.filter(
-        (user) =>
+        (
+          user
+        ) =>
           normalizeStatus(
             user.approval_status
-          ) === filter
+          ) ===
+          filter
       );
     }, [
       users,
@@ -580,34 +1025,46 @@ export default function AdminUsersPage() {
 
   const pendingCount =
     users.filter(
-      (user) =>
+      (
+        user
+      ) =>
         normalizeStatus(
           user.approval_status
-        ) === "pending"
+        ) ===
+        "pending"
     ).length;
 
   const approvedCount =
     users.filter(
-      (user) =>
+      (
+        user
+      ) =>
         normalizeStatus(
           user.approval_status
-        ) === "approved"
+        ) ===
+        "approved"
     ).length;
 
   const rejectedCount =
     users.filter(
-      (user) =>
+      (
+        user
+      ) =>
         normalizeStatus(
           user.approval_status
-        ) === "rejected"
+        ) ===
+        "rejected"
     ).length;
 
   const suspendedCount =
     users.filter(
-      (user) =>
+      (
+        user
+      ) =>
         normalizeStatus(
           user.approval_status
-        ) === "suspended"
+        ) ===
+        "suspended"
     ).length;
 
   /* =========================================================
@@ -615,29 +1072,39 @@ export default function AdminUsersPage() {
   ========================================================= */
 
   function normalizeStatus(
-    status?: string | null
-  ) {
+    status?:
+      string |
+      null
+  ):
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "suspended" {
     const value =
       String(
-        status || "pending"
+        status ||
+          "pending"
       )
         .trim()
         .toLowerCase();
 
     if (
-      value === "approved"
+      value ===
+      "approved"
     ) {
       return "approved";
     }
 
     if (
-      value === "rejected"
+      value ===
+      "rejected"
     ) {
       return "rejected";
     }
 
     if (
-      value === "suspended"
+      value ===
+      "suspended"
     ) {
       return "suspended";
     }
@@ -649,9 +1116,11 @@ export default function AdminUsersPage() {
     user: Profile
   ) {
     if (
-      user.organization_name
+      user
+        .organization_name
     ) {
-      return user.organization_name;
+      return user
+        .organization_name;
     }
 
     const fullName =
@@ -667,55 +1136,49 @@ export default function AdminUsersPage() {
   }
 
   function getRoleLabel(
-    role?: string | null
+    role?:
+      string |
+      null
   ) {
     const value =
-      String(role || "")
+      String(
+        role ||
+          ""
+      )
         .trim()
         .toLowerCase();
 
-    if (
-      value === "association"
-    ) {
-      return "Association";
-    }
+    const option =
+      ROLE_OPTIONS.find(
+        (
+          item
+        ) =>
+          item.value ===
+          value
+      );
 
-    if (
-      value === "refuge"
-    ) {
-      return "Refuge / SIGFA";
-    }
-
-    if (
-      value === "fourriere"
-    ) {
-      return "Fourrière";
-    }
-
-    if (
-      value === "benevole"
-    ) {
-      return "Bénévole indépendant";
-    }
-
-    if (
-      value === "admin"
-    ) {
-      return "Administrateur";
-    }
-
-    return "Adoptant";
+    return (
+      option?.label ||
+      "Adoptant"
+    );
   }
 
   /* =========================================================
-     CHARGEMENT
+     CHARGEMENT INITIAL
   ========================================================= */
 
   useEffect(() => {
-    queueMicrotask(() => void loadUsers());
-  }, [loadUsers]);
+    queueMicrotask(
+      () =>
+        void loadUsers()
+    );
+  }, [
+    loadUsers,
+  ]);
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef] font-black text-[#064b42]">
         Chargement...
@@ -731,9 +1194,7 @@ export default function AdminUsersPage() {
     <main className="min-h-screen bg-[#fbf7ef] px-4 pb-16 pt-24 text-[#064b42] sm:px-8">
       <section className="mx-auto max-w-7xl">
 
-        {/* =====================================================
-            RETOUR
-        ====================================================== */}
+        {/* RETOUR */}
 
         <button
           type="button"
@@ -751,12 +1212,12 @@ export default function AdminUsersPage() {
           Retour dashboard
         </button>
 
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
+        {/* HEADER */}
 
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
           <div className="flex items-center gap-4">
+
             <Users
               size={42}
             />
@@ -769,16 +1230,23 @@ export default function AdminUsersPage() {
               <h1 className="mt-1 text-4xl font-black sm:text-5xl">
                 Utilisateurs
               </h1>
+
+              <p className="mt-2 text-sm text-gray-500">
+                Gestion complète de tous les comptes TAUI TE ORA.
+              </p>
             </div>
           </div>
 
           <select
-            value={filter}
+            value={
+              filter
+            }
             onChange={(
               event
             ) =>
               setFilter(
-                event.target
+                event
+                  .target
                   .value as UserFilter
               )
             }
@@ -806,11 +1274,10 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
-        {/* =====================================================
-            COMPTEURS
-        ====================================================== */}
+        {/* COMPTEURS */}
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+
           <Stat
             label="Total"
             value={
@@ -849,16 +1316,18 @@ export default function AdminUsersPage() {
             }
             status="suspended"
           />
+
         </div>
 
-        {/* =====================================================
-            UTILISATEURS
-        ====================================================== */}
+        {/* UTILISATEURS */}
 
         <div className="mt-8 space-y-5">
+
           {filteredUsers.length ===
           0 ? (
+
             <div className="rounded-3xl bg-white p-10 text-center shadow">
+
               <ShieldCheck
                 className="mx-auto text-[#064b42]"
                 size={52}
@@ -867,10 +1336,16 @@ export default function AdminUsersPage() {
               <h2 className="mt-4 text-2xl font-black">
                 Aucun utilisateur dans cette catégorie
               </h2>
+
             </div>
+
           ) : (
+
             filteredUsers.map(
-              (user) => {
+              (
+                user
+              ) => {
+
                 const status =
                   normalizeStatus(
                     user.approval_status
@@ -880,12 +1355,20 @@ export default function AdminUsersPage() {
                   actionId ===
                   user.id;
 
+                const isEditing =
+                  editingId ===
+                  user.id;
+
+                const isCurrentAdmin =
+                  user.id ===
+                  currentAdminId;
+
                 return (
                   <article
                     key={
                       user.id
                     }
-                    className={`flex flex-col justify-between gap-6 rounded-3xl border p-6 shadow-sm transition md:flex-row md:items-center ${
+                    className={`rounded-3xl border p-6 shadow-sm transition ${
                       status ===
                       "approved"
                         ? "border-green-200 bg-green-50/70"
@@ -898,273 +1381,513 @@ export default function AdminUsersPage() {
                             : "border-[#eadfce] bg-white"
                     }`}
                   >
-                    {/* INFORMATIONS */}
 
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-2xl font-black">
-                          {getDisplayName(
-                            user
+                    <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+
+                      {/* INFORMATIONS */}
+
+                      <div className="min-w-0 flex-1">
+
+                        <div className="flex flex-wrap items-center gap-3">
+
+                          <h2 className="text-2xl font-black">
+                            {getDisplayName(
+                              user
+                            )}
+                          </h2>
+
+                          <StatusBadge
+                            status={
+                              status
+                            }
+                          />
+
+                          {isCurrentAdmin && (
+                            <span className="rounded-full bg-[#064b42] px-3 py-1 text-xs font-black text-white">
+                              Votre compte
+                            </span>
                           )}
-                        </h2>
 
-                        <StatusBadge
-                          status={
-                            status
-                          }
-                        />
+                        </div>
+
+                        <p className="mt-1 text-gray-500">
+                          {user.email ||
+                            "Email non renseigné"}
+                        </p>
+
+                        {!isEditing && (
+                          <>
+                            <p className="mt-3 font-bold">
+                              Rôle :{" "}
+                              {getRoleLabel(
+                                user.role
+                              )}
+                            </p>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                              {user.phone ||
+                                "Téléphone non renseigné"}
+                              {" — "}
+                              {user.city ||
+                                "Commune non renseignée"}
+                              {" — "}
+                              {user.island ||
+                                "Île non renseignée"}
+                            </p>
+                          </>
+                        )}
+
+                        {/* FORMULAIRE MODIFICATION */}
+
+                        {isEditing && (
+                          <div className="mt-6 grid gap-4 rounded-3xl border border-[#eadfd8] bg-white p-5 sm:grid-cols-2">
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Prénom
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.first_name
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      first_name:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Nom
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.last_name
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      last_name:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                            <label className="block sm:col-span-2">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Structure
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.organization_name
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      organization_name:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Rôle
+                              </span>
+
+                              <select
+                                value={
+                                  editForm.role
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      role:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none"
+                              >
+                                {ROLE_OPTIONS.map(
+                                  (
+                                    option
+                                  ) => (
+                                    <option
+                                      key={
+                                        option.value
+                                      }
+                                      value={
+                                        option.value
+                                      }
+                                    >
+                                      {option.label}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </label>
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Téléphone
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.phone
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      phone:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Île
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.island
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      island:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-xs font-black uppercase text-gray-500">
+                                Commune
+                              </span>
+
+                              <input
+                                value={
+                                  editForm.city
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  setEditForm(
+                                    (
+                                      previous
+                                    ) => ({
+                                      ...previous,
+                                      city:
+                                        e.target.value,
+                                    })
+                                  )
+                                }
+                                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none"
+                              />
+                            </label>
+
+                          </div>
+                        )}
+
+                        {user.created_at && (
+                          <p className="mt-3 text-xs text-gray-400">
+                            Inscrit le{" "}
+                            {new Date(
+                              user.created_at
+                            ).toLocaleString(
+                              "fr-FR"
+                            )}
+                          </p>
+                        )}
+
                       </div>
 
-                      <p className="mt-1 text-gray-500">
-                        {user.email ||
-                          "Email non renseigné"}
-                      </p>
+                      {/* ACTIONS */}
 
-                      <p className="mt-3 font-bold">
-                        Rôle :{" "}
-                        {getRoleLabel(
-                          user.role
-                        )}
-                      </p>
+                      <div className="flex min-w-fit flex-wrap items-center gap-3">
 
-                      <p className="mt-1 text-sm text-gray-500">
-                        {user.phone ||
-                          "Téléphone non renseigné"}
-                        {" — "}
-                        {user.city ||
-                          "Commune non renseignée"}
-                        {" — "}
-                        {user.island ||
-                          "Île non renseignée"}
-                      </p>
-
-                      {status ===
-                      "approved" ? (
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-800">
-                          <ShieldCheck
-                            size={16}
-                          />
-
-                          Compte vérifié et actif
-                        </div>
-                      ) : status ===
-                        "suspended" ? (
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-sm font-black text-orange-800">
-                          <CirclePause
-                            size={16}
-                          />
-
-                          Compte temporairement suspendu
-                        </div>
-                      ) : status ===
-                        "rejected" ? (
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-black text-red-700">
-                          <X
-                            size={16}
-                          />
-
-                          Compte refusé
-                        </div>
-                      ) : (
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-black text-amber-800">
-                          Vérification administrative à effectuer
-                        </div>
-                      )}
-
-                      {user.created_at && (
-                        <p className="mt-3 text-xs text-gray-400">
-                          Inscrit le{" "}
-                          {new Date(
-                            user.created_at
-                          ).toLocaleString(
-                            "fr-FR"
-                          )}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* ACTIONS */}
-
-                    <div className="flex min-w-fit flex-wrap items-center gap-3">
-                      {status ===
-                        "pending" && (
-                        <>
+                        {!isEditing ? (
                           <button
                             type="button"
                             disabled={
                               isProcessing
                             }
                             onClick={() =>
-                              approveUser(
-                                user.id
+                              startEdit(
+                                user
                               )
                             }
-                            className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 font-black text-[#064b42] shadow-sm disabled:opacity-50"
                           >
-                            <Check
-                              size={
-                                18
-                              }
+                            <Pencil
+                              size={18}
                             />
 
-                            {isProcessing
-                              ? "Traitement..."
-                              : "Valider"}
+                            Modifier
                           </button>
-
-                          <button
-                            type="button"
-                            disabled={
-                              isProcessing
-                            }
-                            onClick={() =>
-                              rejectUser(
-                                user.id
-                              )
-                            }
-                            className="flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-black text-white disabled:opacity-50"
-                          >
-                            <X
-                              size={
-                                18
-                              }
-                            />
-
-                            Refuser
-                          </button>
-                        </>
-                      )}
-
-                      {status ===
-                        "approved" && (
-                        <>
-                          <div className="flex items-center gap-2 rounded-2xl bg-green-600 px-5 py-3 font-black text-white">
-                            <Check
-                              size={
-                                18
-                              }
-                            />
-
-                            Compte validé
-                          </div>
-
-                          {user.role !==
-                            "admin" && (
+                        ) : (
+                          <>
                             <button
                               type="button"
                               disabled={
                                 isProcessing
                               }
                               onClick={() =>
-                                suspendUser(
+                                saveEdit(
                                   user.id
                                 )
                               }
-                              className="flex items-center gap-2 rounded-2xl bg-orange-100 px-5 py-3 font-black text-orange-800 disabled:opacity-50"
+                              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
                             >
-                              <CirclePause
-                                size={
-                                  18
-                                }
+                              <Save
+                                size={18}
                               />
 
-                              Suspendre
+                              Enregistrer
                             </button>
-                          )}
-                        </>
-                      )}
 
-                      {status ===
-                        "rejected" && (
-                        <>
-                          <div className="rounded-2xl bg-red-100 px-5 py-3 font-black text-red-700">
-                            Compte refusé
-                          </div>
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={
+                                cancelEdit
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-gray-100 px-5 py-3 font-black text-gray-700 disabled:opacity-50"
+                            >
+                              <X
+                                size={18}
+                              />
 
+                              Annuler
+                            </button>
+                          </>
+                        )}
+
+                        {status ===
+                          "pending" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                approveUser(
+                                  user.id
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
+                            >
+                              <Check
+                                size={18}
+                              />
+
+                              Valider
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                rejectUser(
+                                  user.id
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-black text-white disabled:opacity-50"
+                            >
+                              <X
+                                size={18}
+                              />
+
+                              Refuser
+                            </button>
+                          </>
+                        )}
+
+                        {status ===
+                          "approved" && (
+                          <>
+                            <div className="flex items-center gap-2 rounded-2xl bg-green-600 px-5 py-3 font-black text-white">
+                              <Check
+                                size={18}
+                              />
+
+                              Compte validé
+                            </div>
+
+                            {!isCurrentAdmin && (
+                              <button
+                                type="button"
+                                disabled={
+                                  isProcessing
+                                }
+                                onClick={() =>
+                                  suspendUser(
+                                    user.id
+                                  )
+                                }
+                                className="flex items-center gap-2 rounded-2xl bg-orange-100 px-5 py-3 font-black text-orange-800 disabled:opacity-50"
+                              >
+                                <CirclePause
+                                  size={18}
+                                />
+
+                                Suspendre
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {status ===
+                          "rejected" && (
+                          <>
+                            <div className="rounded-2xl bg-red-100 px-5 py-3 font-black text-red-700">
+                              Compte refusé
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                reactivateUser(
+                                  user.id
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
+                            >
+                              <RotateCcw
+                                size={18}
+                              />
+
+                              Réactiver
+                            </button>
+                          </>
+                        )}
+
+                        {status ===
+                          "suspended" && (
+                          <>
+                            <div className="rounded-2xl bg-orange-100 px-5 py-3 font-black text-orange-800">
+                              Compte suspendu
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                reactivateUser(
+                                  user.id
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
+                            >
+                              <RotateCcw
+                                size={18}
+                              />
+
+                              Réactiver
+                            </button>
+                          </>
+                        )}
+
+                        {!isCurrentAdmin && (
                           <button
                             type="button"
                             disabled={
                               isProcessing
                             }
                             onClick={() =>
-                              reactivateUser(
-                                user.id
+                              deleteUser(
+                                user
                               )
                             }
-                            className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-2xl border-2 border-red-600 bg-white px-5 py-3 font-black text-red-700 transition hover:bg-red-50 disabled:opacity-50"
                           >
-                            <RotateCcw
-                              size={
-                                18
-                              }
+                            <Trash2
+                              size={18}
                             />
 
-                            Réactiver
+                            {isProcessing
+                              ? "Suppression..."
+                              : "Supprimer définitivement"}
                           </button>
-                        </>
-                      )}
+                        )}
 
-                      {status ===
-                        "suspended" && (
-                        <>
-                          <div className="rounded-2xl bg-orange-100 px-5 py-3 font-black text-orange-800">
-                            Compte suspendu
-                          </div>
+                      </div>
 
-                          <button
-                            type="button"
-                            disabled={
-                              isProcessing
-                            }
-                            onClick={() =>
-                              reactivateUser(
-                                user.id
-                              )
-                            }
-                            className="flex items-center gap-2 rounded-2xl bg-[#064b42] px-5 py-3 font-black text-white disabled:opacity-50"
-                          >
-                            <RotateCcw
-                              size={
-                                18
-                              }
-                            />
-
-                            Réactiver
-                          </button>
-                        </>
-                      )}
-
-                      {canDeleteAccount(
-                        user.role
-                      ) && (
-                        <button
-                          type="button"
-                          disabled={
-                            isProcessing
-                          }
-                          onClick={() =>
-                            deleteUser(
-                              user
-                            )
-                          }
-                          className="flex items-center gap-2 rounded-2xl border-2 border-red-600 bg-white px-5 py-3 font-black text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-                        >
-                          <Trash2
-                            size={18}
-                          />
-
-                          {isProcessing
-                            ? "Suppression..."
-                            : "Supprimer définitivement"}
-                        </button>
-                      )}
                     </div>
+
                   </article>
                 );
               }
             )
           )}
+
         </div>
+
       </section>
     </main>
   );
@@ -1184,7 +1907,8 @@ function StatusBadge({
     | "suspended";
 }) {
   if (
-    status === "approved"
+    status ===
+    "approved"
   ) {
     return (
       <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-800">
@@ -1194,7 +1918,8 @@ function StatusBadge({
   }
 
   if (
-    status === "rejected"
+    status ===
+    "rejected"
   ) {
     return (
       <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
@@ -1204,7 +1929,8 @@ function StatusBadge({
   }
 
   if (
-    status === "suspended"
+    status ===
+    "suspended"
   ) {
     return (
       <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
@@ -1229,8 +1955,11 @@ function Stat({
   value,
   status,
 }: {
-  label: string;
-  value: number;
+  label:
+    string;
+
+  value:
+    number;
 
   status?:
     | "pending"
