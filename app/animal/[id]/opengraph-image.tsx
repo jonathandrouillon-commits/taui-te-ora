@@ -29,10 +29,7 @@ function getSupabase() {
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (
-    !supabaseUrl ||
-    !serviceRoleKey
-  ) {
+  if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
       "Configuration Supabase manquante."
     );
@@ -50,16 +47,22 @@ function getSupabase() {
   );
 }
 
-export default async function OpenGraphImage(
-  { params }: Props
-) {
+export default async function OpenGraphImage({
+  params,
+}: Props) {
   const { id } = await params;
 
-  const supabase =
-    getSupabase();
+  const supabase = getSupabase();
+
+  /*
+   * ==============================
+   * ANIMAL
+   * ==============================
+   */
 
   const {
     data: animal,
+    error: animalError,
   } = await supabase
     .from("animals")
     .select(`
@@ -73,18 +76,27 @@ export default async function OpenGraphImage(
       city,
       photo_url,
       association_name,
-      owner_id,
-      owner_profile:profiles!animals_owner_id_fkey(
-        id,
-        organization_name,
-        avatar_url
-      )
+      owner_id
     `)
     .eq("id", id)
     .maybeSingle();
 
+  if (animalError) {
+    console.error(
+      "Erreur OpenGraph animal :",
+      animalError
+    );
+  }
+
+  /*
+   * ==============================
+   * PHOTOS
+   * ==============================
+   */
+
   const {
     data: photoRows,
+    error: photoError,
   } = await supabase
     .from("animal_photos")
     .select(`
@@ -93,22 +105,22 @@ export default async function OpenGraphImage(
       sort_order
     `)
     .eq("animal_id", id)
-    .order(
-      "is_cover",
-      {
-        ascending: false,
-      }
-    )
-    .order(
-      "sort_order",
-      {
-        ascending: true,
-      }
+    .order("is_cover", {
+      ascending: false,
+    })
+    .order("sort_order", {
+      ascending: true,
+    });
+
+  if (photoError) {
+    console.error(
+      "Erreur OpenGraph photos :",
+      photoError
     );
+  }
 
   const photos =
-    (photoRows ||
-      []) as AnimalPhoto[];
+    (photoRows || []) as AnimalPhoto[];
 
   const mainPhoto =
     photos.find(
@@ -118,48 +130,87 @@ export default async function OpenGraphImage(
     )?.photo_url ||
     photos.find(
       (photo) =>
-        photo.photo_url
+        Boolean(photo.photo_url)
     )?.photo_url ||
     animal?.photo_url ||
     "";
+
+  /*
+   * ==============================
+   * STRUCTURE
+   * ==============================
+   */
+
+  let structureName =
+    animal?.association_name ||
+    "TAUI TE ORA";
+
+  let structureLogo = "";
+
+  if (animal?.owner_id) {
+    const {
+      data: ownerProfile,
+      error: profileError,
+    } = await supabase
+      .from("profiles")
+      .select(`
+        id,
+        organization_name,
+        first_name,
+        last_name,
+        avatar_url
+      `)
+      .eq(
+        "id",
+        animal.owner_id
+      )
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "Erreur OpenGraph structure :",
+        profileError
+      );
+    }
+
+    if (ownerProfile) {
+      structureName =
+        ownerProfile.organization_name ||
+        [
+          ownerProfile.first_name,
+          ownerProfile.last_name,
+        ]
+          .filter(Boolean)
+          .join(" ") ||
+        structureName;
+
+      structureLogo =
+        ownerProfile.avatar_url ||
+        "";
+    }
+  }
+
+  /*
+   * ==============================
+   * INFORMATIONS
+   * ==============================
+   */
 
   const name =
     animal?.animal_name ||
     "Animal";
 
   const age =
-    animal?.age_label ||
-    "";
+    animal?.age_label || "";
 
   const sex =
-    animal?.sex ||
-    "";
+    animal?.sex || "";
 
   const city =
-    animal?.city ||
-    "";
+    animal?.city || "";
 
   const island =
-    animal?.island ||
-    "";
-
-  const ownerProfile =
-    Array.isArray(
-      animal?.owner_profile
-    )
-      ? animal?.owner_profile?.[0]
-      : animal?.owner_profile;
-
-  const structureName =
-    ownerProfile
-      ?.organization_name ||
-    animal?.association_name ||
-    "TAUI TE ORA";
-
-  const structureLogo =
-    ownerProfile
-      ?.avatar_url ||
-    "";
+    animal?.island || "";
 
   return new ImageResponse(
     (
@@ -169,14 +220,13 @@ export default async function OpenGraphImage(
           width: "1200px",
           height: "630px",
           display: "flex",
-          background:
-            "#d9d4cf",
+          background: "#d9d4cf",
           overflow: "hidden",
           fontFamily:
             "Arial, sans-serif",
         }}
       >
-        {/* PHOTO PRINCIPALE */}
+        {/* PHOTO */}
 
         {mainPhoto ? (
           <img
@@ -185,8 +235,7 @@ export default async function OpenGraphImage(
             width="1200"
             height="630"
             style={{
-              position:
-                "absolute",
+              position: "absolute",
               inset: 0,
               width: "1200px",
               height: "630px",
@@ -196,18 +245,15 @@ export default async function OpenGraphImage(
         ) : (
           <div
             style={{
-              position:
-                "absolute",
+              position: "absolute",
               inset: 0,
               width: "1200px",
               height: "630px",
               display: "flex",
-              alignItems:
-                "center",
+              alignItems: "center",
               justifyContent:
                 "center",
-              background:
-                "#e8e1d8",
+              background: "#e8e1d8",
               fontSize: "180px",
             }}
           >
@@ -215,192 +261,144 @@ export default async function OpenGraphImage(
           </div>
         )}
 
-        {/* DÉGRADÉ BAS */}
+        {/* DEGRADE */}
 
         <div
           style={{
-            position:
-              "absolute",
+            position: "absolute",
             left: 0,
             right: 0,
             bottom: 0,
             height: "330px",
             display: "flex",
             background:
-              "linear-gradient(to top, rgba(0,0,0,0.90), rgba(0,0,0,0.50), rgba(0,0,0,0))",
+              "linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.45), rgba(0,0,0,0))",
           }}
         />
 
-        {/* LOGO TAUI TE ORA EN HAUT */}
+        {/* LOGO TAUI */}
 
         <div
           style={{
-            position:
-              "absolute",
+            position: "absolute",
             top: "26px",
             left: "50%",
             transform:
               "translateX(-50%)",
             display: "flex",
-            alignItems:
-              "center",
+            alignItems: "center",
             justifyContent:
               "center",
-            width: "120px",
-            height: "120px",
-            borderRadius:
-              "60px",
+            width: "112px",
+            height: "112px",
+            borderRadius: "56px",
             background:
-              "rgba(255,255,255,0.90)",
+              "rgba(255,255,255,0.92)",
             boxShadow:
-              "0 6px 24px rgba(0,0,0,0.20)",
+              "0 6px 24px rgba(0,0,0,.20)",
           }}
         >
           <img
             src="https://www.taui-te-ora.com/logo-taui-te-ora.png"
             alt=""
-            width="100"
-            height="100"
+            width="94"
+            height="94"
             style={{
-              objectFit:
-                "contain",
+              objectFit: "contain",
             }}
           />
         </div>
 
-        {/* COLONNE DROITE */}
+        {/* COLONNE HAUT DROITE */}
 
         <div
           style={{
-            position:
-              "absolute",
+            position: "absolute",
             top: "30px",
             right: "30px",
             display: "flex",
-            flexDirection:
-              "column",
-            alignItems:
-              "center",
-            gap: "14px",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "13px",
           }}
         >
-          {/* COEUR */}
-
           <div
             style={{
               display: "flex",
-              alignItems:
-                "center",
+              alignItems: "center",
               justifyContent:
                 "center",
-              gap: "8px",
-              borderRadius:
-                "30px",
+              borderRadius: "30px",
               background:
-                "rgba(255,255,255,0.93)",
-              padding:
-                "11px 18px",
+                "rgba(255,255,255,.94)",
+              padding: "11px 17px",
               fontSize: "25px",
               fontWeight: 800,
+              color: "#ef8196",
             }}
           >
-            <span
-              style={{
-                color:
-                  "#ef8196",
-              }}
-            >
-              ♥
-            </span>
-
-            <span
-              style={{
-                color:
-                  "#52504d",
-              }}
-            >
-              TAUI
-            </span>
+            ♥
           </div>
-
-          {/* PATTE */}
 
           <div
             style={{
-              width: "58px",
-              height: "58px",
-              borderRadius:
-                "29px",
+              width: "55px",
+              height: "55px",
+              borderRadius: "28px",
               background:
-                "rgba(255,255,255,0.94)",
+                "rgba(255,255,255,.94)",
               display: "flex",
-              alignItems:
-                "center",
+              alignItems: "center",
               justifyContent:
                 "center",
-              fontSize: "29px",
-              boxShadow:
-                "0 4px 18px rgba(0,0,0,0.18)",
+              fontSize: "28px",
             }}
           >
             🐾
           </div>
 
-          {/* FACEBOOK */}
-
           <div
             style={{
-              width: "58px",
-              height: "58px",
-              borderRadius:
-                "29px",
-              background:
-                "#1877F2",
+              width: "55px",
+              height: "55px",
+              borderRadius: "28px",
+              background: "#1877F2",
               color: "white",
               display: "flex",
-              alignItems:
-                "center",
+              alignItems: "center",
               justifyContent:
                 "center",
-              fontSize: "38px",
+              fontSize: "36px",
               fontWeight: 900,
-              boxShadow:
-                "0 4px 18px rgba(0,0,0,0.18)",
             }}
           >
             f
           </div>
         </div>
 
-        {/* INFORMATIONS ANIMAL */}
+        {/* INFORMATIONS BAS */}
 
         <div
           style={{
-            position:
-              "absolute",
+            position: "absolute",
             left: "55px",
             right: "55px",
-            bottom: "45px",
+            bottom: "42px",
             display: "flex",
-            flexDirection:
-              "column",
+            flexDirection: "column",
             color: "white",
           }}
         >
-          {/* NOM */}
-
           <div
             style={{
               display: "flex",
-              alignItems:
-                "baseline",
+              alignItems: "baseline",
               gap: "22px",
             }}
           >
             <span
               style={{
-                fontSize:
-                  "67px",
+                fontSize: "68px",
                 fontWeight: 900,
                 lineHeight: 1,
               }}
@@ -411,8 +409,7 @@ export default async function OpenGraphImage(
             {age && (
               <span
                 style={{
-                  fontSize:
-                    "30px",
+                  fontSize: "30px",
                   fontWeight: 600,
                 }}
               >
@@ -421,17 +418,12 @@ export default async function OpenGraphImage(
             )}
           </div>
 
-          {/* SEXE */}
-
           {sex && (
             <div
               style={{
-                marginTop:
-                  "14px",
-                display:
-                  "flex",
-                fontSize:
-                  "26px",
+                marginTop: "12px",
+                display: "flex",
+                fontSize: "26px",
                 fontWeight: 700,
               }}
             >
@@ -439,26 +431,18 @@ export default async function OpenGraphImage(
             </div>
           )}
 
-          {/* LOCALISATION */}
-
-          {(city ||
-            island) && (
+          {(city || island) && (
             <div
               style={{
-                marginTop:
-                  "12px",
-                display:
-                  "flex",
-                fontSize:
-                  "25px",
+                marginTop: "11px",
+                display: "flex",
+                fontSize: "25px",
                 fontWeight: 600,
               }}
             >
               📍{" "}
               {[city, island]
-                .filter(
-                  Boolean
-                )
+                .filter(Boolean)
                 .join(" · ")}
             </div>
           )}
@@ -467,33 +451,24 @@ export default async function OpenGraphImage(
 
           <div
             style={{
-              marginTop:
-                "24px",
+              marginTop: "22px",
               display: "flex",
-              alignItems:
-                "center",
-              gap: "16px",
+              alignItems: "center",
+              gap: "15px",
             }}
           >
             {structureLogo ? (
               <img
-                src={
-                  structureLogo
-                }
+                src={structureLogo}
                 alt=""
-                width="58"
-                height="58"
+                width="60"
+                height="60"
                 style={{
-                  width:
-                    "58px",
-                  height:
-                    "58px",
-                  borderRadius:
-                    "29px",
-                  objectFit:
-                    "cover",
-                  background:
-                    "white",
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "30px",
+                  objectFit: "cover",
+                  background: "white",
                   border:
                     "3px solid white",
                 }}
@@ -501,22 +476,15 @@ export default async function OpenGraphImage(
             ) : (
               <div
                 style={{
-                  width:
-                    "58px",
-                  height:
-                    "58px",
-                  borderRadius:
-                    "29px",
-                  background:
-                    "white",
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "30px",
+                  background: "white",
+                  display: "flex",
+                  alignItems: "center",
                   justifyContent:
                     "center",
-                  fontSize:
-                    "28px",
+                  fontSize: "29px",
                 }}
               >
                 🐾
@@ -525,8 +493,7 @@ export default async function OpenGraphImage(
 
             <span
               style={{
-                fontSize:
-                  "25px",
+                fontSize: "25px",
                 fontWeight: 800,
               }}
             >
@@ -534,21 +501,16 @@ export default async function OpenGraphImage(
             </span>
           </div>
 
-          {/* MESSAGE */}
-
           <div
             style={{
-              marginTop:
-                "16px",
+              marginTop: "14px",
               display: "flex",
-              fontSize:
-                "21px",
+              fontSize: "21px",
               color:
-                "rgba(255,255,255,0.90)",
+                "rgba(255,255,255,.90)",
             }}
           >
-            Découvrez sa fiche sur
-            TAUI TE ORA
+            Découvrez {name} sur TAUI TE ORA
           </div>
         </div>
       </div>
