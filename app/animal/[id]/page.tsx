@@ -9,39 +9,27 @@ type PageProps = {
   }>;
 };
 
-type AnimalMetadataRow = {
-  id: string;
-  animal_name: string | null;
-  animal_type: string | null;
-  breed: string | null;
-  age_label: string | null;
-  city: string | null;
-  island: string | null;
-  photo_url: string | null;
-};
-
-type AnimalPhotoRow = {
-  photo_url: string | null;
-  is_cover: boolean | null;
-  sort_order: number | null;
-};
-
-const SITE_URL = "https://www.taui-te-ora.com";
-
 function getSupabaseServer() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  if (!url || !serviceRole) {
-    throw new Error("Configuration Supabase serveur manquante.");
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    return null;
   }
 
-  return createClient(url, serviceRole, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  return createClient(
+    supabaseUrl,
+    anonKey,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
 }
 
 export async function generateMetadata({
@@ -49,125 +37,144 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
 
-  const fallbackTitle = "Animal à adopter | TAUI TE ORA";
-  const fallbackDescription =
-    "Découvrez les animaux à l'adoption sur TAUI TE ORA.";
-  const fallbackImage = `${SITE_URL}/logo-taui-te-ora.png`;
-  const animalUrl = `${SITE_URL}/animal/${id}`;
+  const animalUrl =
+    `https://www.taui-te-ora.com/animal/${id}`;
+
+  /*
+   * IMPORTANT
+   *
+   * Cette image est toujours utilisée,
+   * même si Supabase ne renvoie pas l'animal.
+   *
+   * Le ?v=6 permet aussi de casser
+   * l'ancien cache Facebook.
+   */
+  const shareImage =
+    `${animalUrl}/opengraph-image?v=6`;
+
+  let animalName = "Animal";
 
   try {
-    const supabase = getSupabaseServer();
+    const supabase =
+      getSupabaseServer();
 
-    const { data: animal, error: animalError } = await supabase
-      .from("animals")
-      .select(
-        "id, animal_name, animal_type, breed, age_label, city, island, photo_url"
-      )
-      .eq("id", id)
-      .maybeSingle<AnimalMetadataRow>();
+    if (supabase) {
+      /*
+       * Requête volontairement MINIMALE.
+       *
+       * On sait que ces colonnes existent.
+       * Une colonne incorrecte ne pourra donc
+       * plus faire échouer toute la metadata.
+       */
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("animals")
+        .select(`
+          id,
+          animal_name
+        `)
+        .eq("id", id)
+        .maybeSingle();
 
-    if (animalError || !animal) {
-      return {
-        title: fallbackTitle,
-        description: fallbackDescription,
-        openGraph: {
-          title: fallbackTitle,
-          description: fallbackDescription,
-          url: animalUrl,
-          siteName: "TAUI TE ORA",
-          type: "website",
-          images: [{ url: fallbackImage, alt: "TAUI TE ORA" }],
-        },
-        twitter: {
-          card: "summary_large_image",
-          title: fallbackTitle,
-          description: fallbackDescription,
-          images: [fallbackImage],
-        },
-      };
+      if (error) {
+        console.error(
+          "Metadata animal Supabase :",
+          error
+        );
+      }
+
+      if (
+        data?.animal_name &&
+        String(
+          data.animal_name
+        ).trim()
+      ) {
+        animalName =
+          String(
+            data.animal_name
+          ).trim();
+      }
     }
+  } catch (error) {
+    /*
+     * Une erreur ici ne doit JAMAIS
+     * empêcher l'OpenGraph d'être généré.
+     */
+    console.error(
+      "Erreur metadata animal :",
+      error
+    );
+  }
 
-    const { data: photoRows } = await supabase
-      .from("animal_photos")
-      .select("photo_url, is_cover, sort_order")
-      .eq("animal_id", id)
-      .order("is_cover", { ascending: false })
-      .order("sort_order", { ascending: true });
+  const title =
+    animalName !== "Animal"
+      ? `${animalName} cherche sa famille | TAUI TE ORA`
+      : "Animal à adopter | TAUI TE ORA";
 
-    const photos = (photoRows || []) as AnimalPhotoRow[];
+  const description =
+    animalName !== "Animal"
+      ? `Découvrez ${animalName}, actuellement à l'adoption sur TAUI TE ORA ❤️`
+      : "Découvrez cet animal actuellement à l'adoption sur TAUI TE ORA.";
 
-    const mainPhoto =
-      photos.find((photo) => photo.is_cover && photo.photo_url)?.photo_url ||
-      photos.find((photo) => Boolean(photo.photo_url))?.photo_url ||
-      animal.photo_url ||
-      fallbackImage;
+  return {
+    title,
+    description,
 
-    const animalName = animal.animal_name || "Cet animal";
-    const title = `${animalName} cherche sa famille | TAUI TE ORA`;
+    alternates: {
+      canonical: animalUrl,
+    },
 
-    const details = [
-      animal.animal_type,
-      animal.breed,
-      animal.age_label,
-      animal.city,
-      animal.island,
-    ].filter(Boolean);
-
-    const description =
-      details.length > 0
-        ? `${animalName} cherche sa famille ❤️ ${details.join(
-            " · "
-          )}. Découvrez sa fiche sur TAUI TE ORA.`
-        : `${animalName} cherche sa famille ❤️ Découvrez sa fiche sur TAUI TE ORA.`;
-
-    return {
+    openGraph: {
       title,
       description,
-      alternates: { canonical: animalUrl },
-      openGraph: {
-        title,
-        description,
-        url: animalUrl,
-        siteName: "TAUI TE ORA",
-        type: "website",
-        images: [
-          {
-            url: mainPhoto,
-            alt: animalName,
-          },
-        ],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-        images: [mainPhoto],
-      },
-    };
-  } catch (error) {
-    console.error("Erreur métadonnées animal :", error);
 
-    return {
-      title: fallbackTitle,
-      description: fallbackDescription,
-      openGraph: {
-        title: fallbackTitle,
-        description: fallbackDescription,
-        url: animalUrl,
-        siteName: "TAUI TE ORA",
-        type: "website",
-        images: [{ url: fallbackImage, alt: "TAUI TE ORA" }],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: fallbackTitle,
-        description: fallbackDescription,
-        images: [fallbackImage],
-      },
-    };
-  }
+      url: animalUrl,
+
+      siteName:
+        "TAUI TE ORA",
+
+      type:
+        "website",
+
+      images: [
+        {
+          url:
+            shareImage,
+
+          width:
+            1200,
+
+          height:
+            630,
+
+          alt:
+            `${animalName} - TAUI TE ORA`,
+        },
+      ],
+    },
+
+    twitter: {
+      card:
+        "summary_large_image",
+
+      title,
+      description,
+
+      images: [
+        shareImage,
+      ],
+    },
+  };
 }
 
-export default function AnimalPage() {
-  return <AnimalPublicClient />;
+export default async function AnimalPage({
+  params,
+}: PageProps) {
+  await params;
+
+  return (
+    <AnimalPublicClient />
+  );
 }
