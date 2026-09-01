@@ -1,914 +1,173 @@
-"use client";
+import type { Metadata } from "next";
+import { createClient } from "@supabase/supabase-js";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import AnimalPublicClient from "./AnimalPublicClient";
 
-import {
-  useParams,
-  useRouter,
-} from "next/navigation";
+type PageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
-import {
-  Video,
-} from "lucide-react";
-
-import AnimalActions from "../../components/animal/AnimalActions";
-import AnimalGallery from "../../components/animal/AnimalGallery";
-import AnimalHeader from "../../components/animal/AnimalHeader";
-import AnimalHistory from "../../components/animal/AnimalHistory";
-import AnimalHealth from "../../components/animal/AnimalHealth";
-import AnimalCompatibility from "../../components/animal/AnimalCompatibility";
-
-import {
-  animalService,
-type Animal,
-} from "../../services/animal.service";
-
-import {
-  compatibilityService,
-} from "../../services/compatibility.service";
-
-import {
-  supabase,
-} from "../../lib/supabase";
-
-import {
-  videoService,
-} from "../../services/video.service";
-
-type AnimalVideo = {
+type AnimalMetadataRow = {
   id: string;
-  animal_id: string;
-  video_url: string;
-  sort_order: number;
-  created_at?: string;
+  animal_name: string | null;
+  animal_type: string | null;
+  breed: string | null;
+  age_label: string | null;
+  city: string | null;
+  island: string | null;
+  photo_url: string | null;
 };
 
-type QuestionnaireData = {
-  proprietaire_animal: string;
-  animal_actuel: string;
-  adoption_pour: string;
-  enfants: string;
-  jardin: string;
-  age_souhaite: string;
-  sexe_souhaite: string;
-  taille_souhaitee: string;
-  activite_souhaitee: string;
-  hypoallergenique: string;
-  proprete: string;
-  besoins_speciaux: string;
-  race_souhaitee: string;
+type AnimalPhotoRow = {
+  photo_url: string | null;
+  is_cover: boolean | null;
+  sort_order: number | null;
 };
 
-type MatchResult = ReturnType<
-  typeof compatibilityService.calculate
->;
-type AnimalPhoto = {
-  id?: string;
-  photo_url?: string | null;
-  is_cover?: boolean | null;
-  sort_order?: number | null;
-};
+const SITE_URL = "https://www.taui-te-ora.com";
 
-export default function AnimalPublicPage() {
-  const router =
-    useRouter();
+function getSupabaseServer() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const params =
-    useParams();
+  if (!url || !serviceRole) {
+    throw new Error("Configuration Supabase serveur manquante.");
+  }
 
-  const id =
-    String(params.id);
+  return createClient(url, serviceRole, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
-  const [
-    animal,
-    setAnimal,
-  ] =
-    useState<Animal | null>(
-      null
-    );
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
 
-  const [
-    videos,
-    setVideos,
-  ] =
-    useState<AnimalVideo[]>(
-      []
-    );
+  const fallbackTitle = "Animal à adopter | TAUI TE ORA";
+  const fallbackDescription =
+    "Découvrez les animaux à l'adoption sur TAUI TE ORA.";
+  const fallbackImage = `${SITE_URL}/logo-taui-te-ora.png`;
+  const animalUrl = `${SITE_URL}/animal/${id}`;
 
-  const [
-    loading,
-    setLoading,
-  ] =
-    useState(true);
+  try {
+    const supabase = getSupabaseServer();
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] =
-    useState("");
-
-  const [
-    adoptionMode,
-    setAdoptionMode,
-  ] = useState(false);
-
-  const [
-    matchLoading,
-    setMatchLoading,
-  ] = useState(false);
-
-  const [
-    matchResult,
-    setMatchResult,
-  ] = useState<MatchResult | null>(
-    null
-  );
-
-  const [
-    matchError,
-    setMatchError,
-  ] = useState("");
-
-  const [
-    likesCount,
-    setLikesCount,
-  ] = useState(0);
-
-  const loadLikesCount = useCallback(async () => {
-    const {
-      count,
-      error,
-    } = await supabase
-      .from("favorites")
-      .select("id", {
-        count: "exact",
-        head: true,
-      })
-      .eq("animal_id", id);
-
-    if (error) {
-      console.error(
-        "Erreur compteur coups de coeur :",
-        error
-      );
-
-      return;
-    }
-
-    setLikesCount(
-      count || 0
-    );
-  }, [id]);
-
-  const loadAnimal = useCallback(async () => {
-    try {
-      setLoading(true);
-      setErrorMessage("");
-
-      /*
-       * On charge la fiche animal et les vidéos
-       * indépendamment.
-       *
-       * Ainsi, une erreur vidéo ne bloque pas
-       * l'affichage de la fiche.
-       */
-
-      const data =
-        await animalService.getById(
-          id
-        );
-
-      setAnimal(data);
-
-      try {
-        const videoData =
-          await videoService.getByAnimal(
-            id
-          );
-
-        setVideos(
-          (videoData ||
-            []) as AnimalVideo[]
-        );
-      } catch (
-        videoError
-      ) {
-        console.error(
-          "Erreur chargement vidéos :",
-          videoError
-        );
-
-        setVideos([]);
-      }
-    } catch (
-      error
-    ) {
-      console.error(
-        error
-      );
-
-      setErrorMessage(
-        "Animal introuvable ou erreur de chargement."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadAnimal();
-      void loadLikesCount();
-    });
-
-    const channel = supabase
-      .channel(`animal-page-favorites-${id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "favorites",
-          filter: `animal_id=eq.${id}`,
-        },
-        () => {
-          void loadLikesCount();
-        }
+    const { data: animal, error: animalError } = await supabase
+      .from("animals")
+      .select(
+        "id, animal_name, animal_type, breed, age_label, city, island, photo_url"
       )
-      .subscribe();
+      .eq("id", id)
+      .maybeSingle<AnimalMetadataRow>();
 
-    return () => {
-      void supabase.removeChannel(
-        channel
-      );
-    };
-  }, [id, loadAnimal, loadLikesCount]);
-
-  const loadCompatibility =
-    useCallback(async () => {
-      if (!animal) return;
-
-      try {
-        setMatchLoading(true);
-        setMatchError("");
-
-        const {
-          data: { user },
-          error: userError,
-        } =
-          await supabase.auth.getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          router.replace(
-            "/login?redirect=" +
-              encodeURIComponent(
-                `/adoption/start/${id}`
-              )
-          );
-          return;
-        }
-
-        const access =
-          await animalService.getCurrentUserAccess();
-
-        if (
-          access.role !==
-          "adoptant"
-        ) {
-          throw new Error(
-            "La demande d'adoption doit être effectuée avec un compte Adoptant."
-          );
-        }
-
-        if (!access.isActive) {
-          throw new Error(
-            "Votre compte est actuellement désactivé."
-          );
-        }
-
-        if (
-          access.approvalStatus ===
-            "rejected" ||
-          access.approvalStatus ===
-            "suspended"
-        ) {
-          throw new Error(
-            "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
-          );
-        }
-
-        const {
-          data,
-          error,
-        } = await supabase
-          .from("profiles")
-          .select(
-            `
-              adopter_experience,
-              current_animals,
-              adoption_for,
-              children_age,
-              garden_type,
-              ideal_age,
-              ideal_sex,
-              ideal_size,
-              ideal_activity,
-              ideal_breed,
-              hypoallergenic,
-              cleanliness,
-              special_needs
-            `
-          )
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          throw error;
-        }
-
-        if (
-          !data ||
-          !data.adopter_experience ||
-          !data.garden_type ||
-          !data.ideal_age ||
-          !data.ideal_sex ||
-          !data.ideal_size ||
-          !data.ideal_activity
-        ) {
-          router.replace(
-            "/adoptant/questionnaire?redirect=" +
-              encodeURIComponent(
-                `/adoption/start/${id}`
-              )
-          );
-          return;
-        }
-
-        const questionnaire: QuestionnaireData = {
-          proprietaire_animal:
-            data.adopter_experience ||
-            "",
-          animal_actuel:
-            data.current_animals ||
-            "Aucun",
-          adoption_pour:
-            data.adoption_for ||
-            "Moi / Ma famille",
-          enfants:
-            data.children_age ||
-            "Non",
-          jardin:
-            data.garden_type ||
-            "Pas de jardin",
-          age_souhaite:
-            data.ideal_age || "",
-          sexe_souhaite:
-            data.ideal_sex || "",
-          taille_souhaitee:
-            data.ideal_size || "",
-          activite_souhaitee:
-            data.ideal_activity ||
-            "Pas de préférence",
-          hypoallergenique:
-            data.hypoallergenic ||
-            "Pas de préférence",
-          proprete:
-            data.cleanliness ||
-            "Pas de préférence",
-          besoins_speciaux:
-            data.special_needs ||
-            "Non",
-          race_souhaitee:
-            data.ideal_breed || "",
-        };
-
-        setMatchResult(
-          compatibilityService.calculate(
-            questionnaire,
-            animal
-          )
-        );
-      } catch (error: unknown) {
-        console.error(
-          "Erreur calcul compatibilité :",
-          error
-        );
-
-        setMatchError(
-          error instanceof Error
-            ? error.message
-            : "Impossible de calculer la compatibilité."
-        );
-      } finally {
-        setMatchLoading(false);
-      }
-    }, [animal, id, router]);
-
-  useEffect(() => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return;
+    if (animalError || !animal) {
+      return {
+        title: fallbackTitle,
+        description: fallbackDescription,
+        openGraph: {
+          title: fallbackTitle,
+          description: fallbackDescription,
+          url: animalUrl,
+          siteName: "TAUI TE ORA",
+          type: "website",
+          images: [{ url: fallbackImage, alt: "TAUI TE ORA" }],
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: fallbackTitle,
+          description: fallbackDescription,
+          images: [fallbackImage],
+        },
+      };
     }
 
-    const shouldShowAdoption =
-      new URLSearchParams(
-        window.location.search
-      ).get("adoption") === "1";
+    const { data: photoRows } = await supabase
+      .from("animal_photos")
+      .select("photo_url, is_cover, sort_order")
+      .eq("animal_id", id)
+      .order("is_cover", { ascending: false })
+      .order("sort_order", { ascending: true });
 
-    const timeoutId =
-      window.setTimeout(
-        () => {
-          setAdoptionMode(
-            shouldShowAdoption
-          );
+    const photos = (photoRows || []) as AnimalPhotoRow[];
 
-          if (
-            shouldShowAdoption &&
-            animal
-          ) {
-            void loadCompatibility();
-          }
-        },
-        0
-      );
+    const mainPhoto =
+      photos.find((photo) => photo.is_cover && photo.photo_url)?.photo_url ||
+      photos.find((photo) => Boolean(photo.photo_url))?.photo_url ||
+      animal.photo_url ||
+      fallbackImage;
 
-    return () => {
-      window.clearTimeout(
-        timeoutId
-      );
+    const animalName = animal.animal_name || "Cet animal";
+    const title = `${animalName} cherche sa famille | TAUI TE ORA`;
+
+    const details = [
+      animal.animal_type,
+      animal.breed,
+      animal.age_label,
+      animal.city,
+      animal.island,
+    ].filter(Boolean);
+
+    const description =
+      details.length > 0
+        ? `${animalName} cherche sa famille ❤️ ${details.join(
+            " · "
+          )}. Découvrez sa fiche sur TAUI TE ORA.`
+        : `${animalName} cherche sa famille ❤️ Découvrez sa fiche sur TAUI TE ORA.`;
+
+    return {
+      title,
+      description,
+      alternates: { canonical: animalUrl },
+      openGraph: {
+        title,
+        description,
+        url: animalUrl,
+        siteName: "TAUI TE ORA",
+        type: "website",
+        images: [
+          {
+            url: mainPhoto,
+            alt: animalName,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [mainPhoto],
+      },
     };
-  }, [animal, loadCompatibility]);
+  } catch (error) {
+    console.error("Erreur métadonnées animal :", error);
 
-  /* =========================================================
-     CHARGEMENT
-  ========================================================= */
-
-  if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] text-[#064b42]">
-        <p className="text-xl font-black">
-          Chargement de la fiche animal...
-        </p>
-      </main>
-    );
+    return {
+      title: fallbackTitle,
+      description: fallbackDescription,
+      openGraph: {
+        title: fallbackTitle,
+        description: fallbackDescription,
+        url: animalUrl,
+        siteName: "TAUI TE ORA",
+        type: "website",
+        images: [{ url: fallbackImage, alt: "TAUI TE ORA" }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fallbackTitle,
+        description: fallbackDescription,
+        images: [fallbackImage],
+      },
+    };
   }
+}
 
-  /* =========================================================
-     ERREUR
-  ========================================================= */
-
-  if (
-    errorMessage ||
-    !animal
-  ) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f4eee3] px-4 text-[#064b42]">
-        <div className="rounded-3xl bg-white p-8 text-center shadow">
-          <h1 className="text-2xl font-black">
-            Fiche introuvable
-          </h1>
-
-          <p className="mt-3 text-gray-600">
-            {errorMessage}
-          </p>
-
-          <button
-            type="button"
-            onClick={() =>
-              router.back()
-            }
-            className="mt-6 rounded-xl bg-[#064b42] px-5 py-3 font-bold text-white"
-          >
-            Retour
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  /* =========================================================
-     INFORMATIONS
-  ========================================================= */
-
-  const name =
-    animal.animal_name ||
-    animal.nom ||
-    "Animal";
-
-  const type =
-    animal.animal_type ||
-    animal.type ||
-    "";
-
-  const sexe =
-    animal.sex ||
-    animal.sexe ||
-    "";
-
-  const age =
-    animal.age_label ||
-    animal.age ||
-    "";
-
-  const race =
-    animal.breed ||
-    animal.race ||
-    "";
-
-  const taille =
-    animal.size_label ||
-    animal.taille ||
-    "";
-
-  const poids =
-    animal.weight_kg
-      ? `${animal.weight_kg} kg`
-      : animal.poids ||
-        "";
-
-  const ile =
-    animal.island ||
-    animal.ile ||
-    "";
-
-  const localisation =
-    animal.city ||
-    animal.localisation ||
-    "";
-
-  const association =
-    animal.owner_profile
-      ?.organization_name ||
-    animal.association_name ||
-    animal.association_id ||
-    "";
-
-  const ownerProfileId =
-    animal.owner_profile?.id ||
-    animal.owner_id ||
-    animal.created_by ||
-    "";
-
-  const statut =
-    animal.is_published
-      ? "À adopter"
-      : "Brouillon";
-
-  /* =========================================================
-     PHOTOS
-  ========================================================= */
-
-  const photos =
-    animal.animal_photos &&
-    animal.animal_photos.length >
-      0
-      ? [
-          ...animal.animal_photos,
-        ].sort(
-          (
-            a: AnimalPhoto, b: AnimalPhoto
-          ) => {
-            if (
-              a.is_cover
-            ) {
-              return -1;
-            }
-
-            if (
-              b.is_cover
-            ) {
-              return 1;
-            }
-
-            return (
-              (a.sort_order ??
-                0) -
-              (b.sort_order ??
-                0)
-            );
-          }
-        )
-      : animal.photo_url
-        ? [
-            {
-              id: "main",
-
-              photo_url:
-                animal.photo_url,
-
-              is_cover:
-                true,
-            },
-          ]
-        : [];
-
-  /* =========================================================
-     VIDEOS
-  ========================================================= */
-
-  const sortedVideos =
-    [...videos].sort(
-      (a, b) =>
-        (a.sort_order ??
-          0) -
-        (b.sort_order ??
-          0)
-    );
-
-  /* =========================================================
-     PAGE
-  ========================================================= */
-
-  return (
-    <main className="min-h-screen bg-[#f4eee3] px-4 py-6 text-[#064b42]">
-      <div className="mx-auto max-w-6xl">
-
-        {/* =====================================================
-            GALERIE + INFORMATIONS
-        ====================================================== */}
-
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <AnimalGallery
-            photos={
-              photos
-            }
-            name={
-              name
-            }
-          />
-
-          <div>
-            <AnimalHeader
-              nom={
-                name
-              }
-              statut={
-                statut
-              }
-              type={
-                type
-              }
-              sexe={
-                sexe
-              }
-              age={
-                age
-              }
-              race={
-                race
-              }
-              taille={
-                taille
-              }
-              poids={
-                poids
-              }
-              ile={
-                ile
-              }
-              localisation={
-                localisation
-              }
-              association={
-                association
-              }
-              likesCount={
-                likesCount
-              }
-            />
-
-            <AnimalActions
-              animalId={
-                animal.id
-              }
-              animalName={
-                name
-              }
-              ownerProfileId={
-                ownerProfileId
-              }
-            />
-
-            {adoptionMode && (
-              <section className="mt-5 rounded-[28px] border-2 border-[#df8995] bg-[#fff8f8] p-5 shadow-lg">
-                <h2 className="text-center text-2xl font-black text-[#064b42]">
-                  Votre compatibilité avec {name}
-                </h2>
-
-                {matchLoading && (
-                  <div className="py-8 text-center">
-                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
-                    <p className="mt-4 font-bold">
-                      Calcul de votre compatibilité...
-                    </p>
-                  </div>
-                )}
-
-                {!matchLoading &&
-                  matchError && (
-                    <div className="mt-5 rounded-2xl bg-red-50 p-4 text-center font-bold text-red-700">
-                      {matchError}
-                    </div>
-                  )}
-
-                {!matchLoading &&
-                  matchResult && (
-                    <>
-                      <div className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full bg-[#064b42] text-white shadow-xl">
-                        <div className="text-center">
-                          <div className="text-4xl font-black">
-                            {Math.round(
-                              matchResult.score
-                            )}
-                            %
-                          </div>
-                          <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white/80">
-                            compatibilité
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="mt-4 text-center text-lg font-black text-[#df8995]">
-                        {matchResult.level}
-                      </p>
-
-                      <p className="mt-3 text-center text-sm leading-6 text-gray-600">
-                        Ce taux est indicatif. L’association reste la mieux placée pour confirmer si votre foyer correspond aux besoins de {name}.
-                      </p>
-
-                      <div className="mt-6 rounded-2xl bg-white p-4 text-center shadow-sm">
-                        <p className="font-black text-[#064b42]">
-                          Souhaitez-vous confirmer votre intérêt et entrer en contact avec {association || "l’association"} ?
-                        </p>
-                      </div>
-
-                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAdoptionMode(
-                              false
-                            );
-                            router.replace(
-                              `/animal/${id}`
-                            );
-                          }}
-                          className="rounded-full bg-gray-100 px-5 py-4 font-black text-gray-700"
-                        >
-                          Pas maintenant
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            router.push(
-                              `/adoption/start/${id}?confirm=1`
-                            )
-                          }
-                          className="rounded-full bg-[#df8995] px-5 py-4 font-black text-white shadow-lg transition hover:bg-[#cf7481]"
-                        >
-                          Confirmer et contacter
-                        </button>
-                      </div>
-                    </>
-                  )}
-              </section>
-            )}
-          </div>
-        </section>
-
-        {/* =====================================================
-            VIDEO
-            Rien n'est affiché si aucune vidéo n'existe.
-        ====================================================== */}
-
-        {sortedVideos.length >
-          0 && (
-          <section className="mt-6 overflow-hidden rounded-[2rem] bg-white shadow">
-            <div className="flex items-center gap-3 border-b border-[#eee4d5] px-6 py-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff0f2]">
-                <Video
-                  size={
-                    22
-                  }
-                  className="text-[#df8995]"
-                />
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-black text-[#064b42]">
-                  En vidéo
-                </h2>
-
-                <p className="text-sm text-gray-500">
-                  Découvrez{" "}
-                  {name}{" "}
-                  en mouvement
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-6">
-              {sortedVideos.map(
-                (
-                  video
-                ) => (
-                  <div
-                    key={
-                      video.id
-                    }
-                    className="overflow-hidden rounded-2xl bg-black"
-                  >
-                    <video
-                      src={
-                        video.video_url
-                      }
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="max-h-[650px] w-full object-contain"
-                    >
-                      Votre navigateur ne permet pas la lecture de cette vidéo.
-                    </video>
-                  </div>
-                )
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* =====================================================
-            INFORMATIONS COMPLEMENTAIRES
-        ====================================================== */}
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-3">
-          <AnimalHistory
-            histoire={
-              animal.story ||
-              animal.histoire ||
-              ""
-            }
-            lieuCapture={
-              animal.capture_location ||
-              animal.lieu_capture ||
-              ""
-            }
-            tempsRue={
-              animal.street_duration ||
-              animal.temps_rue ||
-              ""
-            }
-          />
-
-          <AnimalHealth
-            sterilise={
-              animal.sterilized ??
-              animal.sterilise ??
-              false
-            }
-            vaccine={
-              animal.vaccinated ??
-              animal.vaccine ??
-              false
-            }
-            identifie={
-              animal.microchipped ??
-              animal.identifie ??
-              false
-            }
-            sante={
-              animal.health_status ||
-              animal.sante ||
-              ""
-            }
-          />
-
-          <AnimalCompatibility
-            compatibleChiens={
-              animal.compatible_chiens ||
-              null
-            }
-            compatibleChats={
-              animal.compatible_chats ||
-              null
-            }
-            compatibleEnfants={
-              animal.compatible_enfants ||
-              null
-            }
-          />
-        </section>
-      </div>
-    </main>
-  );
+export default function AnimalPage() {
+  return <AnimalPublicClient />;
 }
