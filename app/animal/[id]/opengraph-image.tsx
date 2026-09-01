@@ -74,7 +74,6 @@ export default async function OpenGraphImage({
       breed,
       island,
       city,
-      photo_url,
       association_name,
       owner_id
     `)
@@ -132,7 +131,6 @@ export default async function OpenGraphImage({
       (photo) =>
         Boolean(photo.photo_url)
     )?.photo_url ||
-    animal?.photo_url ||
     "";
 
   /*
@@ -376,7 +374,7 @@ export default async function OpenGraphImage({
           </div>
         </div>
 
-        {/* INFORMATIONS BAS */}
+        {/* INFOS BAS */}
 
         <div
           style={{
