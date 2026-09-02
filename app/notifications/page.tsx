@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -26,6 +27,103 @@ type ClickableNotification =
     signalement_id?: string | null;
     animal_id?: string | null;
   };
+
+/* =========================================================
+   BADGE APPLICATION
+========================================================= */
+
+async function updateApplicationBadge(
+  count: number
+) {
+  try {
+    /*
+     * Mise à jour directe depuis l'application
+     * lorsque le navigateur supporte Badging API.
+     */
+
+    if (
+      typeof navigator !==
+      "undefined"
+    ) {
+      if (
+        count > 0 &&
+        "setAppBadge" in navigator
+      ) {
+        await (
+          navigator as Navigator & {
+            setAppBadge?: (
+              value?: number
+            ) => Promise<void>;
+          }
+        ).setAppBadge?.(
+          count
+        );
+      }
+
+      if (
+        count <= 0 &&
+        "clearAppBadge" in navigator
+      ) {
+        await (
+          navigator as Navigator & {
+            clearAppBadge?: () =>
+              Promise<void>;
+          }
+        ).clearAppBadge?.();
+      }
+    }
+
+    /*
+     * On informe également le Service Worker.
+     *
+     * Cela permet d'avoir une deuxième
+     * synchronisation avec public/sw.js.
+     */
+
+    if (
+      typeof navigator !==
+        "undefined" &&
+      "serviceWorker" in
+        navigator
+    ) {
+      const registration =
+        await navigator
+          .serviceWorker
+          .ready;
+
+      const worker =
+        registration.active ||
+        registration.waiting ||
+        registration.installing;
+
+      if (
+        worker
+      ) {
+        worker.postMessage({
+          type:
+            count > 0
+              ? "SET_APP_BADGE"
+              : "CLEAR_APP_BADGE",
+
+          count,
+        });
+      }
+    }
+  } catch (
+    error
+  ) {
+    /*
+     * Le badge est une amélioration visuelle.
+     * Une erreur de badge ne doit jamais
+     * empêcher les notifications de fonctionner.
+     */
+
+    console.warn(
+      "Badge TAUI TE ORA non disponible :",
+      error
+    );
+  }
+}
 
 export default function NotificationsPage() {
   const router =
@@ -53,41 +151,107 @@ export default function NotificationsPage() {
       string | null
     >(null);
 
+  /* =========================================================
+     COMPTEUR NON LUES
+  ========================================================= */
+
+  const unreadCount =
+    useMemo(
+      () =>
+        notifications.filter(
+          (
+            item
+          ) =>
+            !item.is_read
+        ).length,
+      [
+        notifications,
+      ]
+    );
+
+  /*
+   * Dès que le nombre de notifications
+   * non lues change :
+   *
+   * 5 notifications → badge 5
+   * 2 notifications → badge 2
+   * 0 notification  → badge supprimé
+   */
+
+  useEffect(
+    () => {
+      if (
+        loading
+      ) {
+        return;
+      }
+
+      void updateApplicationBadge(
+        unreadCount
+      );
+    },
+    [
+      unreadCount,
+      loading,
+    ]
+  );
+
+  /* =========================================================
+     INITIALISATION
+  ========================================================= */
+
   const initNotifications =
     useCallback(
       async () => {
-        const {
-          data: {
-            user,
-          },
-          error,
-        } =
-          await supabase
-            .auth
-            .getUser();
+        try {
+          const {
+            data: {
+              user,
+            },
+            error,
+          } =
+            await supabase
+              .auth
+              .getUser();
 
-        if (
-          error ||
-          !user
+          if (
+            error ||
+            !user
+          ) {
+            setRecipientId(
+              null
+            );
+
+            setNotifications(
+              []
+            );
+
+            await updateApplicationBadge(
+              0
+            );
+
+            return;
+          }
+
+          setRecipientId(
+            user.id
+          );
+
+          await loadNotifications(
+            user.id
+          );
+        } catch (
+          error
         ) {
+          console.error(
+            "Erreur initialisation notifications :",
+            error
+          );
+        } finally {
           setLoading(
             false
           );
-
-          return;
         }
-
-        setRecipientId(
-          user.id
-        );
-
-        await loadNotifications(
-          user.id
-        );
-
-        setLoading(
-          false
-        );
       },
       []
     );
@@ -112,19 +276,50 @@ export default function NotificationsPage() {
     ]
   );
 
+  /* =========================================================
+     CHARGEMENT NOTIFICATIONS
+  ========================================================= */
+
   async function loadNotifications(
     id: string
   ) {
-    const data =
-      await notificationService
-        .getMyNotifications(
-          id
-        );
+    try {
+      const data =
+        await notificationService
+          .getMyNotifications(
+            id
+          );
 
-    setNotifications(
-      data as ClickableNotification[]
-    );
+      setNotifications(
+        data as ClickableNotification[]
+      );
+
+      const count =
+        (
+          data as ClickableNotification[]
+        ).filter(
+          (
+            item
+          ) =>
+            !item.is_read
+        ).length;
+
+      await updateApplicationBadge(
+        count
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        "Erreur chargement notifications :",
+        error
+      );
+    }
   }
+
+  /* =========================================================
+     TEMPS RÉEL SUPABASE
+  ========================================================= */
 
   useEffect(
     () => {
@@ -174,38 +369,75 @@ export default function NotificationsPage() {
     ]
   );
 
+  /* =========================================================
+     MARQUER UNE NOTIFICATION COMME LUE
+  ========================================================= */
+
   async function markAsRead(
     id: string
   ) {
-    await notificationService
-      .markAsRead(
-        id
+    try {
+      await notificationService
+        .markAsRead(
+          id
+        );
+
+      const now =
+        new Date()
+          .toISOString();
+
+      setNotifications(
+        (
+          current
+        ) => {
+          const updated =
+            current.map(
+              (
+                item
+              ) =>
+                item.id ===
+                id
+                  ? {
+                      ...item,
+
+                      is_read:
+                        true,
+
+                      read_at:
+                        item.read_at ||
+                        now,
+                    }
+                  : item
+            );
+
+          const count =
+            updated.filter(
+              (
+                item
+              ) =>
+                !item.is_read
+            ).length;
+
+          void updateApplicationBadge(
+            count
+          );
+
+          return updated;
+        }
       );
-
-    setNotifications(
-      (
-        current
-      ) =>
-        current.map(
-          (
-            item
-          ) =>
-            item.id ===
-            id
-              ? {
-                  ...item,
-
-                  is_read:
-                    true,
-
-                  read_at:
-                    new Date()
-                      .toISOString(),
-                }
-              : item
-        )
-    );
+    } catch (
+      error
+    ) {
+      console.error(
+        "Erreur lecture notification :",
+        error
+      );
+    }
   }
+
+  /* =========================================================
+     TOUT MARQUER COMME LU
+  ========================================================= */
 
   async function markAllAsRead() {
     if (
@@ -214,35 +446,57 @@ export default function NotificationsPage() {
       return;
     }
 
-    await notificationService
-      .markAllAsRead(
-        recipientId
+    try {
+      await notificationService
+        .markAllAsRead(
+          recipientId
+        );
+
+      const now =
+        new Date()
+          .toISOString();
+
+      setNotifications(
+        (
+          current
+        ) =>
+          current.map(
+            (
+              item
+            ) => ({
+              ...item,
+
+              is_read:
+                true,
+
+              read_at:
+                item.read_at ||
+                now,
+            })
+          )
       );
 
-    const now =
-      new Date()
-        .toISOString();
+      /*
+       * Plus aucune notification non lue :
+       * suppression du badge.
+       */
 
-    setNotifications(
-      (
-        current
-      ) =>
-        current.map(
-          (
-            item
-          ) => ({
-            ...item,
-
-            is_read:
-              true,
-
-            read_at:
-              item.read_at ||
-              now,
-          })
-        )
-    );
+      await updateApplicationBadge(
+        0
+      );
+    } catch (
+      error
+    ) {
+      console.error(
+        "Erreur lecture de toutes les notifications :",
+        error
+      );
+    }
   }
+
+  /* =========================================================
+     URL D'UNE NOTIFICATION
+  ========================================================= */
 
   function getNotificationUrl(
     notification:
@@ -252,6 +506,7 @@ export default function NotificationsPage() {
      * Messages :
      * priorité maximale.
      */
+
     if (
       notification
         .conversation_id
@@ -262,6 +517,7 @@ export default function NotificationsPage() {
     /*
      * Signalement / matching
      */
+
     if (
       notification
         .signalement_id
@@ -270,12 +526,9 @@ export default function NotificationsPage() {
     }
 
     /*
-     * Demande adoption
-     *
-     * Une association ou
-     * un refuge pourra ouvrir
-     * directement la demande.
+     * Demande d'adoption.
      */
+
     if (
       notification
         .adoption_request_id
@@ -284,10 +537,9 @@ export default function NotificationsPage() {
     }
 
     /*
-     * Si seulement animal_id
-     * est disponible,
-     * on ouvre la fiche animal.
+     * Fiche animal.
      */
+
     if (
       notification
         .animal_id
@@ -298,6 +550,10 @@ export default function NotificationsPage() {
     return null;
   }
 
+  /* =========================================================
+     OUVERTURE NOTIFICATION
+  ========================================================= */
+
   async function openNotification(
     notification:
       ClickableNotification
@@ -307,6 +563,7 @@ export default function NotificationsPage() {
      * la notification comme lue
      * au clic.
      */
+
     if (
       !notification
         .is_read
@@ -330,13 +587,9 @@ export default function NotificationsPage() {
     }
   }
 
-  const unreadCount =
-    notifications.filter(
-      (
-        item
-      ) =>
-        !item.is_read
-    ).length;
+  /* =========================================================
+     CHARGEMENT
+  ========================================================= */
 
   if (
     loading
@@ -348,10 +601,18 @@ export default function NotificationsPage() {
     );
   }
 
+  /* =========================================================
+     PAGE
+  ========================================================= */
+
   return (
-    <main className="min-h-screen bg-[#f7efe7] px-4 py-8">
+    <main className="min-h-screen bg-[#f7efe7] px-4 pb-28 pt-8">
       <section className="mx-auto max-w-3xl">
+
+        {/* HEADER */}
+
         <div className="flex items-center justify-between gap-4">
+
           <div>
             <h1 className="text-3xl font-bold text-stone-900">
               Notifications
@@ -360,36 +621,75 @@ export default function NotificationsPage() {
             <p className="mt-1 text-sm text-stone-600">
               {unreadCount >
               0
-                ? `${unreadCount} notification(s) non lue(s)`
+                ? `${unreadCount} notification${
+                    unreadCount >
+                    1
+                      ? "s"
+                      : ""
+                  } non lue${
+                    unreadCount >
+                    1
+                      ? "s"
+                      : ""
+                  }`
                 : "Toutes les notifications sont lues"}
             </p>
           </div>
 
+          {/* COMPTEUR */}
+
           {unreadCount >
             0 && (
+            <div className="flex h-11 min-w-11 items-center justify-center rounded-full bg-red-600 px-3 text-lg font-black text-white shadow">
+              {unreadCount >
+              99
+                ? "99+"
+                : unreadCount}
+            </div>
+          )}
+
+        </div>
+
+        {/* TOUT MARQUER */}
+
+        {unreadCount >
+          0 && (
+          <div className="mt-5">
             <button
               type="button"
               onClick={
                 markAllAsRead
               }
-              className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:opacity-90"
             >
-              Tout marquer
-              comme lu
+              Tout marquer comme lu
             </button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* LISTE */}
 
         <div className="mt-6 space-y-4">
-          {notifications
-            .length ===
+
+          {notifications.length ===
           0 ? (
-            <div className="rounded-3xl bg-white p-6 shadow">
-              Aucune
-              notification
-              pour le moment.
+
+            <div className="rounded-3xl bg-white p-8 text-center shadow">
+              <div className="text-5xl">
+                🔔
+              </div>
+
+              <h2 className="mt-4 text-xl font-black text-stone-900">
+                Aucune notification
+              </h2>
+
+              <p className="mt-2 text-sm text-stone-500">
+                Vos prochaines alertes TAUI TE ORA apparaîtront ici.
+              </p>
             </div>
+
           ) : (
+
             notifications.map(
               (
                 notification
@@ -445,17 +745,26 @@ export default function NotificationsPage() {
                         );
                       }
                     }}
-                    className={`rounded-3xl border p-5 shadow transition ${
+                    className={`relative rounded-3xl border p-5 shadow transition ${
                       notification.is_read
                         ? "border-stone-200 bg-white"
-                        : "border-orange-300 bg-orange-50"
+                        : "border-red-200 bg-red-50"
                     } ${
                       url
                         ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg"
                         : ""
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-4">
+
+                    {/* POINT ROUGE */}
+
+                    {!notification
+                      .is_read && (
+                      <span className="absolute right-5 top-5 h-3 w-3 rounded-full bg-red-600 shadow" />
+                    )}
+
+                    <div className="flex items-start justify-between gap-4 pr-5">
+
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wide text-orange-600">
                           {
@@ -475,6 +784,7 @@ export default function NotificationsPage() {
                           Ouvrir →
                         </span>
                       )}
+
                     </div>
 
                     <p className="mt-2 text-stone-700">
@@ -492,12 +802,10 @@ export default function NotificationsPage() {
                             event
                           ) => {
                             /*
-                             * Empêche le clic
-                             * du bouton de
-                             * déclencher aussi
-                             * l'ouverture de
-                             * la notification.
+                             * Empêche l'ouverture
+                             * automatique de la notification.
                              */
+
                             event.stopPropagation();
 
                             void markAsRead(
@@ -506,17 +814,19 @@ export default function NotificationsPage() {
                           }}
                           className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow"
                         >
-                          Marquer
-                          comme lu
+                          Marquer comme lu
                         </button>
                       </div>
                     )}
+
                   </div>
                 );
               }
             )
           )}
+
         </div>
+
       </section>
     </main>
   );
