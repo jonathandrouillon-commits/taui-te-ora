@@ -1,18 +1,41 @@
-import type { Metadata } from "next";
+import { ImageResponse } from "next/og";
 import { createClient } from "@supabase/supabase-js";
 
-import AnimalPublicClient from "./AnimalPublicClient";
+export const runtime = "edge";
 
-type PageProps = {
+export const size = {
+  width: 1200,
+  height: 630,
+};
+
+export const contentType = "image/png";
+
+type Props = {
   params: Promise<{
     id: string;
   }>;
 };
 
-const SITE_URL =
-  "https://www.taui-te-ora.com";
+type AnimalRow = {
+  id: string;
+  animal_name: string | null;
+  animal_type: string | null;
+  age_label: string | null;
+  sex: string | null;
+  breed: string | null;
+  island: string | null;
+  city: string | null;
+  photo_url: string | null;
+  association_name: string | null;
+};
 
-function getSupabaseServer() {
+type AnimalPhotoRow = {
+  photo_url: string | null;
+  is_cover: boolean | null;
+  sort_order: number | null;
+};
+
+function getSupabase() {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -23,7 +46,9 @@ function getSupabaseServer() {
     !supabaseUrl ||
     !serviceRoleKey
   ) {
-    return null;
+    throw new Error(
+      "Configuration Supabase serveur manquante."
+    );
   }
 
   return createClient(
@@ -38,206 +63,616 @@ function getSupabaseServer() {
   );
 }
 
-export async function generateMetadata({
+export default async function OpenGraphImage({
   params,
-}: PageProps): Promise<Metadata> {
+}: Props) {
   const { id } =
     await params;
 
-  const animalUrl =
-    `${SITE_URL}/animal/${id}`;
-
-  /*
-   * Image Open Graph dédiée à cet animal.
-   *
-   * v=11 permet de forcer Facebook
-   * à oublier les anciennes versions
-   * mises en cache.
-   */
-  const openGraphImageUrl =
-    `${animalUrl}/opengraph-image?v=11`;
-
-  let animalName =
-    "Animal";
-
   let animal:
-    | {
-        animal_name?: string | null;
-        animal_type?: string | null;
-        breed?: string | null;
-        age_label?: string | null;
-        sex?: string | null;
-        city?: string | null;
-        island?: string | null;
-      }
-    | null = null;
+    AnimalRow | null =
+    null;
+
+  let photos:
+    AnimalPhotoRow[] =
+    [];
 
   try {
     const supabase =
-      getSupabaseServer();
+      getSupabase();
 
-    if (supabase) {
-      const {
-        data,
-        error,
-      } =
-        await supabase
-          .from("animals")
-          .select(`
-            id,
-            animal_name,
-            animal_type,
-            breed,
-            age_label,
-            sex,
-            city,
-            island
-          `)
-          .eq(
-            "id",
-            id
-          )
-          .maybeSingle();
+    const {
+      data:
+        animalData,
+      error:
+        animalError,
+    } =
+      await supabase
+        .from("animals")
+        .select(`
+          id,
+          animal_name,
+          animal_type,
+          age_label,
+          sex,
+          breed,
+          island,
+          city,
+          photo_url,
+          association_name
+        `)
+        .eq(
+          "id",
+          id
+        )
+        .maybeSingle();
 
-      if (error) {
-        console.error(
-          "Erreur metadata animal :",
-          error
-        );
-      }
-
-      if (data) {
-        animal =
-          data;
-
-        if (
-          data.animal_name &&
-          String(
-            data.animal_name
-          ).trim()
-        ) {
-          animalName =
-            String(
-              data.animal_name
-            ).trim();
-        }
-      }
+    if (
+      animalError
+    ) {
+      console.error(
+        "Erreur OpenGraph animal :",
+        animalError
+      );
     }
+
+    if (
+      animalData
+    ) {
+      animal =
+        animalData as AnimalRow;
+    }
+
+    const {
+      data:
+        photoRows,
+      error:
+        photoError,
+    } =
+      await supabase
+        .from(
+          "animal_photos"
+        )
+        .select(`
+          photo_url,
+          is_cover,
+          sort_order
+        `)
+        .eq(
+          "animal_id",
+          id
+        )
+        .order(
+          "is_cover",
+          {
+            ascending:
+              false,
+          }
+        )
+        .order(
+          "sort_order",
+          {
+            ascending:
+              true,
+          }
+        );
+
+    if (
+      photoError
+    ) {
+      console.error(
+        "Erreur OpenGraph photos :",
+        photoError
+      );
+    }
+
+    photos =
+      (
+        photoRows ||
+        []
+      ) as AnimalPhotoRow[];
   } catch (
     error
   ) {
     console.error(
-      "Erreur generateMetadata animal :",
+      "Erreur génération OpenGraph :",
       error
     );
   }
 
-  const title =
-    animalName !==
-    "Animal"
-      ? `${animalName} cherche sa famille | TAUI TE ORA`
-      : "Animal à adopter | TAUI TE ORA";
+  const mainPhoto =
+    photos.find(
+      (
+        photo
+      ) =>
+        photo.is_cover &&
+        Boolean(
+          photo.photo_url
+        )
+    )?.photo_url ||
+    photos.find(
+      (
+        photo
+      ) =>
+        Boolean(
+          photo.photo_url
+        )
+    )?.photo_url ||
+    animal?.photo_url ||
+    "";
 
-  const details =
+  const name =
+    animal
+      ?.animal_name
+      ?.trim() ||
+    "Animal";
+
+  const age =
+    animal
+      ?.age_label
+      ?.trim() ||
+    "";
+
+  const sex =
+    animal
+      ?.sex
+      ?.trim() ||
+    "";
+
+  const breed =
+    animal
+      ?.breed
+      ?.trim() ||
+    "";
+
+  const city =
+    animal
+      ?.city
+      ?.trim() ||
+    "";
+
+  const island =
+    animal
+      ?.island
+      ?.trim() ||
+    "";
+
+  const association =
+    animal
+      ?.association_name
+      ?.trim() ||
+    "TAUI TE ORA";
+
+  const location =
     [
-      animal?.animal_type,
-      animal?.breed,
-      animal?.age_label,
-      animal?.sex,
-      animal?.city,
-      animal?.island,
-    ].filter(
-      Boolean
-    );
+      city,
+      island,
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
+        " · "
+      );
 
-  const description =
-    animalName !==
-    "Animal"
-      ? `${animalName} cherche sa famille ❤️ ${
-          details.length
-            ? `${details.join(
-                " · "
-              )}. `
-            : ""
-        }Découvrez sa fiche sur TAUI TE ORA.`
-      : "Découvrez cet animal actuellement à l'adoption sur TAUI TE ORA.";
-
-  return {
-    title,
-    description,
-
-    alternates: {
-      canonical:
-        animalUrl,
-    },
-
-    openGraph: {
-      title,
-      description,
-
-      url:
-        animalUrl,
-
-      siteName:
-        "TAUI TE ORA",
-
-      type:
-        "website",
-
-      images: [
-        {
-          url:
-            openGraphImageUrl,
-
-          secureUrl:
-            openGraphImageUrl,
-
+  return new ImageResponse(
+    (
+      <div
+        style={{
           width:
-            1200,
+            "1200px",
 
           height:
-            630,
+            "630px",
 
-          type:
-            "image/png",
+          position:
+            "relative",
 
-          alt:
-            `${animalName} - TAUI TE ORA`,
-        },
-      ],
-    },
+          display:
+            "flex",
 
-    twitter: {
-      card:
-        "summary_large_image",
+          overflow:
+            "hidden",
 
-      title,
-      description,
+          background:
+            "#064b42",
 
-      images: [
-        openGraphImageUrl,
-      ],
-    },
+          fontFamily:
+            "Arial, sans-serif",
+        }}
+      >
+        {/* PHOTO */}
 
-    other: {
-      "og:image:width":
-        "1200",
+        {mainPhoto ? (
+          <img
+            src={
+              mainPhoto
+            }
+            alt=""
+            width={
+              1200
+            }
+            height={
+              630
+            }
+            style={{
+              position:
+                "absolute",
 
-      "og:image:height":
-        "630",
+              inset:
+                0,
 
-      "og:image:type":
-        "image/png",
-    },
-  };
-}
+              width:
+                "1200px",
 
-export default async function AnimalPage({
-  params,
-}: PageProps) {
-  await params;
+              height:
+                "630px",
 
-  return (
-    <AnimalPublicClient />
+              objectFit:
+                "cover",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              position:
+                "absolute",
+
+              inset:
+                0,
+
+              width:
+                "1200px",
+
+              height:
+                "630px",
+
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              justifyContent:
+                "center",
+
+              background:
+                "#dfeeea",
+
+              fontSize:
+                "180px",
+            }}
+          >
+            🐾
+          </div>
+        )}
+
+        {/* VOILE BAS */}
+
+        <div
+          style={{
+            position:
+              "absolute",
+
+            left:
+              0,
+
+            right:
+              0,
+
+            bottom:
+              0,
+
+            height:
+              "360px",
+
+            display:
+              "flex",
+
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.55), rgba(0,0,0,0))",
+          }}
+        />
+
+        {/* LOGO / MARQUE */}
+
+        <div
+          style={{
+            position:
+              "absolute",
+
+            top:
+              "32px",
+
+            left:
+              "40px",
+
+            display:
+              "flex",
+
+            alignItems:
+              "center",
+
+            gap:
+              "14px",
+
+            borderRadius:
+              "999px",
+
+            background:
+              "rgba(255,255,255,0.94)",
+
+            padding:
+              "12px 20px",
+
+            color:
+              "#064b42",
+
+            fontSize:
+              "22px",
+
+            fontWeight:
+              900,
+          }}
+        >
+          <span>
+            🐾
+          </span>
+
+          <span>
+            TAUI TE ORA
+          </span>
+        </div>
+
+        {/* ADOPTION */}
+
+        <div
+          style={{
+            position:
+              "absolute",
+
+            top:
+              "32px",
+
+            right:
+              "40px",
+
+            display:
+              "flex",
+
+            alignItems:
+              "center",
+
+            justifyContent:
+              "center",
+
+            borderRadius:
+              "999px",
+
+            background:
+              "rgba(255,255,255,0.94)",
+
+            padding:
+              "12px 22px",
+
+            color:
+              "#df687c",
+
+            fontSize:
+              "22px",
+
+            fontWeight:
+              900,
+          }}
+        >
+          ❤️ À ADOPTER
+        </div>
+
+        {/* INFOS */}
+
+        <div
+          style={{
+            position:
+              "absolute",
+
+            left:
+              "48px",
+
+            right:
+              "48px",
+
+            bottom:
+              "42px",
+
+            display:
+              "flex",
+
+            flexDirection:
+              "column",
+
+            color:
+              "white",
+          }}
+        >
+          {/* NOM + AGE */}
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              alignItems:
+                "baseline",
+
+              gap:
+                "22px",
+            }}
+          >
+            <span
+              style={{
+                fontSize:
+                  "70px",
+
+                fontWeight:
+                  900,
+
+                lineHeight:
+                  1,
+              }}
+            >
+              {name}
+            </span>
+
+            {age ? (
+              <span
+                style={{
+                  fontSize:
+                    "30px",
+
+                  fontWeight:
+                    700,
+                }}
+              >
+                {age}
+              </span>
+            ) : null}
+          </div>
+
+          {/* SEXE / RACE */}
+
+          {(sex ||
+            breed) ? (
+            <div
+              style={{
+                marginTop:
+                  "15px",
+
+                display:
+                  "flex",
+
+                gap:
+                  "14px",
+
+                fontSize:
+                  "26px",
+
+                fontWeight:
+                  700,
+              }}
+            >
+              {sex ? (
+                <span>
+                  {sex}
+                </span>
+              ) : null}
+
+              {sex &&
+              breed ? (
+                <span>
+                  ·
+                </span>
+              ) : null}
+
+              {breed ? (
+                <span>
+                  {breed}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* LOCALISATION */}
+
+          {location ? (
+            <div
+              style={{
+                marginTop:
+                  "12px",
+
+                display:
+                  "flex",
+
+                fontSize:
+                  "24px",
+
+                fontWeight:
+                  600,
+              }}
+            >
+              📍 {location}
+            </div>
+          ) : null}
+
+          {/* ASSOCIATION */}
+
+          <div
+            style={{
+              marginTop:
+                "20px",
+
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap:
+                "12px",
+
+              fontSize:
+                "22px",
+
+              fontWeight:
+                700,
+            }}
+          >
+            <div
+              style={{
+                width:
+                  "42px",
+
+                height:
+                  "42px",
+
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                justifyContent:
+                  "center",
+
+                borderRadius:
+                  "21px",
+
+                background:
+                  "white",
+
+                color:
+                  "#064b42",
+
+                fontSize:
+                  "22px",
+              }}
+            >
+              🐾
+            </div>
+
+            <span>
+              {association}
+            </span>
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...size,
+
+      headers: {
+        "Cache-Control":
+          "public, max-age=300, s-maxage=300",
+      },
+    }
   );
 }
