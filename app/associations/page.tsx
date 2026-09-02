@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 
+import { useRouter } from "next/navigation";
+
 import {
   Mail,
   MapPin,
@@ -27,9 +29,29 @@ type AnimalAssociation = {
   phone: string | null;
   email: string | null;
   is_active: boolean;
+  profile_id: string | null;
 };
 
+type PublicStructureProfile = {
+  id: string;
+  role: string | null;
+  organization_name: string | null;
+  island: string | null;
+  city: string | null;
+};
+
+function normalizeMatchValue(value: string | null | undefined) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 export default function AssociationsPage() {
+  const router = useRouter();
+
   const [
     associations,
     setAssociations,
@@ -108,9 +130,85 @@ export default function AssociationsPage() {
         throw error;
       }
 
-      setAssociations(
-        (data || []) as AnimalAssociation[]
-      );
+      const directoryAssociations =
+        (data || []) as Omit<
+          AnimalAssociation,
+          "profile_id"
+        >[];
+
+      const {
+        data: profilesData,
+        error: profilesError,
+      } = await supabase
+        .from("public_structure_profiles")
+        .select(
+          `
+            id,
+            role,
+            organization_name,
+            island,
+            city
+          `
+        )
+        .eq("role", "association");
+
+      if (profilesError) {
+        throw profilesError;
+      }
+
+      const profiles =
+        (profilesData || []) as PublicStructureProfile[];
+
+      const associationsWithProfiles =
+        directoryAssociations.map((association) => {
+          const associationName =
+            normalizeMatchValue(association.name);
+          const associationIsland =
+            normalizeMatchValue(association.island);
+          const associationCity =
+            normalizeMatchValue(association.city);
+
+          const sameNameProfiles = profiles.filter(
+            (profile) =>
+              normalizeMatchValue(
+                profile.organization_name
+              ) === associationName
+          );
+
+          let matchedProfile: PublicStructureProfile | undefined;
+
+          if (sameNameProfiles.length === 1) {
+            matchedProfile = sameNameProfiles[0];
+          } else if (sameNameProfiles.length > 1) {
+            matchedProfile = sameNameProfiles.find(
+              (profile) => {
+                const profileIsland =
+                  normalizeMatchValue(profile.island);
+                const profileCity =
+                  normalizeMatchValue(profile.city);
+
+                const islandMatches =
+                  !associationIsland ||
+                  !profileIsland ||
+                  associationIsland === profileIsland;
+
+                const cityMatches =
+                  !associationCity ||
+                  !profileCity ||
+                  associationCity === profileCity;
+
+                return islandMatches && cityMatches;
+              }
+            );
+          }
+
+          return {
+            ...association,
+            profile_id: matchedProfile?.id || null,
+          };
+        });
+
+      setAssociations(associationsWithProfiles);
     } catch (
       error: unknown
     ) {
@@ -630,6 +728,13 @@ export default function AssociationsPage() {
                         key={
                           association.id
                         }
+                        onClick={() => {
+                          if (association.profile_id) {
+                            router.push(
+                              `/structure/${association.profile_id}`
+                            );
+                          }
+                        }}
                         className="
                           flex
                           h-full
@@ -857,6 +962,9 @@ export default function AssociationsPage() {
                         >
                           {association.phone ? (
                             <a
+                              onClick={(event) => {
+                                event.stopPropagation();
+                              }}
                               href={`tel:${cleanPhone(
                                 association.phone.split(
                                   "/"
@@ -907,6 +1015,9 @@ export default function AssociationsPage() {
 
                           {association.email ? (
                             <a
+                              onClick={(event) => {
+                                event.stopPropagation();
+                              }}
                               href={`mailto:${association.email}`}
                               className="
                                 flex
