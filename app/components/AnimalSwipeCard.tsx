@@ -837,7 +837,7 @@ export default function AnimalSwipeCard({
             z-[70]
             flex
             flex-col
-            items-end
+            items-center
             gap-2
             sm:right-4
             sm:top-4
@@ -846,6 +846,7 @@ export default function AnimalSwipeCard({
           <div
             className="
               flex
+              h-[48px]
               min-w-[48px]
               items-center
               justify-center
@@ -855,7 +856,6 @@ export default function AnimalSwipeCard({
               border-white/80
               bg-white/90
               px-3
-              py-2
               text-[#ef8196]
               shadow-lg
               backdrop-blur-xl
@@ -893,34 +893,27 @@ export default function AnimalSwipeCard({
                 onOpenFilter();
               }}
               aria-label="Choisir les animaux à afficher"
+              title="Choisir"
               className="
                 flex
-                min-h-[38px]
+                h-[48px]
+                w-[48px]
+                shrink-0
                 items-center
                 justify-center
-                gap-1.5
                 rounded-full
-                border-2
-                border-white
-                bg-white/95
-                px-3
-                py-2
-                text-[11px]
-                font-black
+                border
+                border-white/80
+                bg-white/90
                 text-[#064b42]
                 shadow-lg
-                backdrop-blur
+                backdrop-blur-xl
                 transition
                 active:scale-95
               "
             >
-              <span aria-hidden="true" className="text-base leading-none">
+              <span aria-hidden="true" className="text-[22px] leading-none">
                 🐾
-              </span>
-              <span>
-                {filterCount > 0
-                  ? `Filtres (${filterCount})`
-                  : "Choisir"}
               </span>
             </button>
           )}
@@ -935,31 +928,24 @@ export default function AnimalSwipeCard({
             title="Partager sur Facebook"
             className="
               flex
-              min-h-[38px]
+              h-[48px]
+              w-[48px]
+              shrink-0
               items-center
               justify-center
-              gap-2
               rounded-full
-              border-2
-              border-white
+              border
+              border-white/80
               bg-[#1877F2]
-              px-3
-              py-2
-              text-[11px]
-              font-black
               text-white
               shadow-lg
               transition
               active:scale-95
             "
           >
-            <span
-              aria-hidden="true"
-              className="text-[17px] font-black leading-none"
-            >
+            <span aria-hidden="true" className="text-[24px] font-black leading-none">
               f
             </span>
-            <span>Partager</span>
           </button>
         </div>
 
