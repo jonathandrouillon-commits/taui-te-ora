@@ -46,11 +46,11 @@ export async function generateMetadata({
    * Cette image est toujours utilisée,
    * même si Supabase ne renvoie pas l'animal.
    *
-   * Le ?v=6 permet aussi de casser
+   * Le ?v=10 permet de casser
    * l'ancien cache Facebook.
    */
   const shareImage =
-    `${animalUrl}/opengraph-image?v=6`;
+    `${animalUrl}/opengraph-image?v=10`;
 
   let animalName = "Animal";
 
