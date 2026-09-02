@@ -9,6 +9,9 @@ type PageProps = {
   }>;
 };
 
+const SITE_URL =
+  "https://www.taui-te-ora.com";
+
 function getSupabaseServer() {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,9 +23,7 @@ function getSupabaseServer() {
     !supabaseUrl ||
     !serviceRoleKey
   ) {
-    throw new Error(
-      "Configuration Supabase serveur manquante."
-    );
+    return null;
   }
 
   return createClient(
@@ -40,161 +41,195 @@ function getSupabaseServer() {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { id } =
+    await params;
 
   const animalUrl =
-    `https://www.taui-te-ora.com/animal/${id}`;
+    `${SITE_URL}/animal/${id}`;
 
+  /*
+   * Image Open Graph dédiée à cet animal.
+   *
+   * v=11 permet de forcer Facebook
+   * à oublier les anciennes versions
+   * mises en cache.
+   */
   const openGraphImageUrl =
-    `${animalUrl}/opengraph-image?v=5`;
+    `${animalUrl}/opengraph-image?v=11`;
+
+  let animalName =
+    "Animal";
+
+  let animal:
+    | {
+        animal_name?: string | null;
+        animal_type?: string | null;
+        breed?: string | null;
+        age_label?: string | null;
+        sex?: string | null;
+        city?: string | null;
+        island?: string | null;
+      }
+    | null = null;
 
   try {
     const supabase =
       getSupabaseServer();
 
-    const {
-      data: animal,
-      error,
-    } = await supabase
-      .from("animals")
-      .select(`
-        id,
-        animal_name,
-        animal_type,
-        breed,
-        age_label,
-        sex,
-        city,
-        island
-      `)
-      .eq("id", id)
-      .maybeSingle();
+    if (supabase) {
+      const {
+        data,
+        error,
+      } =
+        await supabase
+          .from("animals")
+          .select(`
+            id,
+            animal_name,
+            animal_type,
+            breed,
+            age_label,
+            sex,
+            city,
+            island
+          `)
+          .eq(
+            "id",
+            id
+          )
+          .maybeSingle();
 
-    if (error) {
-      console.error(
-        "Erreur metadata animal :",
-        error
-      );
+      if (error) {
+        console.error(
+          "Erreur metadata animal :",
+          error
+        );
+      }
+
+      if (data) {
+        animal =
+          data;
+
+        if (
+          data.animal_name &&
+          String(
+            data.animal_name
+          ).trim()
+        ) {
+          animalName =
+            String(
+              data.animal_name
+            ).trim();
+        }
+      }
     }
+  } catch (
+    error
+  ) {
+    console.error(
+      "Erreur generateMetadata animal :",
+      error
+    );
+  }
 
-    const animalName =
-      animal?.animal_name ||
-      "Animal";
+  const title =
+    animalName !==
+    "Animal"
+      ? `${animalName} cherche sa famille | TAUI TE ORA`
+      : "Animal à adopter | TAUI TE ORA";
 
-    const title =
-      `${animalName} cherche sa famille | TAUI TE ORA`;
-
-    const details = [
+  const details =
+    [
       animal?.animal_type,
       animal?.breed,
       animal?.age_label,
       animal?.sex,
       animal?.city,
       animal?.island,
-    ].filter(Boolean);
+    ].filter(
+      Boolean
+    );
 
-    const description =
-      animal
-        ? `${animalName} cherche sa famille ❤️ ${
-            details.length
-              ? `${details.join(" · ")}. `
-              : ""
-          }Découvrez sa fiche sur TAUI TE ORA.`
-        : "Découvrez cet animal à l'adoption sur TAUI TE ORA.";
+  const description =
+    animalName !==
+    "Animal"
+      ? `${animalName} cherche sa famille ❤️ ${
+          details.length
+            ? `${details.join(
+                " · "
+              )}. `
+            : ""
+        }Découvrez sa fiche sur TAUI TE ORA.`
+      : "Découvrez cet animal actuellement à l'adoption sur TAUI TE ORA.";
 
-    return {
+  return {
+    title,
+    description,
+
+    alternates: {
+      canonical:
+        animalUrl,
+    },
+
+    openGraph: {
       title,
       description,
 
-      alternates: {
-        canonical: animalUrl,
-      },
+      url:
+        animalUrl,
 
-      openGraph: {
-        title,
-        description,
-        url: animalUrl,
-        siteName: "TAUI TE ORA",
-        type: "website",
+      siteName:
+        "TAUI TE ORA",
 
-        images: [
-          {
-            url: openGraphImageUrl,
-            width: 1200,
-            height: 630,
-            alt:
-              `${animalName} - TAUI TE ORA`,
-          },
-        ],
-      },
+      type:
+        "website",
 
-      twitter: {
-        card:
-          "summary_large_image",
-        title,
-        description,
+      images: [
+        {
+          url:
+            openGraphImageUrl,
 
-        images: [
-          openGraphImageUrl,
-        ],
-      },
-    };
-  } catch (error) {
-    console.error(
-      "Erreur generateMetadata animal :",
-      error
-    );
+          secureUrl:
+            openGraphImageUrl,
 
-    return {
-      title:
-        "Animal à adopter | TAUI TE ORA",
+          width:
+            1200,
 
-      description:
-        "Découvrez cet animal sur TAUI TE ORA.",
+          height:
+            630,
 
-      openGraph: {
-        title:
-          "Animal à adopter | TAUI TE ORA",
+          type:
+            "image/png",
 
-        description:
-          "Découvrez cet animal sur TAUI TE ORA.",
+          alt:
+            `${animalName} - TAUI TE ORA`,
+        },
+      ],
+    },
 
-        url: animalUrl,
+    twitter: {
+      card:
+        "summary_large_image",
 
-        siteName:
-          "TAUI TE ORA",
+      title,
+      description,
 
-        type:
-          "website",
+      images: [
+        openGraphImageUrl,
+      ],
+    },
 
-        images: [
-          {
-            url:
-              `${animalUrl}/opengraph-image?v=5`,
-            width: 1200,
-            height: 630,
-            alt:
-              "Animal à adopter - TAUI TE ORA",
-          },
-        ],
-      },
+    other: {
+      "og:image:width":
+        "1200",
 
-      twitter: {
-        card:
-          "summary_large_image",
+      "og:image:height":
+        "630",
 
-        title:
-          "Animal à adopter | TAUI TE ORA",
-
-        description:
-          "Découvrez cet animal sur TAUI TE ORA.",
-
-        images: [
-          `${animalUrl}/opengraph-image?v=5`,
-        ],
-      },
-    };
-  }
+      "og:image:type":
+        "image/png",
+    },
+  };
 }
 
 export default async function AnimalPage({
