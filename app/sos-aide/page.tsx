@@ -104,6 +104,57 @@ function statusLabel(value: SosStatus) {
   return "Ouvert";
 }
 
+
+function getSosPublicUrl(
+  sosId: string
+) {
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://www.taui-te-ora.com";
+
+  return `${baseUrl}/sos-aide/${encodeURIComponent(
+    sosId
+  )}`;
+}
+
+function getSosFacebookShareUrl(
+  sosId: string
+) {
+  const sosUrl =
+    getSosPublicUrl(
+      sosId
+    );
+
+  return (
+    "https://www.facebook.com/sharer/sharer.php?u=" +
+    encodeURIComponent(
+      sosUrl
+    )
+  );
+}
+
+function getSosWhatsappShareUrl(
+  item: HelpSos
+) {
+  const sosUrl =
+    getSosPublicUrl(
+      item.id
+    );
+
+  const text =
+    `🚨 SOS TAUI TE ORA\n${item.title}\n📍 ${[item.city, item.island]
+      .filter(Boolean)
+      .join(" · ")}\n${sosUrl}`;
+
+  return (
+    "https://wa.me/?text=" +
+    encodeURIComponent(
+      text
+    )
+  );
+}
+
 export default function HelpSosPage() {
   const router = useRouter();
 
@@ -202,6 +253,9 @@ export default function HelpSosPage() {
 
     if (!currentUserId) return;
 
+    let facebookShareWindow:
+      Window | null = null;
+
     try {
       setSaving(true);
       setError("");
@@ -219,7 +273,52 @@ export default function HelpSosPage() {
         throw new Error("Décrivez le besoin.");
       }
 
-      const { error: insertError } = await supabase
+      /*
+       * On ouvre la fenêtre pendant le clic utilisateur
+       * pour éviter que le navigateur bloque la popup.
+       */
+      facebookShareWindow =
+        window.open(
+          "",
+          "taui-sos-facebook-share",
+          "popup=yes,width=760,height=820"
+        );
+
+      if (facebookShareWindow) {
+        facebookShareWindow.document.title =
+          "Préparation du partage Facebook…";
+
+        facebookShareWindow.document.body.innerHTML =
+          `
+            <div style="
+              font-family: Arial, sans-serif;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: #fbf7ef;
+              color: #064b42;
+              text-align: center;
+              padding: 32px;
+              box-sizing: border-box;
+            ">
+              <div>
+                <div style="font-size:44px;margin-bottom:16px;">🚨</div>
+                <div style="font-size:22px;font-weight:800;">
+                  Création du SOS…
+                </div>
+                <div style="margin-top:10px;font-size:15px;opacity:.7;">
+                  Facebook va s'ouvrir automatiquement.
+                </div>
+              </div>
+            </div>
+          `;
+      }
+
+      const {
+        data: created,
+        error: insertError,
+      } = await supabase
         .from("help_sos")
         .insert({
           created_by: currentUserId,
@@ -230,16 +329,54 @@ export default function HelpSosPage() {
           message: form.message.trim(),
           urgency: form.urgency,
           status: "ouvert",
-        });
+        })
+        .select("id")
+        .single();
 
       if (insertError) throw insertError;
 
+      if (!created?.id) {
+        throw new Error(
+          "Le SOS a été créé mais son identifiant est introuvable."
+        );
+      }
+
       setForm(EMPTY_FORM);
       setCreating(false);
-      setMessage("SOS créé. Il est maintenant visible dans le réseau d’aide.");
+      setMessage(
+        "SOS créé. Il est maintenant visible dans le réseau d’aide."
+      );
+
+      const facebookShareUrl =
+        getSosFacebookShareUrl(
+          created.id
+        );
+
+      if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.location.href =
+          facebookShareUrl;
+      } else {
+        window.open(
+          facebookShareUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      }
+
       await load();
     } catch (caught) {
+      if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.close();
+      }
+
       console.error("Création SOS :", caught);
+
       setError(
         caught instanceof Error
           ? caught.message
@@ -811,6 +948,65 @@ export default function HelpSosPage() {
                       </div>
                     ) : null}
                     </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-2 border-t border-[#eee5dc] pt-5 sm:flex-row sm:flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.open(
+                          getSosFacebookShareUrl(item.id),
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }
+                      className="rounded-xl bg-[#1877F2] px-4 py-3 text-sm font-black text-white"
+                    >
+                      Facebook
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.open(
+                          getSosWhatsappShareUrl(item),
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }
+                      className="rounded-xl bg-[#25D366] px-4 py-3 text-sm font-black text-white"
+                    >
+                      WhatsApp
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const url = getSosPublicUrl(item.id);
+
+                        try {
+                          await navigator.clipboard.writeText(url);
+                          setMessage("Lien du SOS copié.");
+                        } catch {
+                          window.prompt("Copiez ce lien :", url);
+                        }
+                      }}
+                      className="rounded-xl border border-[#d9cec7] bg-white px-4 py-3 text-sm font-black text-[#064b42]"
+                    >
+                      Copier le lien
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/sos-aide/${item.id}`
+                        )
+                      }
+                      className="rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42]"
+                    >
+                      Voir la fiche publique
+                    </button>
                   </div>
 
                   {expandedMatching === item.id ? (
