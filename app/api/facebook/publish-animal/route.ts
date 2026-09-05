@@ -152,33 +152,66 @@ function buildFacebookMessage(
       animal.island
     );
 
-  const details =
-    [
-      animalType,
-      breed,
-      age,
-      sex,
-    ].filter(Boolean);
+  const normalizedName =
+    name.toUpperCase();
 
-  const location =
-    [
-      city,
-      island,
-    ].filter(Boolean);
+  const hooks = [
+    `🐾 ${normalizedName} CHERCHE SA FAMILLE ❤️`,
+    `❤️ ET SI C'ÉTAIT ${normalizedName} ?`,
+    `🐾 AUJOURD'HUI, ON VOUS PRÉSENTE ${normalizedName}.`,
+    `✨ UNE RENCONTRE PEUT TOUT CHANGER POUR ${normalizedName}.`,
+    `❤️ ${normalizedName} N'A PAS BESOIN DE MILLIERS DE LIKES. JUSTE DE LA BONNE PERSONNE.`,
+  ];
 
-  const lines: string[] = [];
+  /*
+   * Accroche stable par animal :
+   * elle varie d'un animal à l'autre,
+   * mais ne change pas si le webhook
+   * devait être rejoué.
+   */
+  const hookIndex =
+    Array.from(
+      String(animal.id || name)
+    ).reduce(
+      (total, character) =>
+        total + character.charCodeAt(0),
+      0
+    ) % hooks.length;
 
-  lines.push(
-    `🐾 ${name.toUpperCase()} CHERCHE SA FAMILLE ❤️`
-  );
+  const lines: string[] = [
+    hooks[hookIndex],
+    "",
+    "Quelqu’un vous attend.",
+    "Vous ne le savez pas encore.",
+    "",
+  ];
 
-  lines.push("");
+  const identity: string[] = [];
 
-  if (details.length > 0) {
+  if (animalType) {
+    identity.push(animalType);
+  }
+
+  if (breed) {
+    identity.push(breed);
+  }
+
+  if (age) {
+    identity.push(age);
+  }
+
+  if (sex) {
+    identity.push(sex);
+  }
+
+  if (identity.length > 0) {
     lines.push(
-      details.join(" • ")
+      `🐾 ${identity.join(" • ")}`
     );
   }
+
+  const location =
+    [city, island].filter(Boolean);
 
   if (location.length > 0) {
     lines.push(
@@ -186,20 +219,49 @@ function buildFacebookMessage(
     );
   }
 
-  lines.push("");
+  if (
+    identity.length > 0 ||
+    location.length > 0
+  ) {
+    lines.push("");
+  }
 
   lines.push(
-    "Une nouvelle histoire peut commencer aujourd'hui."
+    `Et si le début de l’histoire de ${name} avec vous commençait ici ?`
   );
 
   lines.push("");
 
   lines.push(
-    "Découvrez sa fiche complète sur TAUI TE ORA :"
+    "👉 Découvrez son profil complet, apprenez à le connaître et découvrez votre % de compatibilité sur TAUI TE ORA."
   );
+
+  lines.push("");
 
   lines.push(
     animalUrl
+  );
+
+  lines.push("");
+
+  lines.push(
+    "❤️ Un coup de cœur ? Ajoutez-le à vos favoris."
+  );
+
+  lines.push(
+    "🏡 Prêt à l’accueillir ? Faites votre demande directement sur TAUI TE ORA."
+  );
+
+  lines.push("");
+
+  lines.push(
+    "On ne sauvera pas le monde, mais on sauvera le leur. 🐾"
+  );
+
+  lines.push("");
+
+  lines.push(
+    "TAUI TE ORA × LES VEILLEURS DE KALI"
   );
 
   lines.push("");
@@ -577,7 +639,7 @@ export async function POST(
     const animalUrl =
       `${config.siteUrl}/animal/${encodeURIComponent(
         animalId
-      )}`;
+      )}?adoption=1`;
 
     /*
      * Récupération de la photo principale.
