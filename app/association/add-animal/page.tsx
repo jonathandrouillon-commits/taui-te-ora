@@ -373,15 +373,99 @@ export default function AddAnimalPage() {
     return "/association/animals";
   }
 
+  function buildFacebookShareUrl(
+    animalId: string
+  ) {
+    const publicAnimalUrl =
+      `https://www.taui-te-ora.com/animal/${encodeURIComponent(
+        animalId
+      )}?adoption=1`;
+
+    return (
+      "https://www.facebook.com/sharer/sharer.php?u=" +
+      encodeURIComponent(
+        publicAnimalUrl
+      )
+    );
+  }
+
   async function saveAnimal(
     publish: boolean
   ) {
+    let facebookShareWindow:
+      Window | null = null;
+
     try {
       if (!validateAnimal()) {
         return;
       }
 
+      /*
+       * IMPORTANT :
+       * la fenêtre Facebook est ouverte immédiatement
+       * pendant le clic utilisateur.
+       *
+       * Si on attend la fin des uploads avant window.open(),
+       * le navigateur peut bloquer la popup.
+       */
+      if (publish) {
+        facebookShareWindow =
+          window.open(
+            "",
+            "taui-facebook-share",
+            "popup=yes,width=760,height=820"
+          );
+
+        if (facebookShareWindow) {
+          facebookShareWindow.document.title =
+            "Préparation du partage Facebook…";
+
+          facebookShareWindow.document.body.innerHTML =
+            `
+              <div style="
+                font-family: Arial, sans-serif;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #fbf7ef;
+                color: #064b42;
+                text-align: center;
+                padding: 32px;
+                box-sizing: border-box;
+              ">
+                <div>
+                  <div style="
+                    font-size: 42px;
+                    margin-bottom: 16px;
+                  ">🐾</div>
+                  <div style="
+                    font-size: 22px;
+                    font-weight: 800;
+                  ">
+                    Publication de l'animal…
+                  </div>
+                  <div style="
+                    margin-top: 10px;
+                    font-size: 15px;
+                    opacity: 0.7;
+                  ">
+                    Facebook va s'ouvrir automatiquement.
+                  </div>
+                </div>
+              </div>
+            `;
+        }
+      }
+
       if (!userId || !role) {
+        if (
+          facebookShareWindow &&
+          !facebookShareWindow.closed
+        ) {
+          facebookShareWindow.close();
+        }
+
         alert(
           "Votre session n'est plus valide. Merci de vous reconnecter."
         );
@@ -531,10 +615,59 @@ export default function AddAnimalPage() {
           : "Animal enregistré en brouillon."
       );
 
+      /*
+       * Si l'animal vient d'être publié,
+       * on ouvre le partage Facebook de sa fiche.
+       *
+       * Facebook récupère automatiquement :
+       * - le titre OpenGraph
+       * - le texte OpenGraph
+       * - l'image Taui Te Ora personnalisée
+       *
+       * L'utilisateur reste libre de publier ou
+       * d'annuler dans Facebook.
+       */
+      if (publish) {
+        const facebookShareUrl =
+          buildFacebookShareUrl(
+            createdAnimal.id
+          );
+
+        if (
+          facebookShareWindow &&
+          !facebookShareWindow.closed
+        ) {
+          facebookShareWindow.location.href =
+            facebookShareUrl;
+        } else {
+          /*
+           * Fallback si le navigateur a bloqué
+           * la première popup.
+           */
+          window.open(
+            facebookShareUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        }
+      } else if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.close();
+      }
+
       router.push(
         getAnimalsPath()
       );
     } catch (error: unknown) {
+      if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.close();
+      }
+
       console.error(
         "Erreur enregistrement animal COMPLETE :",
         error
