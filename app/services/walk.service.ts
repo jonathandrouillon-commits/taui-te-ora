@@ -31,7 +31,9 @@ export async function createWalk(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Connecte-toi pour organiser une balade.");
+    throw new Error(
+      "Connecte-toi pour organiser une balade."
+    );
   }
 
   return supabase
@@ -39,6 +41,7 @@ export async function createWalk(
     .insert({
       ...input,
       organizer_id: user.id,
+      status: "open",
     })
     .select()
     .single();
@@ -53,12 +56,65 @@ export async function requestToJoin(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Connecte-toi pour participer.");
+    throw new Error(
+      "Connecte-toi pour participer."
+    );
   }
 
-  return supabase.from("walk_participants").insert({
-    walk_id: walkId,
-    user_id: user.id,
-    dog_name: dogName,
-  });
+  return supabase
+    .from("walk_participants")
+    .insert({
+      walk_id: walkId,
+      user_id: user.id,
+      dog_name: dogName,
+    });
+}
+
+export function getWalkPublicUrl(
+  walkId: string
+) {
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://www.taui-te-ora.com";
+
+  return `${baseUrl}/balades/${encodeURIComponent(
+    walkId
+  )}`;
+}
+
+export function getWalkFacebookShareUrl(
+  walkId: string
+) {
+  const walkUrl =
+    getWalkPublicUrl(
+      walkId
+    );
+
+  return (
+    "https://www.facebook.com/sharer/sharer.php?u=" +
+    encodeURIComponent(
+      walkUrl
+    )
+  );
+}
+
+export function getWalkWhatsappShareUrl(
+  walkId: string,
+  title?: string
+) {
+  const walkUrl =
+    getWalkPublicUrl(
+      walkId
+    );
+
+  const message =
+    `${title || "Balade & Copains"} 🐾\n${walkUrl}`;
+
+  return (
+    "https://wa.me/?text=" +
+    encodeURIComponent(
+      message
+    )
+  );
 }

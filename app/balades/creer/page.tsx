@@ -1,51 +1,227 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  FormEvent,
+  useState,
+} from "react";
 
-import { createWalk } from "../../services/walk.service";
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  createWalk,
+  getWalkFacebookShareUrl,
+} from "../../services/walk.service";
 
 export default function CreateWalkPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [
+    busy,
+    setBusy,
+  ] =
+    useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
+
+  async function submit(
+    event:
+      FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
+
+    let facebookShareWindow:
+      Window | null = null;
 
     setBusy(true);
     setError("");
 
-    const form = new FormData(event.currentTarget);
+    /*
+     * On ouvre Facebook immédiatement
+     * pendant le clic utilisateur pour
+     * éviter le blocage de popup après
+     * les opérations asynchrones.
+     */
+    facebookShareWindow =
+      window.open(
+        "",
+        "taui-walk-facebook-share",
+        "popup=yes,width=760,height=820"
+      );
+
+    if (
+      facebookShareWindow
+    ) {
+      facebookShareWindow.document.title =
+        "Préparation du partage Facebook…";
+
+      facebookShareWindow.document.body.innerHTML =
+        `
+          <div style="
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4eee3;
+            color: #064b42;
+            text-align: center;
+            padding: 32px;
+            box-sizing: border-box;
+          ">
+            <div>
+              <div style="
+                font-size: 44px;
+                margin-bottom: 16px;
+              ">🐾</div>
+
+              <div style="
+                font-size: 22px;
+                font-weight: 800;
+              ">
+                Création de la balade…
+              </div>
+
+              <div style="
+                margin-top: 10px;
+                font-size: 15px;
+                opacity: 0.7;
+              ">
+                Facebook va s'ouvrir automatiquement.
+              </div>
+            </div>
+          </div>
+        `;
+    }
+
+    const form =
+      new FormData(
+        event.currentTarget
+      );
 
     try {
-      const { data, error: createError } = await createWalk({
-        title: String(form.get("title")),
-        description: String(form.get("description") || ""),
-        location: String(form.get("location")),
-        starts_at: new Date(
-          String(form.get("starts_at"))
-        ).toISOString(),
-        duration_minutes: Number(
-          form.get("duration_minutes")
-        ),
-        max_dogs: Number(form.get("max_dogs")),
-        pace: String(form.get("pace")) as
-          | "calme"
-          | "moderee"
-          | "sportive",
-        audience: String(form.get("audience")),
-      });
+      const {
+        data,
+        error:
+          createError,
+      } =
+        await createWalk({
+          title:
+            String(
+              form.get(
+                "title"
+              )
+            ),
 
-      if (createError) {
+          description:
+            String(
+              form.get(
+                "description"
+              ) ||
+                ""
+            ),
+
+          location:
+            String(
+              form.get(
+                "location"
+              )
+            ),
+
+          starts_at:
+            new Date(
+              String(
+                form.get(
+                  "starts_at"
+                )
+              )
+            ).toISOString(),
+
+          duration_minutes:
+            Number(
+              form.get(
+                "duration_minutes"
+              )
+            ),
+
+          max_dogs:
+            Number(
+              form.get(
+                "max_dogs"
+              )
+            ),
+
+          pace:
+            String(
+              form.get(
+                "pace"
+              )
+            ) as
+              | "calme"
+              | "moderee"
+              | "sportive",
+
+          audience:
+            String(
+              form.get(
+                "audience"
+              )
+            ),
+        });
+
+      if (
+        createError
+      ) {
         throw createError;
       }
 
-      router.push(`/balades/${data.id}`);
-    } catch (cause) {
+      if (!data) {
+        throw new Error(
+          "La balade a été créée mais son identifiant est introuvable."
+        );
+      }
+
+      const facebookShareUrl =
+        getWalkFacebookShareUrl(
+          data.id
+        );
+
+      if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.location.href =
+          facebookShareUrl;
+      } else {
+        window.open(
+          facebookShareUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      }
+
+      router.push(
+        `/balades/${data.id}`
+      );
+    } catch (
+      cause
+    ) {
+      if (
+        facebookShareWindow &&
+        !facebookShareWindow.closed
+      ) {
+        facebookShareWindow.close();
+      }
+
       setError(
-        cause instanceof Error
+        cause instanceof
+          Error
           ? cause.message
           : "Impossible de créer la balade."
       );
@@ -60,12 +236,16 @@ export default function CreateWalkPage() {
   return (
     <main className="min-h-[100dvh] bg-[#f4eee3] px-4 py-8 pb-28 text-[#064b42]">
       <form
-        onSubmit={submit}
+        onSubmit={
+          submit
+        }
         className="mx-auto max-w-xl rounded-[32px] bg-white p-6 shadow-sm sm:p-8"
       >
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() =>
+            router.back()
+          }
           className="mb-5 font-black"
         >
           ← Retour
@@ -76,7 +256,8 @@ export default function CreateWalkPage() {
         </h1>
 
         <p className="mb-6 mt-2 text-sm text-[#416c66]">
-          La balade doit rester collective et dédiée au
+          La balade doit rester
+          collective et dédiée au
           bien-être animal.
         </p>
 
@@ -86,7 +267,9 @@ export default function CreateWalkPage() {
             <input
               required
               name="title"
-              className={field}
+              className={
+                field
+              }
               placeholder="Balade du dimanche"
             />
           </label>
@@ -96,7 +279,9 @@ export default function CreateWalkPage() {
             <input
               required
               name="location"
-              className={field}
+              className={
+                field
+              }
               placeholder="Parc Paofai"
             />
           </label>
@@ -107,7 +292,9 @@ export default function CreateWalkPage() {
               required
               name="starts_at"
               type="datetime-local"
-              className={field}
+              className={
+                field
+              }
             />
           </label>
 
@@ -121,7 +308,9 @@ export default function CreateWalkPage() {
                 min="15"
                 max="240"
                 defaultValue="45"
-                className={field}
+                className={
+                  field
+                }
               />
             </label>
 
@@ -134,17 +323,32 @@ export default function CreateWalkPage() {
                 min="2"
                 max="20"
                 defaultValue="6"
-                className={field}
+                className={
+                  field
+                }
               />
             </label>
           </div>
 
           <label className="block text-sm font-bold">
             Rythme
-            <select name="pace" className={field}>
-              <option value="calme">Tranquille</option>
-              <option value="moderee">Modéré</option>
-              <option value="sportive">Sportif</option>
+            <select
+              name="pace"
+              className={
+                field
+              }
+            >
+              <option value="calme">
+                Tranquille
+              </option>
+
+              <option value="moderee">
+                Modéré
+              </option>
+
+              <option value="sportive">
+                Sportif
+              </option>
             </select>
           </label>
 
@@ -153,7 +357,9 @@ export default function CreateWalkPage() {
             <input
               required
               name="audience"
-              className={field}
+              className={
+                field
+              }
               placeholder="Tous, chiens timides, chiots…"
             />
           </label>
@@ -163,7 +369,9 @@ export default function CreateWalkPage() {
             <textarea
               name="description"
               rows={4}
-              className={field}
+              className={
+                field
+              }
               placeholder="Point de rendez-vous, matériel à prévoir…"
             />
           </label>
@@ -176,10 +384,14 @@ export default function CreateWalkPage() {
         )}
 
         <button
-          disabled={busy}
+          disabled={
+            busy
+          }
           className="mt-6 w-full rounded-full bg-[#ef7f61] px-5 py-3.5 font-black text-white disabled:opacity-60"
         >
-          {busy ? "Création…" : "Créer la balade"}
+          {busy
+            ? "Création…"
+            : "Créer la balade"}
         </button>
       </form>
     </main>
