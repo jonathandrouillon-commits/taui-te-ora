@@ -78,6 +78,12 @@ function getFacebookConfig() {
     process.env.FACEBOOK_GRAPH_VERSION ||
     "v26.0";
 
+  const siteUrl =
+    (
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://www.taui-te-ora.com"
+    ).replace(/\/+$/, "");
+
   const webhookSecret =
     process.env.FACEBOOK_WEBHOOK_SECRET;
 
@@ -95,6 +101,7 @@ function getFacebookConfig() {
     pageId,
     pageAccessToken,
     graphVersion,
+    siteUrl,
     webhookSecret,
   };
 }
@@ -590,6 +597,17 @@ export async function POST(
       id: string;
     };
 
+    /*
+     * Même principe que le post initial :
+     * on publie une image Taui Te Ora
+     * générée automatiquement, cette fois
+     * en mode "adopted".
+     */
+    const facebookShareImageUrl =
+      `${config.siteUrl}/api/facebook/share-image/${encodeURIComponent(
+        animalId
+      )}?mode=adopted`;
+
     if (photoUrl) {
       result =
         await publishFacebookPhoto({
@@ -599,7 +617,8 @@ export async function POST(
             config.pageAccessToken,
           graphVersion:
             config.graphVersion,
-          photoUrl,
+          photoUrl:
+            facebookShareImageUrl,
           caption:
             message,
         });
@@ -698,4 +717,3 @@ export async function POST(
     );
   }
 }
-

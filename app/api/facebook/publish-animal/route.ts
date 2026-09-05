@@ -711,11 +711,19 @@ export async function POST(
 
     /*
      * Si une photo existe :
-     * publication photo + texte.
-     *
-     * Sinon :
-     * publication classique du lien.
+     * Facebook reçoit désormais l'image
+     * générée automatiquement par Taui Te Ora
+     * avec :
+     * - la vraie photo de l'animal
+     * - le profil/structure responsable
+     * - son logo si disponible
+     * - le vrai logo Taui Te Ora
      */
+    const facebookShareImageUrl =
+      `${config.siteUrl}/api/facebook/share-image/${encodeURIComponent(
+        animalId
+      )}?mode=available`;
+
     if (photoUrl) {
       result =
         await publishFacebookPhoto({
@@ -728,7 +736,8 @@ export async function POST(
           graphVersion:
             config.graphVersion,
 
-          photoUrl,
+          photoUrl:
+            facebookShareImageUrl,
 
           caption:
             message,
