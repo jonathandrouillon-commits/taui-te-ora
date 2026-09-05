@@ -102,6 +102,34 @@ const ALLOWED_ROLES =
     "adoptant",
   ]);
 
+function getPublicSignalementUrl(signalementId: string) {
+  return `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(signalementId)}`;
+}
+
+function openFacebookShare(signalementId: string) {
+  const url = getPublicSignalementUrl(signalementId);
+  window.open(
+    "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url),
+    "taui-facebook-signalement-share",
+    "popup=yes,width=760,height=820"
+  );
+}
+
+function openWhatsAppShare(signalementId: string) {
+  const url = getPublicSignalementUrl(signalementId);
+  window.open(
+    "https://wa.me/?text=" + encodeURIComponent(`🚨 Signalement TAUI TE ORA\n${url}`),
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
+async function copySignalementLink(signalementId: string) {
+  const url = getPublicSignalementUrl(signalementId);
+  await navigator.clipboard.writeText(url);
+  alert("Lien du signalement copié.");
+}
+
 export default function SignalementDetailPage() {
   const router =
     useRouter();
@@ -1083,6 +1111,33 @@ export default function SignalementDetailPage() {
                 </p>
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-[26px] bg-white p-5 shadow">
+          <p className="font-black text-[#064b42]">Partager ce signalement</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => openFacebookShare(signalement.id)}
+              className="rounded-full bg-[#1877F2] px-5 py-3 font-black text-white"
+            >
+              Facebook
+            </button>
+            <button
+              type="button"
+              onClick={() => openWhatsAppShare(signalement.id)}
+              className="rounded-full bg-green-600 px-5 py-3 font-black text-white"
+            >
+              WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => void copySignalementLink(signalement.id)}
+              className="rounded-full bg-[#064b42] px-5 py-3 font-black text-white"
+            >
+              🔗 Copier le lien
+            </button>
           </div>
         </section>
 

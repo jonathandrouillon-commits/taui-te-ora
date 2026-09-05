@@ -284,7 +284,7 @@ export default function InfoPage() {
             />
 
             <FeatureLink
-              href="/signalements"
+              href="/signalement"
               icon={<Shield size={25} />}
               title="Animaux en danger"
               text="Signaler des situations de maltraitance, d'abandon, de blessure ou de détresse."

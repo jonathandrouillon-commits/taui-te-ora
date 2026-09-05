@@ -95,17 +95,13 @@ export default function AnimalSwipeCard({
     let active = true;
 
     async function loadLikesCount() {
-      const { count, error } =
-        await supabase
-          .from("favorites")
-          .select("id", {
-            count: "exact",
-            head: true,
-          })
-          .eq(
-            "animal_id",
-            animal.id
-          );
+      const { data, error } =
+        await supabase.rpc(
+          "get_animal_favorites_count",
+          {
+            p_animal_id: animal.id,
+          }
+        );
 
       if (error) {
         console.error(
@@ -116,7 +112,7 @@ export default function AnimalSwipeCard({
       }
 
       if (active) {
-        const nextCount = count ?? 0;
+        const nextCount = Number(data ?? 0);
         likesCountCache.set(animal.id, nextCount);
         setLikesCount(nextCount);
       }
@@ -403,11 +399,33 @@ export default function AnimalSwipeCard({
         animal.id
       );
 
-      setLikesCount((previous) => {
-        const nextCount = (previous ?? 0) + 1;
-        likesCountCache.set(animal.id, nextCount);
-        return nextCount;
-      });
+      const {
+        data: updatedCount,
+        error: countError,
+      } = await supabase.rpc(
+        "get_animal_favorites_count",
+        {
+          p_animal_id: animal.id,
+        }
+      );
+
+      if (!countError) {
+        const nextCount = Number(
+          updatedCount ?? 0
+        );
+
+        likesCountCache.set(
+          animal.id,
+          nextCount
+        );
+
+        setLikesCount(nextCount);
+      } else {
+        console.error(
+          "Erreur actualisation compteur coups de coeur :",
+          countError
+        );
+      }
 
       setSwipeFeedback("favorite");
 

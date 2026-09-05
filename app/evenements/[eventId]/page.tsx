@@ -19,6 +19,8 @@ import {
   MapPin,
   Phone,
   Share2,
+  Copy,
+  MessageCircle,
   UserRound,
 } from "lucide-react";
 
@@ -47,6 +49,8 @@ export default function PublicEventPage() {
   ] = useState<EventItem | null>(
     null
   );
+
+  const [copied, setCopied] = useState(false);
 
   const [
     errorMessage,
@@ -122,6 +126,34 @@ export default function PublicEventPage() {
       );
     } catch {
       return value;
+    }
+  }
+
+  function getPublicUrl() {
+    if (!event) return "";
+    return `https://www.taui-te-ora.com/evenements/${encodeURIComponent(event.id)}`;
+  }
+
+  function openWhatsAppShare() {
+    if (!event) return;
+    const text = `${event.title}\n${getPublicUrl()}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
+  async function copyShareLink() {
+    const url = getPublicUrl();
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copiez ce lien :", url);
     }
   }
 
@@ -696,43 +728,38 @@ export default function PublicEventPage() {
 
             {/* PARTAGE */}
 
-            {event.facebook_share_enabled && (
-              <section
-                className="
-                  mt-7
-                "
-              >
+            <section className="mt-7">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {event.facebook_share_enabled && (
+                  <button
+                    type="button"
+                    onClick={openFacebookShare}
+                    className="flex min-h-[52px] items-center justify-center gap-3 rounded-2xl bg-[#1877F2] px-6 py-4 font-black text-white transition hover:opacity-90"
+                  >
+                    <Share2 size={20} />
+                    Facebook
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={
-                    openFacebookShare
-                  }
-                  className="
-                    flex
-                    min-h-[52px]
-                    w-full
-                    items-center
-                    justify-center
-                    gap-3
-                    rounded-2xl
-                    bg-[#1877F2]
-                    px-6
-                    py-4
-                    font-black
-                    text-white
-                    transition
-                    hover:opacity-90
-                    sm:w-auto
-                  "
+                  onClick={openWhatsAppShare}
+                  className="flex min-h-[52px] items-center justify-center gap-3 rounded-2xl bg-[#25D366] px-6 py-4 font-black text-white transition hover:opacity-90"
                 >
-                  <Share2
-                    size={20}
-                  />
-
-                  Partager sur Facebook
+                  <MessageCircle size={20} />
+                  WhatsApp
                 </button>
-              </section>
-            )}
+
+                <button
+                  type="button"
+                  onClick={copyShareLink}
+                  className="flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-[#d9cfc2] bg-white px-6 py-4 font-black text-[#064b42] transition hover:bg-[#f8f4ec]"
+                >
+                  <Copy size={20} />
+                  {copied ? "Lien copié !" : "Copier le lien"}
+                </button>
+              </div>
+            </section>
           </div>
         </section>
       </article>

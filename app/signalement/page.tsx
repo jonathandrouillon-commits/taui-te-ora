@@ -108,6 +108,11 @@ type LeafletMap =
 type LeafletMarker =
   import("leaflet").Marker;
 
+function buildFacebookSignalementShareUrl(signalementId: string) {
+  const publicUrl = `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(signalementId)}`;
+  return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(publicUrl);
+}
+
 export default function SignalementPage() {
   const router =
     useRouter();
@@ -538,6 +543,8 @@ export default function SignalementPage() {
   }
 
   async function sendSignalement() {
+    let facebookShareWindow: Window | null = null;
+
     try {
       setLoading(
         true
@@ -592,6 +599,20 @@ export default function SignalementPage() {
       files.forEach(
         validateFile
       );
+
+      // Ouvre la fenêtre immédiatement après le clic afin d'éviter
+      // que le navigateur ne bloque le partage après les opérations async.
+      facebookShareWindow = window.open(
+        "",
+        "taui-facebook-signalement-share",
+        "popup=yes,width=760,height=820"
+      );
+
+      if (facebookShareWindow) {
+        facebookShareWindow.document.write(
+          `<html><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;background:#f8f4ec;color:#064b42"><h2>Publication du signalement…</h2><p>Facebook va s'ouvrir automatiquement.</p></body></html>`
+        );
+      }
 
       const {
         data: {
@@ -969,12 +990,26 @@ export default function SignalementPage() {
         "Signalement envoyé avec succès."
       );
 
+      if (signalement?.id) {
+        const facebookShareUrl = buildFacebookSignalementShareUrl(signalement.id);
+
+        if (facebookShareWindow && !facebookShareWindow.closed) {
+          facebookShareWindow.location.href = facebookShareUrl;
+        } else {
+          window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+
       router.push(
         "/"
       );
     } catch (
       caughtError: unknown
     ) {
+      if (facebookShareWindow && !facebookShareWindow.closed) {
+        facebookShareWindow.close();
+      }
+
       console.error(
         "ERREUR COMPLETE SIGNALEMENT :",
         caughtError

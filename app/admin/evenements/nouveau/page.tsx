@@ -227,6 +227,9 @@ export default function NewEventPage() {
   ) {
     event.preventDefault();
 
+    let facebookShareWindow:
+      Window | null = null;
+
     if (saving) {
       return;
     }
