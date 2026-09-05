@@ -445,6 +445,17 @@ export async function GET(
       });
 
     /*
+     * IMPORTANT :
+     * on n'envoie plus directement photoUrl à ImageResponse.
+     * La route normalized-photo applique l'orientation EXIF
+     * avant d'afficher la photo.
+     */
+    const normalizedPhotoUrl =
+      `${requestUrl.origin}/api/facebook/normalized-photo/${encodeURIComponent(
+        id
+      )}`;
+
+    /*
      * Mets dans Vercel :
      *
      * TAUI_LOGO_URL=https://...
@@ -488,7 +499,7 @@ export async function GET(
           }}
         >
           <img
-            src={photoUrl}
+            src={normalizedPhotoUrl}
             alt=""
             width="1200"
             height="1200"
