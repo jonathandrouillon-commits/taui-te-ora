@@ -26,6 +26,7 @@ import {
   Activity,
   Building2,
   HeartHandshake,
+  Bell,
 } from "lucide-react";
 
 import Card from "../../components/ui/Card";
@@ -83,6 +84,11 @@ export default function AdminDashboardPage() {
     profile,
     setProfile,
   ] = useState<any>(null);
+
+  const [
+    unreadNotifications,
+    setUnreadNotifications,
+  ] = useState(0);
 
   const [
     users,
@@ -144,6 +150,35 @@ export default function AdminDashboardPage() {
       setProfile(
         currentProfile
       );
+
+      const {
+        count: unreadNotificationCount,
+        error: unreadNotificationError,
+      } = await supabase
+        .from("notifications")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq(
+          "recipient_id",
+          currentProfile.id
+        )
+        .eq(
+          "is_read",
+          false
+        );
+
+      if (unreadNotificationError) {
+        console.error(
+          "Erreur chargement notifications admin :",
+          unreadNotificationError
+        );
+      } else {
+        setUnreadNotifications(
+          unreadNotificationCount || 0
+        );
+      }
 
       const allUsers =
         await profileService.getAllProfiles();
@@ -274,6 +309,38 @@ export default function AdminDashboardPage() {
       window.clearTimeout(timeoutId);
     };
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (!profile?.id) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(
+        `admin-dashboard-notifications-${profile.id}`
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${profile.id}`,
+        },
+        () => {
+          setUnreadNotifications(
+            (current) => current + 1
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(
+        channel
+      );
+    };
+  }, [profile?.id]);
 
   async function handleLogout() {
     if (
@@ -541,15 +608,79 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <Button
-            onClick={() =>
-              router.push(
-                "/admin/users"
-              )
-            }
+          <div
+            className="
+              flex
+              flex-wrap
+              items-center
+              gap-3
+            "
           >
-            Gérer les utilisateurs
-          </Button>
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/notifications"
+                )
+              }
+              className="
+                relative
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                border
+                border-[#d8e9e3]
+                bg-white
+                px-4
+                py-3
+                font-black
+                text-[#064b42]
+                shadow-sm
+                transition
+                hover:bg-[#e8f5f1]
+                active:scale-[0.98]
+              "
+              aria-label="Notifications"
+            >
+              <Bell size={21} />
+              Notifications
+
+              {unreadNotifications > 0 && (
+                <span
+                  className="
+                    flex
+                    min-w-6
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-red-600
+                    px-1.5
+                    py-0.5
+                    text-xs
+                    font-black
+                    text-white
+                  "
+                >
+                  {unreadNotifications > 99
+                    ? "99+"
+                    : unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            <Button
+              onClick={() =>
+                router.push(
+                  "/admin/users"
+                )
+              }
+            >
+              Gérer les utilisateurs
+            </Button>
+          </div>
         </div>
 
         {/* =====================================================
