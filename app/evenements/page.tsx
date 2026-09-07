@@ -12,12 +12,15 @@ import {
   CalendarDays,
   MapPin,
   Clock3,
+  Plus,
 } from "lucide-react";
 
 import {
   eventService,
   type EventItem,
 } from "../services/event.service";
+
+import { supabase } from "../lib/supabase";
 
 export default function EventsPage() {
   const [
@@ -29,6 +32,11 @@ export default function EventsPage() {
     events,
     setEvents,
   ] = useState<EventItem[]>([]);
+
+  const [
+    canCreateEvent,
+    setCanCreateEvent,
+  ] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +70,66 @@ export default function EventsPage() {
     }
 
     void loadEvents();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCreatePermission() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!active || !user) {
+          if (active) {
+            setCanCreateEvent(false);
+          }
+          return;
+        }
+
+        const {
+          data: profile,
+          error,
+        } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        const role = String(
+          profile?.role || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        if (active) {
+          setCanCreateEvent(
+            Boolean(profile) &&
+              role !== "adoptant"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Erreur vérification droit création événement :",
+          error
+        );
+
+        if (active) {
+          setCanCreateEvent(false);
+        }
+      }
+    }
+
+    void loadCreatePermission();
 
     return () => {
       active = false;
@@ -219,6 +287,32 @@ export default function EventsPage() {
             autres événements en
             faveur des animaux.
           </p>
+
+          {canCreateEvent && (
+            <Link
+              href="/evenements/nouveau"
+              className="
+                mt-6
+                inline-flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-2xl
+                bg-[#064b42]
+                px-6
+                py-3
+                font-black
+                text-white
+                shadow-md
+                transition
+                hover:bg-[#08695d]
+              "
+            >
+              <Plus size={20} />
+              Créer un événement
+            </Link>
+          )}
         </div>
 
         <EventSection
