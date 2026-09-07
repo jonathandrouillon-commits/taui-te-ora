@@ -6,6 +6,8 @@ import {
   createClient,
 } from "@supabase/supabase-js";
 
+import sharp from "sharp";
+
 export const runtime = "nodejs";
 
 type AnyRow =
@@ -446,13 +448,59 @@ export async function GET(
 
     /*
      * IMPORTANT :
-     * on n'envoie plus directement photoUrl à ImageResponse.
-     * La route normalized-photo applique l'orientation EXIF
-     * avant d'afficher la photo.
+     * On normalise maintenant directement la photo ici.
+     *
+     * Avant, ImageResponse essayait de recharger une route interne
+     * /api/facebook/normalized-photo/[id].
+     * En production Vercel, ce second appel HTTP pouvait échouer
+     * pendant la génération de l'image et produire un fond noir.
+     *
+     * Ici on télécharge la photo Supabase une seule fois,
+     * Sharp applique l'orientation EXIF avec .rotate(),
+     * puis on injecte directement l'image en data URL dans ImageResponse.
      */
-    const normalizedPhotoUrl =
-      `${requestUrl.origin}/api/facebook/normalized-photo/${encodeURIComponent(
-        id
+    const sourceResponse =
+      await fetch(
+        photoUrl,
+        {
+          cache: "no-store",
+        }
+      );
+
+    if (!sourceResponse.ok) {
+      console.error(
+        "Téléchargement photo Facebook impossible :",
+        sourceResponse.status,
+        sourceResponse.statusText
+      );
+
+      return new Response(
+        "Impossible de télécharger la photo.",
+        {
+          status: 502,
+        }
+      );
+    }
+
+    const sourceBuffer =
+      Buffer.from(
+        await sourceResponse.arrayBuffer()
+      );
+
+    const normalizedBuffer =
+      await sharp(
+        sourceBuffer
+      )
+        .rotate()
+        .jpeg({
+          quality: 92,
+          mozjpeg: true,
+        })
+        .toBuffer();
+
+    const normalizedPhotoDataUrl =
+      `data:image/jpeg;base64,${normalizedBuffer.toString(
+        "base64"
       )}`;
 
     /*
@@ -499,7 +547,7 @@ export async function GET(
           }}
         >
           <img
-            src={normalizedPhotoUrl}
+            src={normalizedPhotoDataUrl}
             alt=""
             width="1200"
             height="1200"
