@@ -26,6 +26,7 @@ type ClickableNotification =
     adoption_request_id?: string | null;
     signalement_id?: string | null;
     animal_id?: string | null;
+    event_id?: string | null;
   };
 
 /* =========================================================
@@ -534,6 +535,38 @@ export default function NotificationsPage() {
         .adoption_request_id
     ) {
       return `/association/demandes/${notification.adoption_request_id}`;
+    }
+
+    /*
+     * Événements.
+     */
+
+    if (
+      notification
+        .event_id
+    ) {
+      if (
+        notification.type ===
+        "event_pending_validation"
+      ) {
+        return "/admin/evenements";
+      }
+
+      if (
+        notification.type ===
+        "event_approved"
+      ) {
+        return `/evenements/${notification.event_id}`;
+      }
+
+      if (
+        notification.type ===
+        "event_submitted"
+      ) {
+        return "/evenements";
+      }
+
+      return `/evenements/${notification.event_id}`;
     }
 
     /*

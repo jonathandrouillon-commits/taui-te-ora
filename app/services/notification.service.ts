@@ -23,6 +23,9 @@ export type Notification = {
   signalement_id?:
     string | null;
 
+  event_id?:
+    string | null;
+
   is_read: boolean;
 
   read_at?:
@@ -48,6 +51,9 @@ type CreateNotificationInput = {
     string | null;
 
   signalement_id?:
+    string | null;
+
+  event_id?:
     string | null;
 };
 
@@ -187,19 +193,28 @@ export const notificationService = {
     conversation_id,
 
     signalement_id,
+
+    event_id,
   }: CreateNotificationInput) {
 
     /*
-     * La création passe désormais
-     * par le serveur.
+     * La création passe par le serveur.
      *
-     * Le serveur crée automatiquement :
+     * IMPORTANT :
      *
-     * - la notification du destinataire
-     * - une copie pour chaque admin actif
+     * Pour les événements,
+     * les notifications de soumission
+     * et de validation sont créées
+     * automatiquement par Supabase.
      *
-     * Les autres utilisateurs
-     * ne reçoivent rien.
+     * On ne doit donc pas appeler
+     * cette fonction pour :
+     *
+     * - event_pending_validation
+     * - event_submitted
+     * - event_approved
+     *
+     * afin d'éviter les doublons.
      */
 
     const {
@@ -268,6 +283,10 @@ export const notificationService = {
 
               signalement_id:
                 signalement_id ??
+                null,
+
+              event_id:
+                event_id ??
                 null,
             }),
         }
