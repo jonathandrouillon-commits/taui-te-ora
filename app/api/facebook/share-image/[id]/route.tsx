@@ -446,14 +446,14 @@ export async function GET(
 
     /*
      * IMPORTANT :
-     * on n'envoie plus directement photoUrl à ImageResponse.
-     * La route normalized-photo applique l'orientation EXIF
-     * avant d'afficher la photo.
+     * on utilise directement la photo publique stockée dans animal_photos.
+     *
+     * La route /api/facebook/normalized-photo/[id] dépendait de Sharp,
+     * qui ne se charge pas correctement dans le runtime Vercel actuel
+     * et provoquait une erreur 500 ainsi qu'un fond noir dans Facebook.
      */
-    const normalizedPhotoUrl =
-      `${requestUrl.origin}/api/facebook/normalized-photo/${encodeURIComponent(
-        id
-      )}`;
+    const facebookPhotoUrl =
+      photoUrl;
 
     /*
      * Mets dans Vercel :
@@ -499,7 +499,7 @@ export async function GET(
           }}
         >
           <img
-            src={normalizedPhotoUrl}
+            src={facebookPhotoUrl}
             alt=""
             width="1200"
             height="1200"
