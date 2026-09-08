@@ -1010,29 +1010,6 @@ export default function AnimalSwipeCard({
           </div>
         )}
 
-        {showNewBadge && (
-          <img
-            src="/badges/nouveau-depart.png"
-            alt="Nouveau départ"
-            draggable={false}
-            className="
-              pointer-events-none
-              absolute
-              right-[62px]
-              top-[76px]
-              z-[65]
-              h-[92px]
-              w-[92px]
-              object-contain
-              drop-shadow-lg
-              sm:right-[68px]
-              sm:top-[88px]
-              sm:h-[104px]
-              sm:w-[104px]
-            "
-          />
-        )}
-
         {/* ACTIONS EN HAUT A DROITE : LIKES / CHOISIR / PARTAGER */}
 
         <div
@@ -1478,6 +1455,29 @@ export default function AnimalSwipeCard({
                 </button>
               )}
 
+              <div className="relative flex shrink-0 items-end">
+                {showNewBadge && (
+                  <img
+                    src="/badges/nouveau-depart.png"
+                    alt="Nouveau départ"
+                    draggable={false}
+                    className="
+                      pointer-events-none
+                      absolute
+                      bottom-[42px]
+                      right-[-8px]
+                      z-[65]
+                      h-[82px]
+                      w-[82px]
+                      object-contain
+                      drop-shadow-lg
+                      sm:bottom-[46px]
+                      sm:h-[92px]
+                      sm:w-[92px]
+                    "
+                  />
+                )}
+
               <button
                 type="button"
                 onClick={(event) => {
@@ -1511,6 +1511,7 @@ export default function AnimalSwipeCard({
               >
                 i
               </button>
+              </div>
             </div>
           </div>
 
