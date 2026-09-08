@@ -1010,30 +1010,6 @@ export default function AnimalSwipeCard({
           </div>
         )}
 
-        {showNewBadge && (
-          <img
-            src="/badges/nouveau-depart.png"
-            alt="Nouveau départ"
-            draggable={false}
-            className="
-              pointer-events-none
-              absolute
-              right-[62px]
-              top-[76px]
-              z-[65]
-              h-[92px]
-              w-[92px]
-              object-contain
-              drop-shadow-lg
-              sm:right-[68px]
-              sm:top-[88px]
-              sm:h-[104px]
-              sm:w-[104px]
-              scale-[1.25]
-            "
-          />
-        )}
-
         {/* ACTIONS EN HAUT A DROITE : LIKES / CHOISIR / PARTAGER */}
 
         <div
@@ -1479,39 +1455,64 @@ export default function AnimalSwipeCard({
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleInformation();
-                }}
-                aria-label="Informations"
-                title="Informations"
-                className="
-                  flex
-                  h-9
-                  w-9
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-2
-                  border-white
-                  bg-[#fffaf7]/95
-                  text-base
-                  font-black
-                  text-[#60605d]
-                  shadow-lg
-                  backdrop-blur
-                  transition
-                  active:scale-95
-                  sm:h-10
-                  sm:w-10
-                  sm:text-lg
-                "
-              >
-                i
-              </button>
+              <div className="relative flex shrink-0 items-end">
+                {showNewBadge && (
+                  <img
+                    src="/badges/nouveau-depart.png"
+                    alt="Nouveau départ"
+                    draggable={false}
+                    className="
+                      pointer-events-none
+                      absolute
+                      bottom-[44px]
+                      left-1/2
+                      z-[65]
+                      h-[104px]
+                      w-[104px]
+                      -translate-x-1/2
+                      object-contain
+                      drop-shadow-lg
+                      sm:bottom-[48px]
+                      sm:h-[116px]
+                      sm:w-[116px]
+                    "
+                  />
+                )}
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleInformation();
+                  }}
+                  aria-label="Informations"
+                  title="Informations"
+                  className="
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    border-2
+                    border-white
+                    bg-[#fffaf7]/95
+                    text-base
+                    font-black
+                    text-[#60605d]
+                    shadow-lg
+                    backdrop-blur
+                    transition
+                    active:scale-95
+                    sm:h-10
+                    sm:w-10
+                    sm:text-lg
+                  "
+                >
+                  i
+                </button>
+              </div>
             </div>
           </div>
 
