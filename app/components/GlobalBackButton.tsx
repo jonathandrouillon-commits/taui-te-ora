@@ -66,9 +66,12 @@ export default function GlobalBackButton() {
    * Dashboards Publisher :
    * Association / bénévole / refuge / fourrière.
    *
-   * Sur PC et tablette :
+   * IMPORTANT :
+   * Le header du dashboard gère déjà le logo
+   * et le nom TAUI TE ORA.
    *
-   * [ Retour ] [ TAUI TE ORA + slogan ]
+   * Ici on affiche uniquement le bouton Retour
+   * afin d'éviter tout doublon dans le header.
    */
   const isPublisherDashboard =
     pathname ===
@@ -124,122 +127,12 @@ export default function GlobalBackButton() {
   }
 
   /*
-   * VERSION PC / TABLETTE
-   * ASSOCIATION / BENEVOLE / REFUGE / FOURRIERE
-   */
-  if (
-    isPublisherDashboard &&
-    !editMode
-  ) {
-    return (
-      <div
-        className="
-          fixed
-          left-0
-          top-0
-          z-[9900]
-          hidden
-          h-[88px]
-          items-center
-          bg-white
-          pl-5
-          pr-5
-          shadow-[8px_0_18px_rgba(0,0,0,0.015)]
-
-          md:flex
-        "
-      >
-        {/* RETOUR */}
-
-        <button
-          type="button"
-          onClick={handleBack}
-          aria-label="Retour"
-          className="
-            flex
-            h-12
-            shrink-0
-            items-center
-            justify-center
-            gap-1.5
-            rounded-full
-            border
-            border-[#eadfd8]
-            bg-white
-            px-4
-            text-sm
-            font-black
-            text-[#064b42]
-            shadow-md
-            transition
-
-            hover:bg-[#fffdf9]
-            active:scale-[0.96]
-          "
-        >
-          <ChevronLeft
-            size={19}
-            strokeWidth={3}
-          />
-
-          <span>
-            Retour
-          </span>
-        </button>
-
-        {/* MARQUE TAUI TE ORA */}
-
-        <div
-          className="
-            ml-6
-            flex
-            min-w-[190px]
-            items-center
-          "
-        >
-          <div
-            className="
-              min-w-0
-              leading-none
-            "
-          >
-            <div
-              className="
-                whitespace-nowrap
-                text-[20px]
-                font-black
-                tracking-[0.02em]
-                text-[#064b42]
-
-                lg:text-[22px]
-              "
-            >
-              TAUI TE ORA
-            </div>
-
-            <div
-              className="
-                mt-2
-                whitespace-nowrap
-                text-[12px]
-                font-medium
-                text-[#746b64]
-
-                lg:text-[13px]
-              "
-            >
-              Ensemble pour la vie
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /*
-   * VERSION MOBILE DES DASHBOARDS PUBLISHER
+   * DASHBOARDS ASSOCIATION / BÉNÉVOLE /
+   * REFUGE / FOURRIÈRE
    *
-   * On garde seulement le bouton Retour.
+   * Uniquement le bouton Retour.
+   * Aucun logo ni texte TAUI TE ORA ici :
+   * ils restent gérés par le header existant.
    */
   if (
     isPublisherDashboard &&
@@ -252,34 +145,45 @@ export default function GlobalBackButton() {
         aria-label="Retour"
         className="
           fixed
-          left-3
-          top-3
+          left-4
+          top-4
           z-[9900]
           flex
-          h-11
+          min-h-[44px]
           items-center
           justify-center
-          gap-1
+          gap-1.5
           rounded-full
           border
           border-[#eadfd8]
           bg-white/95
-          px-3
-          text-[13px]
+          px-4
+          text-sm
           font-black
           text-[#064b42]
           shadow-md
           backdrop-blur-md
+          transition
 
-          md:hidden
+          hover:bg-white
+          active:scale-[0.96]
         "
       >
         <ChevronLeft
           size={18}
           strokeWidth={3}
+          className="
+            shrink-0
+          "
         />
 
-        Retour
+        <span
+          className="
+            whitespace-nowrap
+          "
+        >
+          Retour
+        </span>
       </button>
     );
   }
