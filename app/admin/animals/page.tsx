@@ -17,9 +17,18 @@ import {
   Plus,
   Search,
   Trash2,
+  Heart,
+  RotateCcw,
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
+
+type AnimalPhoto = {
+  id: string;
+  photo_url: string | null;
+  is_cover: boolean | null;
+  sort_order: number | null;
+};
 
 type Animal = {
   id: string;
@@ -36,6 +45,9 @@ type Animal = {
   is_adopted: boolean | null;
   owner_id: string | null;
   created_at: string | null;
+  sterilized: boolean | null;
+  animal_photos?: AnimalPhoto[] | null;
+  favorite_count?: number;
 };
 
 type Filter =
@@ -63,6 +75,13 @@ export default function AdminAnimalsPage() {
   const [search, setSearch] =
     useState("");
 
+  const [sexFilter, setSexFilter] = useState("");
+  const [ageFilter, setAgeFilter] = useState("");
+  const [sterilizedFilter, setSterilizedFilter] = useState("");
+  const [structureFilter, setStructureFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [islandFilter, setIslandFilter] = useState("");
+
   const loadAnimals =
     useCallback(async () => {
       const { data, error } =
@@ -82,7 +101,14 @@ export default function AdminAnimalsPage() {
             is_published,
             is_adopted,
             owner_id,
-            created_at
+            created_at,
+            sterilized,
+            animal_photos (
+              id,
+              photo_url,
+              is_cover,
+              sort_order
+            )
           `)
           .order(
             "created_at",
@@ -95,8 +121,30 @@ export default function AdminAnimalsPage() {
         throw error;
       }
 
+      const rows = (data || []) as Animal[];
+      const animalIds = rows.map((animal) => animal.id);
+      const counts = new Map<string, number>();
+
+      if (animalIds.length > 0) {
+        const { data: favoriteRows, error: favoriteError } = await supabase
+          .from("favorites")
+          .select("animal_id")
+          .in("animal_id", animalIds);
+
+        if (favoriteError) throw favoriteError;
+
+        for (const favorite of favoriteRows || []) {
+          const animalId = String(favorite.animal_id || "");
+          if (!animalId) continue;
+          counts.set(animalId, (counts.get(animalId) || 0) + 1);
+        }
+      }
+
       setAnimals(
-        (data || []) as Animal[]
+        rows.map((animal) => ({
+          ...animal,
+          favorite_count: counts.get(animal.id) || 0,
+        }))
       );
     }, []);
 
@@ -228,6 +276,12 @@ export default function AdminAnimalsPage() {
       [animals]
     );
 
+  const sexOptions = useMemo(() => uniqueValues(animals.map((a) => a.sex)), [animals]);
+  const ageOptions = useMemo(() => uniqueValues(animals.map((a) => a.age_label)), [animals]);
+  const structureOptions = useMemo(() => uniqueValues(animals.map((a) => a.association_name)), [animals]);
+  const typeOptions = useMemo(() => uniqueValues(animals.map((a) => a.animal_type)), [animals]);
+  const islandOptions = useMemo(() => uniqueValues(animals.map((a) => a.island)), [animals]);
+
   const filteredAnimals =
     useMemo(() => {
       const query =
@@ -277,6 +331,14 @@ export default function AdminAnimalsPage() {
             return false;
           }
 
+          if (sexFilter && normalize(animal.sex) !== normalize(sexFilter)) return false;
+          if (ageFilter && normalize(animal.age_label) !== normalize(ageFilter)) return false;
+          if (structureFilter && normalize(animal.association_name) !== normalize(structureFilter)) return false;
+          if (typeFilter && normalize(animal.animal_type) !== normalize(typeFilter)) return false;
+          if (islandFilter && normalize(animal.island) !== normalize(islandFilter)) return false;
+          if (sterilizedFilter === "yes" && animal.sterilized !== true) return false;
+          if (sterilizedFilter === "no" && animal.sterilized !== false) return false;
+
           if (!query) {
             return true;
           }
@@ -302,6 +364,12 @@ export default function AdminAnimalsPage() {
       animals,
       filter,
       search,
+      sexFilter,
+      ageFilter,
+      sterilizedFilter,
+      structureFilter,
+      typeFilter,
+      islandFilter,
     ]);
 
   async function updateAnimal(
@@ -681,6 +749,38 @@ export default function AdminAnimalsPage() {
           />
         </div>
 
+        <div className="mt-6 rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <FilterSelect label="Sexe" value={sexFilter} onChange={setSexFilter} options={sexOptions} />
+            <FilterSelect label="Âge" value={ageFilter} onChange={setAgeFilter} options={ageOptions} />
+            <FilterSelect label="Stérilisé / Castré" value={sterilizedFilter} onChange={setSterilizedFilter} options={["yes", "no"]} optionLabels={{ yes: "Oui", no: "Non" }} />
+            <FilterSelect label="Association / Refuge" value={structureFilter} onChange={setStructureFilter} options={structureOptions} />
+            <FilterSelect label="Type" value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
+            <FilterSelect label="Île" value={islandFilter} onChange={setIslandFilter} options={islandOptions} />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-bold text-[#6f5a47]">
+              {filteredAnimals.length} animal{filteredAnimals.length > 1 ? "x" : ""} affiché{filteredAnimals.length > 1 ? "s" : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setSexFilter("");
+                setAgeFilter("");
+                setSterilizedFilter("");
+                setStructureFilter("");
+                setTypeFilter("");
+                setIslandFilter("");
+              }}
+              className="flex items-center gap-2 rounded-2xl bg-[#f8f4ec] px-4 py-3 text-sm font-black"
+            >
+              <RotateCcw size={16} /> Réinitialiser les filtres
+            </button>
+          </div>
+        </div>
+
         <div className="mt-8 space-y-5">
           {filteredAnimals.length ===
           0 ? (
@@ -717,7 +817,9 @@ export default function AdminAnimalsPage() {
                   >
                     <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
 
-                      <div>
+                      <div className="flex min-w-0 flex-1 items-center gap-4">
+                        <AnimalThumbnail animal={animal} />
+                        <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-3">
                           <h2 className="text-2xl font-black text-[#2f241c]">
                             {animal.animal_name ||
@@ -769,6 +871,16 @@ export default function AdminAnimalsPage() {
                           {animal.association_name ||
                             "Structure non renseignée"}
                         </p>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-sm font-black text-rose-700">
+                            <Heart size={15} fill="currentColor" /> {animal.favorite_count || 0} coup{(animal.favorite_count || 0) > 1 ? "s" : ""} de cœur
+                          </span>
+                          <span className="rounded-full bg-[#f8f4ec] px-3 py-1 text-sm font-bold text-[#064b42]">
+                            {animal.sterilized ? (isMale(animal.sex) ? "Castré" : "Stérilisé") : (isMale(animal.sex) ? "Non castré" : "Non stérilisé")}
+                          </span>
+                        </div>
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
@@ -907,6 +1019,45 @@ export default function AdminAnimalsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function normalize(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+function isMale(sex: string | null | undefined) {
+  return ["male", "mâle", "masculin", "m"].includes(normalize(sex));
+}
+
+function getCoverPhoto(animal: Animal) {
+  const photos = Array.isArray(animal.animal_photos) ? animal.animal_photos : [];
+  const cover = photos.find((photo) => photo.is_cover) || [...photos].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
+  return cover?.photo_url || "";
+}
+
+function AnimalThumbnail({ animal }: { animal: Animal }) {
+  const photo = getCoverPhoto(animal);
+  return photo ? (
+    <img src={photo} alt={animal.animal_name || "Animal"} className="h-24 w-24 shrink-0 rounded-2xl object-cover sm:h-28 sm:w-28" />
+  ) : (
+    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-[#f8f4ec] text-center text-xs font-black text-[#9c7b54] sm:h-28 sm:w-28">Pas de photo</div>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options, optionLabels = {} }: { label: string; value: string; onChange: (value: string) => void; options: string[]; optionLabels?: Record<string, string>; }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-black uppercase tracking-[0.08em] text-[#9c7b54]">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-2xl border border-[#eadfce] bg-[#fdfbf7] px-3 py-3 font-bold text-[#064b42] outline-none">
+        <option value="">Tous</option>
+        {options.map((option) => <option key={option} value={option}>{optionLabels[option] || option}</option>)}
+      </select>
+    </label>
   );
 }
 
