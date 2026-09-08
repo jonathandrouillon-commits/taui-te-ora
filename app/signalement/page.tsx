@@ -108,6 +108,85 @@ type LeafletMap =
 type LeafletMarker =
   import("leaflet").Marker;
 
+type Companion = {
+  id: string;
+  name: string;
+  species: string;
+  breed: string | null;
+  sex: string | null;
+  birth_date: string | null;
+  color: string | null;
+  weight: string | null;
+  character: string | null;
+  story: string | null;
+  photo_url: string | null;
+  identification_type: string | null;
+  identification_number: string | null;
+  sterilization_status: string | null;
+};
+
+function getCompanionAgeLabel(birthDate: string | null) {
+  if (!birthDate) {
+    return "";
+  }
+
+  const birth = new Date(birthDate);
+  const now = new Date();
+
+  if (Number.isNaN(birth.getTime())) {
+    return "";
+  }
+
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+
+  if (now.getDate() < birth.getDate()) {
+    months -= 1;
+  }
+
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  if (years > 0) {
+    return `${years} an${years > 1 ? "s" : ""}`;
+  }
+
+  if (months > 0) {
+    return `${months} mois`;
+  }
+
+  return "Moins d'un mois";
+}
+
+function companionSpeciesLabel(species: string) {
+  const normalized = String(species || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "chien") return "Chien";
+  if (normalized === "chat") return "Chat";
+  if (normalized === "oiseau") return "Oiseau";
+  return "Autre";
+}
+
+function companionSexLabel(sex: string | null) {
+  const normalized = String(sex || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "male" || normalized === "mâle" || normalized === "male") {
+    return "Mâle";
+  }
+
+  if (normalized === "female" || normalized === "femelle") {
+    return "Femelle";
+  }
+
+  return "Inconnu";
+}
+
 function buildFacebookSignalementShareUrl(signalementId: string) {
   const publicUrl = `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(signalementId)}`;
   return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(publicUrl);
@@ -154,6 +233,26 @@ export default function SignalementPage() {
     setFiles,
   ] =
     useState<File[]>([]);
+
+  const [
+    tauiAnimalChoice,
+    setTauiAnimalChoice,
+  ] = useState<"" | "oui" | "non">("");
+
+  const [
+    companions,
+    setCompanions,
+  ] = useState<Companion[]>([]);
+
+  const [
+    companionsLoading,
+    setCompanionsLoading,
+  ] = useState(false);
+
+  const [
+    selectedCompanionId,
+    setSelectedCompanionId,
+  ] = useState("");
 
   const [
     form,
@@ -236,6 +335,109 @@ export default function SignalementPage() {
       wants_contact:
         true,
     });
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCompanions() {
+      try {
+        setCompanionsLoading(true);
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (!active || !user) {
+          if (active) {
+            setCompanions([]);
+          }
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("companions")
+          .select(`
+            id,
+            name,
+            species,
+            breed,
+            sex,
+            birth_date,
+            color,
+            weight,
+            character,
+            story,
+            photo_url,
+            identification_type,
+            identification_number,
+            sterilization_status
+          `)
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (active) {
+          setCompanions((data || []) as Companion[]);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur chargement Mes Compagnons dans le signalement :",
+          error
+        );
+
+        if (active) {
+          setCompanions([]);
+        }
+      } finally {
+        if (active) {
+          setCompanionsLoading(false);
+        }
+      }
+    }
+
+    void loadCompanions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function selectTauiCompanion(companion: Companion) {
+    setTauiAnimalChoice("oui");
+    setSelectedCompanionId(companion.id);
+
+    setForm((previous) => ({
+      ...previous,
+      type_signalement: "Animal perdu",
+      animal_type: companionSpeciesLabel(companion.species),
+      animal_name: companion.name || "",
+      sex: companionSexLabel(companion.sex),
+      age_label: getCompanionAgeLabel(companion.birth_date),
+      color: companion.color || "",
+      breed: companion.breed || "",
+      identification_number: companion.identification_number || "",
+      distinctive_features:
+        previous.distinctive_features || companion.character || "",
+      description:
+        previous.description || companion.story || "",
+    }));
+  }
+
+  function chooseNonTauiAnimal() {
+    setTauiAnimalChoice("non");
+    setSelectedCompanionId("");
+  }
+
+  const selectedCompanion =
+    companions.find((item) => item.id === selectedCompanionId) || null;
 
   const updateField =
     useCallback(
@@ -551,6 +753,17 @@ export default function SignalementPage() {
       );
 
       if (
+        tauiAnimalChoice === "oui" &&
+        !selectedCompanionId
+      ) {
+        alert(
+          "Merci de sélectionner le compagnon Taui Te Ora concerné."
+        );
+
+        return;
+      }
+
+      if (
         !form.type_signalement ||
         !form.animal_type ||
         !form.island ||
@@ -650,6 +863,10 @@ export default function SignalementPage() {
           .insert({
             user_id:
               user?.id ||
+              null,
+
+            companion_id:
+              selectedCompanionId ||
               null,
 
             type_signalement:
@@ -1077,6 +1294,184 @@ export default function SignalementPage() {
         </div>
 
         <LostFoundPushPreferences />
+
+        <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-lg sm:p-8">
+          <div className="text-center">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#df8995]">
+              Taui Te Ora
+            </p>
+
+            <h2 className="mt-2 text-2xl font-black text-[#064b42]">
+              Cet animal est-il déjà enregistré sur Taui Te Ora ?
+            </h2>
+
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[#6f5a47]">
+              Si c&apos;est votre compagnon, sélectionnez-le : sa fiche sera chargée
+              automatiquement et vous n&apos;aurez plus qu&apos;à renseigner les détails
+              de sa disparition.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setTauiAnimalChoice("oui")}
+              className={`rounded-[22px] border-2 px-5 py-4 text-left transition ${
+                tauiAnimalChoice === "oui"
+                  ? "border-[#ef8998] bg-[#fff0f3]"
+                  : "border-[#eadfce] bg-[#faf7f2]"
+              }`}
+            >
+              <div className="text-2xl">🐾</div>
+              <div className="mt-2 font-black text-[#064b42]">
+                Oui, c&apos;est mon compagnon
+              </div>
+              <div className="mt-1 text-xs leading-5 text-[#756d67]">
+                Charger sa fiche Mes Compagnons.
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={chooseNonTauiAnimal}
+              className={`rounded-[22px] border-2 px-5 py-4 text-left transition ${
+                tauiAnimalChoice === "non"
+                  ? "border-[#8db8aa] bg-[#eaf5f1]"
+                  : "border-[#eadfce] bg-[#faf7f2]"
+              }`}
+            >
+              <div className="text-2xl">📝</div>
+              <div className="mt-2 font-black text-[#064b42]">
+                Non, continuer normalement
+              </div>
+              <div className="mt-1 text-xs leading-5 text-[#756d67]">
+                Remplir le signalement comme aujourd&apos;hui.
+              </div>
+            </button>
+          </div>
+
+          {tauiAnimalChoice === "oui" && (
+            <div className="mt-6">
+              {companionsLoading ? (
+                <div className="rounded-[22px] bg-[#faf7f2] p-5 text-center font-bold text-[#064b42]">
+                  Chargement de vos compagnons...
+                </div>
+              ) : companions.length === 0 ? (
+                <div className="rounded-[22px] border border-[#eadfce] bg-[#faf7f2] p-5 text-center">
+                  <p className="font-black text-[#064b42]">
+                    Aucun compagnon enregistré.
+                  </p>
+                  <p className="mt-2 text-sm text-[#756d67]">
+                    Ajoutez d&apos;abord votre animal dans Mes Compagnons ou choisissez
+                    « Non » pour continuer normalement.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/mes-compagnons/ajouter")}
+                    className="mt-4 rounded-full bg-[#064b42] px-5 py-3 text-sm font-black text-white"
+                  >
+                    + Ajouter un compagnon
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {companions.map((companion) => {
+                    const selected = selectedCompanionId === companion.id;
+
+                    return (
+                      <button
+                        key={companion.id}
+                        type="button"
+                        onClick={() => selectTauiCompanion(companion)}
+                        className={`overflow-hidden rounded-[24px] border-2 bg-white text-left shadow-sm transition active:scale-[.99] ${
+                          selected
+                            ? "border-[#ef8998] ring-4 ring-[#fde7eb]"
+                            : "border-[#eadfce]"
+                        }`}
+                      >
+                        <div className="aspect-[4/3] bg-[#f4eee5]">
+                          {companion.photo_url ? (
+                            <img
+                              src={companion.photo_url}
+                              alt={companion.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-6xl">
+                              🐾
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-xl font-black text-[#064b42]">
+                                {companion.name}
+                              </h3>
+                              <p className="mt-1 text-sm font-semibold text-[#756d67]">
+                                {companionSpeciesLabel(companion.species)}
+                                {companion.breed ? ` · ${companion.breed}` : ""}
+                              </p>
+                            </div>
+
+                            {selected && (
+                              <span className="rounded-full bg-[#ef8998] px-3 py-1 text-xs font-black text-white">
+                                Sélectionné
+                              </span>
+                            )}
+                          </div>
+
+                          {companion.identification_number && (
+                            <p className="mt-3 text-xs font-bold text-[#6f5a47]">
+                              Identification : {companion.identification_number}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedCompanion && (
+            <div className="mt-6 rounded-[24px] border border-[#d5ebe4] bg-[#eaf5f1] p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                {selectedCompanion.photo_url && (
+                  <img
+                    src={selectedCompanion.photo_url}
+                    alt={selectedCompanion.name}
+                    className="h-24 w-24 rounded-[20px] object-cover shadow"
+                  />
+                )}
+
+                <div className="flex-1">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#5e8f80]">
+                    Fiche Taui Te Ora chargée
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black text-[#064b42]">
+                    {selectedCompanion.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-[#5f6f68]">
+                    Ses informations d&apos;identité ont été préremplies. Complétez
+                    maintenant la localisation, la date, l&apos;heure et les circonstances
+                    de la disparition.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push("/mes-compagnons")}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#064b42] shadow"
+                >
+                  Mes Compagnons
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
@@ -1891,7 +2286,7 @@ function Select({
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
       >
         <option value="">
-          Sîlectionner
+          Sélectionner
         </option>
 
         {options.map(
