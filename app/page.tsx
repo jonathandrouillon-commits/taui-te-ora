@@ -1754,6 +1754,13 @@ function BottomMenu() {
         sortOrder: 150,
       },
       {
+        slug: "mes-compagnons",
+        label: "Mes Compagnons",
+        href: "/mes-compagnons",
+        icon: "🐾",
+        sortOrder: 155,
+      },
+      {
         slug: "pension",
         label: "Pension",
         href: "/pension",
