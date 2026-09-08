@@ -1467,14 +1467,14 @@ export default function AnimalSwipeCard({
                       bottom-[44px]
                       left-1/2
                       z-[65]
-                      h-[104px]
-                      w-[104px]
+                      h-[135px]
+                      w-[135px]
                       -translate-x-1/2
                       object-contain
                       drop-shadow-lg
                       sm:bottom-[48px]
-                      sm:h-[116px]
-                      sm:w-[116px]
+                      sm:h-[151px]
+                      sm:w-[151px]
                     "
                   />
                 )}
