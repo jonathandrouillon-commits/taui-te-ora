@@ -871,6 +871,9 @@ export default function AnimalPublicPage() {
           />
 
           <AnimalHealth
+            sexe={
+              sexe
+            }
             sterilise={
               animal.sterilized ??
               animal.sterilise ??
