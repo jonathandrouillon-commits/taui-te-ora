@@ -72,6 +72,12 @@ export default function AnimalSwipeCard({
     setCurrentPhotoIndex,
   ] = useState(0);
 
+  const [showNewBadge, setShowNewBadge] =
+    useState(false);
+
+  const [currentUserId, setCurrentUserId] =
+    useState<string | null>(null);
+
   useEffect(() => {
     window.setTimeout(() => {
       setStartX(null);
@@ -81,6 +87,98 @@ export default function AnimalSwipeCard({
       setSwipeFeedback(null);
       setCurrentPhotoIndex(0);
     }, 0);
+  }, [animal?.id]);
+
+  useEffect(() => {
+    if (!animal?.id) {
+      setShowNewBadge(false);
+      setCurrentUserId(null);
+      return;
+    }
+
+    let active = true;
+    const animalId = animal.id;
+
+    async function checkAnimalView() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          if (active) {
+            setCurrentUserId(user.id);
+          }
+
+          const { data, error } = await supabase
+            .from("animal_views")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("animal_id", animalId)
+            .maybeSingle();
+
+          if (error) {
+            console.error(
+              "Erreur vérification animal vu :",
+              error
+            );
+
+            if (active) {
+              setShowNewBadge(true);
+            }
+
+            return;
+          }
+
+          if (active) {
+            setShowNewBadge(!data);
+          }
+
+          return;
+        }
+
+        if (active) {
+          setCurrentUserId(null);
+        }
+
+        const storageKey =
+          "taui-te-ora-viewed-animals";
+
+        const saved =
+          window.localStorage.getItem(storageKey);
+
+        let viewedAnimals: string[] = [];
+
+        try {
+          viewedAnimals = saved
+            ? JSON.parse(saved)
+            : [];
+        } catch {
+          viewedAnimals = [];
+        }
+
+        if (active) {
+          setShowNewBadge(
+            !viewedAnimals.includes(animalId)
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Erreur chargement badge nouveau :",
+          error
+        );
+
+        if (active) {
+          setShowNewBadge(true);
+        }
+      }
+    }
+
+    void checkAnimalView();
+
+    return () => {
+      active = false;
+    };
   }, [animal?.id]);
 
   useEffect(() => {
@@ -344,6 +442,67 @@ export default function AnimalSwipeCard({
     );
   }
 
+  async function markAnimalAsViewed() {
+    if (!animal?.id) {
+      return;
+    }
+
+    const animalId = animal.id;
+
+    if (currentUserId) {
+      const { error } = await supabase
+        .from("animal_views")
+        .upsert(
+          {
+            user_id: currentUserId,
+            animal_id: animalId,
+            viewed_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id,animal_id",
+          }
+        );
+
+      if (error) {
+        console.error(
+          "Erreur enregistrement animal vu :",
+          error
+        );
+      } else {
+        setShowNewBadge(false);
+      }
+
+      return;
+    }
+
+    const storageKey =
+      "taui-te-ora-viewed-animals";
+
+    const saved =
+      window.localStorage.getItem(storageKey);
+
+    let viewedAnimals: string[] = [];
+
+    try {
+      viewedAnimals = saved
+        ? JSON.parse(saved)
+        : [];
+    } catch {
+      viewedAnimals = [];
+    }
+
+    if (!viewedAnimals.includes(animalId)) {
+      viewedAnimals.push(animalId);
+
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(viewedAnimals)
+      );
+    }
+
+    setShowNewBadge(false);
+  }
+
   async function handlePass() {
     if (actionLoading) return;
 
@@ -357,6 +516,7 @@ export default function AnimalSwipeCard({
       setSwipeFeedback(null);
       setTranslateX(0);
 
+      await markAnimalAsViewed();
       onPass?.();
     } finally {
       setActionLoading(false);
@@ -434,6 +594,7 @@ export default function AnimalSwipeCard({
       setSwipeFeedback(null);
       setTranslateX(0);
 
+      await markAnimalAsViewed();
       onFavorite?.();
     } catch (error: unknown) {
       console.error(
@@ -468,8 +629,12 @@ export default function AnimalSwipeCard({
     }
   }
 
-  function handleAdopt() {
-    if (!animal?.id) return;
+  async function handleAdopt() {
+    if (!animal?.id) {
+      return;
+    }
+
+    await markAnimalAsViewed();
 
     router.push(
       `/animal/${animal.id}?adoption=1`
@@ -843,6 +1008,29 @@ export default function AnimalSwipeCard({
               )
             )}
           </div>
+        )}
+
+        {showNewBadge && (
+          <img
+            src="/badges/nouveau-depart.png"
+            alt="Nouveau départ"
+            draggable={false}
+            className="
+              pointer-events-none
+              absolute
+              right-[62px]
+              top-[76px]
+              z-[65]
+              h-[92px]
+              w-[92px]
+              object-contain
+              drop-shadow-lg
+              sm:right-[68px]
+              sm:top-[88px]
+              sm:h-[104px]
+              sm:w-[104px]
+            "
+          />
         )}
 
         {/* ACTIONS EN HAUT A DROITE : LIKES / CHOISIR / PARTAGER */}
