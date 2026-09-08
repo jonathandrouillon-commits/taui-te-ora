@@ -101,7 +101,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   refuge: "Refuge / SIGFA",
   fourriere: "Fourrière",
   benevole: "Bénévole",
-  adoptant: "Adoptant",
+  adoptant: "Utilisateur",
 };
 
 const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
@@ -777,7 +777,7 @@ export default function ProfilePage() {
                         Conditions d&apos;adoption
                       </h2>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f665f]">
-                        Elles seront visibles sur votre profil. Avant d&apos;envoyer une demande, l&apos;adoptant devra toutes les cocher puis signer en ligne.
+                        Elles seront visibles sur votre profil. Avant d&apos;envoyer une demande, l&apos;utilisateur devra toutes les cocher puis signer en ligne.
                       </p>
                     </div>
                   </div>

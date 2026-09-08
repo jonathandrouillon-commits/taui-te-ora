@@ -1005,7 +1005,7 @@ export default function PublisherDashboard({
           </h2>
 
           <p className="mt-1 text-sm text-[#6f5a47]">
-            Retrouvez l&apos;adoptant, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
+            Retrouvez l&apos;utilisateur, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
           </p>
 
           <div className="mt-5 space-y-4">
@@ -1026,7 +1026,7 @@ export default function PublisherDashboard({
                   `${request.requester?.first_name || ""} ${
                     request.requester?.last_name || ""
                   }`.trim() ||
-                  "Adoptant";
+                  "Utilisateur";
 
                 const animalPhoto =
                   request.animals
@@ -1134,7 +1134,7 @@ export default function PublisherDashboard({
                                 text-[#9c7b54]
                               "
                             >
-                              Adoptant
+                              Utilisateur
                             </p>
 
                             <h3

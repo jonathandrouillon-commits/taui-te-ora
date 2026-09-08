@@ -25,10 +25,10 @@ export default function ChooseRolePage() {
   const roles: RoleItem[] = [
     {
       key: "adoptant",
-      title: "Adoptant",
+      title: "Utilisateur",
       icon: "🏠",
       description:
-        "Je souhaite adopter un animal, enregistrer mes coups de cœur et compléter mon questionnaire adoptant.",
+        "Je souhaite adopter un animal, enregistrer mes coups de cœur et compléter mon questionnaire d’adoption.",
       path: "/register?role=adoptant",
     },
     {

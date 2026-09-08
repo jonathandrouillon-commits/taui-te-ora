@@ -32,7 +32,7 @@ const ROLE_LABELS: Record<
   UserRole,
   string
 > = {
-  adoptant: "Adoptant",
+  adoptant: "Utilisateur",
   association: "Association",
   refuge: "Refuge / SIGFA",
   benevole: "Bénévole indépendant",
@@ -1403,7 +1403,7 @@ approved_at:
               }}
             >
               <option value="adoptant">
-                Adoptant
+                Utilisateur
               </option>
 
               <option value="association">
@@ -1590,7 +1590,7 @@ approved_at:
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Ces informations permettent à Taui Te Ora de gérer également les adoptants vivant hors de Polynésie française.
+              Ces informations permettent à Taui Te Ora de gérer également les utilisateurs vivant hors de Polynésie française.
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -1872,7 +1872,7 @@ approved_at:
                 text-[#76545b]
               "
             >
-              Après la création de votre compte, vous compléterez votre questionnaire adoptant. Les personnes résidant en France ou à l&apos;étranger peuvent également déposer une demande d&apos;adoption.
+              Après la création de votre compte, vous compléterez votre questionnaire d&apos;adoption. Les personnes résidant en France ou à l&apos;étranger peuvent également déposer une demande d&apos;adoption.
             </div>
           ) : (
             <div
