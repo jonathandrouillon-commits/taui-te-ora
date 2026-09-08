@@ -122,30 +122,43 @@ export default function AdminAnimalsPage() {
       }
 
       const rows = (data || []) as Animal[];
-      const animalIds = rows.map((animal) => animal.id);
-      const counts = new Map<string, number>();
 
-      if (animalIds.length > 0) {
-        const { data: favoriteRows, error: favoriteError } = await supabase
-          .from("favorites")
-          .select("animal_id")
-          .in("animal_id", animalIds);
+      /*
+       * IMPORTANT : on utilise exactement la même fonction RPC
+       * que la Swipe Card.
+       *
+       * Une lecture directe de la table favorites peut être limitée
+       * par les règles RLS et ne montrer que les favoris visibles par
+       * l'utilisateur courant. La RPC renvoie, elle, le total réel
+       * cumulé pour chaque animal.
+       */
+      const rowsWithFavoriteCounts = await Promise.all(
+        rows.map(async (animal) => {
+          const { data: favoriteCount, error: favoriteCountError } =
+            await supabase.rpc(
+              "get_animal_favorites_count",
+              {
+                p_animal_id: animal.id,
+              }
+            );
 
-        if (favoriteError) throw favoriteError;
+          if (favoriteCountError) {
+            console.error(
+              `Erreur compteur coups de coeur pour ${animal.id} :`,
+              favoriteCountError
+            );
+          }
 
-        for (const favorite of favoriteRows || []) {
-          const animalId = String(favorite.animal_id || "");
-          if (!animalId) continue;
-          counts.set(animalId, (counts.get(animalId) || 0) + 1);
-        }
-      }
-
-      setAnimals(
-        rows.map((animal) => ({
-          ...animal,
-          favorite_count: counts.get(animal.id) || 0,
-        }))
+          return {
+            ...animal,
+            favorite_count: favoriteCountError
+              ? 0
+              : Number(favoriteCount ?? 0),
+          };
+        })
       );
+
+      setAnimals(rowsWithFavoriteCounts);
     }, []);
 
   const initialize =
