@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  Suspense,
   useEffect,
   useMemo,
   useState,
@@ -9,6 +10,7 @@ import {
 
 import {
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 
 import {
@@ -142,9 +144,18 @@ function calculateAge(
   return "";
 }
 
-export default function CreateWalkPage() {
+function CreateWalkPageContent() {
   const router =
     useRouter();
+
+  const searchParams =
+    useSearchParams();
+
+  const preselectedCompanionId =
+    searchParams.get("companion");
+
+  const preselectedInviteId =
+    searchParams.get("invite");
 
   const [
     busy,
@@ -389,6 +400,64 @@ export default function CreateWalkPage() {
       active = false;
     };
   }, []);
+
+  /* =========================================================
+     PRESELECTION DEPUIS "TROUVER UN COPAIN"
+  ========================================================= */
+
+  useEffect(() => {
+    if (
+      preselectedCompanionId &&
+      myCompanions.some(
+        (companion) =>
+          companion.id ===
+          preselectedCompanionId
+      )
+    ) {
+      setSelectedMyCompanionIds(
+        (previous) =>
+          previous.includes(
+            preselectedCompanionId
+          )
+            ? previous
+            : [
+                ...previous,
+                preselectedCompanionId,
+              ]
+      );
+    }
+  }, [
+    preselectedCompanionId,
+    myCompanions,
+  ]);
+
+  useEffect(() => {
+    if (
+      preselectedInviteId &&
+      communityCompanions.some(
+        (companion) =>
+          companion.id ===
+          preselectedInviteId
+      )
+    ) {
+      setInviteCommunity(true);
+
+      setSelectedCommunityCompanionIds(
+        (previous) =>
+          previous.includes(
+            preselectedInviteId
+          )
+            ? previous
+            : [
+                ...previous,
+                preselectedInviteId,
+              ]
+      );
+    }
+  }, [
+    preselectedInviteId,
+    communityCompanions,
+  ]);
 
   /* =========================================================
      FILTRE
@@ -1444,5 +1513,24 @@ export default function CreateWalkPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function CreateWalkPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-[100dvh] items-center justify-center bg-[#f4eee3] px-4 text-[#064b42]">
+          <div className="rounded-[28px] bg-white px-8 py-7 text-center shadow-xl">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#fde7e9] border-t-[#ef7f61]" />
+            <p className="mt-4 font-black">
+              Chargement de la création de balade...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <CreateWalkPageContent />
+    </Suspense>
   );
 }
