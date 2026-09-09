@@ -2,6 +2,8 @@
 
 import {
   FormEvent,
+  useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -10,9 +12,135 @@ import {
 } from "next/navigation";
 
 import {
+  Check,
+  PawPrint,
+  Search,
+  Users,
+} from "lucide-react";
+
+import {
   createWalk,
   getWalkFacebookShareUrl,
 } from "../../services/walk.service";
+
+import {
+  supabase,
+} from "../../lib/supabase";
+
+type CommunityCompanion = {
+  id: string;
+  owner_id: string;
+  name: string;
+  species: string;
+  breed: string | null;
+  sex: string | null;
+  birth_date: string | null;
+  color: string | null;
+  character: string | null;
+  photo_url: string | null;
+};
+
+function formatSpecies(
+  value: string | null
+) {
+  const normalized =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  switch (normalized) {
+    case "chien":
+      return "Chien";
+
+    case "chat":
+      return "Chat";
+
+    case "cheval":
+      return "Cheval";
+
+    default:
+      return value || "Animal";
+  }
+}
+
+function formatSex(
+  value: string | null
+) {
+  const normalized =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  if (
+    normalized === "male" ||
+    normalized === "mâle"
+  ) {
+    return "Mâle";
+  }
+
+  if (
+    normalized === "female" ||
+    normalized === "femelle"
+  ) {
+    return "Femelle";
+  }
+
+  return "";
+}
+
+function calculateAge(
+  birthDate: string | null
+) {
+  if (!birthDate) {
+    return "";
+  }
+
+  const birth =
+    new Date(birthDate);
+
+  const today =
+    new Date();
+
+  if (
+    Number.isNaN(
+      birth.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  let years =
+    today.getFullYear() -
+    birth.getFullYear();
+
+  let months =
+    today.getMonth() -
+    birth.getMonth();
+
+  if (
+    today.getDate() <
+    birth.getDate()
+  ) {
+    months -= 1;
+  }
+
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  if (years > 0) {
+    return `${years} an${
+      years > 1 ? "s" : ""
+    }`;
+  }
+
+  if (months > 0) {
+    return `${months} mois`;
+  }
+
+  return "";
+}
 
 export default function CreateWalkPage() {
   const router =
@@ -30,6 +158,200 @@ export default function CreateWalkPage() {
   ] =
     useState("");
 
+  const [
+    communityLoading,
+    setCommunityLoading,
+  ] =
+    useState(true);
+
+  const [
+    communityCompanions,
+    setCommunityCompanions,
+  ] =
+    useState<
+      CommunityCompanion[]
+    >([]);
+
+  const [
+    selectedCompanionIds,
+    setSelectedCompanionIds,
+  ] =
+    useState<string[]>([]);
+
+  const [
+    communitySearch,
+    setCommunitySearch,
+  ] =
+    useState("");
+
+  const [
+    inviteCommunity,
+    setInviteCommunity,
+  ] =
+    useState(false);
+
+  /* =========================================================
+     CHARGEMENT COMMUNAUTE
+  ========================================================= */
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCommunity() {
+      try {
+        setCommunityLoading(
+          true
+        );
+
+        const {
+          data: { user },
+          error: authError,
+        } =
+          await supabase.auth.getUser();
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (!user) {
+          return;
+        }
+
+        const {
+          data,
+          error:
+            communityError,
+        } =
+          await supabase
+            .from("companions")
+            .select(`
+              id,
+              owner_id,
+              name,
+              species,
+              breed,
+              sex,
+              birth_date,
+              color,
+              character,
+              photo_url
+            `)
+            .eq(
+              "is_public",
+              true
+            )
+            .eq(
+              "is_deceased",
+              false
+            )
+            .neq(
+              "owner_id",
+              user.id
+            )
+            .order(
+              "name",
+              {
+                ascending: true,
+              }
+            );
+
+        if (
+          communityError
+        ) {
+          throw communityError;
+        }
+
+        if (!active) {
+          return;
+        }
+
+        setCommunityCompanions(
+          (data ||
+            []) as CommunityCompanion[]
+        );
+      } catch (cause) {
+        console.error(
+          "Erreur chargement communauté Sans Voix :",
+          cause
+        );
+      } finally {
+        if (active) {
+          setCommunityLoading(
+            false
+          );
+        }
+      }
+    }
+
+    void loadCommunity();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /* =========================================================
+     FILTRE
+  ========================================================= */
+
+  const filteredCommunity =
+    useMemo(() => {
+      const query =
+        communitySearch
+          .trim()
+          .toLowerCase();
+
+      if (!query) {
+        return communityCompanions;
+      }
+
+      return communityCompanions.filter(
+        (companion) =>
+          [
+            companion.name,
+            companion.species,
+            companion.breed,
+            companion.color,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(query)
+      );
+    }, [
+      communityCompanions,
+      communitySearch,
+    ]);
+
+  function toggleCompanion(
+    companionId: string
+  ) {
+    setSelectedCompanionIds(
+      (previous) => {
+        if (
+          previous.includes(
+            companionId
+          )
+        ) {
+          return previous.filter(
+            (id) =>
+              id !==
+              companionId
+          );
+        }
+
+        return [
+          ...previous,
+          companionId,
+        ];
+      }
+    );
+  }
+
+  /* =========================================================
+     CREATION
+  ========================================================= */
+
   async function submit(
     event:
       FormEvent<HTMLFormElement>
@@ -42,12 +364,6 @@ export default function CreateWalkPage() {
     setBusy(true);
     setError("");
 
-    /*
-     * On ouvre Facebook immédiatement
-     * pendant le clic utilisateur pour
-     * éviter le blocage de popup après
-     * les opérations asynchrones.
-     */
     facebookShareWindow =
       window.open(
         "",
@@ -79,7 +395,9 @@ export default function CreateWalkPage() {
               <div style="
                 font-size: 44px;
                 margin-bottom: 16px;
-              ">🐾</div>
+              ">
+                🐾
+              </div>
 
               <div style="
                 font-size: 22px;
@@ -106,6 +424,27 @@ export default function CreateWalkPage() {
       );
 
     try {
+      const {
+        data: {
+          user,
+        },
+        error:
+          authError,
+      } =
+        await supabase.auth.getUser();
+
+      if (
+        authError
+      ) {
+        throw authError;
+      }
+
+      if (!user) {
+        throw new Error(
+          "Connecte-toi pour organiser une balade."
+        );
+      }
+
       const {
         data,
         error:
@@ -187,6 +526,69 @@ export default function CreateWalkPage() {
         );
       }
 
+      /* =====================================================
+         INVITATIONS SANS VOIX
+      ===================================================== */
+
+      if (
+        inviteCommunity &&
+        selectedCompanionIds.length >
+          0
+      ) {
+        const selected =
+          communityCompanions.filter(
+            (companion) =>
+              selectedCompanionIds.includes(
+                companion.id
+              )
+          );
+
+        const invitations =
+          selected.map(
+            (companion) => ({
+              walk_id:
+                data.id,
+
+              companion_id:
+                companion.id,
+
+              invited_by:
+                user.id,
+
+              owner_id:
+                companion.owner_id,
+
+              status:
+                "pending",
+            })
+          );
+
+        const {
+          error:
+            invitationError,
+        } =
+          await supabase
+            .from(
+              "community_walk_companion_invitations"
+            )
+            .insert(
+              invitations
+            );
+
+        if (
+          invitationError
+        ) {
+          console.error(
+            "Erreur invitations Sans Voix :",
+            invitationError
+          );
+
+          throw new Error(
+            "La balade a été créée, mais les invitations aux compagnons n'ont pas pu être envoyées."
+          );
+        }
+      }
+
       const facebookShareUrl =
         getWalkFacebookShareUrl(
           data.id
@@ -239,7 +641,7 @@ export default function CreateWalkPage() {
         onSubmit={
           submit
         }
-        className="mx-auto max-w-xl rounded-[32px] bg-white p-6 shadow-sm sm:p-8"
+        className="mx-auto max-w-2xl rounded-[32px] bg-white p-6 shadow-sm sm:p-8"
       >
         <button
           type="button"
@@ -264,6 +666,7 @@ export default function CreateWalkPage() {
         <div className="space-y-4">
           <label className="block text-sm font-bold">
             Nom de la balade
+
             <input
               required
               name="title"
@@ -276,6 +679,7 @@ export default function CreateWalkPage() {
 
           <label className="block text-sm font-bold">
             Lieu
+
             <input
               required
               name="location"
@@ -288,6 +692,7 @@ export default function CreateWalkPage() {
 
           <label className="block text-sm font-bold">
             Date et heure
+
             <input
               required
               name="starts_at"
@@ -301,6 +706,7 @@ export default function CreateWalkPage() {
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm font-bold">
               Durée (minutes)
+
               <input
                 required
                 name="duration_minutes"
@@ -316,6 +722,7 @@ export default function CreateWalkPage() {
 
             <label className="text-sm font-bold">
               Chiens maximum
+
               <input
                 required
                 name="max_dogs"
@@ -332,6 +739,7 @@ export default function CreateWalkPage() {
 
           <label className="block text-sm font-bold">
             Rythme
+
             <select
               name="pace"
               className={
@@ -354,6 +762,7 @@ export default function CreateWalkPage() {
 
           <label className="block text-sm font-bold">
             Pour quels chiens ?
+
             <input
               required
               name="audience"
@@ -366,6 +775,7 @@ export default function CreateWalkPage() {
 
           <label className="block text-sm font-bold">
             Informations utiles
+
             <textarea
               name="description"
               rows={4}
@@ -376,6 +786,252 @@ export default function CreateWalkPage() {
             />
           </label>
         </div>
+
+        {/* ===================================================
+            COMMUNAUTE DES SANS VOIX
+        =================================================== */}
+
+        <section className="mt-8 rounded-[28px] border border-[#e5d8cd] bg-[#faf7f2] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fde7e9] text-[#df8995]">
+              <Users
+                size={21}
+              />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-[#064b42]">
+                Inviter des compagnons
+              </h2>
+
+              <p className="mt-1 text-sm leading-relaxed text-[#6f625a]">
+                Proposez cette balade à un
+                ou plusieurs animaux de la
+                Communauté des Sans Voix.
+                Leur humain devra accepter
+                l&apos;invitation avant que
+                le compagnon soit considéré
+                comme participant.
+              </p>
+            </div>
+          </div>
+
+          <label className="mt-5 flex cursor-pointer items-center gap-3 rounded-[20px] bg-white p-4 shadow-sm">
+            <input
+              type="checkbox"
+              checked={
+                inviteCommunity
+              }
+              onChange={(
+                event
+              ) => {
+                setInviteCommunity(
+                  event.target.checked
+                );
+
+                if (
+                  !event.target.checked
+                ) {
+                  setSelectedCompanionIds(
+                    []
+                  );
+                }
+              }}
+              className="h-5 w-5 accent-[#ef7f61]"
+            />
+
+            <div>
+              <p className="font-black text-[#064b42]">
+                Inviter des Sans Voix
+              </p>
+
+              <p className="text-xs text-[#756d67]">
+                Sélection multiple possible
+              </p>
+            </div>
+          </label>
+
+          {inviteCommunity && (
+            <div className="mt-5">
+              {communityLoading ? (
+                <div className="rounded-[20px] bg-white p-6 text-center">
+                  <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#eadfd8] border-t-[#064b42]" />
+
+                  <p className="mt-3 text-sm font-bold">
+                    Chargement de la communauté...
+                  </p>
+                </div>
+              ) : communityCompanions.length ===
+                0 ? (
+                <div className="rounded-[20px] bg-white p-6 text-center">
+                  <PawPrint
+                    size={34}
+                    className="mx-auto text-[#df8995]"
+                  />
+
+                  <p className="mt-3 font-black">
+                    Aucun compagnon public disponible
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+
+                    <input
+                      type="text"
+                      value={
+                        communitySearch
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setCommunitySearch(
+                          event.target.value
+                        )
+                      }
+                      placeholder="Rechercher un compagnon..."
+                      className="w-full rounded-full border border-[#e5d8cd] bg-white py-3 pl-11 pr-4 outline-none focus:border-[#ef7f61]"
+                    />
+                  </div>
+
+                  {selectedCompanionIds.length >
+                    0 && (
+                    <p className="mt-4 rounded-full bg-[#eaf5f1] px-4 py-2 text-center text-sm font-black text-[#064b42]">
+                      {
+                        selectedCompanionIds.length
+                      }{" "}
+                      compagnon
+                      {selectedCompanionIds.length >
+                      1
+                        ? "s"
+                        : ""}{" "}
+                      invité
+                      {selectedCompanionIds.length >
+                      1
+                        ? "s"
+                        : ""}
+                    </p>
+                  )}
+
+                  <div className="mt-4 grid max-h-[480px] gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+                    {filteredCommunity.map(
+                      (
+                        companion
+                      ) => {
+                        const selected =
+                          selectedCompanionIds.includes(
+                            companion.id
+                          );
+
+                        const age =
+                          calculateAge(
+                            companion.birth_date
+                          );
+
+                        const sex =
+                          formatSex(
+                            companion.sex
+                          );
+
+                        return (
+                          <button
+                            key={
+                              companion.id
+                            }
+                            type="button"
+                            onClick={() =>
+                              toggleCompanion(
+                                companion.id
+                              )
+                            }
+                            className={`relative overflow-hidden rounded-[22px] border-2 bg-white text-left transition ${
+                              selected
+                                ? "border-[#ef7f61] shadow-md"
+                                : "border-transparent shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 p-3">
+                              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[18px] bg-[#f4eee3]">
+                                {companion.photo_url ? (
+                                  <img
+                                    src={
+                                      companion.photo_url
+                                    }
+                                    alt={
+                                      companion.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-3xl">
+                                    🐾
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-lg font-black text-[#064b42]">
+                                  {
+                                    companion.name
+                                  }
+                                </p>
+
+                                <p className="mt-1 text-xs font-bold text-[#756d67]">
+                                  {formatSpecies(
+                                    companion.species
+                                  )}
+                                  {sex
+                                    ? ` · ${sex}`
+                                    : ""}
+                                  {age
+                                    ? ` · ${age}`
+                                    : ""}
+                                </p>
+
+                                {companion.breed && (
+                                  <p className="mt-1 truncate text-xs text-[#756d67]">
+                                    {
+                                      companion.breed
+                                    }
+                                  </p>
+                                )}
+                              </div>
+
+                              <div
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                                  selected
+                                    ? "bg-[#ef7f61] text-white"
+                                    : "bg-[#f4eee3] text-[#9c9188]"
+                                }`}
+                              >
+                                {selected ? (
+                                  <Check
+                                    size={17}
+                                    strokeWidth={
+                                      3
+                                    }
+                                  />
+                                ) : (
+                                  <PawPrint
+                                    size={16}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </section>
 
         {error && (
           <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">
@@ -391,7 +1047,15 @@ export default function CreateWalkPage() {
         >
           {busy
             ? "Création…"
-            : "Créer la balade"}
+            : selectedCompanionIds.length >
+                0
+              ? `Créer la balade et envoyer ${selectedCompanionIds.length} invitation${
+                  selectedCompanionIds.length >
+                  1
+                    ? "s"
+                    : ""
+                }`
+              : "Créer la balade"}
         </button>
       </form>
     </main>
