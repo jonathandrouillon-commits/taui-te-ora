@@ -71,12 +71,12 @@ type FosterProfile = {
 
 type StructureOption = {
   id: string;
-  type: "association" | "refuge";
+  type: "association" | "refuge" | "fourriere" | "benevole";
   name: string;
 };
 
 type PreferenceRow = {
-  structure_type: "association" | "refuge";
+  structure_type: "association" | "refuge" | "fourriere" | "benevole";
   structure_id: string;
 };
 
@@ -156,6 +156,27 @@ function prefKey(type: string, id: string) {
   return `${type}:${id}`;
 }
 
+function structureTypeLabel(
+  type: StructureOption["type"]
+) {
+  switch (type) {
+    case "association":
+      return "Association";
+
+    case "refuge":
+      return "Refuge";
+
+    case "fourriere":
+      return "Fourrière";
+
+    case "benevole":
+      return "Bénévole";
+
+    default:
+      return type;
+  }
+}
+
 export default function FamilleAccueilPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<FosterProfile>(EMPTY_PROFILE);
@@ -190,7 +211,7 @@ export default function FamilleAccueilPage() {
           return;
         }
 
-        const [profileResult, prefResult, assocResult, refugeResult] =
+        const [profileResult, prefResult, structureResult] =
           await Promise.all([
             supabase
               .from("profiles")
@@ -253,8 +274,26 @@ export default function FamilleAccueilPage() {
               .select("structure_type, structure_id")
               .eq("foster_user_id", user.id),
 
-            supabase.from("associations").select("*"),
-            supabase.from("refuges").select("*"),
+            supabase
+              .from("public_structure_profiles")
+              .select(`
+                id,
+                organization_name,
+                role,
+                first_name,
+                last_name,
+                approval_status,
+                is_active
+              `)
+              .in("role", [
+                "association",
+                "refuge",
+                "fourriere",
+                "benevole"
+              ])
+              .neq("approval_status", "rejected")
+              .neq("approval_status", "suspended")
+              .order("organization_name", { ascending: true }),
           ]);
 
         if (profileResult.error) throw profileResult.error;
@@ -326,28 +365,47 @@ export default function FamilleAccueilPage() {
 
         const options: StructureOption[] = [];
 
-        if (!assocResult.error) {
-          for (const raw of assocResult.data || []) {
+        if (!structureResult.error) {
+          for (const raw of structureResult.data || []) {
             const row = raw as Record<string, unknown>;
             const id = String(row.id || "");
-            if (!id) continue;
-            options.push({
-              id,
-              type: "association",
-              name: nameFromRow(row, "Association"),
-            });
-          }
-        }
+            const role = String(row.role || "")
+              .trim()
+              .toLowerCase();
 
-        if (!refugeResult.error) {
-          for (const raw of refugeResult.data || []) {
-            const row = raw as Record<string, unknown>;
-            const id = String(row.id || "");
             if (!id) continue;
+
+            if (
+              role !== "association" &&
+              role !== "refuge" &&
+              role !== "fourriere" &&
+              role !== "benevole"
+            ) {
+              continue;
+            }
+
+            const firstName = String(row.first_name || "").trim();
+            const lastName = String(row.last_name || "").trim();
+            const personName = [firstName, lastName]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
+
             options.push({
               id,
-              type: "refuge",
-              name: nameFromRow(row, "Refuge"),
+              type: role as StructureOption["type"],
+              name:
+                nameFromRow(
+                  row,
+                  personName ||
+                    (role === "association"
+                      ? "Association"
+                      : role === "refuge"
+                        ? "Refuge"
+                        : role === "fourriere"
+                          ? "Fourrière"
+                          : "Bénévole")
+                ),
             });
           }
         }
@@ -381,7 +439,7 @@ export default function FamilleAccueilPage() {
     const q = structureSearch.trim().toLowerCase();
     if (!q) return structures;
     return structures.filter((item) =>
-      `${item.name} ${item.type}`.toLowerCase().includes(q)
+      `${item.name} ${structureTypeLabel(item.type)}`.toLowerCase().includes(q)
     );
   }, [structureSearch, structures]);
 
@@ -669,7 +727,7 @@ export default function FamilleAccueilPage() {
                 <div>
                   <p className="font-black text-[#064b42]">Sans préférence</p>
                   <p className="mt-1 text-xs text-[#6f625a]">
-                    Toutes les associations et refuges peuvent me contacter.
+                    Toutes les associations, refuges, fourrières et bénévoles peuvent me contacter.
                   </p>
                 </div>
                 {noPreference && <Check size={20} strokeWidth={3} />}
@@ -680,7 +738,7 @@ export default function FamilleAccueilPage() {
                   <input
                     value={structureSearch}
                     onChange={(event) => setStructureSearch(event.target.value)}
-                    placeholder="Rechercher une association ou un refuge..."
+                    placeholder="Rechercher une association, un refuge, une fourrière ou un bénévole..."
                     className="mt-4 w-full rounded-full border border-[#e5d8cd] bg-white px-4 py-3 outline-none focus:border-[#ef919b]"
                   />
 
@@ -703,7 +761,7 @@ export default function FamilleAccueilPage() {
                           <div>
                             <p className="font-black text-[#064b42]">{item.name}</p>
                             <p className="mt-1 text-xs capitalize text-[#756d67]">
-                              {item.type}
+                              {structureTypeLabel(item.type)}
                             </p>
                           </div>
                           {selected && (
