@@ -150,6 +150,209 @@ const HELP_TYPES: Array<{
   { value: "benevolat", label: "Bénévolat", icon: "🤝" },
 ];
 
+const ISLAND_COMMUNES: Record<string, string[]> = {
+  Tahiti: [
+    "Arue",
+    "Faa'a",
+    "Hitia'a O Te Ra",
+    "Mahina",
+    "Paea",
+    "Papara",
+    "Papeete",
+    "Pirae",
+    "Punaauia",
+    "Taiarapu-Est",
+    "Taiarapu-Ouest",
+    "Teva I Uta",
+  ],
+  Moorea: [
+    "Moorea-Maiao",
+  ],
+  Maiao: [
+    "Moorea-Maiao",
+  ],
+  "Bora Bora": [
+    "Bora-Bora",
+  ],
+  Raiatea: [
+    "Taputapuatea",
+    "Tumaraa",
+    "Uturoa",
+  ],
+  Tahaa: [
+    "Taha'a",
+  ],
+  Huahine: [
+    "Huahine",
+  ],
+  Maupiti: [
+    "Maupiti",
+  ],
+  Tupai: [
+    "Bora-Bora",
+  ],
+  Rangiroa: [
+    "Rangiroa",
+  ],
+  Tikehau: [
+    "Rangiroa",
+  ],
+  Mataiva: [
+    "Rangiroa",
+  ],
+  Makatea: [
+    "Rangiroa",
+  ],
+  Fakarava: [
+    "Fakarava",
+  ],
+  Toau: [
+    "Fakarava",
+  ],
+  Niau: [
+    "Fakarava",
+  ],
+  Aratika: [
+    "Fakarava",
+  ],
+  Kauehi: [
+    "Fakarava",
+  ],
+  Raraka: [
+    "Fakarava",
+  ],
+  Taiaro: [
+    "Fakarava",
+  ],
+  Anaa: [
+    "Anaa",
+  ],
+  Faaite: [
+    "Anaa",
+  ],
+  Motutunga: [
+    "Anaa",
+  ],
+  Takume: [
+    "Makemo",
+  ],
+  Makemo: [
+    "Makemo",
+  ],
+  Katiu: [
+    "Makemo",
+  ],
+  Nihiru: [
+    "Makemo",
+  ],
+  "Marutea Nord": [
+    "Makemo",
+  ],
+  Raroia: [
+    "Makemo",
+  ],
+  Taenga: [
+    "Makemo",
+  ],
+  Takapoto: [
+    "Takaroa",
+  ],
+  Takaroa: [
+    "Takaroa",
+  ],
+  Tikei: [
+    "Takaroa",
+  ],
+  Manihi: [
+    "Manihi",
+  ],
+  Ahe: [
+    "Manihi",
+  ],
+  Arutua: [
+    "Arutua",
+  ],
+  Apataki: [
+    "Arutua",
+  ],
+  Kaukura: [
+    "Arutua",
+  ],
+  Hao: [
+    "Hao",
+  ],
+  Amanu: [
+    "Hao",
+  ],
+  Hereheretue: [
+    "Hao",
+  ],
+  Nukutavake: [
+    "Nukutavake",
+  ],
+  Reao: [
+    "Reao",
+  ],
+  Pukarua: [
+    "Reao",
+  ],
+  Tatakoto: [
+    "Tatakoto",
+  ],
+  Tureia: [
+    "Tureia",
+  ],
+  Mururoa: [
+    "Tureia",
+  ],
+  Fangataufa: [
+    "Tureia",
+  ],
+  Gambier: [
+    "Gambier",
+  ],
+  Mangareva: [
+    "Gambier",
+  ],
+  Rurutu: [
+    "Rurutu",
+  ],
+  Tubuai: [
+    "Tubuai",
+  ],
+  Raivavae: [
+    "Raivavae",
+  ],
+  Rimatara: [
+    "Rimatara",
+  ],
+  Rapa: [
+    "Rapa",
+  ],
+  "Nuku Hiva": [
+    "Nuku-Hiva",
+  ],
+  "Hiva Oa": [
+    "Hiva-Oa",
+  ],
+  "Ua Pou": [
+    "Ua-Pou",
+  ],
+  "Ua Huka": [
+    "Ua-Huka",
+  ],
+  Tahuata: [
+    "Tahuata",
+  ],
+  "Fatu Hiva": [
+    "Fatu-Hiva",
+  ],
+};
+
+const ISLANDS = Object.keys(ISLAND_COMMUNES).sort((a, b) =>
+  a.localeCompare(b, "fr")
+);
+
 const EMPTY_FORM = {
   title: "",
   help_type: "famille_accueil" as HelpType,
@@ -1372,24 +1575,38 @@ export default function HelpSosPage() {
                   <span className="mb-2 block text-sm font-black text-[#064b42]">
                     Île *
                   </span>
-                  <input
+                  <select
                     value={form.island}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const island = event.target.value;
+
                       setForm((current) => ({
                         ...current,
-                        island: event.target.value,
-                      }))
-                    }
-                    placeholder="Ex. Tahiti"
-                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
-                  />
+                        island,
+                        city: ISLAND_COMMUNES[island]?.includes(
+                          current.city
+                        )
+                          ? current.city
+                          : "",
+                      }));
+                    }}
+                    required
+                    className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42] outline-none focus:border-[#064b42]"
+                  >
+                    <option value="">Sélectionner une île</option>
+                    {ISLANDS.map((island) => (
+                      <option key={island} value={island}>
+                        {island}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label>
                   <span className="mb-2 block text-sm font-black text-[#064b42]">
                     Commune
                   </span>
-                  <input
+                  <select
                     value={form.city}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -1397,9 +1614,23 @@ export default function HelpSosPage() {
                         city: event.target.value,
                       }))
                     }
-                    placeholder="Ex. Punaauia"
-                    className="w-full rounded-2xl border border-[#e5ddd5] px-4 py-3 outline-none focus:border-[#064b42]"
-                  />
+                    disabled={!form.island}
+                    className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42] outline-none focus:border-[#064b42] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+                  >
+                    <option value="">
+                      {form.island
+                        ? "Sélectionner une commune"
+                        : "Choisir d’abord une île"}
+                    </option>
+
+                    {(ISLAND_COMMUNES[form.island] || []).map(
+                      (commune) => (
+                        <option key={commune} value={commune}>
+                          {commune}
+                        </option>
+                      )
+                    )}
+                  </select>
                 </label>
               </div>
 
