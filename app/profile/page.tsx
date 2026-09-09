@@ -51,6 +51,7 @@ type ProfileRow = {
   is_active: boolean | null;
   organization_name: string | null;
   approval_status: string | null;
+  preferred_language: string | null;
 };
 
 type ProfileForm = {
@@ -65,6 +66,7 @@ type ProfileForm = {
   address: string;
   postal_code: string;
   organization_name: string;
+  preferred_language: "fr" | "en";
 };
 
 type AdoptionConditionDraft = {
@@ -93,6 +95,7 @@ const EMPTY_FORM: ProfileForm = {
   address: "",
   postal_code: "",
   organization_name: "",
+  preferred_language: "fr",
 };
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -239,7 +242,8 @@ export default function ProfilePage() {
             is_verified,
             is_active,
             organization_name,
-            approval_status
+            approval_status,
+            preferred_language
           `
         )
         .eq("id", user.id)
@@ -268,6 +272,14 @@ export default function ProfilePage() {
         address: profile.address || "",
         postal_code: profile.postal_code || "",
         organization_name: profile.organization_name || "",
+        preferred_language:
+          user.user_metadata?.preferred_language === "en"
+            ? "en"
+            : user.user_metadata?.preferred_language === "fr"
+              ? "fr"
+              : profile.preferred_language === "en"
+                ? "en"
+                : "fr",
       });
 
       const normalizedRole = normalizeRole(profile.role);
@@ -579,6 +591,8 @@ export default function ProfilePage() {
         organization_name: isStructure
           ? form.organization_name.trim() || null
           : null,
+        preferred_language:
+          form.preferred_language,
       };
 
       const { error } = await supabase
@@ -587,6 +601,21 @@ export default function ProfilePage() {
         .eq("id", profileId);
 
       if (error) throw error;
+
+      const { error: authLanguageError } =
+        await supabase.auth.updateUser({
+          data: {
+            preferred_language:
+              form.preferred_language,
+          },
+        });
+
+      if (authLanguageError) {
+        console.error(
+          "Erreur mise à jour langue Auth :",
+          authLanguageError
+        );
+      }
 
       setSaved(true);
 
@@ -862,6 +891,42 @@ export default function ProfilePage() {
                 </div>
               </section>
             )}
+
+            <section className="mt-8 rounded-[28px] border border-[#eee2da] bg-[#fffaf7] p-5 sm:p-6">
+              <h2 className="text-2xl font-black text-[#064b42]">
+                Langue de l&apos;application
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-[#6f665f]">
+                Choisissez la langue que Taui Te Ora utilisera pour votre compte.
+              </p>
+
+              <label className="mt-5 block">
+                <span className="mb-2 block font-black text-[#064b42]">
+                  Langue
+                </span>
+
+                <select
+                  value={form.preferred_language}
+                  onChange={(event) =>
+                    updateField(
+                      "preferred_language",
+                      event.target.value === "en"
+                        ? "en"
+                        : "fr"
+                    )
+                  }
+                  className="w-full rounded-[18px] border border-[#e5d8cd] bg-white px-4 py-3.5 outline-none transition focus:border-[#df8995]"
+                >
+                  <option value="fr">
+                    🇫🇷 Français
+                  </option>
+                  <option value="en">
+                    🇬🇧 English
+                  </option>
+                </select>
+              </label>
+            </section>
 
             <section className="mt-8 rounded-[28px] border border-[#eee2da] bg-white p-5 sm:p-6">
               <h2 className="mb-6 text-2xl font-black text-[#064b42]">

@@ -307,6 +307,9 @@ export default function RegisterPage() {
   const [role, setRole] =
     useState<UserRole>("adoptant");
 
+  const [preferredLanguage, setPreferredLanguage] =
+    useState<"fr" | "en">("fr");
+
   const [
     redirectAfterAuth,
     setRedirectAfterAuth,
@@ -1103,6 +1106,9 @@ function isRateLimitError(
                 role_label:
                   roleLabel,
 
+                preferred_language:
+                  preferredLanguage,
+
                 /*
                  * LOCALISATION
                  */
@@ -1200,6 +1206,24 @@ approved_at:
         );
 
         return;
+      }
+
+      if (data.session?.access_token && data.user?.id) {
+        const { error: languageProfileError } =
+          await supabase
+            .from("profiles")
+            .update({
+              preferred_language:
+                preferredLanguage,
+            })
+            .eq("id", data.user.id);
+
+        if (languageProfileError) {
+          console.error(
+            "ERREUR ENREGISTREMENT LANGUE PROFIL:",
+            languageProfileError
+          );
+        }
       }
 
       if (data.session?.access_token) {
@@ -1363,6 +1387,39 @@ approved_at:
         {/* FORMULAIRE */}
 
         <div className="mt-8 space-y-5">
+
+          {/* LANGUE */}
+
+          <div className="rounded-[26px] bg-white p-5 shadow">
+            <label className="block">
+              <span className="mb-2 block text-sm font-black text-[#064b42]">
+                Langue de l&apos;application
+              </span>
+
+              <select
+                className="input"
+                value={preferredLanguage}
+                onChange={(event) =>
+                  setPreferredLanguage(
+                    event.target.value === "en"
+                      ? "en"
+                      : "fr"
+                  )
+                }
+              >
+                <option value="fr">
+                  🇫🇷 Français
+                </option>
+                <option value="en">
+                  🇬🇧 English
+                </option>
+              </select>
+
+              <p className="mt-2 text-sm text-gray-500">
+                Vous pourrez modifier cette langue plus tard dans votre profil.
+              </p>
+            </label>
+          </div>
 
           {/* ROLE */}
 
