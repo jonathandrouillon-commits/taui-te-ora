@@ -513,6 +513,7 @@ export default function HelpSosPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [matchingHelpers, setMatchingHelpers] = useState<Record<string, MatchingHelper[]>>({});
+  const [contactingHelperId, setContactingHelperId] = useState<string | null>(null);
   const [matchingLoading, setMatchingLoading] = useState<Record<string, boolean>>({});
   const [expandedMatching, setExpandedMatching] = useState<string | null>(null);
   const [notifying, setNotifying] = useState<Record<string, boolean>>({});
@@ -1317,6 +1318,34 @@ export default function HelpSosPage() {
       );
     } finally {
       setMatchingLoading((current) => ({ ...current, [item.id]: false }));
+    }
+  }
+
+  async function contactMatchingHelper(item: HelpSos, helper: MatchingHelper) {
+    if (contactingHelperId) return;
+
+    try {
+      setContactingHelperId(helper.id);
+      setError("");
+
+      const { data, error: conversationError } = await supabase.rpc(
+        "get_or_create_sos_conversation",
+        { p_sos_id: item.id, p_helper_id: helper.id }
+      );
+
+      if (conversationError) throw conversationError;
+      if (!data) throw new Error("Impossible de créer la conversation.");
+
+      router.push(`/messages/${String(data)}`);
+    } catch (caught) {
+      console.error("Conversation SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible d'ouvrir la conversation."
+      );
+    } finally {
+      setContactingHelperId(null);
     }
   }
 
@@ -2358,14 +2387,27 @@ export default function HelpSosPage() {
                                     .join(" · ") || "Localisation non renseignée"}
                                 </p>
 
-                                {helper.phone ? (
-                                  <a
-                                    href={`tel:${helper.phone}`}
-                                    className="mt-3 block text-sm font-black text-[#064b42]"
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void contactMatchingHelper(item, helper)}
+                                    disabled={contactingHelperId === helper.id}
+                                    className="rounded-xl bg-[#064b42] px-3 py-2 text-xs font-black text-white disabled:opacity-60"
                                   >
-                                    📞 {helper.phone}
-                                  </a>
-                                ) : null}
+                                    {contactingHelperId === helper.id
+                                      ? "Ouverture..."
+                                      : "💬 Contacter dans Taui Te Ora"}
+                                  </button>
+
+                                  {helper.phone ? (
+                                    <a
+                                      href={`tel:${helper.phone}`}
+                                      className="rounded-xl bg-white px-3 py-2 text-xs font-black text-[#064b42]"
+                                    >
+                                      📞 Appeler
+                                    </a>
+                                  ) : null}
+                                </div>
 
                                 {helper.email ? (
                                   <a

@@ -14,6 +14,7 @@ type ConversationRow = {
   id: string;
   animal_id: string | null;
   adoption_request_id: string | null;
+  sos_id: string | null;
   requester_id: string;
   owner_id: string;
   created_at: string | null;
@@ -39,6 +40,12 @@ type AnimalRow = {
   }[] | null;
 };
 
+type SosRow = {
+  id: string;
+  title: string | null;
+  photo_url: string | null;
+};
+
 type ProfileRow = {
   id: string;
   first_name: string | null;
@@ -56,6 +63,7 @@ type PreferenceRow = {
 type ConversationItem = {
   conversation: ConversationRow;
   animal: AnimalRow | null;
+  sos: SosRow | null;
   participantLabel: string;
   participantAvatar: string;
   lastMessage: MessageRow | null;
@@ -117,7 +125,7 @@ export default function DashboardMessages({
       let conversationQuery = supabase
         .from("conversations")
         .select(
-          "id, animal_id, adoption_request_id, requester_id, owner_id, created_at, updated_at"
+          "id, animal_id, adoption_request_id, sos_id, requester_id, owner_id, created_at, updated_at"
         )
         .order("updated_at", {
           ascending: false,
@@ -157,6 +165,14 @@ export default function DashboardMessages({
         )
       ) as string[];
 
+      const sosIds = Array.from(
+        new Set(
+          conversations
+            .map((conversation) => conversation.sos_id)
+            .filter(Boolean)
+        )
+      ) as string[];
+
       const profileIds = Array.from(
         new Set(
           conversations.flatMap((conversation) => [
@@ -166,7 +182,7 @@ export default function DashboardMessages({
         )
       );
 
-      const [messagesResult, preferencesResult, animalsResult, profilesResult] =
+      const [messagesResult, preferencesResult, animalsResult, profilesResult, sosResult] =
         await Promise.all([
           supabase
             .from("conversation_messages")
@@ -214,6 +230,16 @@ export default function DashboardMessages({
                 data: [] as ProfileRow[],
                 error: null,
               }),
+
+          sosIds.length > 0
+            ? supabase
+                .from("help_sos")
+                .select("id, title, photo_url")
+                .in("id", sosIds)
+            : Promise.resolve({
+                data: [] as SosRow[],
+                error: null,
+              }),
         ]);
 
       if (messagesResult.error) {
@@ -232,14 +258,23 @@ export default function DashboardMessages({
         throw profilesResult.error;
       }
 
+      if (sosResult.error) {
+        throw sosResult.error;
+      }
+
       const messages = (messagesResult.data || []) as MessageRow[];
       const preferences =
         (preferencesResult.data || []) as PreferenceRow[];
       const animals = (animalsResult.data || []) as unknown as AnimalRow[];
       const profiles = (profilesResult.data || []) as ProfileRow[];
+      const sosRows = (sosResult.data || []) as SosRow[];
 
       const animalsById = new Map(
         animals.map((animal) => [animal.id, animal])
+      );
+
+      const sosById = new Map(
+        sosRows.map((sos) => [sos.id, sos])
       );
 
       const profilesById = new Map(
@@ -299,6 +334,9 @@ export default function DashboardMessages({
           conversation,
           animal: conversation.animal_id
             ? animalsById.get(conversation.animal_id) || null
+            : null,
+          sos: conversation.sos_id
+            ? sosById.get(conversation.sos_id) || null
             : null,
           participantLabel,
           participantAvatar,
@@ -449,7 +487,7 @@ export default function DashboardMessages({
           </h2>
 
           <p className="mt-1 text-sm text-[#6f5a47]">
-            Vos échanges concernant les demandes d’adoption.
+            Vos échanges concernant les adoptions et les demandes d’aide SOS.
           </p>
         </div>
 
@@ -494,7 +532,7 @@ export default function DashboardMessages({
       ) : (
         <div className="mt-5 space-y-3">
           {displayedItems.map((item) => {
-            const photo = getAnimalPhoto(item.animal);
+            const photo = item.sos?.photo_url || getAnimalPhoto(item.animal);
             const lastMessageText = item.lastMessage?.deleted_at
               ? "Ce message a été supprimé."
               : item.lastMessage?.message || "Nouvelle conversation";
@@ -515,7 +553,7 @@ export default function DashboardMessages({
                   {photo ? (
                     <img
                       src={photo}
-                      alt={item.animal?.animal_name || "Animal"}
+                      alt={item.sos?.title || item.animal?.animal_name || "Animal"}
                       className="h-14 w-14 shrink-0 rounded-full object-cover shadow-sm"
                     />
                   ) : (
@@ -527,7 +565,9 @@ export default function DashboardMessages({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="truncate font-black text-[#064b42]">
-                        {item.animal?.animal_name || "Demande d’adoption"}
+                        {item.sos
+                          ? `🚨 SOS — ${item.sos.title || "Demande d’aide"}`
+                          : item.animal?.animal_name || "Demande d’adoption"}
                       </h3>
 
                       {item.unreadCount > 0 && (

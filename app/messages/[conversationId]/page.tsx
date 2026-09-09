@@ -21,8 +21,9 @@ import { animalService } from "../../services/animal.service";
 
 type Conversation = {
   id: string;
-  animal_id: string;
-  adoption_request_id: string;
+  animal_id: string | null;
+  adoption_request_id: string | null;
+  sos_id: string | null;
   requester_id: string;
   owner_id: string;
   created_at?: string;
@@ -48,6 +49,14 @@ type Animal = {
     photo_url: string;
     is_cover?: boolean | null;
   }[];
+};
+
+type SosSummary = {
+  id: string;
+  title: string | null;
+  photo_url: string | null;
+  help_type: string | null;
+  status: string | null;
 };
 
 type Profile = {
@@ -112,6 +121,9 @@ export default function ConversationPage() {
 
   const [animal, setAnimal] =
     useState<Animal | null>(null);
+
+  const [sos, setSos] =
+    useState<SosSummary | null>(null);
 
   const [otherProfile, setOtherProfile] =
     useState<Profile | null>(
@@ -254,6 +266,7 @@ export default function ConversationPage() {
               id,
               animal_id,
               adoption_request_id,
+              sos_id,
               requester_id,
               owner_id,
               created_at,
@@ -309,45 +322,48 @@ export default function ConversationPage() {
       );
 
       /* ---------------------------------------------------
-         ANIMAL
+         CONTEXTE : ADOPTION OU SOS
       --------------------------------------------------- */
 
-      const {
-        data: animalData,
-        error: animalError,
-      } =
-        await supabase
-          .from("animals")
-          .select(
-            `
-              id,
-              animal_name,
-              animal_type,
-              animal_photos (
-                photo_url,
-                is_cover
-              )
-            `
-          )
-          .eq(
-            "id",
-            conversationData.animal_id
-          )
-          .single();
+      setAnimal(null);
+      setSos(null);
 
-      if (
-        animalError
-      ) {
-        console.error(
-          "Erreur animal :",
-          animalError
-        );
+      if (conversationData.animal_id) {
+        const { data: animalData, error: animalError } = await supabase
+          .from("animals")
+          .select(`
+            id,
+            animal_name,
+            animal_type,
+            animal_photos (
+              photo_url,
+              is_cover
+            )
+          `)
+          .eq("id", conversationData.animal_id)
+          .maybeSingle();
+
+        if (animalError) {
+          console.error("Erreur animal :", animalError);
+        }
+
+        if (animalData) {
+          setAnimal(animalData as Animal);
+        }
       }
 
-      if (animalData) {
-        setAnimal(
-          animalData as Animal
-        );
+      if (conversationData.sos_id) {
+        const { data: sosData, error: sosError } = await supabase
+          .from("help_sos")
+          .select("id, title, photo_url, help_type, status")
+          .eq("id", conversationData.sos_id)
+          .maybeSingle();
+
+        if (sosError) {
+          console.error("Erreur SOS :", sosError);
+        }
+
+        setSos((sosData as SosSummary | null) || null);
       }
 
       /* ---------------------------------------------------
@@ -844,9 +860,9 @@ export default function ConversationPage() {
           ? conversation.owner_id
           : conversation.requester_id;
 
-      const animalName =
-        animal?.animal_name ||
-        "cet animal";
+      const conversationSubject = sos
+        ? `SOS — ${sos.title || "Demande d’aide"}`
+        : animal?.animal_name || "cet animal";
 
       const preview =
         text.length > 90
@@ -881,7 +897,7 @@ export default function ConversationPage() {
               "chat_message",
 
             title:
-              `Nouveau message — ${animalName}`,
+              `Nouveau message — ${conversationSubject}`,
 
             message:
               preview,
@@ -1384,7 +1400,9 @@ export default function ConversationPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/animal/${conversation.animal_id}`
+                conversation.sos_id
+                  ? `/sos-aide/${conversation.sos_id}`
+                  : `/animal/${conversation.animal_id}`
               )
             }
             className="
@@ -1396,13 +1414,13 @@ export default function ConversationPage() {
               text-left
             "
           >
-            {animalPhoto ? (
+            {(sos?.photo_url || animalPhoto) ? (
               <img
                 src={
-                  animalPhoto
+                  sos?.photo_url || animalPhoto
                 }
                 alt={
-                  animal?.animal_name ||
+                  sos?.title || animal?.animal_name ||
                   "Animal"
                 }
                 className="
@@ -1443,9 +1461,9 @@ export default function ConversationPage() {
                   text-[#064b42]
                 "
               >
-                {animal
-                  ?.animal_name ||
-                  "Adoption"}
+                {sos
+                  ? `🚨 SOS — ${sos.title || "Demande d’aide"}`
+                  : animal?.animal_name || "Adoption"}
               </h1>
 
               <p
