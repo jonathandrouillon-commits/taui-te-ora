@@ -66,6 +66,25 @@ type HelpSos = {
   facebook_shared_at?: string | null;
   facebook_post_id?: string | null;
   facebook_share_status?: string | null;
+
+  foster_size?: FosterSize | null;
+  foster_age?: FosterAge | null;
+  foster_sex?: FosterSex | null;
+  foster_temperament_calm?: boolean | null;
+  foster_temperament_social?: boolean | null;
+  foster_temperament_shy?: boolean | null;
+  foster_temperament_active?: boolean | null;
+  foster_reactive?: boolean | null;
+  foster_medical?: boolean | null;
+  foster_recovery?: boolean | null;
+  foster_disabled?: boolean | null;
+  foster_special_needs?: boolean | null;
+  foster_requires_garden?: boolean | null;
+  foster_requires_fenced_garden?: boolean | null;
+  foster_requires_isolation?: boolean | null;
+  foster_requires_medication?: boolean | null;
+  foster_max_hours_alone?: number | null;
+  foster_required_duration?: FosterDuration | null;
 };
 
 type AnimalSource = "manual" | "companion" | "adoption";
@@ -370,7 +389,7 @@ export default function HelpSosPage() {
       const { data, error: listError } = await supabase
         .from("help_sos")
         .select(
-          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at, photo_url, archived_at, companion_id, adoption_animal_id, facebook_shared_at, facebook_post_id, facebook_share_status"
+          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at, photo_url, archived_at, companion_id, adoption_animal_id, facebook_shared_at, facebook_post_id, facebook_share_status, foster_size, foster_age, foster_sex, foster_temperament_calm, foster_temperament_social, foster_temperament_shy, foster_temperament_active, foster_reactive, foster_medical, foster_recovery, foster_disabled, foster_special_needs, foster_requires_garden, foster_requires_fenced_garden, foster_requires_isolation, foster_requires_medication, foster_max_hours_alone, foster_required_duration"
         )
         .order("created_at", { ascending: false });
 
@@ -410,9 +429,6 @@ export default function HelpSosPage() {
 
     if (!currentUserId) return;
 
-    let facebookShareWindow:
-      Window | null = null;
-
     try {
       setSaving(true);
       setError("");
@@ -430,6 +446,20 @@ export default function HelpSosPage() {
         throw new Error("Décrivez le besoin.");
       }
 
+      if (
+        form.animal_source === "companion" &&
+        !form.companion_id
+      ) {
+        throw new Error("Sélectionnez le compagnon concerné.");
+      }
+
+      if (
+        form.animal_source === "adoption" &&
+        !form.adoption_animal_id
+      ) {
+        throw new Error("Sélectionnez l’animal en adoption concerné.");
+      }
+
       if (form.help_type === "famille_accueil") {
         if (!form.animal_type.trim()) {
           throw new Error("Indiquez le type d'animal à accueillir.");
@@ -441,58 +471,13 @@ export default function HelpSosPage() {
       }
 
       /*
-       * On ouvre la fenêtre pendant le clic utilisateur
-       * pour éviter que le navigateur bloque la popup.
+       * IMPORTANT : on crée d'abord le SOS en base.
+       * Ainsi une erreur d'upload photo ou Facebook
+       * ne peut plus empêcher la création du SOS.
+       *
+       * animals_count reste toujours >= 1 car cette
+       * colonne peut être NOT NULL dans Supabase.
        */
-      if (shareOnFacebook) {
-        facebookShareWindow =
-          window.open(
-            "",
-            "taui-sos-facebook-share",
-            "popup=yes,width=760,height=820"
-          );
-
-        if (facebookShareWindow) {
-          facebookShareWindow.document.title =
-            "Préparation du partage Facebook…";
-
-          facebookShareWindow.document.body.innerHTML =
-            `
-            <div style="
-              font-family: Arial, sans-serif;
-              min-height: 100vh;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #fbf7ef;
-              color: #064b42;
-              text-align: center;
-              padding: 32px;
-              box-sizing: border-box;
-            ">
-              <div>
-                <div style="font-size:44px;margin-bottom:16px;">🚨</div>
-                <div style="font-size:22px;font-weight:800;">
-                  Création du SOS…
-                </div>
-                <div style="margin-top:10px;font-size:15px;opacity:.7;">
-                  Facebook va s'ouvrir automatiquement.
-                </div>
-              </div>
-            </div>
-          `;
-        }
-      }
-
-      let uploadedPhotoUrl = form.photo_url || null;
-      if (photoFile) {
-        const ext = photoFile.name.split(".").pop() || "jpg";
-        const path = `${currentUserId}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("sos-media").upload(path, photoFile, { upsert: false });
-        if (uploadError) throw uploadError;
-        uploadedPhotoUrl = supabase.storage.from("sos-media").getPublicUrl(path).data.publicUrl;
-      }
-
       const {
         data: created,
         error: insertError,
@@ -507,20 +492,35 @@ export default function HelpSosPage() {
           message: form.message.trim(),
           urgency: form.urgency,
           status: "ouvert",
-          photo_url: uploadedPhotoUrl,
-          companion_id: form.animal_source === "companion" ? form.companion_id || null : null,
-          adoption_animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null,
-          animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null,
+
+          photo_url:
+            form.photo_url || null,
+
+          companion_id:
+            form.animal_source === "companion"
+              ? form.companion_id || null
+              : null,
+
+          adoption_animal_id:
+            form.animal_source === "adoption"
+              ? form.adoption_animal_id || null
+              : null,
+
+          animal_id:
+            form.animal_source === "adoption"
+              ? form.adoption_animal_id || null
+              : null,
 
           animal_type:
             form.help_type === "famille_accueil"
               ? form.animal_type.trim() || null
-              : null,
+              : form.animal_type.trim() || null,
 
           animals_count:
-            form.help_type === "famille_accueil"
-              ? Math.max(1, Number(form.animals_count || 1))
-              : null,
+            Math.max(
+              1,
+              Number(form.animals_count || 1)
+            ),
 
           foster_size:
             form.help_type === "famille_accueil" && form.foster_size
@@ -617,7 +617,12 @@ export default function HelpSosPage() {
         .select("id")
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("INSERT HELP_SOS :", insertError);
+        throw new Error(
+          `Impossible de créer le SOS : ${insertError.message}`
+        );
+      }
 
       if (!created?.id) {
         throw new Error(
@@ -625,10 +630,70 @@ export default function HelpSosPage() {
         );
       }
 
+      let finalPhotoUrl = form.photo_url || null;
+      let photoWarning = "";
+
       /*
-       * Publication automatique sur la page Facebook
-       * Les Veilleurs de Kali.
-       * Une erreur Facebook ne doit jamais annuler le SOS.
+       * Upload photo APRES création.
+       * Si l'upload échoue, le SOS reste créé.
+       */
+      if (photoFile) {
+        try {
+          const extension =
+            photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+
+          const storagePath =
+            `${currentUserId}/${created.id}/${crypto.randomUUID()}.${extension}`;
+
+          const {
+            error: uploadError,
+          } = await supabase.storage
+            .from("sos-media")
+            .upload(
+              storagePath,
+              photoFile,
+              {
+                upsert: false,
+                contentType: photoFile.type || undefined,
+              }
+            );
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          finalPhotoUrl =
+            supabase.storage
+              .from("sos-media")
+              .getPublicUrl(storagePath)
+              .data.publicUrl;
+
+          const {
+            error: photoUpdateError,
+          } = await supabase
+            .from("help_sos")
+            .update({
+              photo_url: finalPhotoUrl,
+            })
+            .eq("id", created.id);
+
+          if (photoUpdateError) {
+            throw photoUpdateError;
+          }
+        } catch (photoError) {
+          console.error(
+            "PHOTO SOS :",
+            photoError
+          );
+
+          photoWarning =
+            " Le SOS est créé, mais la photo n’a pas pu être enregistrée.";
+        }
+      }
+
+      /*
+       * Publication automatique Les Veilleurs de Kali.
+       * Elle est volontairement non bloquante.
        */
       try {
         const {
@@ -671,44 +736,41 @@ export default function HelpSosPage() {
         );
       }
 
+      const createdId = created.id;
+
       setForm(EMPTY_FORM);
       setPhotoFile(null);
       setCreating(false);
+
       setMessage(
-        "SOS créé. Il est maintenant visible dans le réseau d’aide."
+        `SOS créé avec succès.${photoWarning}`
       );
 
+      await load();
+
+      /*
+       * Le partage personnel ne se déclenche qu'APRES
+       * la création réussie du SOS.
+       * S'il est bloqué par le navigateur, cela n'a
+       * aucun impact sur le SOS déjà enregistré.
+       */
       if (shareOnFacebook) {
         const facebookShareUrl =
           getSosFacebookShareUrl(
-            created.id
+            createdId
           );
 
-        if (
-          facebookShareWindow &&
-          !facebookShareWindow.closed
-        ) {
-          facebookShareWindow.location.href =
-            facebookShareUrl;
-        } else {
-          window.open(
-            facebookShareUrl,
-            "_blank",
-            "noopener,noreferrer"
-          );
-        }
+        window.open(
+          facebookShareUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
       }
-
-      await load();
     } catch (caught) {
-      if (
-        facebookShareWindow &&
-        !facebookShareWindow.closed
-      ) {
-        facebookShareWindow.close();
-      }
-
-      console.error("Création SOS :", caught);
+      console.error(
+        "Création SOS :",
+        caught
+      );
 
       setError(
         caught instanceof Error
@@ -721,41 +783,270 @@ export default function HelpSosPage() {
   }
 
   function startEdit(item: HelpSos) {
+    const source: AnimalSource = item.companion_id
+      ? "companion"
+      : item.adoption_animal_id
+        ? "adoption"
+        : "manual";
+
     setEditingId(item.id);
     setCreating(true);
-    setForm((current) => ({ ...current, title: item.title, help_type: item.help_type, island: item.island, city: item.city || "", message: item.message, urgency: item.urgency, animal_type: item.animal_type || "chien", animals_count: item.animals_count || 1, animal_source: item.companion_id ? "companion" : item.adoption_animal_id ? "adoption" : "manual", companion_id: item.companion_id || "", adoption_animal_id: item.adoption_animal_id || "", photo_url: item.photo_url || "" }));
+    setPhotoFile(null);
+    setError("");
+    setMessage("");
+
+    setForm({
+      ...EMPTY_FORM,
+      title: item.title || "",
+      help_type: item.help_type,
+      island: item.island || "",
+      city: item.city || "",
+      message: item.message || "",
+      urgency: item.urgency,
+      animal_type: item.animal_type || "chien",
+      animals_count: Math.max(1, Number(item.animals_count || 1)),
+      foster_size: (item.foster_size || "") as FosterSize,
+      foster_age: (item.foster_age || "") as FosterAge,
+      foster_sex: (item.foster_sex || "") as FosterSex,
+      foster_temperament_calm: Boolean(item.foster_temperament_calm),
+      foster_temperament_social: Boolean(item.foster_temperament_social),
+      foster_temperament_shy: Boolean(item.foster_temperament_shy),
+      foster_temperament_active: Boolean(item.foster_temperament_active),
+      foster_reactive: Boolean(item.foster_reactive),
+      foster_medical: Boolean(item.foster_medical),
+      foster_recovery: Boolean(item.foster_recovery),
+      foster_disabled: Boolean(item.foster_disabled),
+      foster_special_needs: Boolean(item.foster_special_needs),
+      foster_requires_garden: Boolean(item.foster_requires_garden),
+      foster_requires_fenced_garden: Boolean(item.foster_requires_fenced_garden),
+      foster_requires_isolation: Boolean(item.foster_requires_isolation),
+      foster_requires_medication: Boolean(item.foster_requires_medication),
+      foster_max_hours_alone:
+        item.foster_max_hours_alone == null
+          ? ""
+          : Number(item.foster_max_hours_alone),
+      foster_required_duration:
+        (item.foster_required_duration || "") as FosterDuration,
+      animal_source: source,
+      companion_id: item.companion_id || "",
+      adoption_animal_id: item.adoption_animal_id || "",
+      photo_url: item.photo_url || "",
+    });
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
+
     if (!editingId || !currentUserId) return;
+
     try {
-      setSaving(true); setError("");
-      let uploadedPhotoUrl = form.photo_url || null;
-      if (photoFile) {
-        const ext = photoFile.name.split(".").pop() || "jpg";
-        const path = `${currentUserId}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("sos-media").upload(path, photoFile);
-        if (uploadError) throw uploadError;
-        uploadedPhotoUrl = supabase.storage.from("sos-media").getPublicUrl(path).data.publicUrl;
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      if (!form.title.trim()) throw new Error("Indiquez un titre.");
+      if (!form.island.trim()) throw new Error("Indiquez l’île concernée.");
+      if (!form.message.trim()) throw new Error("Décrivez le besoin.");
+
+      if (form.animal_source === "companion" && !form.companion_id) {
+        throw new Error("Sélectionnez le compagnon concerné.");
       }
-      const { error: e } = await supabase.from("help_sos").update({ title: form.title.trim(), help_type: form.help_type, island: form.island.trim(), city: form.city.trim() || null, message: form.message.trim(), urgency: form.urgency, photo_url: uploadedPhotoUrl, companion_id: form.animal_source === "companion" ? form.companion_id || null : null, adoption_animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null, animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null, animal_type: form.help_type === "famille_accueil" ? form.animal_type : null, animals_count: form.help_type === "famille_accueil" ? Math.max(1, Number(form.animals_count || 1)) : null }).eq("id", editingId);
-      if (e) throw e;
-      setMessage("SOS modifié."); setEditingId(null); setCreating(false); setForm(EMPTY_FORM); setPhotoFile(null); await load();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Impossible de modifier le SOS."); } finally { setSaving(false); }
+
+      if (form.animal_source === "adoption" && !form.adoption_animal_id) {
+        throw new Error("Sélectionnez l’animal en adoption concerné.");
+      }
+
+      let finalPhotoUrl = form.photo_url || null;
+
+      if (photoFile) {
+        const extension =
+          photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const storagePath =
+          `${currentUserId}/${editingId}/${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("sos-media")
+          .upload(storagePath, photoFile, {
+            upsert: false,
+            contentType: photoFile.type || undefined,
+          });
+
+        if (uploadError) throw uploadError;
+
+        finalPhotoUrl = supabase.storage
+          .from("sos-media")
+          .getPublicUrl(storagePath).data.publicUrl;
+      }
+
+      const { error: updateError } = await supabase
+        .from("help_sos")
+        .update({
+          title: form.title.trim(),
+          help_type: form.help_type,
+          island: form.island.trim(),
+          city: form.city.trim() || null,
+          message: form.message.trim(),
+          urgency: form.urgency,
+          photo_url: finalPhotoUrl,
+          companion_id:
+            form.animal_source === "companion"
+              ? form.companion_id || null
+              : null,
+          adoption_animal_id:
+            form.animal_source === "adoption"
+              ? form.adoption_animal_id || null
+              : null,
+          animal_id:
+            form.animal_source === "adoption"
+              ? form.adoption_animal_id || null
+              : null,
+          animal_type: form.animal_type.trim() || null,
+          animals_count: Math.max(1, Number(form.animals_count || 1)),
+          foster_size:
+            form.help_type === "famille_accueil" && form.foster_size
+              ? form.foster_size
+              : null,
+          foster_age:
+            form.help_type === "famille_accueil" && form.foster_age
+              ? form.foster_age
+              : null,
+          foster_sex:
+            form.help_type === "famille_accueil" && form.foster_sex
+              ? form.foster_sex
+              : null,
+          foster_temperament_calm:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_calm
+              : null,
+          foster_temperament_social:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_social
+              : null,
+          foster_temperament_shy:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_shy
+              : null,
+          foster_temperament_active:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_active
+              : null,
+          foster_reactive:
+            form.help_type === "famille_accueil"
+              ? form.foster_reactive
+              : null,
+          foster_medical:
+            form.help_type === "famille_accueil" ? form.foster_medical : null,
+          foster_recovery:
+            form.help_type === "famille_accueil" ? form.foster_recovery : null,
+          foster_disabled:
+            form.help_type === "famille_accueil" ? form.foster_disabled : null,
+          foster_special_needs:
+            form.help_type === "famille_accueil"
+              ? form.foster_special_needs
+              : null,
+          foster_requires_garden:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_garden
+              : null,
+          foster_requires_fenced_garden:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_fenced_garden
+              : null,
+          foster_requires_isolation:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_isolation
+              : null,
+          foster_requires_medication:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_medication
+              : null,
+          foster_max_hours_alone:
+            form.help_type === "famille_accueil" &&
+            form.foster_max_hours_alone !== ""
+              ? Number(form.foster_max_hours_alone)
+              : null,
+          foster_required_duration:
+            form.help_type === "famille_accueil" && form.foster_required_duration
+              ? form.foster_required_duration
+              : null,
+        })
+        .eq("id", editingId);
+
+      if (updateError) throw updateError;
+
+      setEditingId(null);
+      setCreating(false);
+      setPhotoFile(null);
+      setForm(EMPTY_FORM);
+      setMessage("SOS modifié avec succès.");
+      await load();
+    } catch (caught) {
+      console.error("Modification SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de modifier le SOS."
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
-  async function archiveSos(item: HelpSos) {
-    if (!window.confirm("Archiver ce SOS ?")) return;
-    const { error: e } = await supabase.from("help_sos").update({ archived_at: new Date().toISOString() }).eq("id", item.id);
-    if (e) { setError(e.message); return; } setMessage("SOS archivé."); await load();
+  async function toggleArchive(item: HelpSos) {
+    try {
+      setError("");
+      setMessage("");
+
+      const archived = Boolean(item.archived_at);
+      const { error: archiveError } = await supabase
+        .from("help_sos")
+        .update({ archived_at: archived ? null : new Date().toISOString() })
+        .eq("id", item.id);
+
+      if (archiveError) throw archiveError;
+
+      setMessage(archived ? "SOS réactivé." : "SOS archivé.");
+      await load();
+    } catch (caught) {
+      console.error("Archivage SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de modifier l’archive du SOS."
+      );
+    }
   }
 
   async function deleteSos(item: HelpSos) {
-    if (!window.confirm("Supprimer définitivement ce SOS ? Cette action est irréversible.")) return;
-    const { error: e } = await supabase.from("help_sos").delete().eq("id", item.id);
-    if (e) { setError(e.message); return; } setMessage("SOS supprimé."); await load();
+    const confirmed = window.confirm(
+      `Supprimer définitivement le SOS « ${item.title} » ? Cette action est irréversible.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setError("");
+      setMessage("");
+
+      const { error: deleteError } = await supabase
+        .from("help_sos")
+        .delete()
+        .eq("id", item.id);
+
+      if (deleteError) throw deleteError;
+
+      setMessage("SOS supprimé définitivement.");
+      await load();
+    } catch (caught) {
+      console.error("Suppression SOS :", caught);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Impossible de supprimer le SOS."
+      );
+    }
   }
 
   async function updateStatus(item: HelpSos, status: SosStatus) {
@@ -1657,6 +1948,37 @@ export default function HelpSosPage() {
                         <p className="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold leading-5 text-green-800">
                           {notificationResults[item.id]}
                         </p>
+                      ) : null}
+
+                      {canManage ? (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item)}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-[#edf7f4] px-4 py-3 text-sm font-black text-[#064b42]"
+                          >
+                            <Pencil size={16} />
+                            Modifier
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => void toggleArchive(item)}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-[#f8f4ec] px-4 py-3 text-sm font-black text-[#5f554d]"
+                          >
+                            <Archive size={16} />
+                            {item.archived_at ? "Réactiver" : "Archiver"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => void deleteSos(item)}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-black text-red-700"
+                          >
+                            <Trash2 size={16} />
+                            Supprimer
+                          </button>
+                        </div>
                       ) : null}
 
                       {canManage ? (
