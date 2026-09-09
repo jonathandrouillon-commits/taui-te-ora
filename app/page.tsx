@@ -1740,6 +1740,13 @@ function BottomMenu() {
         sortOrder: 130,
       },
       {
+        slug: "famille-accueil",
+        label: "Famille d'accueil",
+        href: "/famille-accueil",
+        icon: "🏠",
+        sortOrder: 135,
+      },
+      {
         slug: "toilettage",
         label: "Toilettage",
         href: "/toilettage",

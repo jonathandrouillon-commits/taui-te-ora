@@ -49,7 +49,6 @@ export default function BottomNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileHref, setProfileHref] = useState("/profile");
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-
   const [dynamicMenuPages, setDynamicMenuPages] = useState<
     {
       slug: string;
@@ -238,6 +237,12 @@ export default function BottomNavigation() {
       icon: "🎓",
     },
     {
+      slug: "famille-accueil",
+      href: "/famille-accueil",
+      label: "Famille d'accueil",
+      icon: "🏠",
+    },
+    {
       slug: "toilettage",
       href: "/toilettage",
       label: "Toilettage",
@@ -248,12 +253,6 @@ export default function BottomNavigation() {
       href: "/gardiennage",
       label: "Gardiennage",
       icon: "🏡",
-    },
-    {
-      slug: "mes-compagnons",
-      href: "/mes-compagnons",
-      label: "Mes Compagnons",
-      icon: "🐾",
     },
     {
       slug: "pension",
@@ -268,6 +267,7 @@ export default function BottomNavigation() {
       icon: "🕯️",
     },
   ];
+
 
   useEffect(() => {
     let active = true;
@@ -305,15 +305,12 @@ export default function BottomNavigation() {
         )
         .map((page) => ({
           slug: String(page.slug).trim().toLowerCase(),
-
           href: `/pages/${encodeURIComponent(
             String(page.slug).trim()
           )}`,
-
           label: String(
             page.menu_label || page.slug
           ).trim(),
-
           icon:
             String(page.menu_icon || "📄").trim() || "📄",
         }));
