@@ -1,63 +1,9 @@
-const islands = [
-  "Tahiti",
-  "Moorea",
-  "Bora Bora",
-  "Raiatea",
-  "Huahine",
-  "Tahaa",
-  "Maupiti",
-  "Rangiroa",
-  "Fakarava",
-  "Tikehau",
-  "Nuku Hiva",
-  "Hiva Oa",
-  "Tubuai",
-  "Rurutu",
-  "Raivavae",
-  "Autre",
-];
+"use client";
 
-const cities = [
-  "Papeete",
-  "Pirae",
-  "Arue",
-  "Mahina",
-  "Hitiaa",
-  "Mahaena",
-  "Tiarei",
-  "Papenoo",
-  "Punaauia",
-  "Paea",
-  "Papara",
-  "Mataiea",
-  "Taravao",
-  "Afaahiti",
-  "Toahotu",
-  "Vairao",
-  "Teahupoo",
-  "Faaone",
-  "Tautira",
-  "Faaa",
-  "Afareaitu",
-  "Haapiti",
-  "Papetoai",
-  "Paopao",
-  "Teavaro",
-  "Uturoa",
-  "Taputapuatea",
-  "Tumaraa",
-  "Tahaa",
-  "Vaitape",
-  "Fare",
-  "Avatoru",
-  "Tiputa",
-  "Rotoava",
-  "Taiohae",
-  "Atuona",
-  "Mataura",
-  "Moerai",
-  "Autre",
-];
+import {
+  POLYNESIA_ISLANDS,
+  getCommunesForIsland,
+} from "../../lib/animalFormOptions";
 
 type LocationField =
   | "island"
@@ -80,6 +26,11 @@ export default function Step6Location({
   animal,
   updateField,
 }: StepProps) {
+  const communes =
+    getCommunesForIsland(
+      animal.island
+    );
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black">
@@ -90,30 +41,38 @@ export default function Step6Location({
         <select
           className="input"
           value={animal.island}
-          onChange={(event) =>
+          onChange={(event) => {
             updateField(
               "island",
               event.target.value
-            )
-          }
+            );
+
+            updateField(
+              "city",
+              ""
+            );
+          }}
         >
           <option value="">
             Île
           </option>
 
-          {islands.map((island) => (
-            <option
-              key={island}
-              value={island}
-            >
-              {island}
-            </option>
-          ))}
+          {POLYNESIA_ISLANDS.map(
+            (island) => (
+              <option
+                key={island}
+                value={island}
+              >
+                {island}
+              </option>
+            )
+          )}
         </select>
 
         <select
           className="input"
           value={animal.city}
+          disabled={!animal.island}
           onChange={(event) =>
             updateField(
               "city",
@@ -122,17 +81,21 @@ export default function Step6Location({
           }
         >
           <option value="">
-            Ville / commune
+            {animal.island
+              ? "Commune"
+              : "Choisissez d'abord l'île"}
           </option>
 
-          {cities.map((city) => (
-            <option
-              key={city}
-              value={city}
-            >
-              {city}
-            </option>
-          ))}
+          {communes.map(
+            (commune) => (
+              <option
+                key={commune}
+                value={commune}
+              >
+                {commune}
+              </option>
+            )
+          )}
         </select>
       </div>
     </div>

@@ -20,6 +20,17 @@ import {
 
 import { supabase } from "../../../../lib/supabase";
 import AnimalBreedSelect from "../../../../components/AnimalBreedSelect";
+import {
+  ANIMAL_AGES,
+  ANIMAL_SEXES,
+  ANIMAL_SIZES,
+  ANIMAL_TYPES,
+  ANIMAL_WEIGHTS,
+  COMPATIBILITY_OPTIONS,
+  HEALTH_STATUS_OPTIONS,
+  POLYNESIA_ISLANDS,
+  getCommunesForIsland,
+} from "../../../../lib/animalFormOptions";
 
 type AnimalStatus =
   | "available"
@@ -720,20 +731,18 @@ export default function EditAnimalPage() {
                 <option value="">
                   Sélectionner
                 </option>
-                <option value="Chien">Chien</option>
-                <option value="Chat">Chat</option>
-                <option value="Cheval">Cheval</option>
-                <option value="Oiseau">Oiseau</option>
-                <option value="Lapin">Lapin</option>
-                <option value="Autres">Autres</option>
+                {ANIMAL_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
 
-            <Input
+            <OptionSelect
               label="Âge"
-              value={
-                form.age_label
-              }
+              value={form.age_label}
+              options={ANIMAL_AGES}
               onChange={(value) =>
                 updateField(
                   "age_label",
@@ -742,9 +751,10 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
+            <OptionSelect
               label="Sexe"
               value={form.sex}
+              options={ANIMAL_SEXES}
               onChange={(value) =>
                 updateField(
                   "sex",
@@ -771,11 +781,10 @@ export default function EditAnimalPage() {
               />
             </div>
 
-            <Input
+            <OptionSelect
               label="Taille"
-              value={
-                form.size_label
-              }
+              value={form.size_label}
+              options={ANIMAL_SIZES}
               onChange={(value) =>
                 updateField(
                   "size_label",
@@ -784,15 +793,21 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
+            <OptionSelect
               label="Poids kg"
-              value={
-                form.weight_kg
+              value={form.weight_kg}
+              options={ANIMAL_WEIGHTS}
+              optionLabel={(value) =>
+                value === "Inconnu"
+                  ? "Poids inconnu"
+                  : `${value} kg`
               }
               onChange={(value) =>
                 updateField(
                   "weight_kg",
-                  value
+                  value === "Inconnu"
+                    ? ""
+                    : value
                 )
               }
             />
@@ -816,20 +831,34 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
+            <OptionSelect
               label="Île"
               value={form.island}
-              onChange={(value) =>
+              options={POLYNESIA_ISLANDS}
+              onChange={(value) => {
                 updateField(
                   "island",
                   value
-                )
-              }
+                );
+                updateField(
+                  "city",
+                  ""
+                );
+              }}
             />
 
-            <Input
+            <OptionSelect
               label="Commune"
               value={form.city}
+              options={getCommunesForIsland(
+                form.island
+              )}
+              disabled={!form.island}
+              placeholder={
+                form.island
+                  ? "Sélectionner"
+                  : "Choisissez d'abord l'île"
+              }
               onChange={(value) =>
                 updateField(
                   "city",
@@ -907,11 +936,10 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Textarea
-              label="état de santé"
-              value={
-                form.health_status
-              }
+            <OptionSelect
+              label="État de santé"
+              value={form.health_status}
+              options={HEALTH_STATUS_OPTIONS}
               onChange={(value) =>
                 updateField(
                   "health_status",
@@ -939,11 +967,10 @@ export default function EditAnimalPage() {
           title="Compatibilités et santé"
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <Input
+            <OptionSelect
               label="Compatible chiens"
-              value={
-                form.compatible_chiens
-              }
+              value={form.compatible_chiens}
+              options={COMPATIBILITY_OPTIONS}
               onChange={(value) =>
                 updateField(
                   "compatible_chiens",
@@ -952,11 +979,10 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
+            <OptionSelect
               label="Compatible chats"
-              value={
-                form.compatible_chats
-              }
+              value={form.compatible_chats}
+              options={COMPATIBILITY_OPTIONS}
               onChange={(value) =>
                 updateField(
                   "compatible_chats",
@@ -965,11 +991,10 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
+            <OptionSelect
               label="Compatible enfants"
-              value={
-                form.compatible_enfants
-              }
+              value={form.compatible_enfants}
+              options={COMPATIBILITY_OPTIONS}
               onChange={(value) =>
                 updateField(
                   "compatible_enfants",
@@ -1228,6 +1253,90 @@ function Input({
         }
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
       />
+    </div>
+  );
+}
+
+
+function OptionSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  placeholder = "Sélectionner",
+  optionLabel,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (
+    value: string
+  ) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  optionLabel?: (
+    value: string
+  ) => string;
+}) {
+  const knownValue =
+    options.includes(
+      value
+    );
+
+  return (
+    <div>
+      <label className="mb-2 block font-bold text-[#064b42]">
+        {label}
+      </label>
+
+      <select
+        value={
+          knownValue
+            ? value
+            : value
+              ? "__legacy__"
+              : ""
+        }
+        disabled={disabled}
+        onChange={(event) => {
+          if (
+            event.target.value ===
+            "__legacy__"
+          ) {
+            return;
+          }
+
+          onChange(
+            event.target.value
+          );
+        }}
+        className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">
+          {placeholder}
+        </option>
+
+        {value &&
+          !knownValue && (
+            <option value="__legacy__">
+              {value} (ancienne valeur)
+            </option>
+          )}
+
+        {options.map(
+          (option) => (
+            <option
+              key={option}
+              value={option}
+            >
+              {optionLabel
+                ? optionLabel(option)
+                : option}
+            </option>
+          )
+        )}
+      </select>
     </div>
   );
 }

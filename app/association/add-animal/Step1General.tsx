@@ -1,47 +1,13 @@
 "use client";
 
 import AnimalBreedSelect from "../../components/AnimalBreedSelect";
-
-const ages = [
-  "Inférieur à 1 mois",
-  "1 mois",
-  "2 mois",
-  "3 mois",
-  "4 mois",
-  "5 mois",
-  "6 mois",
-  "7 mois",
-  "8 mois",
-  "9 mois",
-  "10 mois",
-  "11 mois",
-  "1 an",
-  "2 ans",
-  "3 ans",
-  "4 ans",
-  "5 ans",
-  "6 ans",
-  "7 ans",
-  "8 ans",
-  "9 ans",
-  "10 ans",
-  "11 ans",
-  "12 ans",
-  "13 ans",
-  "14 ans",
-  "15 ans",
-  "16 ans",
-  "17 ans",
-  "18 ans",
-  "19 ans",
-  "20 ans",
-  "Plus de 20 ans",
-];
-
-const weights = Array.from(
-  { length: 81 },
-  (_, index) => `${index}`
-);
+import {
+  ANIMAL_AGES,
+  ANIMAL_SEXES,
+  ANIMAL_SIZES,
+  ANIMAL_TYPES,
+  ANIMAL_WEIGHTS,
+} from "../../lib/animalFormOptions";
 
 type Step1Field =
   | "animal_name"
@@ -148,12 +114,11 @@ export default function Step1General({
           <option value="">
             Catégorie de l&apos;animal
           </option>
-          <option value="Chien">Chien</option>
-          <option value="Chat">Chat</option>
-          <option value="Cheval">Cheval</option>
-          <option value="Oiseau">Oiseau</option>
-          <option value="Lapin">Lapin</option>
-          <option value="Autres">Autres</option>
+          {ANIMAL_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
         </select>
 
         <AnimalBreedSelect
@@ -182,9 +147,11 @@ export default function Step1General({
           }
         >
           <option value="">Sexe</option>
-          <option value="Femelle">Femelle</option>
-          <option value="Mâle">Mâle</option>
-          <option value="Inconnu">Inconnu</option>
+          {ANIMAL_SEXES.map((sex) => (
+            <option key={sex} value={sex}>
+              {sex}
+            </option>
+          ))}
         </select>
 
         <select
@@ -201,7 +168,7 @@ export default function Step1General({
             Âge de l&apos;animal
           </option>
 
-          {ages.map((age) => (
+          {ANIMAL_AGES.map((age) => (
             <option
               key={age}
               value={age}
@@ -224,18 +191,11 @@ export default function Step1General({
           <option value="">
             Taille de l&apos;animal
           </option>
-          <option value="Petit">
-            Petit
-          </option>
-          <option value="Moyen">
-            Moyen
-          </option>
-          <option value="Grand">
-            Grand
-          </option>
-          <option value="Hors catégorie">
-            Hors catégorie
-          </option>
+          {ANIMAL_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
         </select>
 
         <select
@@ -252,13 +212,13 @@ export default function Step1General({
             Poids en kg
           </option>
 
-          {weights.map(
+          {ANIMAL_WEIGHTS.map(
             (weight) => (
               <option
                 key={weight}
                 value={weight}
               >
-                {weight} kg
+                {weight === "Inconnu" ? "Poids inconnu" : `${weight} kg`}
               </option>
             )
           )}
