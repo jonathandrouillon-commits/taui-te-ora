@@ -16,6 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import HelpNetworkPage from "../reseau-aide/page";
+import HelpSosPage from "../sos-aide/page";
 
 type FosterProfile = {
   foster_profile_enabled: boolean;
@@ -173,6 +175,17 @@ function structureTypeLabel(
   }
 }
 
+type HelpWorkspaceTab = "fa" | "network" | "sos";
+
+const HELP_NETWORK_ROLES = [
+  "admin",
+  "administrateur",
+  "association",
+  "refuge",
+  "fourriere",
+  "benevole",
+];
+
 export default function FamilleAccueilPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<FosterProfile>(EMPTY_PROFILE);
@@ -184,6 +197,8 @@ export default function FamilleAccueilPage() {
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
   const [noPreference, setNoPreference] = useState(true);
   const [structureSearch, setStructureSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<HelpWorkspaceTab>("fa");
+  const [currentRole, setCurrentRole] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -212,6 +227,7 @@ export default function FamilleAccueilPage() {
             supabase
               .from("profiles")
               .select(`
+                role,
                 foster_profile_enabled,
                 foster_accepts_dogs,
                 foster_accepts_cats,
@@ -289,6 +305,11 @@ export default function FamilleAccueilPage() {
         const d = profileResult.data;
 
         if (d) {
+          setCurrentRole(
+            String(d.role || "")
+              .trim()
+              .toLowerCase()
+          );
           setProfile({
             foster_profile_enabled: Boolean(d.foster_profile_enabled),
             foster_accepts_dogs: Boolean(d.foster_accepts_dogs),
@@ -629,6 +650,9 @@ export default function FamilleAccueilPage() {
     }
   }
 
+  const canAccessPrivateNetwork =
+    HELP_NETWORK_ROLES.includes(currentRole);
+
   if (loading) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-[#f5ead8] px-4">
@@ -642,8 +666,50 @@ export default function FamilleAccueilPage() {
     );
   }
 
+  if (activeTab === "network") {
+    return (
+      <>
+        <HelpWorkspaceTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
+
+        {canAccessPrivateNetwork ? (
+          <HelpNetworkPage />
+        ) : (
+          <PrivateHelpAccessMessage
+            onBack={() => setActiveTab("fa")}
+          />
+        )}
+      </>
+    );
+  }
+
+  if (activeTab === "sos") {
+    return (
+      <>
+        <HelpWorkspaceTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
+
+        {canAccessPrivateNetwork ? (
+          <HelpSosPage />
+        ) : (
+          <PrivateHelpAccessMessage
+            onBack={() => setActiveTab("fa")}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <main className="min-h-[100dvh] bg-[#f5ead8] px-4 py-6 pb-28 text-[#3b2417]">
+      <HelpWorkspaceTabs
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      />
       <form onSubmit={save} className="mx-auto max-w-5xl">
         <button
           type="button"
@@ -1066,6 +1132,92 @@ export default function FamilleAccueilPage() {
           </button>
         </section>
       </form>
+    </main>
+  );
+}
+
+function HelpWorkspaceTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: HelpWorkspaceTab;
+  onChange: (tab: HelpWorkspaceTab) => void;
+}) {
+  const tabs: Array<{
+    key: HelpWorkspaceTab;
+    label: string;
+    icon: string;
+  }> = [
+    {
+      key: "fa",
+      label: "Ma fiche F.A.",
+      icon: "🏠",
+    },
+    {
+      key: "network",
+      label: "Réseau d'aide",
+      icon: "🤝",
+    },
+    {
+      key: "sos",
+      label: "SOS & besoins",
+      icon: "🚨",
+    },
+  ];
+
+  return (
+    <div className="sticky top-0 z-[60] border-b border-[#e7ddd1] bg-[#f5ead8]/95 px-4 py-3 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto rounded-[22px] bg-white p-2 shadow-sm">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={`min-w-max flex-1 rounded-[16px] px-4 py-3 text-sm font-black transition ${
+              activeTab === tab.key
+                ? "bg-[#064b42] text-white shadow"
+                : "bg-transparent text-[#064b42] hover:bg-[#f8f4ec]"
+            }`}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PrivateHelpAccessMessage({
+  onBack,
+}: {
+  onBack: () => void;
+}) {
+  return (
+    <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 py-12">
+      <section className="mx-auto max-w-xl rounded-[30px] bg-white p-7 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e7f3ef] text-2xl">
+          🔒
+        </div>
+
+        <h2 className="mt-5 text-2xl font-black text-[#064b42]">
+          Espace réservé
+        </h2>
+
+        <p className="mt-3 text-sm leading-6 text-[#756d67]">
+          Vous pouvez créer et gérer votre fiche Famille d&apos;accueil ici.
+          L&apos;accès aux coordonnées du Réseau d&apos;aide et à la gestion des SOS
+          reste réservé aux associations, refuges, fourrières, bénévoles et à
+          l&apos;administration.
+        </p>
+
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-6 rounded-full bg-[#064b42] px-6 py-3 font-black text-white"
+        >
+          Retour à ma fiche F.A.
+        </button>
+      </section>
     </main>
   );
 }
