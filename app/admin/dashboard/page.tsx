@@ -86,6 +86,21 @@ export default function AdminDashboardPage() {
   ] = useState<any>(null);
 
   const [
+    preferredLanguage,
+    setPreferredLanguage,
+  ] = useState<"fr" | "en">("fr");
+
+  const [
+    savingLanguage,
+    setSavingLanguage,
+  ] = useState(false);
+
+  const [
+    languageSaved,
+    setLanguageSaved,
+  ] = useState(false);
+
+  const [
     unreadNotifications,
     setUnreadNotifications,
   ] = useState(0);
@@ -149,6 +164,12 @@ export default function AdminDashboardPage() {
 
       setProfile(
         currentProfile
+      );
+
+      setPreferredLanguage(
+        currentProfile.preferred_language === "en"
+          ? "en"
+          : "fr"
       );
 
       const {
@@ -341,6 +362,84 @@ export default function AdminDashboardPage() {
       );
     };
   }, [profile?.id]);
+
+  async function savePreferredLanguage() {
+    if (!profile?.id || savingLanguage) {
+      return;
+    }
+
+    try {
+      setSavingLanguage(true);
+      setLanguageSaved(false);
+
+      const {
+        error: profileLanguageError,
+      } = await supabase
+        .from("profiles")
+        .update({
+          preferred_language: preferredLanguage,
+        })
+        .eq("id", profile.id);
+
+      if (profileLanguageError) {
+        throw profileLanguageError;
+      }
+
+      const {
+        error: authLanguageError,
+      } = await supabase.auth.updateUser({
+        data: {
+          preferred_language: preferredLanguage,
+        },
+      });
+
+      if (authLanguageError) {
+        console.error(
+          "Erreur mise à jour langue Auth :",
+          authLanguageError
+        );
+      }
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          "taui-te-ora-language",
+          preferredLanguage
+        );
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "taui-te-ora-language-change",
+            {
+              detail: preferredLanguage,
+            }
+          )
+        );
+      }
+
+      setProfile((current: any) => ({
+        ...current,
+        preferred_language: preferredLanguage,
+      }));
+
+      setLanguageSaved(true);
+
+      window.setTimeout(() => {
+        setLanguageSaved(false);
+      }, 2500);
+    } catch (error: any) {
+      console.error(
+        "Erreur sauvegarde langue admin :",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Impossible d'enregistrer la langue."
+      );
+    } finally {
+      setSavingLanguage(false);
+    }
+  }
 
   async function handleLogout() {
     if (
@@ -682,6 +781,67 @@ export default function AdminDashboardPage() {
             </Button>
           </div>
         </div>
+
+        {/* =====================================================
+            LANGUE DE L'APPLICATION
+        ====================================================== */}
+
+        <Card className="mt-10 border border-[#d8e9e3]">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
+                Préférences
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black text-[#064b42]">
+                🌐 Langue de l&apos;application
+              </h2>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+                Choisissez la langue utilisée par Taui Te Ora pour votre compte administrateur.
+              </p>
+
+              <select
+                value={preferredLanguage}
+                onChange={(event) => {
+                  setPreferredLanguage(
+                    event.target.value === "en"
+                      ? "en"
+                      : "fr"
+                  );
+                  setLanguageSaved(false);
+                }}
+                className="mt-4 w-full max-w-sm rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-bold text-[#064b42] outline-none transition focus:border-[#064b42]"
+              >
+                <option value="fr">
+                  🇫🇷 Français
+                </option>
+                <option value="en">
+                  🇬🇧 English
+                </option>
+              </select>
+            </div>
+
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <button
+                type="button"
+                onClick={() => void savePreferredLanguage()}
+                disabled={savingLanguage}
+                className="min-h-[48px] rounded-xl bg-[#064b42] px-6 py-3 font-black text-white transition hover:bg-[#08695d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingLanguage
+                  ? "Enregistrement..."
+                  : "Enregistrer la langue"}
+              </button>
+
+              {languageSaved && (
+                <p className="text-sm font-black text-green-700">
+                  ✓ Langue enregistrée
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
 
         {/* =====================================================
             STATISTIQUES
