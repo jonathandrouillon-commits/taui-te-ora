@@ -4,6 +4,10 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
+  Archive,
+  Camera,
+  Pencil,
+  Trash2,
   CheckCircle2,
   Clock3,
   MapPin,
@@ -55,7 +59,14 @@ type HelpSos = {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  photo_url?: string | null;
+  archived_at?: string | null;
+  companion_id?: string | null;
+  adoption_animal_id?: string | null;
 };
+
+type AnimalSource = "manual" | "companion" | "adoption";
+type SelectableAnimal = { id: string; name: string; species?: string | null; breed?: string | null; sex?: string | null; photo_url?: string | null; };
 
 type MatchingHelper = {
   id: string;
@@ -150,6 +161,10 @@ const EMPTY_FORM = {
 
   foster_max_hours_alone: "" as number | "",
   foster_required_duration: "" as FosterDuration,
+  animal_source: "manual" as AnimalSource,
+  companion_id: "",
+  adoption_animal_id: "",
+  photo_url: "",
 };
 
 function helpTypeLabel(value: HelpType) {
@@ -279,6 +294,11 @@ export default function HelpSosPage() {
   const [notificationResults, setNotificationResults] = useState<
     Record<string, string>
   >({});
+  const [companions, setCompanions] = useState<SelectableAnimal[]>([]);
+  const [adoptionAnimals, setAdoptionAnimals] = useState<SelectableAnimal[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -313,10 +333,20 @@ export default function HelpSosPage() {
 
       setIsAdmin(role === "admin" || role === "administrateur");
 
+      const [companionsResult, adoptionResult] = await Promise.all([
+        supabase.from("companions").select("id, name, species, breed, sex, photo_url").eq("owner_id", user.id).eq("is_deceased", false),
+        supabase.from("animals").select("id, name, species, breed, sex, owner_id, is_adopted, status").eq("owner_id", user.id),
+      ]);
+      if (!companionsResult.error) setCompanions((companionsResult.data || []) as SelectableAnimal[]);
+      if (!adoptionResult.error) {
+        const active = (adoptionResult.data || []).filter((a: any) => !a.is_adopted && String(a.status || "").toLowerCase() !== "archive");
+        setAdoptionAnimals(active.map((a: any) => ({ id: a.id, name: a.name, species: a.species, breed: a.breed, sex: a.sex, photo_url: null })));
+      }
+
       const { data, error: listError } = await supabase
         .from("help_sos")
         .select(
-          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at"
+          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at, photo_url, archived_at, companion_id, adoption_animal_id"
         )
         .order("created_at", { ascending: false });
 
@@ -428,6 +458,15 @@ export default function HelpSosPage() {
           `;
       }
 
+      let uploadedPhotoUrl = form.photo_url || null;
+      if (photoFile) {
+        const ext = photoFile.name.split(".").pop() || "jpg";
+        const path = `${currentUserId}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("sos-media").upload(path, photoFile, { upsert: false });
+        if (uploadError) throw uploadError;
+        uploadedPhotoUrl = supabase.storage.from("sos-media").getPublicUrl(path).data.publicUrl;
+      }
+
       const {
         data: created,
         error: insertError,
@@ -442,6 +481,10 @@ export default function HelpSosPage() {
           message: form.message.trim(),
           urgency: form.urgency,
           status: "ouvert",
+          photo_url: uploadedPhotoUrl,
+          companion_id: form.animal_source === "companion" ? form.companion_id || null : null,
+          adoption_animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null,
+          animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null,
 
           animal_type:
             form.help_type === "famille_accueil"
@@ -557,6 +600,7 @@ export default function HelpSosPage() {
       }
 
       setForm(EMPTY_FORM);
+      setPhotoFile(null);
       setCreating(false);
       setMessage(
         "SOS créé. Il est maintenant visible dans le réseau d’aide."
@@ -600,6 +644,44 @@ export default function HelpSosPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function startEdit(item: HelpSos) {
+    setEditingId(item.id);
+    setCreating(true);
+    setForm((current) => ({ ...current, title: item.title, help_type: item.help_type, island: item.island, city: item.city || "", message: item.message, urgency: item.urgency, animal_type: item.animal_type || "chien", animals_count: item.animals_count || 1, animal_source: item.companion_id ? "companion" : item.adoption_animal_id ? "adoption" : "manual", companion_id: item.companion_id || "", adoption_animal_id: item.adoption_animal_id || "", photo_url: item.photo_url || "" }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!editingId || !currentUserId) return;
+    try {
+      setSaving(true); setError("");
+      let uploadedPhotoUrl = form.photo_url || null;
+      if (photoFile) {
+        const ext = photoFile.name.split(".").pop() || "jpg";
+        const path = `${currentUserId}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("sos-media").upload(path, photoFile);
+        if (uploadError) throw uploadError;
+        uploadedPhotoUrl = supabase.storage.from("sos-media").getPublicUrl(path).data.publicUrl;
+      }
+      const { error: e } = await supabase.from("help_sos").update({ title: form.title.trim(), help_type: form.help_type, island: form.island.trim(), city: form.city.trim() || null, message: form.message.trim(), urgency: form.urgency, photo_url: uploadedPhotoUrl, companion_id: form.animal_source === "companion" ? form.companion_id || null : null, adoption_animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null, animal_id: form.animal_source === "adoption" ? form.adoption_animal_id || null : null, animal_type: form.help_type === "famille_accueil" ? form.animal_type : null, animals_count: form.help_type === "famille_accueil" ? Math.max(1, Number(form.animals_count || 1)) : null }).eq("id", editingId);
+      if (e) throw e;
+      setMessage("SOS modifié."); setEditingId(null); setCreating(false); setForm(EMPTY_FORM); setPhotoFile(null); await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Impossible de modifier le SOS."); } finally { setSaving(false); }
+  }
+
+  async function archiveSos(item: HelpSos) {
+    if (!window.confirm("Archiver ce SOS ?")) return;
+    const { error: e } = await supabase.from("help_sos").update({ archived_at: new Date().toISOString() }).eq("id", item.id);
+    if (e) { setError(e.message); return; } setMessage("SOS archivé."); await load();
+  }
+
+  async function deleteSos(item: HelpSos) {
+    if (!window.confirm("Supprimer définitivement ce SOS ? Cette action est irréversible.")) return;
+    const { error: e } = await supabase.from("help_sos").delete().eq("id", item.id);
+    if (e) { setError(e.message); return; } setMessage("SOS supprimé."); await load();
   }
 
   async function updateStatus(item: HelpSos, status: SosStatus) {
@@ -750,6 +832,7 @@ export default function HelpSosPage() {
     const query = search.trim().toLowerCase();
 
     return sosList.filter((item) => {
+      if (showArchived ? !item.archived_at : Boolean(item.archived_at)) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) {
         return false;
       }
@@ -768,7 +851,7 @@ export default function HelpSosPage() {
         .toLowerCase()
         .includes(query);
     });
-  }, [sosList, search, statusFilter]);
+  }, [sosList, search, statusFilter, showArchived]);
 
   if (loading) {
     return (
@@ -804,14 +887,17 @@ export default function HelpSosPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setShowArchived((v) => !v)} className="rounded-full border border-[#064b42] px-5 py-3 font-black text-[#064b42]">{showArchived ? "Voir les SOS actifs" : "Archives"}</button>
             <button
               type="button"
-              onClick={() => setCreating(true)}
+              onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setPhotoFile(null); setCreating(true); }}
               className="flex items-center justify-center gap-2 rounded-full bg-[#df8995] px-6 py-3 font-black text-white shadow-md"
             >
               <Plus size={19} />
               Créer un SOS
             </button>
+            </div>
           </div>
 
           <div className="mt-7 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -860,7 +946,7 @@ export default function HelpSosPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-[#064b42]">
-                  Nouveau SOS
+                  {editingId ? "Modifier le SOS" : "Nouveau SOS"}
                 </h2>
                 <p className="mt-1 text-sm text-[#756d67]">
                   Après publication, TAUI TE ORA pourra rechercher les personnes compatibles avec ce SOS.
@@ -869,14 +955,14 @@ export default function HelpSosPage() {
 
               <button
                 type="button"
-                onClick={() => setCreating(false)}
+                onClick={() => { setCreating(false); setEditingId(null); setForm(EMPTY_FORM); setPhotoFile(null); }}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f8f4ec] text-[#064b42]"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={createSos} className="mt-6 space-y-5">
+            <form onSubmit={editingId ? saveEdit : createSos} className="mt-6 space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <label>
                   <span className="mb-2 block text-sm font-black text-[#064b42]">
@@ -985,6 +1071,20 @@ export default function HelpSosPage() {
                   )}
                 </div>
               </label>
+
+              <section className="rounded-[26px] border border-[#eadfd8] bg-[#fffaf5] p-5 sm:p-6">
+                <h3 className="text-xl font-black text-[#064b42]">🐾 Animal concerné</h3>
+                <p className="mt-1 text-sm text-[#756d67]">Choisissez uniquement un animal que vous gérez, ou renseignez un animal non enregistré.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {([['companion','🐾 Mon compagnon'],['adoption','❤️ Animal en adoption'],['manual','➕ Animal non enregistré']] as const).map(([value,label]) => (
+                    <button key={value} type="button" onClick={() => setForm((c) => ({...c, animal_source:value, companion_id:value==='companion'?c.companion_id:'', adoption_animal_id:value==='adoption'?c.adoption_animal_id:''}))} className={`rounded-2xl border-2 px-4 py-3 font-black ${form.animal_source===value?'border-[#df8995] bg-[#fce8ec] text-[#064b42]':'border-[#eee5dc] bg-white text-[#756d67]'}`}>{label}</button>
+                  ))}
+                </div>
+                {form.animal_source === 'companion' ? <select value={form.companion_id} onChange={(e)=>{ const a=companions.find(x=>x.id===e.target.value); setForm(c=>({...c, companion_id:e.target.value, animal_type:a?.species||c.animal_type, photo_url:a?.photo_url||c.photo_url})); }} className="mt-4 w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"><option value="">Sélectionner un compagnon</option>{companions.map(a=><option key={a.id} value={a.id}>{a.name}{a.species?` · ${a.species}`:''}</option>)}</select> : null}
+                {form.animal_source === 'adoption' ? <select value={form.adoption_animal_id} onChange={(e)=>{ const a=adoptionAnimals.find(x=>x.id===e.target.value); setForm(c=>({...c, adoption_animal_id:e.target.value, animal_type:a?.species||c.animal_type})); }} className="mt-4 w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"><option value="">Sélectionner un animal en adoption</option>{adoptionAnimals.map(a=><option key={a.id} value={a.id}>{a.name}{a.species?` · ${a.species}`:''}</option>)}</select> : null}
+                <label className="mt-4 block"><span className="mb-2 block text-sm font-black text-[#064b42]"><Camera size={16} className="mr-1 inline"/>Photo de l'animal</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e)=>setPhotoFile(e.target.files?.[0]||null)} className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3" /></label>
+                {(photoFile || form.photo_url) ? <img src={photoFile ? URL.createObjectURL(photoFile) : form.photo_url} alt="Animal du SOS" className="mt-4 h-44 w-full rounded-2xl object-cover sm:w-72"/> : null}
+              </section>
 
               {form.help_type === "famille_accueil" ? (
                 <section className="rounded-[26px] border border-[#eadfd8] bg-[#fffaf5] p-5 sm:p-6">
@@ -1331,7 +1431,7 @@ export default function HelpSosPage() {
                   disabled={saving}
                   className="rounded-full bg-[#064b42] px-7 py-3 font-black text-white disabled:opacity-60"
                 >
-                  {saving ? "Création..." : "Publier le SOS"}
+                  {saving ? "Enregistrement..." : editingId ? "Enregistrer les modifications" : "Publier le SOS"}
                 </button>
               </div>
             </form>
@@ -1383,6 +1483,8 @@ export default function HelpSosPage() {
                       <h2 className="mt-3 text-2xl font-black text-[#064b42]">
                         {item.title}
                       </h2>
+                      {item.photo_url ? <img src={item.photo_url} alt={item.title} className="mt-4 h-56 w-full max-w-xl rounded-2xl object-cover" /> : null}
+                      {item.companion_id ? <p className="mt-2 text-sm font-black text-[#064b42]">🐾 Lié à un compagnon Taui Te Ora</p> : item.adoption_animal_id ? <p className="mt-2 text-sm font-black text-[#064b42]">❤️ Lié à un animal en adoption géré par ce compte</p> : null}
 
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm font-semibold text-[#756d67]">
                         <span className="flex items-center gap-1.5">
