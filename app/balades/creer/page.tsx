@@ -173,8 +173,8 @@ export default function CreateWalkPage() {
     >([]);
 
   const [
-    selectedCompanionIds,
-    setSelectedCompanionIds,
+    selectedCommunityCompanionIds,
+    setSelectedCommunityCompanionIds,
   ] =
     useState<string[]>([]);
 
@@ -189,6 +189,106 @@ export default function CreateWalkPage() {
     setInviteCommunity,
   ] =
     useState(false);
+
+  const [
+    myCompanionsLoading,
+    setMyCompanionsLoading,
+  ] =
+    useState(true);
+
+  const [
+    myCompanions,
+    setMyCompanions,
+  ] =
+    useState<
+      CommunityCompanion[]
+    >([]);
+
+  const [
+    selectedMyCompanionIds,
+    setSelectedMyCompanionIds,
+  ] =
+    useState<string[]>([]);
+
+  /* =========================================================
+     CHARGEMENT DE MES COMPAGNONS
+  ========================================================= */
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadMyCompanions() {
+      try {
+        setMyCompanionsLoading(true);
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (!user) {
+          if (active) {
+            setMyCompanions([]);
+          }
+          return;
+        }
+
+        const {
+          data,
+          error: companionsError,
+        } = await supabase
+          .from("companions")
+          .select(`
+            id,
+            owner_id,
+            name,
+            species,
+            breed,
+            sex,
+            birth_date,
+            color,
+            character,
+            photo_url
+          `)
+          .eq("owner_id", user.id)
+          .eq("is_deceased", false)
+          .order("name", {
+            ascending: true,
+          });
+
+        if (companionsError) {
+          throw companionsError;
+        }
+
+        if (!active) {
+          return;
+        }
+
+        setMyCompanions(
+          (data || []) as CommunityCompanion[]
+        );
+      } catch (cause) {
+        console.error(
+          "Erreur chargement de mes compagnons :",
+          cause
+        );
+      } finally {
+        if (active) {
+          setMyCompanionsLoading(false);
+        }
+      }
+    }
+
+    void loadMyCompanions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* =========================================================
      CHARGEMENT COMMUNAUTE
@@ -323,10 +423,35 @@ export default function CreateWalkPage() {
       communitySearch,
     ]);
 
-  function toggleCompanion(
+  function toggleMyCompanion(
     companionId: string
   ) {
-    setSelectedCompanionIds(
+    setSelectedMyCompanionIds(
+      (previous) => {
+        if (
+          previous.includes(
+            companionId
+          )
+        ) {
+          return previous.filter(
+            (id) =>
+              id !==
+              companionId
+          );
+        }
+
+        return [
+          ...previous,
+          companionId,
+        ];
+      }
+    );
+  }
+
+  function toggleCommunityCompanion(
+    companionId: string
+  ) {
+    setSelectedCommunityCompanionIds(
       (previous) => {
         if (
           previous.includes(
@@ -527,18 +652,69 @@ export default function CreateWalkPage() {
       }
 
       /* =====================================================
+         MES COMPAGNONS PARTICIPANTS
+      ===================================================== */
+
+      if (
+        selectedMyCompanionIds.length >
+        0
+      ) {
+        const ownParticipants =
+          selectedMyCompanionIds.map(
+            (companionId) => ({
+              walk_id:
+                data.id,
+
+              companion_id:
+                companionId,
+
+              owner_id:
+                user.id,
+
+              participation_type:
+                "organizer",
+            })
+          );
+
+        const {
+          error:
+            ownParticipantsError,
+        } =
+          await supabase
+            .from(
+              "community_walk_companions"
+            )
+            .insert(
+              ownParticipants
+            );
+
+        if (
+          ownParticipantsError
+        ) {
+          console.error(
+            "Erreur ajout de mes compagnons à la balade :",
+            ownParticipantsError
+          );
+
+          throw new Error(
+            "La balade a été créée, mais vos compagnons n'ont pas pu être ajoutés."
+          );
+        }
+      }
+
+      /* =====================================================
          INVITATIONS SANS VOIX
       ===================================================== */
 
       if (
         inviteCommunity &&
-        selectedCompanionIds.length >
+        selectedCommunityCompanionIds.length >
           0
       ) {
         const selected =
           communityCompanions.filter(
             (companion) =>
-              selectedCompanionIds.includes(
+              selectedCommunityCompanionIds.includes(
                 companion.id
               )
           );
@@ -788,6 +964,207 @@ export default function CreateWalkPage() {
         </div>
 
         {/* ===================================================
+            MES COMPAGNONS PARTICIPANTS
+        =================================================== */}
+
+        <section className="mt-8 rounded-[28px] border border-[#d7e6df] bg-[#f2f8f5] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#dfeee8] text-[#064b42]">
+              <PawPrint
+                size={21}
+              />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-[#064b42]">
+                Mes compagnons participants
+              </h2>
+
+              <p className="mt-1 text-sm leading-relaxed text-[#416c66]">
+                Choisissez uniquement les compagnons qui participeront à cette balade.
+                Vous pouvez en sélectionner un, plusieurs, ou aucun.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            {myCompanionsLoading ? (
+              <div className="rounded-[20px] bg-white p-6 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#dfeee8] border-t-[#064b42]" />
+
+                <p className="mt-3 text-sm font-bold">
+                  Chargement de mes compagnons...
+                </p>
+              </div>
+            ) : myCompanions.length ===
+              0 ? (
+              <div className="rounded-[20px] bg-white p-6 text-center">
+                <PawPrint
+                  size={34}
+                  className="mx-auto text-[#064b42]"
+                />
+
+                <p className="mt-3 font-black">
+                  Aucun compagnon actif enregistré
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      "/mes-compagnons/ajouter"
+                    )
+                  }
+                  className="mt-4 rounded-full bg-[#064b42] px-5 py-2.5 text-sm font-black text-white"
+                >
+                  Ajouter un compagnon
+                </button>
+              </div>
+            ) : (
+              <>
+                {selectedMyCompanionIds.length >
+                  0 && (
+                  <p className="mb-4 rounded-full bg-white px-4 py-2 text-center text-sm font-black text-[#064b42]">
+                    {
+                      selectedMyCompanionIds.length
+                    }{" "}
+                    compagnon
+                    {selectedMyCompanionIds.length >
+                    1
+                      ? "s"
+                      : ""}{" "}
+                    participant
+                    {selectedMyCompanionIds.length >
+                    1
+                      ? "s"
+                      : ""}
+                  </p>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {myCompanions.map(
+                    (
+                      companion
+                    ) => {
+                      const selected =
+                        selectedMyCompanionIds.includes(
+                          companion.id
+                        );
+
+                      const age =
+                        calculateAge(
+                          companion.birth_date
+                        );
+
+                      const sex =
+                        formatSex(
+                          companion.sex
+                        );
+
+                      return (
+                        <button
+                          key={
+                            companion.id
+                          }
+                          type="button"
+                          onClick={() =>
+                            toggleMyCompanion(
+                              companion.id
+                            )
+                          }
+                          className={`relative overflow-hidden rounded-[22px] border-2 bg-white text-left transition ${
+                            selected
+                              ? "border-[#064b42] shadow-md"
+                              : "border-transparent shadow-sm"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 p-3">
+                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[18px] bg-[#f4eee3]">
+                              {companion.photo_url ? (
+                                <img
+                                  src={
+                                    companion.photo_url
+                                  }
+                                  alt={
+                                    companion.name
+                                  }
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-3xl">
+                                  🐾
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-lg font-black text-[#064b42]">
+                                {
+                                  companion.name
+                                }
+                              </p>
+
+                              <p className="mt-1 text-xs font-bold text-[#756d67]">
+                                {formatSpecies(
+                                  companion.species
+                                )}
+                                {sex
+                                  ? ` · ${sex}`
+                                  : ""}
+                                {age
+                                  ? ` · ${age}`
+                                  : ""}
+                              </p>
+
+                              {companion.breed && (
+                                <p className="mt-1 truncate text-xs text-[#756d67]">
+                                  {
+                                    companion.breed
+                                  }
+                                </p>
+                              )}
+
+                              {companion.character && (
+                                <p className="mt-1 line-clamp-2 text-xs text-[#416c66]">
+                                  {
+                                    companion.character
+                                  }
+                                </p>
+                              )}
+                            </div>
+
+                            <div
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                                selected
+                                  ? "bg-[#064b42] text-white"
+                                  : "bg-[#f4eee3] text-[#9c9188]"
+                              }`}
+                            >
+                              {selected ? (
+                                <Check
+                                  size={17}
+                                  strokeWidth={
+                                    3
+                                  }
+                                />
+                              ) : (
+                                <PawPrint
+                                  size={16}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* ===================================================
             COMMUNAUTE DES SANS VOIX
         =================================================== */}
 
@@ -832,7 +1209,7 @@ export default function CreateWalkPage() {
                 if (
                   !event.target.checked
                 ) {
-                  setSelectedCompanionIds(
+                  setSelectedCommunityCompanionIds(
                     []
                   );
                 }
@@ -898,19 +1275,19 @@ export default function CreateWalkPage() {
                     />
                   </div>
 
-                  {selectedCompanionIds.length >
+                  {selectedCommunityCompanionIds.length >
                     0 && (
                     <p className="mt-4 rounded-full bg-[#eaf5f1] px-4 py-2 text-center text-sm font-black text-[#064b42]">
                       {
-                        selectedCompanionIds.length
+                        selectedCommunityCompanionIds.length
                       }{" "}
                       compagnon
-                      {selectedCompanionIds.length >
+                      {selectedCommunityCompanionIds.length >
                       1
                         ? "s"
                         : ""}{" "}
                       invité
-                      {selectedCompanionIds.length >
+                      {selectedCommunityCompanionIds.length >
                       1
                         ? "s"
                         : ""}
@@ -923,7 +1300,7 @@ export default function CreateWalkPage() {
                         companion
                       ) => {
                         const selected =
-                          selectedCompanionIds.includes(
+                          selectedCommunityCompanionIds.includes(
                             companion.id
                           );
 
@@ -944,7 +1321,7 @@ export default function CreateWalkPage() {
                             }
                             type="button"
                             onClick={() =>
-                              toggleCompanion(
+                              toggleCommunityCompanion(
                                 companion.id
                               )
                             }
@@ -1047,15 +1424,23 @@ export default function CreateWalkPage() {
         >
           {busy
             ? "Création…"
-            : selectedCompanionIds.length >
+            : selectedCommunityCompanionIds.length >
                 0
-              ? `Créer la balade et envoyer ${selectedCompanionIds.length} invitation${
-                  selectedCompanionIds.length >
+              ? `Créer la balade et envoyer ${selectedCommunityCompanionIds.length} invitation${
+                  selectedCommunityCompanionIds.length >
                   1
                     ? "s"
                     : ""
                 }`
-              : "Créer la balade"}
+              : selectedMyCompanionIds.length >
+                  0
+                ? `Créer la balade avec ${selectedMyCompanionIds.length} compagnon${
+                    selectedMyCompanionIds.length >
+                    1
+                      ? "s"
+                      : ""
+                  }`
+                : "Créer la balade"}
         </button>
       </form>
     </main>
