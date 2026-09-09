@@ -845,6 +845,15 @@ export default function CompanionDetailPage() {
 
             {isOwner && (
               <>
+                {!companion.is_deceased && (
+                  <Link
+                    href={`/mes-compagnons/${encodeURIComponent(companion.id)}/modifier`}
+                    className="mb-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#064b42] bg-white px-5 py-4 font-black text-[#064b42] shadow-sm"
+                  >
+                    ✏️ Modifier sa fiche
+                  </Link>
+                )}
+
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
                   <Link
                     href={`/signalement?companion=${encodeURIComponent(
