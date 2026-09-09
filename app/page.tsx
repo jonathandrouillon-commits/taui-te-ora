@@ -16,6 +16,7 @@ import { animalService } from "./services/animal.service";
 import { favoriteService } from "./services/favorite.service";
 
 import { supabase } from "./lib/supabase";
+import { useLanguage } from "./lib/i18n";
 
 type AnimalFilter =
   | "chien"
@@ -56,6 +57,8 @@ const WELCOME_STORAGE_KEY =
 
 export default function HomePage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const en = language === "en";
 
   const [animals, setAnimals] =
     useState<any[]>([]);
@@ -517,7 +520,7 @@ export default function HomePage() {
               backdrop-blur
             "
           >
-            ❤️ Coup de cœur enregistré
+            ❤️ {en ? "Favorite saved" : "Coup de cœur enregistré"}
           </div>
         )}
 
@@ -574,7 +577,7 @@ export default function HomePage() {
                     text-[#667568]
                   "
                 >
-                  Chargement des animaux...
+                  {en ? "Loading animals..." : "Chargement des animaux..."}
                 </p>
               </div>
             </div>
@@ -607,6 +610,7 @@ export default function HomePage() {
             currentAd && (
               <SwipeAdCard
                 ad={currentAd}
+                 language={language}
                 onNext={goNext}
                 onOpenFilter={() =>
                   setWelcomeOpen(
@@ -684,7 +688,7 @@ export default function HomePage() {
                         shadow-lg
                       "
                     >
-                      Modifier mes choix
+                      {en ? "Change my choices" : "Modifier mes choix"}
                     </button>
                   ) : (
                     <button
@@ -703,7 +707,7 @@ export default function HomePage() {
                         shadow-lg
                       "
                     >
-                      Recommencer
+                      {en ? "Start again" : "Recommencer"}
                     </button>
                   )}
                 </div>
@@ -716,6 +720,7 @@ export default function HomePage() {
         {welcomeReady &&
           welcomeOpen && (
             <WelcomeModal
+             language={language}
               selectedTypes={
                 selectedTypes
               }
@@ -752,15 +757,19 @@ export default function HomePage() {
 
 function SwipeAdCard({
   ad,
+  language,
   onNext,
   onOpenFilter,
   filterCount,
 }: {
   ad: Ad;
+  language: "fr" | "en";
   onNext: () => void;
   onOpenFilter: () => void;
   filterCount: number;
 }) {
+  const en = language === "en";
+
   const [
     impressionSent,
     setImpressionSent,
@@ -920,7 +929,7 @@ function SwipeAdCard({
             backdrop-blur-xl
           "
         >
-          Sponsorisé
+          {en ? "Sponsored" : "Sponsorisé"}
         </div>
 
         <div
@@ -1009,7 +1018,7 @@ function SwipeAdCard({
                 active:scale-95
               "
             >
-              {ad.button_text || "Découvrir"}
+              {ad.button_text || (en ? "Discover" : "Découvrir")}
             </button>
           )}
         </div>
@@ -1053,7 +1062,7 @@ function SwipeAdCard({
             active:scale-95
           "
         >
-          ← Next time
+          ← {en ? "Next time" : "Passer"}
         </button>
 
         <button
@@ -1076,7 +1085,7 @@ function SwipeAdCard({
             active:scale-95
           "
         >
-          Filtres
+          {en ? "Filters" : "Filtres"}
           {filterCount > 0
             ? ` (${filterCount})`
             : ""}
@@ -1091,6 +1100,7 @@ function SwipeAdCard({
 ========================================================= */
 
 function WelcomeModal({
+  language,
   selectedTypes,
   toggleAnimalType,
   onStart,
@@ -1098,6 +1108,7 @@ function WelcomeModal({
   onClose,
   router,
 }: {
+  language: "fr" | "en";
   selectedTypes: AnimalFilter[];
 
   toggleAnimalType: (
@@ -1114,6 +1125,8 @@ function WelcomeModal({
     typeof useRouter
   >;
 }) {
+  const en = language === "en";
+
   const options: {
     type: AnimalFilter;
     icon: string;
@@ -1122,22 +1135,22 @@ function WelcomeModal({
     {
       type: "chien",
       icon: "🐶",
-      title: "Chien",
+      title: en ? "Dog" : "Chien",
     },
     {
       type: "chat",
       icon: "🐱",
-      title: "Chat",
+      title: en ? "Cat" : "Chat",
     },
     {
       type: "cheval",
       icon: "🐴",
-      title: "Cheval",
+      title: en ? "Horse" : "Cheval",
     },
     {
       type: "autre",
       icon: "🐾",
-      title: "Autre",
+      title: en ? "Other" : "Autre",
     },
   ];
 
@@ -1208,7 +1221,7 @@ function WelcomeModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={en ? "Close" : "Fermer"}
           className="
             absolute
             right-3
@@ -1266,7 +1279,7 @@ function WelcomeModal({
                 sm:text-[10px]
               "
             >
-              Une rencontre peut tout changer
+              {en ? "One encounter can change everything" : "Une rencontre peut tout changer"}
             </p>
 
             <h1
@@ -1312,7 +1325,7 @@ function WelcomeModal({
                 sm:text-sm
               "
             >
-              Je veux adopter…
+              {en ? "I want to adopt…" : "Je veux adopter…"}
             </p>
 
             <div
@@ -1415,7 +1428,7 @@ function WelcomeModal({
                 text-[#978e87]
               "
             >
-              Vous pouvez en choisir plusieurs.
+              {en ? "You can choose more than one." : "Vous pouvez en choisir plusieurs."}
             </p>
           </div>
 
@@ -1454,7 +1467,7 @@ function WelcomeModal({
                 underline
               "
             >
-              Voir tous les animaux
+              {en ? "See all animals" : "Voir tous les animaux"}
             </button>
           )}
 
@@ -1478,7 +1491,7 @@ function WelcomeModal({
                 text-[#df687c]
               "
             >
-              → ❤️ Coup de cœur
+              → ❤️ {en ? "Favorite" : "Coup de cœur"}
             </span>
 
             <span
@@ -1496,7 +1509,7 @@ function WelcomeModal({
                 text-[#746c66]
               "
             >
-              ← Next time
+              ← {en ? "Next time" : "Passer"}
             </span>
           </div>
 
@@ -1527,7 +1540,7 @@ function WelcomeModal({
                 text-[#9a918a]
               "
             >
-              Accédez directement à votre espace.
+              {en ? "Go directly to your workspace." : "Accédez directement à votre espace."}
             </p>
 
             <div
@@ -1557,7 +1570,7 @@ function WelcomeModal({
                   text-[#064b42]
                 "
               >
-                Se connecter
+                {en ? "Log in" : "Se connecter"}
               </button>
 
               <button
@@ -1577,7 +1590,7 @@ function WelcomeModal({
                   text-white
                 "
               >
-                Créer un compte
+                {en ? "Create account" : "Créer un compte"}
               </button>
             </div>
           </div>
@@ -1629,6 +1642,8 @@ function getProfileDestination(role: unknown) {
 }
 
 function BottomMenu() {
+  const { language } = useLanguage();
+  const en = language === "en";
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileHref, setProfileHref] =
     useState("/profile");
@@ -1657,14 +1672,14 @@ function BottomMenu() {
       },
       {
         slug: "info",
-        label: "Info",
+        label: en ? "Info" : "Info",
         href: "/info",
         icon: "ℹ️",
         sortOrder: 20,
       },
       {
         slug: "associations",
-        label: "Associations",
+        label: en ? "Associations" : "Associations",
         href: "/associations",
         icon: "🤝",
         sortOrder: 30,
@@ -1678,111 +1693,111 @@ function BottomMenu() {
       },
       {
         slug: "signalements",
-        label: "Signalements",
+        label: en ? "Reports" : "Signalements",
         href: "/signalements",
         icon: "🚨",
         sortOrder: 50,
       },
       {
         slug: "evenements",
-        label: "Événements",
+        label: en ? "Events" : "Événements",
         href: "/evenements",
         icon: "📅",
         sortOrder: 60,
       },
       {
         slug: "balades",
-        label: "Balades & Copains",
+        label: en ? "Walks & Friends" : "Balades & Copains",
         href: "/balades",
         icon: "🐕",
         sortOrder: 70,
       },
       {
         slug: "dons",
-        label: "Dons",
+        label: en ? "Donations" : "Dons",
         href: "/dons",
         icon: "💝",
         sortOrder: 80,
       },
       {
         slug: "boutique",
-        label: "Boutique",
+        label: en ? "Shop" : "Boutique",
         href: "/boutique",
         icon: "🛍️",
         sortOrder: 90,
       },
       {
         slug: "veterinaires",
-        label: "Vétérinaires",
+        label: en ? "Veterinarians" : "Vétérinaires",
         href: "/veterinaires",
         icon: "🩺",
         sortOrder: 100,
       },
       {
         slug: "conseils-sante",
-        label: "Conseils santé",
+        label: en ? "Health advice" : "Conseils santé",
         href: "/conseils-sante",
         icon: "❤️‍🩹",
         sortOrder: 110,
       },
       {
         slug: "alimentation",
-        label: "Alimentation",
+        label: en ? "Nutrition" : "Alimentation",
         href: "/alimentation",
         icon: "🥣",
         sortOrder: 120,
       },
       {
         slug: "education",
-        label: "Éducation",
+        label: en ? "Training" : "Éducation",
         href: "/education",
         icon: "🎓",
         sortOrder: 130,
       },
       {
         slug: "famille-accueil",
-        label: "Famille d'accueil",
+        label: en ? "Foster family" : "Famille d'accueil",
         href: "/famille-accueil",
         icon: "🏠",
         sortOrder: 135,
       },
       {
         slug: "toilettage",
-        label: "Toilettage",
+        label: en ? "Grooming" : "Toilettage",
         href: "/toilettage",
         icon: "✂️",
         sortOrder: 140,
       },
       {
         slug: "gardiennage",
-        label: "Gardiennage",
+        label: en ? "Pet sitting" : "Gardiennage",
         href: "/gardiennage",
         icon: "🏡",
         sortOrder: 150,
       },
       {
         slug: "mes-compagnons",
-        label: "Mes Compagnons",
+        label: en ? "My Companions" : "Mes Compagnons",
         href: "/mes-compagnons",
         icon: "🐾",
         sortOrder: 155,
       },
       {
         slug: "pension",
-        label: "Pension",
+        label: en ? "Boarding" : "Pension",
         href: "/pension",
         icon: "🛏️",
         sortOrder: 160,
       },
       {
         slug: "hommage",
-        label: "Hommage",
+        label: en ? "Tribute" : "Hommage",
         href: "/hommage",
         icon: "🕯️",
         sortOrder: 170,
       },
     ],
-    []
+    [en]
   );
 
   useEffect(() => {
@@ -1800,7 +1815,7 @@ function BottomMenu() {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("role, avatar_url")
+          .select("role, avatar_url, preferred_language")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -1828,6 +1843,25 @@ function BottomMenu() {
             typeof avatar === "string" && avatar.trim()
               ? avatar.trim()
               : null
+          );
+
+          const profileLanguage =
+            data?.preferred_language === "en"
+              ? "en"
+              : "fr";
+
+          window.localStorage.setItem(
+            "taui-te-ora-language",
+            profileLanguage
+          );
+
+          window.dispatchEvent(
+            new CustomEvent(
+              "taui-te-ora-language-change",
+              {
+                detail: profileLanguage,
+              }
+            )
           );
         }
       } catch (error) {
@@ -1928,7 +1962,7 @@ function BottomMenu() {
   ].sort((a, b) =>
     a.label.localeCompare(
       b.label,
-      "fr",
+      en ? "en" : "fr",
       {
         sensitivity: "base",
         ignorePunctuation: true,
@@ -1947,7 +1981,7 @@ function BottomMenu() {
           <button
             type="button"
             onClick={closeMenu}
-            aria-label="Fermer le menu"
+            aria-label={en ? "Close menu" : "Fermer le menu"}
             className="absolute inset-0 h-full w-full"
           />
 
@@ -1967,7 +2001,7 @@ function BottomMenu() {
                 type="button"
                 onClick={closeMenu}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl font-bold text-[#6f665f] shadow-sm"
-                aria-label="Fermer"
+                aria-label={en ? "Close" : "Fermer"}
               >
                 ×
               </button>
@@ -2006,7 +2040,7 @@ function BottomMenu() {
             </div>
 
             <span className="text-[10px] font-bold">
-              Accueil
+              {en ? "Home" : "Accueil"}
             </span>
           </Link>
 
@@ -2019,7 +2053,7 @@ function BottomMenu() {
             </div>
 
             <span className="text-[10px] font-semibold">
-              Recherche
+              {en ? "Search" : "Recherche"}
             </span>
           </Link>
 
@@ -2046,7 +2080,7 @@ function BottomMenu() {
                   !previous
               )
             }
-            aria-label="Ouvrir le menu"
+            aria-label={en ? "Open menu" : "Ouvrir le menu"}
             className={`flex flex-col items-center justify-center gap-1 ${
               menuOpen
                 ? "text-[#ee8f9b]"
@@ -2076,7 +2110,7 @@ function BottomMenu() {
               <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#eadfd8] bg-white shadow-sm">
                 <img
                   src={profilePhoto}
-                  alt="Photo de profil"
+                  alt={en ? "Profile photo" : "Photo de profil"}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -2087,7 +2121,7 @@ function BottomMenu() {
             )}
 
             <span className="text-[10px] font-semibold">
-              Profil
+              {en ? "Profile" : "Profil"}
             </span>
           </Link>
         </div>
