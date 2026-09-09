@@ -162,16 +162,12 @@ function structureTypeLabel(
   switch (type) {
     case "association":
       return "Association";
-
     case "refuge":
       return "Refuge";
-
     case "fourriere":
       return "Fourrière";
-
     case "benevole":
       return "Bénévole";
-
     default:
       return type;
   }
@@ -279,21 +275,11 @@ export default function FamilleAccueilPage() {
               .select(`
                 id,
                 organization_name,
+                avatar_url,
                 role,
                 first_name,
-                last_name,
-                approval_status,
-                is_active
-              `)
-              .in("role", [
-                "association",
-                "refuge",
-                "fourriere",
-                "benevole"
-              ])
-              .neq("approval_status", "rejected")
-              .neq("approval_status", "suspended")
-              .order("organization_name", { ascending: true }),
+                last_name
+              `),
           ]);
 
         if (profileResult.error) throw profileResult.error;
@@ -365,10 +351,15 @@ export default function FamilleAccueilPage() {
 
         const options: StructureOption[] = [];
 
-        if (!structureResult.error) {
+        if (structureResult.error) {
+          console.error(
+            "Chargement des profils structures / bénévoles :",
+            structureResult.error
+          );
+        } else {
           for (const raw of structureResult.data || []) {
             const row = raw as Record<string, unknown>;
-            const id = String(row.id || "");
+            const id = String(row.id || "").trim();
             const role = String(row.role || "")
               .trim()
               .toLowerCase();
@@ -391,21 +382,26 @@ export default function FamilleAccueilPage() {
               .join(" ")
               .trim();
 
+            const organizationName = String(
+              row.organization_name || ""
+            ).trim();
+
+            const fallbackName =
+              role === "association"
+                ? "Association"
+                : role === "refuge"
+                  ? "Refuge"
+                  : role === "fourriere"
+                    ? "Fourrière"
+                    : "Bénévole";
+
             options.push({
               id,
               type: role as StructureOption["type"],
               name:
-                nameFromRow(
-                  row,
-                  personName ||
-                    (role === "association"
-                      ? "Association"
-                      : role === "refuge"
-                        ? "Refuge"
-                        : role === "fourriere"
-                          ? "Fourrière"
-                          : "Bénévole")
-                ),
+                organizationName ||
+                personName ||
+                nameFromRow(row, fallbackName),
             });
           }
         }
@@ -733,7 +729,11 @@ export default function FamilleAccueilPage() {
                 {noPreference && <Check size={20} strokeWidth={3} />}
               </button>
 
-              {structures.length > 0 && (
+              {structures.length === 0 ? (
+                <div className="mt-4 rounded-[20px] border border-dashed border-[#dfcdb8] bg-[#faf5ed] p-4 text-sm text-[#6f625a]">
+                  Aucun profil Association, Refuge, Fourrière ou Bénévole n&apos;est visible pour le moment.
+                </div>
+              ) : (
                 <>
                   <input
                     value={structureSearch}
