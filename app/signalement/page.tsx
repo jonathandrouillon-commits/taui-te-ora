@@ -217,6 +217,11 @@ export default function SignalementPage() {
     );
 
   const [
+    shareOnFacebook,
+    setShareOnFacebook,
+  ] = useState(true);
+
+  const [
     loading,
     setLoading,
   ] =
@@ -815,16 +820,18 @@ export default function SignalementPage() {
 
       // Ouvre la fenêtre immédiatement après le clic afin d'éviter
       // que le navigateur ne bloque le partage après les opérations async.
-      facebookShareWindow = window.open(
-        "",
-        "taui-facebook-signalement-share",
-        "popup=yes,width=760,height=820"
-      );
-
-      if (facebookShareWindow) {
-        facebookShareWindow.document.write(
-          `<html><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;background:#f8f4ec;color:#064b42"><h2>Publication du signalement…</h2><p>Facebook va s'ouvrir automatiquement.</p></body></html>`
+      if (shareOnFacebook) {
+        facebookShareWindow = window.open(
+          "",
+          "taui-facebook-signalement-share",
+          "popup=yes,width=760,height=820"
         );
+
+        if (facebookShareWindow) {
+          facebookShareWindow.document.write(
+            `<html><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;background:#f8f4ec;color:#064b42"><h2>Préparation du partage Facebook…</h2><p>Vous pourrez partager le signalement sur votre profil ou une page que vous gérez.</p></body></html>`
+          );
+        }
       }
 
       const {
@@ -1082,6 +1089,57 @@ export default function SignalementPage() {
       }
 
       /*
+       * Publication automatique sur la page Facebook
+       * Les Veilleurs de Kali.
+       *
+       * Une erreur Facebook ne doit jamais annuler
+       * le signalement.
+       */
+      if (signalement?.id) {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (!session?.access_token) {
+            throw new Error(
+              "Session utilisateur introuvable pour la publication Facebook."
+            );
+          }
+
+          const publishResponse = await fetch(
+            "/api/facebook/publish-signalement",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                signalementId: signalement.id,
+              }),
+            }
+          );
+
+          if (!publishResponse.ok) {
+            const publishResult = await publishResponse
+              .json()
+              .catch(() => null);
+
+            console.error(
+              "Publication Facebook Les Veilleurs de Kali :",
+              publishResult
+            );
+          }
+        } catch (facebookPublishError) {
+          console.error(
+            "Publication Facebook Les Veilleurs de Kali :",
+            facebookPublishError
+          );
+        }
+      }
+
+      /*
        * Matching automatique perdu <-> trouvé.
        * Une erreur de matching ne doit jamais annuler le signalement.
        */
@@ -1207,13 +1265,27 @@ export default function SignalementPage() {
         "Signalement envoyé avec succès."
       );
 
-      if (signalement?.id) {
-        const facebookShareUrl = buildFacebookSignalementShareUrl(signalement.id);
+      if (
+        signalement?.id &&
+        shareOnFacebook
+      ) {
+        const facebookShareUrl =
+          buildFacebookSignalementShareUrl(
+            signalement.id
+          );
 
-        if (facebookShareWindow && !facebookShareWindow.closed) {
-          facebookShareWindow.location.href = facebookShareUrl;
+        if (
+          facebookShareWindow &&
+          !facebookShareWindow.closed
+        ) {
+          facebookShareWindow.location.href =
+            facebookShareUrl;
         } else {
-          window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+          window.open(
+            facebookShareUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
         }
       }
 
@@ -2164,6 +2236,42 @@ export default function SignalementPage() {
               anonyme
             </label>
           </div>
+        </section>
+
+        <section className="mt-8 rounded-[24px] border border-[#eadfd8] bg-white p-5 shadow-sm">
+          <p className="font-black text-[#064b42]">
+            📣 Diffusion Facebook
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-[#756d67]">
+            Le signalement sera publié automatiquement sur la page
+            Les Veilleurs de Kali. Vous pouvez aussi ouvrir Facebook
+            pour le partager sur votre profil ou une page que vous gérez.
+          </p>
+
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-[#fbf7ef] p-4">
+            <input
+              type="checkbox"
+              checked={shareOnFacebook}
+              onChange={(event) =>
+                setShareOnFacebook(
+                  event.target.checked
+                )
+              }
+              className="mt-1 h-5 w-5"
+            />
+
+            <div>
+              <p className="font-black text-[#064b42]">
+                Partager aussi depuis mon compte Facebook
+              </p>
+
+              <p className="mt-1 text-sm text-[#756d67]">
+                Facebook vous laissera choisir votre profil personnel
+                ou une page que vous administrez.
+              </p>
+            </div>
+          </label>
         </section>
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
