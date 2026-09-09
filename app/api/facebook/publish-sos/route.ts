@@ -34,7 +34,10 @@ function getSupabaseAdmin() {
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (
+    !supabaseUrl ||
+    !serviceRoleKey
+  ) {
     throw new Error(
       "Configuration Supabase serveur manquante."
     );
@@ -45,8 +48,10 @@ function getSupabaseAdmin() {
     serviceRoleKey,
     {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        persistSession:
+          false,
+        autoRefreshToken:
+          false,
       },
     }
   );
@@ -67,9 +72,15 @@ function getFacebookConfig() {
     (
       process.env.NEXT_PUBLIC_SITE_URL ||
       "https://www.taui-te-ora.com"
-    ).replace(/\/+$/, "");
+    ).replace(
+      /\/+$/,
+      ""
+    );
 
-  if (!pageId || !pageAccessToken) {
+  if (
+    !pageId ||
+    !pageAccessToken
+  ) {
     throw new Error(
       "Configuration Facebook serveur manquante."
     );
@@ -98,29 +109,49 @@ function helpTypeLabel(
   value: string
 ) {
   const normalized =
-    clean(value).toLowerCase();
+    clean(
+      value
+    ).toLowerCase();
 
-  if (normalized === "famille_accueil") {
+  if (
+    normalized ===
+    "famille_accueil"
+  ) {
     return "Famille d'accueil";
   }
 
-  if (normalized === "transport") {
+  if (
+    normalized ===
+    "transport"
+  ) {
     return "Transport";
   }
 
-  if (normalized === "capture") {
+  if (
+    normalized ===
+    "capture"
+  ) {
     return "Capture / sauvetage";
   }
 
-  if (normalized === "nourriture_materiel") {
+  if (
+    normalized ===
+    "nourriture_materiel"
+  ) {
     return "Nourriture / matériel";
   }
 
-  if (normalized === "veterinaire") {
+  if (
+    normalized ===
+    "veterinaire"
+  ) {
     return "Accompagnement vétérinaire";
   }
 
-  if (normalized === "benevolat") {
+  if (
+    normalized ===
+    "benevolat"
+  ) {
     return "Bénévolat";
   }
 
@@ -131,18 +162,23 @@ function buildFacebookMessage(
   sos: HelpSosRow,
   publicUrl: string
 ) {
-  const lines: string[] = [];
+  const lines:
+    string[] = [];
 
   lines.push(
-    sos.urgency === "critique"
+    sos.urgency ===
+    "critique"
       ? "🚨 SOS CRITIQUE — TAUI TE ORA"
-      : sos.urgency === "urgente"
-        ? "⚠️ SOS URGENT — TAUI TE ORA"
-        : "🐾 SOS — TAUI TE ORA"
+      : sos.urgency ===
+        "urgente"
+      ? "⚠️ SOS URGENT — TAUI TE ORA"
+      : "🐾 SOS — TAUI TE ORA"
   );
 
   lines.push("");
-  lines.push(sos.title);
+  lines.push(
+    sos.title
+  );
   lines.push("");
 
   lines.push(
@@ -151,46 +187,73 @@ function buildFacebookMessage(
     )}`
   );
 
-  const location = [
-    clean(sos.city),
-    clean(sos.island),
-  ].filter(Boolean);
+  const location =
+    [
+      clean(
+        sos.city
+      ),
+      clean(
+        sos.island
+      ),
+    ].filter(Boolean);
 
-  if (location.length > 0) {
+  if (
+    location.length >
+    0
+  ) {
     lines.push(
-      `📍 ${location.join(" • ")}`
+      `📍 ${location.join(
+        " • "
+      )}`
     );
   }
 
-  if (sos.animal_type) {
+  if (
+    sos.animal_type
+  ) {
     const count =
       Math.max(
         1,
         Number(
-          sos.animals_count || 1
+          sos.animals_count ||
+          1
         )
       );
 
     lines.push(
       `🐾 ${count} ${clean(
         sos.animal_type
-      )}${count > 1 ? "(s)" : ""}`
+      )}${
+        count > 1
+          ? "(s)"
+          : ""
+      }`
     );
   }
 
   const description =
-    clean(sos.message);
+    clean(
+      sos.message
+    );
 
-  if (description) {
+  if (
+    description
+  ) {
     lines.push("");
+
     lines.push(
-      description.length > 800
-        ? `${description.slice(0, 797)}...`
+      description.length >
+      800
+        ? `${description.slice(
+            0,
+            797
+          )}...`
         : description
     );
   }
 
   lines.push("");
+
   lines.push(
     "Vous pouvez aider ou connaissez quelqu'un qui peut aider ?"
   );
@@ -200,16 +263,20 @@ function buildFacebookMessage(
   );
 
   lines.push("");
+
   lines.push(
     "TAUI TE ORA × LES VEILLEURS DE KALI"
   );
 
   lines.push("");
+
   lines.push(
     "#TauiTeOra #LesVeilleursDeKali #SOSAnimal #EntraideAnimale #PolynesieFrancaise"
   );
 
-  return lines.join("\n");
+  return lines.join(
+    "\n"
+  );
 }
 
 async function publishFacebookPhoto({
@@ -219,11 +286,16 @@ async function publishFacebookPhoto({
   photoUrl,
   caption,
 }: {
-  pageId: string;
-  pageAccessToken: string;
-  graphVersion: string;
-  photoUrl: string;
-  caption: string;
+  pageId:
+    string;
+  pageAccessToken:
+    string;
+  graphVersion:
+    string;
+  photoUrl:
+    string;
+  caption:
+    string;
 }) {
   const endpoint =
     `https://graph.facebook.com/${graphVersion}/${pageId}/photos`;
@@ -231,105 +303,74 @@ async function publishFacebookPhoto({
   const body =
     new URLSearchParams();
 
-  body.set("url", photoUrl);
-  body.set("caption", caption);
-  body.set("published", "true");
+  body.set(
+    "url",
+    photoUrl
+  );
+
+  body.set(
+    "caption",
+    caption
+  );
+
+  body.set(
+    "published",
+    "true"
+  );
+
   body.set(
     "access_token",
     pageAccessToken
   );
 
   const response =
-    await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded",
-      },
-      body: body.toString(),
-      cache: "no-store",
-    });
+    await fetch(
+      endpoint,
+      {
+        method:
+          "POST",
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded",
+        },
+        body:
+          body.toString(),
+        cache:
+          "no-store",
+      }
+    );
 
   const result =
     await response.json();
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     throw new Error(
       result?.error?.message ||
-        "Erreur Facebook lors de la publication du SOS."
+      "Erreur Facebook lors de la publication du SOS."
     );
   }
 
   return {
-    id: String(
-      result?.post_id ||
+    id:
+      String(
+        result?.post_id ||
         result?.id ||
         ""
-    ),
-  };
-}
-
-async function publishFacebookLink({
-  pageId,
-  pageAccessToken,
-  graphVersion,
-  publicUrl,
-  message,
-}: {
-  pageId: string;
-  pageAccessToken: string;
-  graphVersion: string;
-  publicUrl: string;
-  message: string;
-}) {
-  const endpoint =
-    `https://graph.facebook.com/${graphVersion}/${pageId}/feed`;
-
-  const body =
-    new URLSearchParams();
-
-  body.set("message", message);
-  body.set("link", publicUrl);
-  body.set(
-    "access_token",
-    pageAccessToken
-  );
-
-  const response =
-    await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded",
-      },
-      body: body.toString(),
-      cache: "no-store",
-    });
-
-  const result =
-    await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      result?.error?.message ||
-        "Erreur Facebook lors de la publication du SOS."
-    );
-  }
-
-  return {
-    id: String(
-      result?.id || ""
-    ),
+      ),
   };
 }
 
 export async function POST(
-  request: NextRequest
+  request:
+    NextRequest
 ) {
   const supabase =
     getSupabaseAdmin();
 
-  let sosId = "";
+  let sosId =
+    "";
 
   try {
     const authorization =
@@ -345,22 +386,28 @@ export async function POST(
         )
         .trim();
 
-    if (!accessToken) {
+    if (
+      !accessToken
+    ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
           error:
             "Authentification requise.",
         },
         {
-          status: 401,
+          status:
+            401,
         }
       );
     }
 
     const {
-      data: userData,
-      error: userError,
+      data:
+        userData,
+      error:
+        userError,
     } =
       await supabase.auth.getUser(
         accessToken
@@ -372,12 +419,14 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
           error:
             "Session utilisateur invalide.",
         },
         {
-          status: 401,
+          status:
+            401,
         }
       );
     }
@@ -385,38 +434,55 @@ export async function POST(
     const body =
       await request
         .json()
-        .catch(() => null);
+        .catch(
+          () =>
+            null
+        );
 
     sosId =
-      clean(body?.sosId);
+      clean(
+        body?.sosId
+      );
 
-    if (!sosId) {
+    if (
+      !sosId
+    ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
           error:
             "Identifiant SOS manquant.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
 
     const {
-      data: profile,
-      error: profileError,
+      data:
+        profile,
+      error:
+        profileError,
     } =
       await supabase
-        .from("profiles")
-        .select("role")
+        .from(
+          "profiles"
+        )
+        .select(
+          "role"
+        )
         .eq(
           "id",
           userData.user.id
         )
         .maybeSingle();
 
-    if (profileError) {
+    if (
+      profileError
+    ) {
       throw profileError;
     }
 
@@ -426,33 +492,44 @@ export async function POST(
       ).toLowerCase();
 
     const isAdmin =
-      role === "admin" ||
-      role === "administrateur";
+      role ===
+        "admin" ||
+      role ===
+        "administrateur";
 
     const {
-      data: sos,
-      error: sosError,
+      data:
+        sos,
+      error:
+        sosError,
     } =
       await supabase
-        .from("help_sos")
-        .select(`
-          id,
-          created_by,
-          title,
-          help_type,
-          island,
-          city,
-          message,
-          urgency,
-          status,
-          animal_type,
-          animals_count,
-          photo_url,
-          facebook_shared_at,
-          facebook_post_id,
-          facebook_share_status
-        `)
-        .eq("id", sosId)
+        .from(
+          "help_sos"
+        )
+        .select(
+          `
+            id,
+            created_by,
+            title,
+            help_type,
+            island,
+            city,
+            message,
+            urgency,
+            status,
+            animal_type,
+            animals_count,
+            photo_url,
+            facebook_shared_at,
+            facebook_post_id,
+            facebook_share_status
+          `
+        )
+        .eq(
+          "id",
+          sosId
+        )
         .maybeSingle();
 
     if (
@@ -461,18 +538,21 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
           error:
             "SOS introuvable.",
         },
         {
-          status: 404,
+          status:
+            404,
         }
       );
     }
 
     const typedSos =
-      sos as HelpSosRow;
+      sos as
+        HelpSosRow;
 
     if (
       !isAdmin &&
@@ -481,12 +561,14 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
           error:
             "Seul le créateur du SOS ou un administrateur peut demander la publication automatique.",
         },
         {
-          status: 403,
+          status:
+            403,
         }
       );
     }
@@ -497,27 +579,37 @@ export async function POST(
         "published"
     ) {
       return NextResponse.json({
-        ok: true,
-        published: false,
-        alreadyPublished: true,
+        ok:
+          true,
+        published:
+          false,
+        alreadyPublished:
+          true,
         facebook_post_id:
           typedSos.facebook_post_id,
       });
     }
 
     const {
-      data: claimed,
-      error: claimError,
+      data:
+        claimed,
+      error:
+        claimError,
     } =
       await supabase
-        .from("help_sos")
+        .from(
+          "help_sos"
+        )
         .update({
           facebook_share_status:
             "processing",
           facebook_share_error:
             null,
         })
-        .eq("id", sosId)
+        .eq(
+          "id",
+          sosId
+        )
         .is(
           "facebook_shared_at",
           null
@@ -525,18 +617,27 @@ export async function POST(
         .or(
           "facebook_share_status.is.null,facebook_share_status.eq.error"
         )
-        .select("id")
+        .select(
+          "id"
+        )
         .maybeSingle();
 
-    if (claimError) {
+    if (
+      claimError
+    ) {
       throw claimError;
     }
 
-    if (!claimed) {
+    if (
+      !claimed
+    ) {
       return NextResponse.json({
-        ok: true,
-        published: false,
-        skipped: true,
+        ok:
+          true,
+        published:
+          false,
+        skipped:
+          true,
         reason:
           "Publication Facebook déjà en cours ou déjà effectuée.",
       });
@@ -550,10 +651,21 @@ export async function POST(
         sosId
       )}`;
 
+    /*
+     * IMPORTANT :
+     * On publie TOUJOURS l'image générée par Taui Te Ora.
+     *
+     * Cette image choisit elle-même :
+     * 1. photo du SOS / animal,
+     * 2. photo du compagnon,
+     * 3. photo animal en adoption,
+     * 4. photo du profil demandeur,
+     * 5. design Taui Te Ora si rien n'existe.
+     */
     const shareImageUrl =
       `${config.siteUrl}/api/share-image/sos/${encodeURIComponent(
         sosId
-      )}`;
+      )}?v=${Date.now()}`;
 
     const message =
       buildFacebookMessage(
@@ -562,64 +674,68 @@ export async function POST(
       );
 
     const result =
-      typedSos.photo_url
-        ? await publishFacebookPhoto({
-            pageId:
-              config.pageId,
-            pageAccessToken:
-              config.pageAccessToken,
-            graphVersion:
-              config.graphVersion,
-            photoUrl:
-              shareImageUrl,
-            caption:
-              message,
-          })
-        : await publishFacebookLink({
-            pageId:
-              config.pageId,
-            pageAccessToken:
-              config.pageAccessToken,
-            graphVersion:
-              config.graphVersion,
-            publicUrl,
-            message,
-          });
+      await publishFacebookPhoto({
+        pageId:
+          config.pageId,
+        pageAccessToken:
+          config.pageAccessToken,
+        graphVersion:
+          config.graphVersion,
+        photoUrl:
+          shareImageUrl,
+        caption:
+          message,
+      });
 
     const {
-      error: saveError,
+      error:
+        saveError,
     } =
       await supabase
-        .from("help_sos")
+        .from(
+          "help_sos"
+        )
         .update({
           facebook_shared_at:
-            new Date().toISOString(),
+            new Date()
+              .toISOString(),
           facebook_post_id:
-            result.id || null,
+            result.id ||
+            null,
           facebook_share_status:
             "published",
           facebook_share_error:
             null,
         })
-        .eq("id", sosId);
+        .eq(
+          "id",
+          sosId
+        );
 
-    if (saveError) {
+    if (
+      saveError
+    ) {
       throw saveError;
     }
 
     return NextResponse.json({
-      ok: true,
-      published: true,
+      ok:
+        true,
+      published:
+        true,
       sos_id:
         sosId,
       facebook_post_id:
-        result.id || null,
+        result.id ||
+        null,
     });
   } catch (
-    error: unknown
+    error:
+      unknown
   ) {
     const message =
-      error instanceof Error
+      error instanceof
+        Error
         ? error.message
         : "Erreur inconnue Facebook.";
 
@@ -628,9 +744,13 @@ export async function POST(
       error
     );
 
-    if (sosId) {
+    if (
+      sosId
+    ) {
       await supabase
-        .from("help_sos")
+        .from(
+          "help_sos"
+        )
         .update({
           facebook_share_status:
             "error",
@@ -640,7 +760,10 @@ export async function POST(
               1000
             ),
         })
-        .eq("id", sosId)
+        .eq(
+          "id",
+          sosId
+        )
         .is(
           "facebook_shared_at",
           null
@@ -649,14 +772,17 @@ export async function POST(
 
     return NextResponse.json(
       {
-        ok: false,
+        ok:
+          false,
         sos_id:
-          sosId || null,
+          sosId ||
+          null,
         error:
           message,
       },
       {
-        status: 500,
+        status:
+          500,
       }
     );
   }
