@@ -36,6 +36,21 @@ type Participant = {
     | "refused";
 };
 
+type CompanionInvitation = {
+  id: string;
+  walk_id: string;
+  companion_id: string;
+  invited_by: string;
+  owner_id: string;
+  status: "pending" | "accepted" | "refused";
+  companion: {
+    id: string;
+    name: string;
+    species: string;
+    photo_url: string | null;
+  } | null;
+};
+
 type Message = {
   id: string;
   user_id: string;
@@ -68,6 +83,22 @@ export default function WalkDetailsPage() {
   ] =
     useState<Participant[]>(
       []
+    );
+
+  const [
+    companionInvitations,
+    setCompanionInvitations,
+  ] =
+    useState<CompanionInvitation[]>(
+      []
+    );
+
+  const [
+    invitationBusyId,
+    setInvitationBusyId,
+  ] =
+    useState<string | null>(
+      null
     );
 
   const [
@@ -167,6 +198,70 @@ export default function WalkDetailsPage() {
           ) ||
             []
         );
+
+        if (auth.user) {
+          const {
+            data: invitationData,
+            error: invitationLoadError,
+          } = await supabase
+            .from(
+              "community_walk_companion_invitations"
+            )
+            .select(`
+              id,
+              walk_id,
+              companion_id,
+              invited_by,
+              owner_id,
+              status,
+              companion:companions (
+                id,
+                name,
+                species,
+                photo_url
+              )
+            `)
+            .eq(
+              "walk_id",
+              id
+            )
+            .eq(
+              "owner_id",
+              auth.user.id
+            )
+            .order(
+              "id",
+              {
+                ascending: true,
+              }
+            );
+
+          if (invitationLoadError) {
+            console.error(
+              "Erreur chargement invitations compagnons :",
+              invitationLoadError
+            );
+            setCompanionInvitations([]);
+          } else {
+            setCompanionInvitations(
+              (invitationData || []).map(
+                (invitation: any) => ({
+                  ...invitation,
+                  companion:
+                    Array.isArray(
+                      invitation.companion
+                    )
+                      ? invitation.companion[0] ||
+                        null
+                      : invitation.companion ||
+                        null,
+                })
+              ) as CompanionInvitation[]
+            );
+          }
+        } else {
+          setCompanionInvitations([]);
+        }
 
         const canLoadChat =
           Boolean(
@@ -278,6 +373,120 @@ export default function WalkDetailsPage() {
       );
 
     await load();
+  }
+
+  async function decideCompanionInvitation(
+    invitation: CompanionInvitation,
+    status: "accepted" | "refused"
+  ) {
+    if (!userId) {
+      setNotice(
+        "Connecte-toi pour répondre à cette invitation."
+      );
+      return;
+    }
+
+    try {
+      setInvitationBusyId(
+        invitation.id
+      );
+      setNotice("");
+
+      const {
+        error: updateError,
+      } = await supabase
+        .from(
+          "community_walk_companion_invitations"
+        )
+        .update({
+          status,
+        })
+        .eq(
+          "id",
+          invitation.id
+        )
+        .eq(
+          "owner_id",
+          userId
+        );
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (status === "accepted") {
+        const {
+          data: existingParticipant,
+          error: existingError,
+        } = await supabase
+          .from(
+            "community_walk_companions"
+          )
+          .select("companion_id")
+          .eq(
+            "walk_id",
+            id
+          )
+          .eq(
+            "companion_id",
+            invitation.companion_id
+          )
+          .maybeSingle();
+
+        if (existingError) {
+          throw existingError;
+        }
+
+        if (!existingParticipant) {
+          const {
+            error: participantError,
+          } = await supabase
+            .from(
+              "community_walk_companions"
+            )
+            .insert({
+              walk_id: id,
+              companion_id:
+                invitation.companion_id,
+              owner_id: userId,
+              participation_type:
+                "invited",
+            });
+
+          if (participantError) {
+            throw participantError;
+          }
+        }
+
+        setNotice(
+          `${
+            invitation.companion?.name ||
+            "Ton compagnon"
+          } participera à cette balade 🐾`
+        );
+      } else {
+        setNotice(
+          "Invitation refusée."
+        );
+      }
+
+      await load();
+    } catch (cause) {
+      console.error(
+        "Erreur réponse invitation compagnon :",
+        cause
+      );
+
+      setNotice(
+        cause instanceof Error
+          ? cause.message
+          : "Impossible de répondre à l'invitation."
+      );
+    } finally {
+      setInvitationBusyId(
+        null
+      );
+    }
   }
 
   async function send(
@@ -551,6 +760,115 @@ export default function WalkDetailsPage() {
               participer
             </Link>
           )}
+
+          {userId &&
+            companionInvitations.length >
+              0 && (
+              <section className="mt-6 rounded-[26px] border border-[#f0d8cf] bg-[#fff8f4] p-5">
+                <h2 className="text-xl font-black text-[#064b42]">
+                  🐾 Invitations pour mes compagnons
+                </h2>
+
+                <p className="mt-1 text-sm text-[#6f625a]">
+                  Un autre membre de la communauté souhaite partager cette balade avec l&apos;un de tes compagnons.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {companionInvitations.map(
+                    (invitation) => (
+                      <div
+                        key={
+                          invitation.id
+                        }
+                        className="rounded-[22px] bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[18px] bg-[#f4eee3]">
+                            {invitation.companion?.photo_url ? (
+                              <img
+                                src={
+                                  invitation.companion.photo_url
+                                }
+                                alt={
+                                  invitation.companion.name
+                                }
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-2xl">
+                                🐾
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="font-black text-[#064b42]">
+                              {invitation.companion?.name ||
+                                "Mon compagnon"}
+                            </p>
+
+                            {invitation.status ===
+                            "pending" ? (
+                              <p className="mt-1 text-sm font-bold text-[#d96b4c]">
+                                Invitation en attente
+                              </p>
+                            ) : invitation.status ===
+                              "accepted" ? (
+                              <p className="mt-1 text-sm font-bold text-[#0c7164]">
+                                ✅ Invitation acceptée
+                              </p>
+                            ) : (
+                              <p className="mt-1 text-sm font-bold text-[#756d67]">
+                                Invitation refusée
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {invitation.status ===
+                          "pending" && (
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              disabled={
+                                invitationBusyId ===
+                                invitation.id
+                              }
+                              onClick={() =>
+                                void decideCompanionInvitation(
+                                  invitation,
+                                  "accepted"
+                                )
+                              }
+                              className="rounded-full bg-[#0c7164] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+                            >
+                              Accepter
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                invitationBusyId ===
+                                invitation.id
+                              }
+                              onClick={() =>
+                                void decideCompanionInvitation(
+                                  invitation,
+                                  "refused"
+                                )
+                              }
+                              className="rounded-full bg-gray-100 px-4 py-3 text-sm font-black text-[#064b42] disabled:opacity-60"
+                            >
+                              Refuser
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </section>
+            )}
 
           {userId &&
             walk.organizer_id !==
