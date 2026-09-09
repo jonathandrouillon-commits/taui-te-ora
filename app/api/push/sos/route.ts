@@ -289,6 +289,9 @@ export async function POST(
         "admin",
         "administrateur",
         "association",
+        "refuge",
+        "fourriere",
+        "benevole",
       ].includes(
         role
       )
@@ -354,13 +357,10 @@ export async function POST(
     const sos =
       sosData as HelpSos;
 
-    const isAdmin =
-      role === "admin" ||
-      role === "administrateur";
-
     if (
-      !isAdmin &&
-      sos.created_by !== user.id
+      !["admin", "administrateur"].includes(role) &&
+      sos.created_by !==
+        user.id
     ) {
       return NextResponse.json(
         {
