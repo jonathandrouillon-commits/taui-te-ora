@@ -36,6 +36,8 @@ type Companion = {
   sterilization_date: string | null;
   sterilization_note: string | null;
   is_public: boolean;
+  is_deceased: boolean;
+  death_date: string | null;
   created_at: string;
 };
 
@@ -238,11 +240,17 @@ export default function MesCompagnonsPage() {
               sterilization_date,
               sterilization_note,
               is_public,
+              is_deceased,
+              death_date,
               created_at
             `)
             .eq(
               "owner_id",
               user.id
+            )
+            .eq(
+              "is_deceased",
+              false
             )
             .order(
               "created_at",

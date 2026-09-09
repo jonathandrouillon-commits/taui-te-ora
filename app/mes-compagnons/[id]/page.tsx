@@ -10,6 +10,7 @@ import {
   PawPrint,
   ShieldCheck,
   Siren,
+  X,
 } from "lucide-react";
 import {
   useEffect,
@@ -43,6 +44,9 @@ type Companion = {
   sterilization_date: string | null;
   sterilization_note: string | null;
   is_public: boolean;
+  is_deceased: boolean;
+  death_date: string | null;
+  death_tribute: string | null;
   created_at: string;
 };
 
@@ -241,6 +245,26 @@ export default function CompanionDetailPage() {
   ] =
     useState("");
 
+  const [
+    memorialOpen,
+    setMemorialOpen,
+  ] = useState(false);
+
+  const [
+    deathDate,
+    setDeathDate,
+  ] = useState("");
+
+  const [
+    tributeText,
+    setTributeText,
+  ] = useState("");
+
+  const [
+    markingDeceased,
+    setMarkingDeceased,
+  ] = useState(false);
+
   useEffect(() => {
     let active = true;
 
@@ -279,6 +303,9 @@ export default function CompanionDetailPage() {
               sterilization_date,
               sterilization_note,
               is_public,
+              is_deceased,
+              death_date,
+              death_tribute,
               created_at
             `)
             .eq(
@@ -347,6 +374,123 @@ export default function CompanionDetailPage() {
   }, [
     companionId,
   ]);
+
+  async function markAsDeceased() {
+    if (markingDeceased || !companion || !isOwner) {
+      return;
+    }
+
+    if (!deathDate) {
+      alert("Merci d'indiquer la date du décès.");
+      return;
+    }
+
+    if (!tributeText.trim()) {
+      alert("Merci d'écrire quelques mots pour son hommage.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Confirmer le décès de ${companion.name} ?\n\nIl sera retiré de Mes Compagnons et de la communauté, mais sa fiche et son historique seront conservés.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    let createdHommageId = "";
+
+    try {
+      setMarkingDeceased(true);
+
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!user || user.id !== companion.owner_id) {
+        throw new Error(
+          "Vous devez être connecté avec le compte propriétaire de ce compagnon."
+        );
+      }
+
+      if (!user.email) {
+        throw new Error(
+          "Votre compte ne possède pas d'adresse e-mail utilisable pour créer l'hommage."
+        );
+      }
+
+      const { data: hommage, error: hommageError } = await supabase
+        .from("hommages")
+        .insert({
+          user_id: user.id,
+          animal_name: companion.name,
+          animal_type: formatSpecies(companion.species),
+          birth_date: companion.birth_date || null,
+          death_date: deathDate,
+          tribute_text: tributeText.trim(),
+          submitter_name: null,
+          submitter_email: user.email,
+          photo_url: companion.photo_url || null,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (hommageError) {
+        throw hommageError;
+      }
+
+      createdHommageId = hommage?.id || "";
+
+      const { error: companionError } = await supabase
+        .from("companions")
+        .update({
+          is_deceased: true,
+          is_public: false,
+          death_date: deathDate,
+          death_tribute: tributeText.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", companion.id)
+        .eq("owner_id", user.id);
+
+      if (companionError) {
+        if (createdHommageId) {
+          await supabase
+            .from("hommages")
+            .delete()
+            .eq("id", createdHommageId)
+            .eq("user_id", user.id);
+        }
+
+        throw companionError;
+      }
+
+      setMemorialOpen(false);
+
+      alert(
+        `${companion.name} a été retiré de vos compagnons actifs. Son hommage a été créé et sera publié après validation.`
+      );
+
+      router.push("/hommage");
+      router.refresh();
+    } catch (error) {
+      console.error("Erreur déclaration décès compagnon :", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer le décès de ce compagnon."
+      );
+    } finally {
+      setMarkingDeceased(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -615,31 +759,45 @@ export default function CompanionDetailPage() {
             )}
 
             {isOwner && (
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                <Link
-                  href={`/signalement?companion=${encodeURIComponent(
-                    companion.id
-                  )}`}
-                  className="flex items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-4 font-black text-white shadow-lg"
-                >
-                  <Siren
-                    size={20}
-                  />
+              <>
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  <Link
+                    href={`/signalement?companion=${encodeURIComponent(
+                      companion.id
+                    )}`}
+                    className="flex items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-4 font-black text-white shadow-lg"
+                  >
+                    <Siren size={20} />
+                    Signaler sa disparition
+                  </Link>
 
-                  Signaler sa disparition
-                </Link>
+                  <Link
+                    href="/mes-compagnons"
+                    className="flex items-center justify-center gap-2 rounded-full bg-[#064b42] px-5 py-4 font-black text-white shadow-lg"
+                  >
+                    <PawPrint size={20} />
+                    Mes Compagnons
+                  </Link>
+                </div>
 
-                <Link
-                  href="/mes-compagnons"
-                  className="flex items-center justify-center gap-2 rounded-full bg-[#064b42] px-5 py-4 font-black text-white shadow-lg"
-                >
-                  <PawPrint
-                    size={20}
-                  />
-
-                  Mes Compagnons
-                </Link>
-              </div>
+                {!companion.is_deceased && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeathDate("");
+                      setTributeText(
+                        companion.story
+                          ? `Pour ${companion.name}.\n\n${companion.story}`
+                          : `Pour ${companion.name}, qui restera toujours dans nos cœurs.`
+                      );
+                      setMemorialOpen(true);
+                    }}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#b58b5b] bg-white px-5 py-4 font-black text-[#8d673d] shadow-sm transition hover:bg-[#fff8ef]"
+                  >
+                    🕯️ Animal décédé
+                  </button>
+                )}
+              </>
             )}
 
             {!isOwner &&
@@ -654,6 +812,90 @@ export default function CompanionDetailPage() {
           </div>
         </article>
       </section>
+
+      {memorialOpen && companion && isOwner && (
+        <div className="fixed inset-0 z-[500] overflow-y-auto bg-black/45 px-4 py-8 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Fermer"
+            onClick={() => {
+              if (!markingDeceased) {
+                setMemorialOpen(false);
+              }
+            }}
+            className="fixed inset-0 h-full w-full"
+          />
+
+          <div className="relative z-10 mx-auto w-full max-w-xl overflow-hidden rounded-[32px] bg-[#fffaf7] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#eadfd8] px-6 py-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b58b5b]">
+                  À sa mémoire
+                </p>
+                <h2 className="mt-1 text-2xl font-black text-[#064b42]">
+                  🕯️ {companion.name} est décédé
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMemorialOpen(false)}
+                disabled={markingDeceased}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#064b42] shadow disabled:opacity-50"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="rounded-[22px] bg-[#f8f4ec] p-4 text-sm leading-6 text-[#6f625a]">
+                Son profil ne sera pas supprimé. Il quittera simplement vos compagnons actifs et la communauté. Son histoire et ses anciens signalements resteront conservés.
+              </div>
+
+              <label className="mt-5 block">
+                <span className="mb-2 block font-black text-[#064b42]">
+                  Date du décès *
+                </span>
+                <input
+                  type="date"
+                  value={deathDate}
+                  onChange={(event) => setDeathDate(event.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-[18px] border border-[#e5d8cd] bg-white px-4 py-3 outline-none focus:border-[#b58b5b]"
+                />
+              </label>
+
+              <label className="mt-5 block">
+                <span className="mb-2 block font-black text-[#064b42]">
+                  Quelques mots pour lui *
+                </span>
+                <textarea
+                  value={tributeText}
+                  onChange={(event) => setTributeText(event.target.value)}
+                  rows={7}
+                  maxLength={3000}
+                  placeholder="Un souvenir, son histoire, quelques mots pour lui..."
+                  className="w-full resize-y rounded-[18px] border border-[#e5d8cd] bg-white px-4 py-3 leading-7 outline-none focus:border-[#b58b5b]"
+                />
+                <p className="mt-1 text-right text-xs text-gray-400">
+                  {tributeText.length}/3000
+                </p>
+              </label>
+
+              <button
+                type="button"
+                onClick={markAsDeceased}
+                disabled={markingDeceased || !deathDate || !tributeText.trim()}
+                className="mt-6 w-full rounded-full bg-[#064b42] px-6 py-4 font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {markingDeceased
+                  ? "Création de l'hommage..."
+                  : "🕯️ Confirmer et créer son hommage"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
