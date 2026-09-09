@@ -20,6 +20,10 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabase";
+import AnimalBreedSelect from "../../components/AnimalBreedSelect";
+import {
+  ANIMAL_WEIGHTS,
+} from "../../lib/animalFormOptions";
 
 type SterilizationStatus =
   | "oui"
@@ -687,10 +691,13 @@ export default function AjouterCompagnonPage() {
                     onChange={(
                       event
                     ) =>
-                      setSpecies(
-                        event.target
-                          .value
-                      )
+                      {
+                        setSpecies(
+                          event.target
+                            .value
+                        );
+                        setBreed("");
+                      }
                     }
                     className="input"
                   >
@@ -736,6 +743,10 @@ export default function AjouterCompagnonPage() {
                     <option value="female">
                       Femelle
                     </option>
+
+                    <option value="unknown">
+                      Inconnu
+                    </option>
                   </select>
                 </label>
 
@@ -766,17 +777,10 @@ export default function AjouterCompagnonPage() {
                     Race
                   </span>
 
-                  <input
+                  <AnimalBreedSelect
+                    species={species}
                     value={breed}
-                    onChange={(
-                      event
-                    ) =>
-                      setBreed(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="Race ou croisé"
+                    onChange={setBreed}
                     className="input"
                   />
                 </label>
@@ -806,19 +810,45 @@ export default function AjouterCompagnonPage() {
                     Poids
                   </span>
 
-                  <input
+                  <select
                     value={weight}
-                    onChange={(
-                      event
-                    ) =>
+                    onChange={(event) =>
                       setWeight(
-                        event.target
-                          .value
+                        event.target.value
                       )
                     }
-                    placeholder="Ex. 18 kg"
                     className="input"
-                  />
+                  >
+                    <option value="">
+                      Sélectionner
+                    </option>
+
+                    {weight &&
+                      !ANIMAL_WEIGHTS.includes(
+                        weight as (typeof ANIMAL_WEIGHTS)[number]
+                      ) && (
+                        <option value={weight}>
+                          {weight} (ancienne valeur)
+                        </option>
+                      )}
+
+                    {ANIMAL_WEIGHTS.map(
+                      (option) => (
+                        <option
+                          key={option}
+                          value={
+                            option === "Inconnu"
+                              ? ""
+                              : option
+                          }
+                        >
+                          {option === "Inconnu"
+                            ? "Poids inconnu"
+                            : `${option} kg`}
+                        </option>
+                      )
+                    )}
+                  </select>
                 </label>
               </div>
             </div>
