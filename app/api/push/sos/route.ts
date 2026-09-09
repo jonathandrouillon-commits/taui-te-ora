@@ -73,6 +73,37 @@ function getAdmin() {
   );
 }
 
+
+function getUserScopedClient(token: string) {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      "Configuration Supabase publique manquante."
+    );
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+}
+
 function configureWebPush() {
   const publicKey =
     process.env
@@ -166,12 +197,12 @@ function buildBody(
     parts.join(" • ");
 
   if (!place) {
-    return sos.message
+    return String(sos.message || "")
       .trim()
       .slice(0, 180);
   }
 
-  return `${place} — ${sos.message
+  return `${place} — ${String(sos.message || "")
     .trim()
     .slice(0, 140)}`;
 }
@@ -401,13 +432,23 @@ export async function POST(
       });
     }
 
+    /*
+     * IMPORTANT :
+     * La fonction SQL de matching utilise auth.uid().
+     * Elle doit donc être exécutée avec le JWT de
+     * l'utilisateur connecté, et non avec le client
+     * service_role.
+     */
+    const userScopedSupabase =
+      getUserScopedClient(token);
+
     const {
       data:
         helperData,
       error:
         helperError,
     } =
-      await supabase
+      await userScopedSupabase
         .rpc(
           "get_matching_helpers_for_sos",
           {
