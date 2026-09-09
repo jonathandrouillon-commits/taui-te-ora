@@ -50,7 +50,7 @@ export default function MesDonneesPage() {
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
@@ -230,19 +230,49 @@ export default function MesDonneesPage() {
     }
   }
 
+
+  const normalizedRole = String(profile?.role || "")
+    .trim()
+    .toLowerCase();
+
+  const isAdminAccount =
+    normalizedRole === "admin" ||
+    normalizedRole === "administrateur";
+
+  const isStructureAccount = [
+    "association",
+    "refuge",
+    "fourriere",
+  ].includes(normalizedRole);
+
+  const canDeleteAutomatically = [
+    "adoptant",
+    "benevole",
+  ].includes(normalizedRole);
+
   async function deleteAccount() {
-    if (deleting || deleteConfirmation !== "SUPPRIMER") return;
+    if (
+      !profile ||
+      !canDeleteAutomatically ||
+      deleteConfirmation !== "SUPPRIMER" ||
+      deletingAccount
+    ) {
+      return;
+    }
 
     try {
-      setDeleting(true);
+      setDeletingAccount(true);
       setDeleteError("");
 
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      const accessToken = sessionData.session?.access_token;
-
-      if (sessionError || !accessToken) {
+      if (
+        sessionError ||
+        !session?.access_token
+      ) {
         throw new Error(
           tr(
             "Votre session a expiré. Reconnectez-vous avant de supprimer votre compte.",
@@ -251,36 +281,53 @@ export default function MesDonneesPage() {
         );
       }
 
-      const response = await fetch("/api/account/delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ confirmation: "SUPPRIMER" }),
-      });
+      const response = await fetch(
+        "/api/account/delete",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            confirmation: deleteConfirmation,
+          }),
+        }
+      );
 
-      const result = (await response.json().catch(() => ({}))) as {
+      const result = (await response.json()) as {
         success?: boolean;
         error?: string;
         partial?: boolean;
+        protectedAccount?: boolean;
       };
 
       if (!response.ok || !result.success) {
         throw new Error(
           result.error ||
             tr(
-              "La suppression du compte n'a pas pu être terminée.",
+              "La suppression n'a pas pu être terminée.",
               "Account deletion could not be completed."
             )
         );
       }
 
       await supabase.auth.signOut();
-      window.localStorage.removeItem("taui-te-ora-language");
-      window.location.replace("/");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(
+          "taui-te-ora-language"
+        );
+      }
+
+      router.replace("/?account=deleted");
+      router.refresh();
     } catch (error: unknown) {
-      console.error("Erreur suppression du compte :", error);
+      console.error(
+        "Erreur suppression compte :",
+        error
+      );
+
       setDeleteError(
         error instanceof Error
           ? error.message
@@ -289,7 +336,8 @@ export default function MesDonneesPage() {
               "An error occurred while deleting the account."
             )
       );
-      setDeleting(false);
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -683,112 +731,215 @@ export default function MesDonneesPage() {
               </div>
             </section>
 
-            <section className="mt-6 rounded-[28px] border border-red-200 bg-red-50 p-5 sm:p-6">
+            <section
+              className={`mt-6 rounded-[28px] p-5 sm:p-6 ${
+                canDeleteAutomatically
+                  ? "border border-red-200 bg-red-50"
+                  : "border border-[#eadfd8] bg-[#fffaf7]"
+              }`}
+            >
               <div className="flex items-start gap-3">
-                <Trash2 size={25} className="mt-1 shrink-0 text-red-600" />
+                <Trash2
+                  size={25}
+                  className={`mt-1 shrink-0 ${
+                    canDeleteAutomatically
+                      ? "text-red-600"
+                      : "text-[#c76d7b]"
+                  }`}
+                />
 
                 <div className="flex-1">
-                  <h2 className="text-2xl font-black text-red-700">
-                    {tr("Supprimer mon compte", "Delete my account")}
+                  <h2
+                    className={`text-2xl font-black ${
+                      canDeleteAutomatically
+                        ? "text-red-700"
+                        : "text-[#064b42]"
+                    }`}
+                  >
+                    {isStructureAccount
+                      ? tr(
+                          "Compte lié à une structure",
+                          "Account linked to an organisation"
+                        )
+                      : isAdminAccount
+                        ? tr(
+                            "Protection du compte administrateur",
+                            "Administrator account protection"
+                          )
+                        : tr(
+                            "Supprimer mon compte",
+                            "Delete my account"
+                          )}
                   </h2>
 
-                  <p className="mt-2 leading-7 text-red-900/75">
-                    {tr(
-                      "Cette action est irréversible. Votre compte de connexion et vos données personnelles liées au compte seront supprimés ou anonymisés selon leur nature. Certaines informations utiles à la protection animale peuvent être conservées sans être rattachées à votre identité.",
-                      "This action is irreversible. Your sign-in account and personal data linked to it will be deleted or anonymised depending on their nature. Some information useful for animal protection may be retained without being linked to your identity."
-                    )}
-                  </p>
-
-                  {(profile.role === "admin" ||
-                    profile.role === "administrateur") ? (
-                    <div className="mt-5 rounded-[20px] border border-red-300 bg-white p-4 font-bold leading-6 text-red-700">
-                      {tr(
-                        "Par sécurité, un compte administrateur ne peut pas être supprimé depuis cette interface.",
-                        "For security reasons, an administrator account cannot be deleted from this interface."
-                      )}
-                    </div>
-                  ) : !deleteOpen ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeleteOpen(true);
-                        setDeleteError("");
-                      }}
-                      className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-3 font-black text-white shadow hover:bg-red-700"
-                    >
-                      <Trash2 size={18} />
-                      {tr("Supprimer mon compte", "Delete my account")}
-                    </button>
-                  ) : (
-                    <div className="mt-5 rounded-[24px] border-2 border-red-300 bg-white p-5">
-                      <p className="font-black text-red-700">
+                  {isStructureAccount ? (
+                    <>
+                      <p className="mt-2 leading-7 text-[#6f665f]">
                         {tr(
-                          "Confirmation finale",
-                          "Final confirmation"
+                          "Ce compte est rattaché à une structure. Pour protéger les animaux, les demandes d’adoption et l’historique de la structure, la suppression automatique est désactivée.",
+                          "This account is linked to an organisation. To protect animals, adoption applications and the organisation's history, automatic deletion is disabled."
                         )}
                       </p>
 
-                      <p className="mt-2 text-sm font-bold leading-6 text-[#6f665f]">
+                      <p className="mt-3 font-bold leading-7 text-[#064b42]">
                         {tr(
-                          "Pour confirmer la suppression définitive, écrivez exactement SUPPRIMER dans le champ ci-dessous.",
-                          "To confirm permanent deletion, type SUPPRIMER exactly in the field below."
+                          "Vous pouvez demander le transfert du compte à un nouveau responsable, la fermeture de la structure ou la suppression de vos données personnelles après transfert.",
+                          "You can request transfer of the account to a new manager, closure of the organisation, or deletion of your personal data after transfer."
                         )}
                       </p>
 
-                      <input
-                        type="text"
-                        value={deleteConfirmation}
-                        onChange={(event) => {
-                          setDeleteConfirmation(event.target.value);
-                          setDeleteError("");
-                        }}
-                        disabled={deleting}
-                        autoComplete="off"
-                        placeholder="SUPPRIMER"
-                        className="mt-4 min-h-[50px] w-full rounded-2xl border-2 border-red-200 bg-white px-4 font-black text-red-700 outline-none focus:border-red-500 disabled:opacity-60"
-                      />
+                      <a
+                        href="mailto:lesveilleursdekali@gmail.com?subject=TAUI%20TE%20ORA%20-%20Gestion%20compte%20structure"
+                        className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[#064b42] px-6 py-3 font-black text-white"
+                      >
+                        <Mail size={18} />
+                        {tr(
+                          "Contacter l’administration",
+                          "Contact administration"
+                        )}
+                      </a>
+                    </>
+                  ) : isAdminAccount ? (
+                    <>
+                      <p className="mt-2 leading-7 text-[#6f665f]">
+                        {tr(
+                          "Pour éviter la suppression accidentelle d’un accès essentiel à TAUI TE ORA, un compte administrateur ne peut pas être supprimé automatiquement depuis l’application.",
+                          "To prevent accidental deletion of essential TAUI TE ORA access, an administrator account cannot be automatically deleted from the application."
+                        )}
+                      </p>
 
-                      {deleteError && (
-                        <div className="mt-4 rounded-2xl bg-red-100 p-4 text-sm font-bold leading-6 text-red-800">
-                          {deleteError}
-                        </div>
-                      )}
+                      <p className="mt-3 font-bold leading-7 text-[#064b42]">
+                        {tr(
+                          "La suppression ou le transfert d’un compte administrateur doit être effectué manuellement après vérification des autres accès administrateurs.",
+                          "Deletion or transfer of an administrator account must be performed manually after checking the remaining administrator access."
+                        )}
+                      </p>
+                    </>
+                  ) : canDeleteAutomatically ? (
+                    <>
+                      <p className="mt-2 leading-7 text-red-900/75">
+                        {tr(
+                          "Cette action est définitive. Vos données personnelles seront supprimées ou anonymisées selon leur nature, puis votre compte de connexion sera supprimé.",
+                          "This action is permanent. Your personal data will be deleted or anonymised according to its nature, then your login account will be deleted."
+                        )}
+                      </p>
 
-                      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                      {!deleteOpen ? (
                         <button
                           type="button"
                           onClick={() => {
-                            setDeleteOpen(false);
+                            setDeleteOpen(true);
                             setDeleteConfirmation("");
                             setDeleteError("");
                           }}
-                          disabled={deleting}
-                          className="inline-flex min-h-[48px] items-center justify-center rounded-full border-2 border-[#d8cec7] bg-white px-6 py-3 font-black text-[#6f665f] disabled:opacity-50"
-                        >
-                          {tr("Annuler", "Cancel")}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => void deleteAccount()}
-                          disabled={
-                            deleting || deleteConfirmation !== "SUPPRIMER"
-                          }
-                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-3 font-black text-white shadow disabled:cursor-not-allowed disabled:bg-red-200 disabled:text-red-500"
+                          className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-3 font-black text-white shadow transition hover:bg-red-700"
                         >
                           <Trash2 size={18} />
-                          {deleting
-                            ? tr(
-                                "Suppression en cours...",
-                                "Deleting account..."
-                              )
-                            : tr(
-                                "Supprimer définitivement mon compte",
-                                "Permanently delete my account"
-                              )}
+                          {tr(
+                            "Supprimer mon compte",
+                            "Delete my account"
+                          )}
                         </button>
-                      </div>
-                    </div>
+                      ) : (
+                        <div className="mt-5 rounded-[22px] border border-red-200 bg-white p-5">
+                          <p className="font-black text-red-700">
+                            {tr(
+                              "Confirmation définitive",
+                              "Final confirmation"
+                            )}
+                          </p>
+
+                          <p className="mt-2 text-sm leading-6 text-red-900/75">
+                            {tr(
+                              "Pour confirmer, saisissez exactement SUPPRIMER dans le champ ci-dessous.",
+                              "To confirm, type exactly SUPPRIMER in the field below."
+                            )}
+                          </p>
+
+                          <input
+                            type="text"
+                            value={deleteConfirmation}
+                            onChange={(event) => {
+                              setDeleteConfirmation(
+                                event.target.value
+                              );
+                              setDeleteError("");
+                            }}
+                            autoComplete="off"
+                            placeholder="SUPPRIMER"
+                            className="mt-4 w-full rounded-[16px] border border-red-200 bg-white px-4 py-3 font-black text-red-700 outline-none focus:border-red-500"
+                          />
+
+                          {deleteError && (
+                            <div className="mt-4 rounded-[16px] bg-red-100 p-4 text-sm font-bold leading-6 text-red-800">
+                              {deleteError}
+                            </div>
+                          )}
+
+                          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeleteOpen(false);
+                                setDeleteConfirmation("");
+                                setDeleteError("");
+                              }}
+                              disabled={deletingAccount}
+                              className="min-h-[48px] rounded-full border border-[#d9cdc4] bg-white px-6 py-3 font-black text-[#6f665f] disabled:opacity-50"
+                            >
+                              {tr(
+                                "Annuler",
+                                "Cancel"
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void deleteAccount()
+                              }
+                              disabled={
+                                deletingAccount ||
+                                deleteConfirmation !==
+                                  "SUPPRIMER"
+                              }
+                              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-3 font-black text-white shadow disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Trash2 size={18} />
+                              {deletingAccount
+                                ? tr(
+                                    "Suppression en cours...",
+                                    "Deleting account..."
+                                  )
+                                : tr(
+                                    "Supprimer définitivement",
+                                    "Delete permanently"
+                                  )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-2 leading-7 text-[#6f665f]">
+                        {tr(
+                          "La suppression automatique n’est pas encore disponible pour ce type de profil. Contactez l’administration pour traiter votre demande sans risque pour les données liées à votre compte.",
+                          "Automatic deletion is not yet available for this profile type. Contact administration so your request can be handled without risking data linked to your account."
+                        )}
+                      </p>
+
+                      <a
+                        href="mailto:lesveilleursdekali@gmail.com?subject=TAUI%20TE%20ORA%20-%20Suppression%20de%20compte"
+                        className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[#064b42] px-6 py-3 font-black text-white"
+                      >
+                        <Mail size={18} />
+                        {tr(
+                          "Demander la suppression",
+                          "Request deletion"
+                        )}
+                      </a>
+                    </>
                   )}
                 </div>
               </div>
