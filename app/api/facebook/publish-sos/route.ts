@@ -22,10 +22,14 @@ type HelpSosRow = {
   animal_type: string | null;
   animals_count: number | null;
   photo_url: string | null;
+  companion_id: string | null;
+  adoption_animal_id: string | null;
   facebook_shared_at: string | null;
   facebook_post_id: string | null;
   facebook_share_status: string | null;
 };
+
+type AnyRow = Record<string, unknown>;
 
 function getSupabaseAdmin() {
   const supabaseUrl =
@@ -48,10 +52,8 @@ function getSupabaseAdmin() {
     serviceRoleKey,
     {
       auth: {
-        persistSession:
-          false,
-        autoRefreshToken:
-          false,
+        persistSession: false,
+        autoRefreshToken: false,
       },
     }
   );
@@ -72,10 +74,7 @@ function getFacebookConfig() {
     (
       process.env.NEXT_PUBLIC_SITE_URL ||
       "https://www.taui-te-ora.com"
-    ).replace(
-      /\/+$/,
-      ""
-    );
+    ).replace(/\/+$/, "");
 
   if (
     !pageId ||
@@ -99,19 +98,69 @@ function clean(
     | string
     | null
     | undefined
+    | unknown
 ) {
   return String(
-    value || ""
+    value ?? ""
   ).trim();
+}
+
+function firstValue(
+  row: AnyRow | null,
+  keys: string[]
+) {
+  if (!row) {
+    return "";
+  }
+
+  for (const key of keys) {
+    const value =
+      clean(row[key]);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+async function tryLoadRow(
+  supabase: ReturnType<
+    typeof getSupabaseAdmin
+  >,
+  tableName: string,
+  id: string
+): Promise<AnyRow | null> {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase
+        .from(tableName)
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (
+      error ||
+      !data
+    ) {
+      return null;
+    }
+
+    return data as AnyRow;
+  } catch {
+    return null;
+  }
 }
 
 function helpTypeLabel(
   value: string
 ) {
   const normalized =
-    clean(
-      value
-    ).toLowerCase();
+    clean(value).toLowerCase();
 
   if (
     normalized ===
@@ -162,23 +211,18 @@ function buildFacebookMessage(
   sos: HelpSosRow,
   publicUrl: string
 ) {
-  const lines:
-    string[] = [];
+  const lines: string[] = [];
 
   lines.push(
-    sos.urgency ===
-    "critique"
+    sos.urgency === "critique"
       ? "🚨 SOS CRITIQUE — TAUI TE ORA"
-      : sos.urgency ===
-        "urgente"
-      ? "⚠️ SOS URGENT — TAUI TE ORA"
-      : "🐾 SOS — TAUI TE ORA"
+      : sos.urgency === "urgente"
+        ? "⚠️ SOS URGENT — TAUI TE ORA"
+        : "🐾 SOS — TAUI TE ORA"
   );
 
   lines.push("");
-  lines.push(
-    sos.title
-  );
+  lines.push(sos.title);
   lines.push("");
 
   lines.push(
@@ -189,12 +233,8 @@ function buildFacebookMessage(
 
   const location =
     [
-      clean(
-        sos.city
-      ),
-      clean(
-        sos.island
-      ),
+      clean(sos.city),
+      clean(sos.island),
     ].filter(Boolean);
 
   if (
@@ -216,7 +256,7 @@ function buildFacebookMessage(
         1,
         Number(
           sos.animals_count ||
-          1
+            1
         )
       );
 
@@ -232,13 +272,9 @@ function buildFacebookMessage(
   }
 
   const description =
-    clean(
-      sos.message
-    );
+    clean(sos.message);
 
-  if (
-    description
-  ) {
+  if (description) {
     lines.push("");
 
     lines.push(
@@ -274,9 +310,222 @@ function buildFacebookMessage(
     "#TauiTeOra #LesVeilleursDeKali #SOSAnimal #EntraideAnimale #PolynesieFrancaise"
   );
 
-  return lines.join(
-    "\n"
-  );
+  return lines.join("\n");
+}
+
+async function getBestFacebookPhoto({
+  supabase,
+  sos,
+  fallbackShareImageUrl,
+}: {
+  supabase: ReturnType<
+    typeof getSupabaseAdmin
+  >;
+  sos: HelpSosRow;
+  fallbackShareImageUrl: string;
+}) {
+  /*
+   * PRIORITE :
+   *
+   * 1. photo enregistrée directement sur le SOS
+   * 2. photo du compagnon Taui Te Ora
+   * 3. photo de couverture de l'animal en adoption
+   * 4. photo/avatar/logo du profil qui demande de l'aide
+   * 5. visuel Taui Te Ora généré
+   */
+
+  const directPhoto =
+    clean(
+      sos.photo_url
+    );
+
+  if (directPhoto) {
+    return {
+      url: directPhoto,
+      source: "sos_photo",
+    };
+  }
+
+  if (
+    sos.companion_id
+  ) {
+    const companion =
+      await tryLoadRow(
+        supabase,
+        "companions",
+        sos.companion_id
+      );
+
+    const companionPhoto =
+      firstValue(
+        companion,
+        [
+          "photo_url",
+          "avatar_url",
+          "image_url",
+          "profile_image_url",
+        ]
+      );
+
+    if (
+      companionPhoto
+    ) {
+      return {
+        url:
+          companionPhoto,
+        source:
+          "companion",
+      };
+    }
+  }
+
+  if (
+    sos.adoption_animal_id
+  ) {
+    try {
+      const {
+        data:
+          photos,
+      } =
+        await supabase
+          .from(
+            "animal_photos"
+          )
+          .select(
+            "photo_url,is_cover,sort_order"
+          )
+          .eq(
+            "animal_id",
+            sos.adoption_animal_id
+          )
+          .order(
+            "is_cover",
+            {
+              ascending:
+                false,
+            }
+          )
+          .order(
+            "sort_order",
+            {
+              ascending:
+                true,
+            }
+          );
+
+      const rows =
+        (
+          photos ||
+          []
+        ) as Array<{
+          photo_url:
+            string | null;
+          is_cover:
+            boolean | null;
+          sort_order:
+            number | null;
+        }>;
+
+      const adoptionPhoto =
+        rows.find(
+          (item) =>
+            Boolean(
+              item.is_cover &&
+              item.photo_url
+            )
+        )?.photo_url ||
+        rows.find(
+          (item) =>
+            Boolean(
+              item.photo_url
+            )
+        )?.photo_url ||
+        "";
+
+      if (
+        adoptionPhoto
+      ) {
+        return {
+          url:
+            adoptionPhoto,
+          source:
+            "adoption_animal",
+        };
+      }
+    } catch {
+      // On tente ensuite une éventuelle photo directe sur animals.
+    }
+
+    const animal =
+      await tryLoadRow(
+        supabase,
+        "animals",
+        sos.adoption_animal_id
+      );
+
+    const animalPhoto =
+      firstValue(
+        animal,
+        [
+          "photo_url",
+          "image_url",
+          "avatar_url",
+        ]
+      );
+
+    if (
+      animalPhoto
+    ) {
+      return {
+        url:
+          animalPhoto,
+        source:
+          "adoption_animal",
+      };
+    }
+  }
+
+  if (
+    sos.created_by
+  ) {
+    const profile =
+      await tryLoadRow(
+        supabase,
+        "profiles",
+        sos.created_by
+      );
+
+    const profilePhoto =
+      firstValue(
+        profile,
+        [
+          "avatar_url",
+          "photo_url",
+          "logo_url",
+          "profile_image_url",
+          "image_url",
+          "logo",
+        ]
+      );
+
+    if (
+      profilePhoto
+    ) {
+      return {
+        url:
+          profilePhoto,
+        source:
+          "creator_profile",
+      };
+    }
+  }
+
+  return {
+    url:
+      fallbackShareImageUrl,
+    source:
+      "taui_fallback",
+  };
 }
 
 async function publishFacebookPhoto({
@@ -286,16 +535,11 @@ async function publishFacebookPhoto({
   photoUrl,
   caption,
 }: {
-  pageId:
-    string;
-  pageAccessToken:
-    string;
-  graphVersion:
-    string;
-  photoUrl:
-    string;
-  caption:
-    string;
+  pageId: string;
+  pageAccessToken: string;
+  graphVersion: string;
+  photoUrl: string;
+  caption: string;
 }) {
   const endpoint =
     `https://graph.facebook.com/${graphVersion}/${pageId}/photos`;
@@ -348,7 +592,7 @@ async function publishFacebookPhoto({
   ) {
     throw new Error(
       result?.error?.message ||
-      "Erreur Facebook lors de la publication du SOS."
+        "Erreur Facebook lors de la publication du SOS."
     );
   }
 
@@ -356,21 +600,19 @@ async function publishFacebookPhoto({
     id:
       String(
         result?.post_id ||
-        result?.id ||
-        ""
+          result?.id ||
+          ""
       ),
   };
 }
 
 export async function POST(
-  request:
-    NextRequest
+  request: NextRequest
 ) {
   const supabase =
     getSupabaseAdmin();
 
-  let sosId =
-    "";
+  let sosId = "";
 
   try {
     const authorization =
@@ -521,6 +763,8 @@ export async function POST(
             animal_type,
             animals_count,
             photo_url,
+            companion_id,
+            adoption_animal_id,
             facebook_shared_at,
             facebook_post_id,
             facebook_share_status
@@ -541,6 +785,7 @@ export async function POST(
           ok:
             false,
           error:
+            sosError?.message ||
             "SOS introuvable.",
         },
         {
@@ -551,8 +796,7 @@ export async function POST(
     }
 
     const typedSos =
-      sos as
-        HelpSosRow;
+      sos as HelpSosRow;
 
     if (
       !isAdmin &&
@@ -651,21 +895,23 @@ export async function POST(
         sosId
       )}`;
 
-    /*
-     * IMPORTANT :
-     * On publie TOUJOURS l'image générée par Taui Te Ora.
-     *
-     * Cette image choisit elle-même :
-     * 1. photo du SOS / animal,
-     * 2. photo du compagnon,
-     * 3. photo animal en adoption,
-     * 4. photo du profil demandeur,
-     * 5. design Taui Te Ora si rien n'existe.
-     */
-    const shareImageUrl =
+    const fallbackShareImageUrl =
       `${config.siteUrl}/api/share-image/sos/${encodeURIComponent(
         sosId
-      )}?v=${Date.now()}`;
+      )}?fallback=1&v=${Date.now()}`;
+
+    const {
+      url:
+        facebookPhotoUrl,
+      source:
+        facebookPhotoSource,
+    } =
+      await getBestFacebookPhoto({
+        supabase,
+        sos:
+          typedSos,
+        fallbackShareImageUrl,
+      });
 
     const message =
       buildFacebookMessage(
@@ -682,7 +928,7 @@ export async function POST(
         graphVersion:
           config.graphVersion,
         photoUrl:
-          shareImageUrl,
+          facebookPhotoUrl,
         caption:
           message,
       });
@@ -728,6 +974,10 @@ export async function POST(
       facebook_post_id:
         result.id ||
         null,
+      facebook_photo_source:
+        facebookPhotoSource,
+      facebook_photo_url:
+        facebookPhotoUrl,
     });
   } catch (
     error:
