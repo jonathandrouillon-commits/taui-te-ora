@@ -26,6 +26,18 @@ type HelpType =
 type Urgency = "normale" | "urgente" | "critique";
 type SosStatus = "ouvert" | "en_cours" | "cloture";
 
+type FosterSize = "" | "small" | "medium" | "large";
+type FosterAge = "" | "puppy" | "young" | "adult" | "senior";
+type FosterSex = "" | "male" | "female";
+type FosterDuration =
+  | ""
+  | "emergency"
+  | "days"
+  | "week"
+  | "weeks"
+  | "months"
+  | "until_adoption";
+
 type HelpSos = {
   id: string;
   created_by: string;
@@ -60,6 +72,36 @@ type MatchingHelper = {
   foster_accepts_dogs?: boolean | null;
   foster_accepts_cats?: boolean | null;
   help_has_transport?: boolean | null;
+
+  foster_size_small?: boolean | null;
+  foster_size_medium?: boolean | null;
+  foster_size_large?: boolean | null;
+
+  foster_age_puppy?: boolean | null;
+  foster_age_young?: boolean | null;
+  foster_age_adult?: boolean | null;
+  foster_age_senior?: boolean | null;
+
+  foster_accepts_male?: boolean | null;
+  foster_accepts_female?: boolean | null;
+
+  foster_temperament_calm?: boolean | null;
+  foster_temperament_social?: boolean | null;
+  foster_temperament_shy?: boolean | null;
+  foster_temperament_active?: boolean | null;
+  foster_accepts_reactive?: boolean | null;
+
+  foster_accepts_medical?: boolean | null;
+  foster_accepts_recovery?: boolean | null;
+  foster_accepts_disabled?: boolean | null;
+  foster_accepts_special_needs?: boolean | null;
+
+  foster_has_garden?: boolean | null;
+  foster_garden_fenced?: boolean | null;
+  foster_can_isolate?: boolean | null;
+  foster_can_medicate?: boolean | null;
+
+  foster_hours_alone?: number | null;
 };
 
 const HELP_TYPES: Array<{
@@ -82,6 +124,32 @@ const EMPTY_FORM = {
   city: "",
   message: "",
   urgency: "urgente" as Urgency,
+
+  animal_type: "chien",
+  animals_count: 1,
+
+  foster_size: "" as FosterSize,
+  foster_age: "" as FosterAge,
+  foster_sex: "" as FosterSex,
+
+  foster_temperament_calm: false,
+  foster_temperament_social: false,
+  foster_temperament_shy: false,
+  foster_temperament_active: false,
+  foster_reactive: false,
+
+  foster_medical: false,
+  foster_recovery: false,
+  foster_disabled: false,
+  foster_special_needs: false,
+
+  foster_requires_garden: false,
+  foster_requires_fenced_garden: false,
+  foster_requires_isolation: false,
+  foster_requires_medication: false,
+
+  foster_max_hours_alone: "" as number | "",
+  foster_required_duration: "" as FosterDuration,
 };
 
 function helpTypeLabel(value: HelpType) {
@@ -154,6 +222,41 @@ function getSosWhatsappShareUrl(
     )
   );
 }
+
+
+const FOSTER_SIZES: Array<{ value: FosterSize; label: string }> = [
+  { value: "", label: "Sans préférence" },
+  { value: "small", label: "Petit" },
+  { value: "medium", label: "Moyen" },
+  { value: "large", label: "Grand" },
+];
+
+const FOSTER_AGES: Array<{ value: FosterAge; label: string }> = [
+  { value: "", label: "Sans préférence" },
+  { value: "puppy", label: "Chiot / chaton" },
+  { value: "young", label: "Jeune" },
+  { value: "adult", label: "Adulte" },
+  { value: "senior", label: "Senior" },
+];
+
+const FOSTER_SEXES: Array<{ value: FosterSex; label: string }> = [
+  { value: "", label: "Sans préférence" },
+  { value: "male", label: "Mâle" },
+  { value: "female", label: "Femelle" },
+];
+
+const FOSTER_DURATIONS: Array<{
+  value: FosterDuration;
+  label: string;
+}> = [
+  { value: "", label: "Non précisée" },
+  { value: "emergency", label: "Urgence 24 / 48 h" },
+  { value: "days", label: "Quelques jours" },
+  { value: "week", label: "1 semaine" },
+  { value: "weeks", label: "Plusieurs semaines" },
+  { value: "months", label: "Plusieurs mois" },
+  { value: "until_adoption", label: "Jusqu'à adoption" },
+];
 
 export default function HelpSosPage() {
   const router = useRouter();
@@ -273,6 +376,16 @@ export default function HelpSosPage() {
         throw new Error("Décrivez le besoin.");
       }
 
+      if (form.help_type === "famille_accueil") {
+        if (!form.animal_type.trim()) {
+          throw new Error("Indiquez le type d'animal à accueillir.");
+        }
+
+        if (Number(form.animals_count || 0) < 1) {
+          throw new Error("Indiquez au moins un animal.");
+        }
+      }
+
       /*
        * On ouvre la fenêtre pendant le clic utilisateur
        * pour éviter que le navigateur bloque la popup.
@@ -329,6 +442,108 @@ export default function HelpSosPage() {
           message: form.message.trim(),
           urgency: form.urgency,
           status: "ouvert",
+
+          animal_type:
+            form.help_type === "famille_accueil"
+              ? form.animal_type.trim() || null
+              : null,
+
+          animals_count:
+            form.help_type === "famille_accueil"
+              ? Math.max(1, Number(form.animals_count || 1))
+              : null,
+
+          foster_size:
+            form.help_type === "famille_accueil" && form.foster_size
+              ? form.foster_size
+              : null,
+
+          foster_age:
+            form.help_type === "famille_accueil" && form.foster_age
+              ? form.foster_age
+              : null,
+
+          foster_sex:
+            form.help_type === "famille_accueil" && form.foster_sex
+              ? form.foster_sex
+              : null,
+
+          foster_temperament_calm:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_calm
+              : null,
+
+          foster_temperament_social:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_social
+              : null,
+
+          foster_temperament_shy:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_shy
+              : null,
+
+          foster_temperament_active:
+            form.help_type === "famille_accueil"
+              ? form.foster_temperament_active
+              : null,
+
+          foster_reactive:
+            form.help_type === "famille_accueil"
+              ? form.foster_reactive
+              : null,
+
+          foster_medical:
+            form.help_type === "famille_accueil"
+              ? form.foster_medical
+              : null,
+
+          foster_recovery:
+            form.help_type === "famille_accueil"
+              ? form.foster_recovery
+              : null,
+
+          foster_disabled:
+            form.help_type === "famille_accueil"
+              ? form.foster_disabled
+              : null,
+
+          foster_special_needs:
+            form.help_type === "famille_accueil"
+              ? form.foster_special_needs
+              : null,
+
+          foster_requires_garden:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_garden
+              : null,
+
+          foster_requires_fenced_garden:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_fenced_garden
+              : null,
+
+          foster_requires_isolation:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_isolation
+              : null,
+
+          foster_requires_medication:
+            form.help_type === "famille_accueil"
+              ? form.foster_requires_medication
+              : null,
+
+          foster_max_hours_alone:
+            form.help_type === "famille_accueil" &&
+            form.foster_max_hours_alone !== ""
+              ? Number(form.foster_max_hours_alone)
+              : null,
+
+          foster_required_duration:
+            form.help_type === "famille_accueil" &&
+            form.foster_required_duration
+              ? form.foster_required_duration
+              : null,
         })
         .select("id")
         .single();
@@ -770,6 +985,327 @@ export default function HelpSosPage() {
                   )}
                 </div>
               </label>
+
+              {form.help_type === "famille_accueil" ? (
+                <section className="rounded-[26px] border border-[#eadfd8] bg-[#fffaf5] p-5 sm:p-6">
+                  <div>
+                    <h3 className="text-xl font-black text-[#064b42]">
+                      🏠 Critères de la famille d'accueil
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[#756d67]">
+                      Plus ces informations sont précises, plus Taui Te Ora pourra
+                      proposer des familles réellement adaptées à l'animal.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Type d'animal *
+                      </span>
+
+                      <select
+                        value={form.animal_type}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            animal_type: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+                      >
+                        <option value="chien">🐶 Chien</option>
+                        <option value="chat">🐱 Chat</option>
+                        <option value="autre">🐾 Autre</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Nombre d'animaux *
+                      </span>
+
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={form.animals_count}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            animals_count: Math.max(
+                              1,
+                              Number(event.target.value || 1)
+                            ),
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 outline-none focus:border-[#064b42]"
+                      />
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Taille
+                      </span>
+
+                      <select
+                        value={form.foster_size}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            foster_size: event.target.value as FosterSize,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+                      >
+                        {FOSTER_SIZES.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Âge
+                      </span>
+
+                      <select
+                        value={form.foster_age}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            foster_age: event.target.value as FosterAge,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+                      >
+                        {FOSTER_AGES.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Sexe
+                      </span>
+
+                      <select
+                        value={form.foster_sex}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            foster_sex: event.target.value as FosterSex,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+                      >
+                        {FOSTER_SEXES.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Durée recherchée
+                      </span>
+
+                      <select
+                        value={form.foster_required_duration}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            foster_required_duration:
+                              event.target.value as FosterDuration,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"
+                      >
+                        {FOSTER_DURATIONS.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-2 block text-sm font-black text-[#064b42]">
+                        Temps maximum seul / jour
+                      </span>
+
+                      <input
+                        type="number"
+                        min={0}
+                        max={24}
+                        value={form.foster_max_hours_alone}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            foster_max_hours_alone:
+                              event.target.value === ""
+                                ? ""
+                                : Number(event.target.value),
+                          }))
+                        }
+                        placeholder="Ex. 4"
+                        className="w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 outline-none focus:border-[#064b42]"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-sm font-black uppercase tracking-[0.12em] text-[#df8995]">
+                      Caractère / comportement
+                    </p>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {[
+                        ["foster_temperament_calm", "😌 Calme"],
+                        ["foster_temperament_social", "🐾 Sociable"],
+                        ["foster_temperament_shy", "🌱 Timide"],
+                        ["foster_temperament_active", "⚡ Actif"],
+                        ["foster_reactive", "⚠️ Réactif"],
+                      ].map(([key, label]) => {
+                        const typedKey = key as
+                          | "foster_temperament_calm"
+                          | "foster_temperament_social"
+                          | "foster_temperament_shy"
+                          | "foster_temperament_active"
+                          | "foster_reactive";
+
+                        const checked = Boolean(form[typedKey]);
+
+                        return (
+                          <button
+                            key={typedKey}
+                            type="button"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                [typedKey]: !current[typedKey],
+                              }))
+                            }
+                            className={`rounded-2xl border-2 px-4 py-3 text-left text-sm font-black ${
+                              checked
+                                ? "border-[#df8995] bg-[#fce8ec] text-[#064b42]"
+                                : "border-[#eee5dc] bg-white text-[#756d67]"
+                            }`}
+                          >
+                            {checked ? "✓ " : ""}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-sm font-black uppercase tracking-[0.12em] text-[#df8995]">
+                      Besoins particuliers
+                    </p>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {[
+                        ["foster_medical", "💊 Traitement médical"],
+                        ["foster_recovery", "🩹 Convalescence"],
+                        ["foster_disabled", "♿ Handicap"],
+                        ["foster_special_needs", "❤️ Besoins particuliers"],
+                      ].map(([key, label]) => {
+                        const typedKey = key as
+                          | "foster_medical"
+                          | "foster_recovery"
+                          | "foster_disabled"
+                          | "foster_special_needs";
+
+                        const checked = Boolean(form[typedKey]);
+
+                        return (
+                          <button
+                            key={typedKey}
+                            type="button"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                [typedKey]: !current[typedKey],
+                              }))
+                            }
+                            className={`rounded-2xl border-2 px-4 py-3 text-left text-sm font-black ${
+                              checked
+                                ? "border-[#df8995] bg-[#fce8ec] text-[#064b42]"
+                                : "border-[#eee5dc] bg-white text-[#756d67]"
+                            }`}
+                          >
+                            {checked ? "✓ " : ""}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-sm font-black uppercase tracking-[0.12em] text-[#df8995]">
+                      Environnement nécessaire
+                    </p>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {[
+                        ["foster_requires_garden", "🌿 Jardin nécessaire"],
+                        [
+                          "foster_requires_fenced_garden",
+                          "🔒 Terrain clôturé nécessaire",
+                        ],
+                        [
+                          "foster_requires_isolation",
+                          "🚪 Possibilité d'isoler l'animal",
+                        ],
+                        [
+                          "foster_requires_medication",
+                          "💊 Administration de médicaments",
+                        ],
+                      ].map(([key, label]) => {
+                        const typedKey = key as
+                          | "foster_requires_garden"
+                          | "foster_requires_fenced_garden"
+                          | "foster_requires_isolation"
+                          | "foster_requires_medication";
+
+                        const checked = Boolean(form[typedKey]);
+
+                        return (
+                          <button
+                            key={typedKey}
+                            type="button"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                [typedKey]: !current[typedKey],
+                              }))
+                            }
+                            className={`rounded-2xl border-2 px-4 py-3 text-left text-sm font-black ${
+                              checked
+                                ? "border-[#064b42] bg-[#edf7f4] text-[#064b42]"
+                                : "border-[#eee5dc] bg-white text-[#756d67]"
+                            }`}
+                          >
+                            {checked ? "✓ " : ""}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
 
               <label>
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
