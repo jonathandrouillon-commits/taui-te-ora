@@ -19,6 +19,7 @@ import {
 } from "next/navigation";
 
 import { supabase } from "../../../../lib/supabase";
+import AnimalBreedSelect from "../../../../components/AnimalBreedSelect";
 
 type AnimalStatus =
   | "available"
@@ -697,18 +698,36 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
-              label="Type"
-              value={
-                form.animal_type
-              }
-              onChange={(value) =>
-                updateField(
-                  "animal_type",
-                  value
-                )
-              }
-            />
+            <div>
+              <label className="mb-2 block font-bold text-[#064b42]">
+                Type
+              </label>
+
+              <select
+                value={form.animal_type}
+                onChange={(event) => {
+                  updateField(
+                    "animal_type",
+                    event.target.value
+                  );
+                  updateField(
+                    "breed",
+                    ""
+                  );
+                }}
+                className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+              >
+                <option value="">
+                  Sélectionner
+                </option>
+                <option value="Chien">Chien</option>
+                <option value="Chat">Chat</option>
+                <option value="Cheval">Cheval</option>
+                <option value="Oiseau">Oiseau</option>
+                <option value="Lapin">Lapin</option>
+                <option value="Autres">Autres</option>
+              </select>
+            </div>
 
             <Input
               label="Âge"
@@ -734,16 +753,23 @@ export default function EditAnimalPage() {
               }
             />
 
-            <Input
-              label="Race"
-              value={form.breed}
-              onChange={(value) =>
-                updateField(
-                  "breed",
-                  value
-                )
-              }
-            />
+            <div>
+              <label className="mb-2 block font-bold text-[#064b42]">
+                Race
+              </label>
+
+              <AnimalBreedSelect
+                species={form.animal_type}
+                value={form.breed}
+                onChange={(value) =>
+                  updateField(
+                    "breed",
+                    value
+                  )
+                }
+                className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+              />
+            </div>
 
             <Input
               label="Taille"
