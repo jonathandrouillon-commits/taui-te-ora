@@ -199,6 +199,9 @@ export default function WalkDetailsPage() {
             []
         );
 
+        let companionInvitationsForChat:
+          CompanionInvitation[] = [];
+
         if (auth.user) {
           const {
             data: invitationData,
@@ -243,7 +246,7 @@ export default function WalkDetailsPage() {
             );
             setCompanionInvitations([]);
           } else {
-            setCompanionInvitations(
+            companionInvitationsForChat =
               (invitationData || []).map(
                 (invitation: any) => ({
                   ...invitation,
@@ -256,12 +259,27 @@ export default function WalkDetailsPage() {
                       : invitation.companion ||
                         null,
                 })
-              ) as CompanionInvitation[]
+              ) as CompanionInvitation[];
+
+            setCompanionInvitations(
+              companionInvitationsForChat
             );
           }
         } else {
           setCompanionInvitations([]);
         }
+
+        const hasAcceptedCompanionInvitation =
+          Boolean(
+            auth.user &&
+              companionInvitationsForChat.some(
+                (invitation) =>
+                  invitation.owner_id ===
+                    auth.user?.id &&
+                  invitation.status ===
+                    "accepted"
+              )
+          );
 
         const canLoadChat =
           Boolean(
@@ -275,7 +293,8 @@ export default function WalkDetailsPage() {
                       "accepted"
                 ) ||
                 walkData?.organizer_id ===
-                  auth.user?.id
+                  auth.user?.id ||
+                hasAcceptedCompanionInvitation
               )
           );
 
@@ -601,11 +620,21 @@ export default function WalkDetailsPage() {
         userId
     );
 
+  const hasAcceptedCompanionInvitation =
+    companionInvitations.some(
+      (invitation) =>
+        invitation.owner_id ===
+          userId &&
+        invitation.status ===
+          "accepted"
+    );
+
   const canChat =
     walk.organizer_id ===
       userId ||
     mine?.status ===
-      "accepted";
+      "accepted" ||
+    hasAcceptedCompanionInvitation;
 
   const acceptedCount =
     participants.filter(
