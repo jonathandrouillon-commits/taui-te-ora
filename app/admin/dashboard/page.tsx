@@ -100,6 +100,9 @@ export default function AdminDashboardPage() {
     setLanguageSaved,
   ] = useState(false);
 
+  const tr = (fr: string, en: string) =>
+    preferredLanguage === "en" ? en : fr;
+
   const [
     unreadNotifications,
     setUnreadNotifications,
@@ -503,7 +506,7 @@ export default function AdminDashboardPage() {
           text-[#064b42]
         "
       >
-        Chargement...
+        {tr("Chargement...", "Loading...")}
       </main>
     );
   }
@@ -581,7 +584,7 @@ export default function AdminDashboardPage() {
   function exportSignalementsCsv() {
     const headers = ["Date", "Statut", "Type", "Animal", "Ile", "Commune"];
     const rows = signalements.map((item) => [
-      item.created_at ? new Date(item.created_at).toLocaleString("fr-FR") : "",
+      item.created_at ? new Date(item.created_at).toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR") : "",
       normalizeSignalementStatus(item.status),
       item.type_signalement || "",
       item.animal_type || "",
@@ -622,21 +625,44 @@ export default function AdminDashboardPage() {
   function getProfileNameById(
     profileId?: string | null
   ) {
-    if (!profileId) return "Profil inconnu";
+    if (!profileId) return tr("Profil inconnu", "Unknown profile");
 
     const found = users.find(
       (item) => item.id === profileId
     );
 
-    if (!found) return "Profil inconnu";
+    if (!found) return tr("Profil inconnu", "Unknown profile");
 
     return (
       found.organization_name ||
       `${found.first_name || ""} ${
         found.last_name || ""
       }`.trim() ||
-      "Profil"
+      tr("Profil", "Profile")
     );
+  }
+
+  function getAdminRequestStatusLabelLocalized(
+    status?: string | null
+  ) {
+    const value = String(status || "pending")
+      .trim()
+      .toLowerCase();
+
+    switch (value) {
+      case "meeting":
+        return tr("Rencontre", "Meeting");
+      case "accepted":
+        return tr("Adoption validée", "Adoption approved");
+      case "rejected":
+      case "refused":
+        return tr("Refusée", "Rejected");
+      case "cancelled":
+        return tr("Annulée", "Cancelled");
+      case "pending":
+      default:
+        return tr("En attente", "Pending");
+    }
   }
 
   function getAnimalById(
@@ -691,7 +717,7 @@ export default function AdminDashboardPage() {
                 sm:text-5xl
               "
             >
-              Administration
+              {tr("Administration", "Administration")}
             </h1>
 
             <p
@@ -700,7 +726,7 @@ export default function AdminDashboardPage() {
                 text-gray-500
               "
             >
-              Bonjour{" "}
+              {tr("Bonjour", "Hello")}{" "}
               {profileService.getDisplayName(
                 profile
               )}
@@ -745,7 +771,7 @@ export default function AdminDashboardPage() {
               aria-label="Notifications"
             >
               <Bell size={21} />
-              Notifications
+              {tr("Notifications", "Notifications")}
 
               {unreadNotifications > 0 && (
                 <span
@@ -777,7 +803,7 @@ export default function AdminDashboardPage() {
                 )
               }
             >
-              Gérer les utilisateurs
+              {tr("Gérer les utilisateurs", "Manage users")}
             </Button>
           </div>
         </div>
@@ -790,15 +816,15 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex-1">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
-                Préférences
+                {tr("Préférences", "Preferences")}
               </p>
 
               <h2 className="mt-1 text-2xl font-black text-[#064b42]">
-                🌐 Langue de l&apos;application
+                🌐 {tr("Langue de l’application", "Application language")}
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                Choisissez la langue utilisée par Taui Te Ora pour votre compte administrateur.
+                {tr("Choisissez la langue utilisée par Taui Te Ora pour votre compte administrateur.", "Choose the language used by Taui Te Ora for your administrator account.")}
               </p>
 
               <select
@@ -830,13 +856,13 @@ export default function AdminDashboardPage() {
                 className="min-h-[48px] rounded-xl bg-[#064b42] px-6 py-3 font-black text-white transition hover:bg-[#08695d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingLanguage
-                  ? "Enregistrement..."
-                  : "Enregistrer la langue"}
+                  ? tr("Enregistrement...", "Saving...")
+                  : tr("Enregistrer la langue", "Save language")}
               </button>
 
               {languageSaved && (
                 <p className="text-sm font-black text-green-700">
-                  ✓ Langue enregistrée
+                  ✓ {tr("Langue enregistrée", "Language saved")}
                 </p>
               )}
             </div>
@@ -886,7 +912,7 @@ export default function AdminDashboardPage() {
                 text-gray-500
               "
             >
-              Utilisateurs
+              {tr("Utilisateurs", "Users")}
             </p>
           </Card>
 
@@ -920,7 +946,7 @@ export default function AdminDashboardPage() {
                 text-gray-500
               "
             >
-              En attente
+              {tr("En attente", "Pending")}
             </p>
           </Card>
 
@@ -954,7 +980,7 @@ export default function AdminDashboardPage() {
                 text-gray-500
               "
             >
-              Animaux
+              {tr("Animaux", "Animals")}
             </p>
           </Card>
 
@@ -988,13 +1014,13 @@ export default function AdminDashboardPage() {
                 text-gray-500
               "
             >
-              Signalements
+              {tr("Signalements", "Reports")}
             </p>
 
             <div className="mt-4 border-t border-gray-100 pt-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-bold text-red-600">
-                  Nouveau signalement
+                  {tr("Nouveau signalement", "New report")}
                 </span>
                 <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-black text-red-700">
                   {newSignalements}
@@ -1011,9 +1037,9 @@ export default function AdminDashboardPage() {
         <div className="mt-10">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl font-black">Rapport des signalements</h2>
+              <h2 className="text-3xl font-black">{tr("Rapport des signalements", "Report overview")}</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Analyse par période et par commune.
+                {tr("Analyse par période et par commune.", "Analysis by period and municipality.")}
               </p>
             </div>
 
@@ -1022,38 +1048,38 @@ export default function AdminDashboardPage() {
               onClick={exportSignalementsCsv}
               className="rounded-xl bg-[#064b42] px-5 py-3 font-black text-white transition hover:bg-[#08695d] active:scale-[0.98]"
             >
-              Exporter CSV
+              {tr("Exporter CSV", "Export CSV")}
             </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="text-center">
               <h3 className="text-4xl font-black text-red-600">{signalementsToday}</h3>
-              <p className="mt-1 text-gray-500">Aujourd’hui</p>
+              <p className="mt-1 text-gray-500">{tr("Aujourd’hui", "Today")}</p>
             </Card>
 
             <Card className="text-center">
               <h3 className="text-4xl font-black text-orange-600">{signalementsWeek}</h3>
-              <p className="mt-1 text-gray-500">Cette semaine</p>
+              <p className="mt-1 text-gray-500">{tr("Cette semaine", "This week")}</p>
             </Card>
 
             <Card className="text-center">
               <h3 className="text-4xl font-black text-[#064b42]">{signalementsMonth}</h3>
-              <p className="mt-1 text-gray-500">Ce mois</p>
+              <p className="mt-1 text-gray-500">{tr("Ce mois", "This month")}</p>
             </Card>
 
             <Card className="text-center">
               <h3 className="text-4xl font-black text-[#064b42]">{signalements.length}</h3>
-              <p className="mt-1 text-gray-500">Cumulé</p>
+              <p className="mt-1 text-gray-500">{tr("Cumulé", "Total")}</p>
             </Card>
           </div>
 
           <Card className="mt-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-2xl font-black">Signalements par commune</h3>
+                <h3 className="text-2xl font-black">{tr("Signalements par commune", "Reports by municipality")}</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Nombre et part de chaque commune dans les signalements reçus.
+                  {tr("Nombre et part de chaque commune dans les signalements reçus.", "Number and share of reports received for each municipality.")}
                 </p>
               </div>
 
@@ -1062,12 +1088,12 @@ export default function AdminDashboardPage() {
                 onClick={() => router.push("/admin/signalements")}
                 className="rounded-xl bg-[#f3ecdf] px-4 py-2.5 font-black text-[#8b653c]"
               >
-                Voir les signalements
+                {tr("Voir les signalements", "View reports")}
               </button>
             </div>
 
             {signalementsByCity.length === 0 ? (
-              <p className="mt-5 text-gray-500">Aucun signalement enregistré.</p>
+              <p className="mt-5 text-gray-500">{tr("Aucun signalement enregistré.", "No reports recorded.")}</p>
             ) : (
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 {signalementsByCity.map(([city, count]) => {
@@ -1098,7 +1124,7 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <p className="mt-2 text-xs font-bold text-gray-500">
-                        {percentage}% du total
+                        {percentage}% {tr("du total", "of total")}
                       </p>
                     </div>
                   );
@@ -1116,11 +1142,11 @@ export default function AdminDashboardPage() {
         <div className="mt-10">
           <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
-              Traçabilité
+              {tr("Traçabilité", "Traceability")}
             </p>
 
             <h2 className="mt-1 text-3xl font-black">
-              Conditions d&apos;adoption signées
+              {tr("Conditions d’adoption signées", "Signed adoption conditions")}
             </h2>
 
             <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
@@ -1133,7 +1159,7 @@ export default function AdminDashboardPage() {
           {adoptionRequestsError ? (
             <Card className="border border-red-200 bg-red-50">
               <p className="font-black text-red-700">
-                Impossible de charger les demandes signées.
+                {tr("Impossible de charger les demandes signées.", "Unable to load signed requests.")}
               </p>
               <p className="mt-2 text-sm text-red-600">
                 {adoptionRequestsError}
@@ -1142,7 +1168,7 @@ export default function AdminDashboardPage() {
           ) : signedAdoptionRequests.length === 0 ? (
             <Card>
               <div className="py-6 text-center text-gray-500">
-                Aucune demande avec conditions signées pour le moment.
+                {tr("Aucune demande avec conditions signées pour le moment.", "No requests with signed conditions yet.")}
               </div>
             </Card>
           ) : (
@@ -1185,7 +1211,7 @@ export default function AdminDashboardPage() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.14em] text-[#2f8f6b]">
-                            Demande signée
+                            {tr("Demande signée", "Signed request")}
                           </p>
 
                           <h3 className="mt-1 text-2xl font-black text-[#064b42]">
@@ -1193,14 +1219,14 @@ export default function AdminDashboardPage() {
                           </h3>
 
                           <p className="mt-1 text-sm text-gray-500">
-                            Adoptant :{" "}
+                            {tr("Adoptant", "Adopter")} :{" "}
                             <strong className="text-[#2f241c]">
                               {adopterName}
                             </strong>
                           </p>
 
                           <p className="mt-1 text-sm text-gray-500">
-                            Structure :{" "}
+                            {tr("Structure", "Organization")} :{" "}
                             <strong className="text-[#2f241c]">
                               {structureName}
                             </strong>
@@ -1210,14 +1236,14 @@ export default function AdminDashboardPage() {
                         <span className="self-start rounded-full bg-[#e8f5f1] px-3 py-1.5 text-sm font-black text-[#064b42]">
                           {typeof request.match_score === "number"
                             ? `Match ${request.match_score}%`
-                            : "Demande d'adoption"}
+                            : tr("Demande d’adoption", "Adoption request")}
                         </span>
                       </div>
 
                       <div className="grid gap-3 rounded-2xl bg-[#f8f4ec] p-4 sm:grid-cols-2">
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
-                            Signataire
+                            {tr("Signataire", "Signer")}
                           </p>
                           <p className="mt-1 font-bold text-[#2f241c]">
                             {request.signature_signer_name ||
@@ -1227,30 +1253,30 @@ export default function AdminDashboardPage() {
 
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
-                            Date de signature
+                            {tr("Date de signature", "Signature date")}
                           </p>
                           <p className="mt-1 font-bold text-[#2f241c]">
-                            {formatSignedDate(signedAt)}
+                            {new Intl.DateTimeFormat(preferredLanguage === "en" ? "en-GB" : "fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date(signedAt || Date.now()))}
                           </p>
                         </div>
 
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
-                            Conditions
+                            {tr("Conditions", "Conditions")}
                           </p>
                           <p className="mt-1 font-bold text-[#2f241c]">
-                            {conditions.length} condition
-                            {conditions.length > 1 ? "s" : ""} enregistrée
-                            {conditions.length > 1 ? "s" : ""}
+                            {preferredLanguage === "en"
+                              ? `${conditions.length} condition${conditions.length > 1 ? "s" : ""} recorded`
+                              : `${conditions.length} condition${conditions.length > 1 ? "s" : ""} enregistrée${conditions.length > 1 ? "s" : ""}`}
                           </p>
                         </div>
 
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.12em] text-[#9c7b54]">
-                            Statut
+                            {tr("Statut", "Status")}
                           </p>
                           <p className="mt-1 font-bold text-[#2f241c]">
-                            {getAdminRequestStatusLabel(
+                            {getAdminRequestStatusLabelLocalized(
                               request.status
                             )}
                           </p>
@@ -1260,7 +1286,7 @@ export default function AdminDashboardPage() {
                       {conditions.length > 0 && (
                         <details className="rounded-2xl border border-[#eadfd8] bg-white p-4">
                           <summary className="cursor-pointer font-black text-[#064b42]">
-                            Voir les conditions acceptées
+                            {tr("Voir les conditions acceptées", "View accepted conditions")}
                           </summary>
 
                           <ol className="mt-4 space-y-3">
@@ -1292,7 +1318,7 @@ export default function AdminDashboardPage() {
                       {request.signature_data_url && (
                         <details className="rounded-2xl border border-[#eadfd8] bg-white p-4">
                           <summary className="cursor-pointer font-black text-[#064b42]">
-                            Voir la signature
+                            {tr("Voir la signature", "View signature")}
                           </summary>
 
                           <div className="mt-4 rounded-xl border border-[#eadfd8] bg-white p-3">
@@ -1335,7 +1361,7 @@ export default function AdminDashboardPage() {
                           }}
                           className="rounded-xl border border-[#064b42] bg-white px-4 py-3 font-black text-[#064b42] transition hover:bg-[#e8f5f1] disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          ↓ Télécharger la signature
+                          ↓ {tr("Télécharger la signature", "Download signature")}
                         </button>
 
                         <button
@@ -1350,7 +1376,7 @@ export default function AdminDashboardPage() {
                           }
                           className="rounded-xl bg-[#064b42] px-4 py-3 font-black text-white transition hover:bg-[#08695d]"
                         >
-                          📄 Attestation signée
+                          📄 {tr("Attestation signée", "Signed certificate")}
                         </button>
                       </div>
                     </div>
@@ -1368,7 +1394,7 @@ export default function AdminDashboardPage() {
         <div className="mt-10">
           <div className="mb-5">
             <h2 className="text-3xl font-black">
-              Statistiques du site
+              {tr("Statistiques du site", "Site statistics")}
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
@@ -1385,10 +1411,10 @@ export default function AdminDashboardPage() {
                   size={38}
                 />
                 <h3 className="mt-3 text-xl font-black text-red-700">
-                  Statistiques indisponibles
+                  {tr("Statistiques indisponibles", "Statistics unavailable")}
                 </h3>
                 <p className="mt-2 text-sm font-semibold text-red-600">
-                  Les données analytics n’ont pas pu être chargées.
+                  {tr("Les données analytics n’ont pas pu être chargées.", "Analytics data could not be loaded.")}
                 </p>
                 <p className="mt-1 text-xs text-red-500">
                   {analyticsError}
@@ -1401,33 +1427,33 @@ export default function AdminDashboardPage() {
             <Card className="text-center">
               <Users className="mx-auto text-blue-600" size={38} />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.visitors_today.toLocaleString("fr-FR")}
+                {analytics.visitors_today.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Visiteurs aujourd’hui</p>
+              <p className="text-gray-500">{tr("Visiteurs aujourd’hui", "Visitors today")}</p>
             </Card>
 
             <Card className="text-center">
               <Users className="mx-auto text-[#064b42]" size={38} />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.visitors_total.toLocaleString("fr-FR")}
+                {analytics.visitors_total.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Visiteurs cumulés</p>
+              <p className="text-gray-500">{tr("Visiteurs cumulés", "Total visitors")}</p>
             </Card>
 
             <Card className="text-center">
               <Eye className="mx-auto text-violet-600" size={38} />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.page_views_today.toLocaleString("fr-FR")}
+                {analytics.page_views_today.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Pages vues aujourd’hui</p>
+              <p className="text-gray-500">{tr("Pages vues aujourd’hui", "Page views today")}</p>
             </Card>
 
             <Card className="text-center">
               <Activity className="mx-auto text-indigo-600" size={38} />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.page_views_total.toLocaleString("fr-FR")}
+                {analytics.page_views_total.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Pages vues cumulées</p>
+              <p className="text-gray-500">{tr("Pages vues cumulées", "Total page views")}</p>
             </Card>
           </div>
 
@@ -1435,9 +1461,9 @@ export default function AdminDashboardPage() {
             <Card className="text-center">
               <Eye className="mx-auto text-[#c76d7b]" size={38} />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.ad_impressions.toLocaleString("fr-FR")}
+                {analytics.ad_impressions.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Affichages publicitaires</p>
+              <p className="text-gray-500">{tr("Affichages publicitaires", "Ad impressions")}</p>
             </Card>
 
             <Card className="text-center">
@@ -1446,9 +1472,9 @@ export default function AdminDashboardPage() {
                 size={38}
               />
               <h3 className="mt-3 text-4xl font-black">
-                {analytics.ad_clicks.toLocaleString("fr-FR")}
+                {analytics.ad_clicks.toLocaleString(preferredLanguage === "en" ? "en-GB" : "fr-FR")}
               </h3>
-              <p className="text-gray-500">Clics publicitaires</p>
+              <p className="text-gray-500">{tr("Clics publicitaires", "Ad clicks")}</p>
             </Card>
 
             <Card className="text-center">
@@ -1462,7 +1488,7 @@ export default function AdminDashboardPage() {
                   : "0.00"}
                 %
               </h3>
-              <p className="text-gray-500">CTR publicitaire global</p>
+              <p className="text-gray-500">{tr("CTR publicitaire global", "Overall ad CTR")}</p>
             </Card>
           </div>
             </>
@@ -1481,16 +1507,15 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
-                Entraide
+                {tr("Entraide", "Community help")}
               </p>
 
               <h2 className="mt-1 text-3xl font-black text-[#064b42]">
-                🤝 Réseau d’aide
+                🤝 {tr("Réseau d’aide", "Help network")}
               </h2>
 
               <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-                Consultez les bénévoles et familles d’accueil disponibles,
-                puis créez, suivez et clôturez les SOS du réseau TAUI TE ORA.
+                {tr("Consultez les bénévoles et familles d’accueil disponibles, puis créez, suivez et clôturez les SOS du réseau TAUI TE ORA.", "View available volunteers and foster families, then create, track and close SOS requests across the TAUI TE ORA network.")}
               </p>
             </div>
 
@@ -1517,7 +1542,7 @@ export default function AdminDashboardPage() {
                 "
               >
                 <HeartHandshake size={20} />
-                Voir le réseau d’aide
+                {tr("Voir le réseau d’aide", "View help network")}
               </button>
 
               <button
@@ -1542,7 +1567,7 @@ export default function AdminDashboardPage() {
                 "
               >
                 <Siren size={20} />
-                Créer / gérer les SOS
+                {tr("Créer / gérer les SOS", "Create / manage SOS")}
               </button>
             </div>
           </div>
@@ -1563,7 +1588,7 @@ export default function AdminDashboardPage() {
               font-black
             "
           >
-            Actions rapides
+            {tr("Actions rapides", "Quick actions")}
           </h2>
 
           <div
@@ -1585,7 +1610,7 @@ export default function AdminDashboardPage() {
                 )
               }
             >
-              Gérer les utilisateurs
+              {tr("Gérer les utilisateurs", "Manage users")}
             </Button>
 
             {/* MESSAGES */}
@@ -1598,7 +1623,7 @@ export default function AdminDashboardPage() {
                 )
               }
             >
-              Voir les messages
+              {tr("Voir les messages", "View messages")}
             </Button>
 
             {/* ANIMAUX */}
@@ -1611,7 +1636,7 @@ export default function AdminDashboardPage() {
                 )
               }
             >
-              Gérer les animaux
+              {tr("Gérer les animaux", "Manage animals")}
             </Button>
 
             {/* SIGNALEMENTS */}
@@ -1657,7 +1682,7 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Associations
+              {tr("Associations", "Associations")}
             </button>
 
             {/* RESEAU D'AIDE */}
@@ -1688,7 +1713,7 @@ export default function AdminDashboardPage() {
             >
               <HeartHandshake size={20} />
 
-              Réseau d’aide
+              {tr("Réseau d’aide", "Help network")}
             </button>
 
             {/* SOS */}
@@ -1751,7 +1776,7 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Vétérinaires
+              {tr("Vétérinaires", "Veterinarians")}
             </button>
 
             {/* PUBLICITES */}
@@ -1784,7 +1809,7 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Publicités
+              {tr("Publicités", "Advertising")}
             </button>
 
             {/* GESTION DES PAGES */}
@@ -1817,7 +1842,7 @@ export default function AdminDashboardPage() {
                 size={20}
               />
 
-              Gestion des pages
+              {tr("Gestion des pages", "Page management")}
             </button>
           </div>
 
@@ -1851,7 +1876,7 @@ export default function AdminDashboardPage() {
                   )
                 }
               >
-                Retour au site
+                {tr("Retour au site", "Back to site")}
               </Button>
 
               <button
@@ -1889,8 +1914,8 @@ export default function AdminDashboardPage() {
                 />
 
                 {loggingOut
-                  ? "Déconnexion..."
-                  : "Déconnexion"}
+                  ? tr("Déconnexion...", "Signing out...")
+                  : tr("Déconnexion", "Sign out")}
               </button>
             </div>
           </div>
