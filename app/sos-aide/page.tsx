@@ -63,6 +63,9 @@ type HelpSos = {
   archived_at?: string | null;
   companion_id?: string | null;
   adoption_animal_id?: string | null;
+  facebook_shared_at?: string | null;
+  facebook_post_id?: string | null;
+  facebook_share_status?: string | null;
 };
 
 type AnimalSource = "manual" | "companion" | "adoption";
@@ -299,6 +302,7 @@ export default function HelpSosPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [shareOnFacebook, setShareOnFacebook] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -335,18 +339,38 @@ export default function HelpSosPage() {
 
       const [companionsResult, adoptionResult] = await Promise.all([
         supabase.from("companions").select("id, name, species, breed, sex, photo_url").eq("owner_id", user.id).eq("is_deceased", false),
-        supabase.from("animals").select("id, name, species, breed, sex, owner_id, is_adopted, status").eq("owner_id", user.id),
+        supabase.from("animals").select("id, animal_name, animal_type, breed, sex, owner_id, is_adopted, status, is_published, animal_photos(photo_url, is_cover, sort_order)").eq("owner_id", user.id),
       ]);
       if (!companionsResult.error) setCompanions((companionsResult.data || []) as SelectableAnimal[]);
       if (!adoptionResult.error) {
         const active = (adoptionResult.data || []).filter((a: any) => !a.is_adopted && String(a.status || "").toLowerCase() !== "archive");
-        setAdoptionAnimals(active.map((a: any) => ({ id: a.id, name: a.name, species: a.species, breed: a.breed, sex: a.sex, photo_url: null })));
+        setAdoptionAnimals(
+          active.map((a: any) => {
+            const photos = Array.isArray(a.animal_photos)
+              ? [...a.animal_photos].sort((left: any, right: any) => {
+                  if (Boolean(left?.is_cover) !== Boolean(right?.is_cover)) {
+                    return left?.is_cover ? -1 : 1;
+                  }
+                  return Number(left?.sort_order || 0) - Number(right?.sort_order || 0);
+                })
+              : [];
+
+            return {
+              id: a.id,
+              name: a.animal_name || "Animal sans nom",
+              species: a.animal_type || null,
+              breed: a.breed || null,
+              sex: a.sex || null,
+              photo_url: photos[0]?.photo_url || null,
+            };
+          })
+        );
       }
 
       const { data, error: listError } = await supabase
         .from("help_sos")
         .select(
-          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at, photo_url, archived_at, companion_id, adoption_animal_id"
+          "id, created_by, title, help_type, island, city, message, urgency, status, animal_id, animal_type, animals_count, push_sent_at, created_at, updated_at, closed_at, photo_url, archived_at, companion_id, adoption_animal_id, facebook_shared_at, facebook_post_id, facebook_share_status"
         )
         .order("created_at", { ascending: false });
 
@@ -420,19 +444,20 @@ export default function HelpSosPage() {
        * On ouvre la fenêtre pendant le clic utilisateur
        * pour éviter que le navigateur bloque la popup.
        */
-      facebookShareWindow =
-        window.open(
-          "",
-          "taui-sos-facebook-share",
-          "popup=yes,width=760,height=820"
-        );
+      if (shareOnFacebook) {
+        facebookShareWindow =
+          window.open(
+            "",
+            "taui-sos-facebook-share",
+            "popup=yes,width=760,height=820"
+          );
 
-      if (facebookShareWindow) {
-        facebookShareWindow.document.title =
-          "Préparation du partage Facebook…";
+        if (facebookShareWindow) {
+          facebookShareWindow.document.title =
+            "Préparation du partage Facebook…";
 
-        facebookShareWindow.document.body.innerHTML =
-          `
+          facebookShareWindow.document.body.innerHTML =
+            `
             <div style="
               font-family: Arial, sans-serif;
               min-height: 100vh;
@@ -456,6 +481,7 @@ export default function HelpSosPage() {
               </div>
             </div>
           `;
+        }
       }
 
       let uploadedPhotoUrl = form.photo_url || null;
@@ -599,6 +625,52 @@ export default function HelpSosPage() {
         );
       }
 
+      /*
+       * Publication automatique sur la page Facebook
+       * Les Veilleurs de Kali.
+       * Une erreur Facebook ne doit jamais annuler le SOS.
+       */
+      try {
+        const {
+          data: sessionData,
+        } = await supabase.auth.getSession();
+
+        const accessToken =
+          sessionData.session?.access_token;
+
+        if (accessToken) {
+          const publishResponse = await fetch(
+            "/api/facebook/publish-sos",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                sosId: created.id,
+              }),
+            }
+          );
+
+          if (!publishResponse.ok) {
+            const publishResult = await publishResponse
+              .json()
+              .catch(() => null);
+
+            console.error(
+              "Publication Facebook SOS :",
+              publishResult
+            );
+          }
+        }
+      } catch (facebookError) {
+        console.error(
+          "Publication Facebook SOS :",
+          facebookError
+        );
+      }
+
       setForm(EMPTY_FORM);
       setPhotoFile(null);
       setCreating(false);
@@ -606,23 +678,25 @@ export default function HelpSosPage() {
         "SOS créé. Il est maintenant visible dans le réseau d’aide."
       );
 
-      const facebookShareUrl =
-        getSosFacebookShareUrl(
-          created.id
-        );
+      if (shareOnFacebook) {
+        const facebookShareUrl =
+          getSosFacebookShareUrl(
+            created.id
+          );
 
-      if (
-        facebookShareWindow &&
-        !facebookShareWindow.closed
-      ) {
-        facebookShareWindow.location.href =
-          facebookShareUrl;
-      } else {
-        window.open(
-          facebookShareUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
+        if (
+          facebookShareWindow &&
+          !facebookShareWindow.closed
+        ) {
+          facebookShareWindow.location.href =
+            facebookShareUrl;
+        } else {
+          window.open(
+            facebookShareUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        }
       }
 
       await load();
@@ -1425,6 +1499,44 @@ export default function HelpSosPage() {
                 />
               </label>
 
+              {!editingId ? (
+                <section className="rounded-[24px] border border-[#eadfd8] bg-[#fffaf5] p-5">
+                  <p className="font-black text-[#064b42]">
+                    📣 Diffusion Facebook
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-[#756d67]">
+                    Le SOS sera publié automatiquement sur Les Veilleurs de Kali.
+                    Vous pouvez aussi ouvrir Facebook pour le partager sur votre
+                    profil personnel ou une page que vous administrez.
+                  </p>
+
+                  <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-4">
+                    <input
+                      type="checkbox"
+                      checked={shareOnFacebook}
+                      onChange={(event) =>
+                        setShareOnFacebook(
+                          event.target.checked
+                        )
+                      }
+                      className="mt-1 h-5 w-5"
+                    />
+
+                    <div>
+                      <p className="font-black text-[#064b42]">
+                        Partager aussi depuis mon Facebook
+                      </p>
+
+                      <p className="mt-1 text-sm text-[#756d67]">
+                        Facebook vous laissera choisir votre profil ou une page
+                        que vous gérez.
+                      </p>
+                    </div>
+                  </label>
+                </section>
+              ) : null}
+
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -1570,7 +1682,7 @@ export default function HelpSosPage() {
                             className="flex items-center justify-center gap-2 rounded-xl bg-[#064b42] px-4 py-3 text-sm font-black text-white"
                           >
                             <CheckCircle2 size={17} />
-                            Clôturer
+                            Valider / clôturer
                           </button>
                         ) : (
                           <button
