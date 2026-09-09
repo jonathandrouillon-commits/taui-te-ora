@@ -7,6 +7,14 @@ type DeleteAccountBody = {
   confirmation?: string;
 };
 
+const PROTECTED_ROLES = [
+  "admin",
+  "administrateur",
+  "association",
+  "refuge",
+  "fourriere",
+];
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    1. VERIFICATION DE LA CONFIRMATION
+    1. CONFIRMATION
     ============================================================
     */
 
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    2. RECUPERATION DU TOKEN DE L'UTILISATEUR
+    2. TOKEN UTILISATEUR
     ============================================================
     */
 
@@ -87,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    3. CLIENT SUPABASE UTILISATEUR
+    3. CLIENT UTILISATEUR
     ============================================================
     */
 
@@ -109,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    4. VERIFICATION REELLE DE L'UTILISATEUR CONNECTE
+    4. VERIFICATION DU COMPTE CONNECTE
     ============================================================
     */
 
@@ -120,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       console.error(
-        "[DELETE ACCOUNT] Impossible de verifier l'utilisateur.",
+        "[DELETE ACCOUNT] Verification utilisateur impossible.",
         userError
       );
 
@@ -137,61 +145,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    5. PROTECTION DES COMPTES ADMINISTRATEURS
-    ============================================================
-
-    Pour la premiere version, un administrateur ne peut pas
-    supprimer son propre compte depuis l'interface publique.
-
-    Cela evite une suppression accidentelle du compte principal
-    d'administration de Taui Te Ora.
-    ============================================================
-    */
-
-    const { data: profile, error: profileError } =
-      await userSupabase
-        .from("profiles")
-        .select("id, role")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (profileError) {
-      console.error(
-        "[DELETE ACCOUNT] Impossible de lire le profil.",
-        profileError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Impossible de verifier votre profil avant la suppression.",
-        },
-        { status: 500 }
-      );
-    }
-
-    if (
-      profile?.role === "admin" ||
-      profile?.role === "administrateur"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Un compte administrateur ne peut pas etre supprime depuis cette interface.",
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-    ============================================================
-    6. CLIENT SUPABASE SERVICE ROLE
-
-    IMPORTANT :
-    Ce client existe UNIQUEMENT sur le serveur.
-
-    SUPABASE_SERVICE_ROLE_KEY ne doit jamais etre exposee
-    dans un composant client ou avec NEXT_PUBLIC_.
+    5. SERVICE ROLE
     ============================================================
     */
 
@@ -208,12 +162,96 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    7. NETTOYAGE / ANONYMISATION DES DONNEES PUBLIQUES
+    6. LECTURE SECURISEE DU ROLE
 
-    Cette fonction SQL a ete installee dans Supabase :
-    public.delete_account_public_data(uuid)
+    On utilise le client serveur Service Role.
 
-    Elle n'est executable que par service_role.
+    Cela evite qu'une politique RLS ou une modification cote
+    navigateur puisse contourner la protection.
+    ============================================================
+    */
+
+    const { data: profile, error: profileError } =
+      await adminSupabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "[DELETE ACCOUNT] Lecture profil impossible.",
+        profileError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Impossible de verifier votre profil avant la suppression.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!profile) {
+      return NextResponse.json(
+        {
+          error:
+            "Le profil associe a ce compte est introuvable.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const normalizedRole = String(profile.role || "")
+      .trim()
+      .toLowerCase();
+
+    /*
+    ============================================================
+    7. PROTECTION DES COMPTES SENSIBLES
+    ============================================================
+
+    ADMIN
+    -----
+    Pas de suppression automatique.
+
+    ASSOCIATION / REFUGE / FOURRIERE
+    --------------------------------
+    Ces comptes peuvent etre proprietaires d'une structure,
+    d'animaux, de demandes, de conditions d'adoption, etc.
+
+    Ils devront disposer plus tard d'une procedure specifique :
+    - transfert de la structure ;
+    - nomination d'un nouveau responsable ;
+    - ou fermeture volontaire de la structure.
+
+    On ne supprime donc JAMAIS automatiquement leur structure.
+    ============================================================
+    */
+
+    if (PROTECTED_ROLES.includes(normalizedRole)) {
+      const isStructure = [
+        "association",
+        "refuge",
+        "fourriere",
+      ].includes(normalizedRole);
+
+      return NextResponse.json(
+        {
+          error: isStructure
+            ? "Ce compte est lie a une structure. La suppression automatique est bloquee afin de proteger les animaux et les donnees de la structure."
+            : "Un compte administrateur ne peut pas etre supprime depuis cette interface.",
+          protectedAccount: true,
+          role: normalizedRole,
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+    ============================================================
+    8. NETTOYAGE DES DONNEES
     ============================================================
     */
 
@@ -226,14 +264,14 @@ export async function POST(request: NextRequest) {
 
     if (cleanupError) {
       console.error(
-        "[DELETE ACCOUNT] Echec du nettoyage des donnees.",
+        "[DELETE ACCOUNT] Echec nettoyage donnees.",
         cleanupError
       );
 
       return NextResponse.json(
         {
           error:
-            "La suppression n'a pas pu etre terminee. Votre compte d'authentification n'a pas ete supprime.",
+            "La suppression n'a pas pu etre terminee. Votre compte de connexion n'a pas ete supprime.",
         },
         { status: 500 }
       );
@@ -241,12 +279,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    8. SUPPRESSION DU COMPTE SUPABASE AUTH
-
-    Cette etape est volontairement executee APRES le nettoyage
-    des donnees publiques.
-
-    Si le nettoyage echoue, le compte Auth reste intact.
+    9. SUPPRESSION SUPABASE AUTH
     ============================================================
     */
 
@@ -255,17 +288,9 @@ export async function POST(request: NextRequest) {
 
     if (deleteAuthError) {
       console.error(
-        "[DELETE ACCOUNT] Donnees nettoyees mais suppression Auth impossible.",
+        "[DELETE ACCOUNT] Suppression Auth impossible.",
         deleteAuthError
       );
-
-      /*
-      IMPORTANT :
-      A ce stade, les donnees publiques ont deja ete nettoyees.
-
-      On renvoie donc une erreur specifique afin de ne jamais
-      annoncer a tort que tout a ete supprime.
-      */
 
       return NextResponse.json(
         {
@@ -279,7 +304,7 @@ export async function POST(request: NextRequest) {
 
     /*
     ============================================================
-    9. SUCCES
+    10. SUCCES
     ============================================================
     */
 
