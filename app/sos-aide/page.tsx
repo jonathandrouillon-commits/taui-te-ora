@@ -1442,7 +1442,7 @@ export default function HelpSosPage() {
                 <p className="mt-1 text-sm text-[#756d67]">Choisissez uniquement un animal que vous gérez, ou renseignez un animal non enregistré.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   {([['companion','🐾 Mon compagnon'],['adoption','❤️ Animal en adoption'],['manual','➕ Animal non enregistré']] as const).map(([value,label]) => (
-                    <button key={value} type="button" onClick={() => setForm((c) => ({...c, animal_source:value, companion_id:value==='companion'?c.companion_id:'', adoption_animal_id:value==='adoption'?c.adoption_animal_id:''}))} className={`rounded-2xl border-2 px-4 py-3 font-black ${form.animal_source===value?'border-[#df8995] bg-[#fce8ec] text-[#064b42]':'border-[#eee5dc] bg-white text-[#756d67]'}`}>{label}</button>
+                    <button key={value} type="button" onClick={() => setForm((c) => ({...c, animal_source:value, companion_id:value==='companion'?c.companion_id:'', adoption_animal_id:value==='adoption'?c.adoption_animal_id:''}))} className={`rounded-2xl border-2 px-4 py-3 font-black ${form.animal_source===value?'border-[#064b42] bg-[#edf7f4] text-[#064b42]':'border-[#eee5dc] bg-white text-[#756d67]'}`}>{label}</button>
                   ))}
                 </div>
                 {form.animal_source === 'companion' ? <select value={form.companion_id} onChange={(e)=>{ const a=companions.find(x=>x.id===e.target.value); setForm(c=>({...c, companion_id:e.target.value, animal_type:a?.species||c.animal_type, photo_url:a?.photo_url||c.photo_url})); }} className="mt-4 w-full rounded-2xl border border-[#e5ddd5] bg-white px-4 py-3 font-bold text-[#064b42]"><option value="">Sélectionner un compagnon</option>{companions.map(a=><option key={a.id} value={a.id}>{a.name}{a.species?` · ${a.species}`:''}</option>)}</select> : null}
@@ -1661,7 +1661,7 @@ export default function HelpSosPage() {
                             }
                             className={`rounded-2xl border-2 px-4 py-3 text-left text-sm font-black ${
                               checked
-                                ? "border-[#df8995] bg-[#fce8ec] text-[#064b42]"
+                                ? "border-[#064b42] bg-[#edf7f4] text-[#064b42]"
                                 : "border-[#eee5dc] bg-white text-[#756d67]"
                             }`}
                           >
@@ -1705,7 +1705,7 @@ export default function HelpSosPage() {
                             }
                             className={`rounded-2xl border-2 px-4 py-3 text-left text-sm font-black ${
                               checked
-                                ? "border-[#df8995] bg-[#fce8ec] text-[#064b42]"
+                                ? "border-[#064b42] bg-[#edf7f4] text-[#064b42]"
                                 : "border-[#eee5dc] bg-white text-[#756d67]"
                             }`}
                           >
@@ -1777,6 +1777,7 @@ export default function HelpSosPage() {
                   Description du besoin *
                 </span>
                 <textarea
+                  required
                   value={form.message}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -1826,6 +1827,12 @@ export default function HelpSosPage() {
                     </div>
                   </label>
                 </section>
+              ) : null}
+
+              {error ? (
+                <div className="rounded-2xl bg-red-50 p-4 text-sm font-black text-red-700">
+                  {error}
+                </div>
               ) : null}
 
               <div className="flex justify-end">
