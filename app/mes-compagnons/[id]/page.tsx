@@ -10,6 +10,7 @@ import {
   PawPrint,
   ShieldCheck,
   Siren,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -47,6 +48,16 @@ type Companion = {
   is_deceased: boolean;
   death_date: string | null;
   death_tribute: string | null;
+  social_enabled: boolean;
+  social_energy: string | null;
+  social_dogs: string | null;
+  social_cats: string | null;
+  social_play: string | null;
+  social_size: string | null;
+  social_preferred_sizes: string[];
+  social_temperaments: string[];
+  social_meeting_types: string[];
+  social_notes: string | null;
   created_at: string;
 };
 
@@ -306,6 +317,16 @@ export default function CompanionDetailPage() {
               is_deceased,
               death_date,
               death_tribute,
+              social_enabled,
+              social_energy,
+              social_dogs,
+              social_cats,
+              social_play,
+              social_size,
+              social_preferred_sizes,
+              social_temperaments,
+              social_meeting_types,
+              social_notes,
               created_at
             `)
             .eq(
@@ -755,6 +776,70 @@ export default function CompanionDetailPage() {
                     companion.story
                   }
                 </p>
+              </div>
+            )}
+
+            {isOwner && !companion.is_deceased && (
+              <div className="mt-7 rounded-[26px] border border-[#efd5d7] bg-[#fce8ec] p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#df8995] text-white">
+                    <Users size={21} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-black text-[#064b42]">
+                      Balades & Copains
+                    </h2>
+
+                    <p className="mt-1 text-sm leading-relaxed text-[#756d67]">
+                      {companion.social_enabled
+                        ? `${companion.name} peut apparaître dans les recherches de copains compatibles.`
+                        : `Active le profil social de ${companion.name} pour lui trouver des copains compatibles.`}
+                    </p>
+                  </div>
+                </div>
+
+                {companion.social_enabled && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {companion.social_energy && (
+                      <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#064b42]">
+                        ⚡ {companion.social_energy === "modere" ? "Énergie modérée" : companion.social_energy === "sportif" ? "Sportif" : "Calme"}
+                      </span>
+                    )}
+                    {companion.social_size && (
+                      <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#064b42]">
+                        📏 Taille {companion.social_size}
+                      </span>
+                    )}
+                    {companion.social_temperaments?.slice(0, 3).map((item) => (
+                      <span key={item} className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#064b42]">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <Link
+                    href={`/mes-compagnons/${encodeURIComponent(companion.id)}/profil-social`}
+                    className="flex items-center justify-center rounded-full border-2 border-[#064b42] bg-white px-5 py-3 font-black text-[#064b42]"
+                  >
+                    {companion.social_enabled ? "⚙️ Modifier son profil social" : "✨ Créer son profil social"}
+                  </Link>
+
+                  <Link
+                    href={`/mes-compagnons/${encodeURIComponent(companion.id)}/copains`}
+                    className={`flex items-center justify-center gap-2 rounded-full px-5 py-3 font-black text-white shadow-lg ${
+                      companion.social_enabled
+                        ? "bg-[#df8995]"
+                        : "pointer-events-none bg-[#c9b9b4] opacity-60"
+                    }`}
+                    aria-disabled={!companion.social_enabled}
+                  >
+                    <PawPrint size={18} />
+                    Trouver un copain
+                  </Link>
+                </div>
               </div>
             )}
 
