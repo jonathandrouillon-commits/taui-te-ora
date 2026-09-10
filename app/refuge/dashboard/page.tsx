@@ -1,7 +1,11 @@
 import PublisherDashboard from "../../components/PublisherDashboard";
+import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
 
 export default function RefugeDashboardPage() {
   return (
-    <PublisherDashboard expectedRole="refuge" />
+    <>
+      <DashboardPrivacyAccess />
+      <PublisherDashboard expectedRole="refuge" />
+    </>
   );
 }

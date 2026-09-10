@@ -1,7 +1,11 @@
 import PublisherDashboard from "../../components/PublisherDashboard";
+import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
 
 export default function AssociationDashboardPage() {
   return (
-    <PublisherDashboard expectedRole="association" />
+    <>
+      <DashboardPrivacyAccess />
+      <PublisherDashboard expectedRole="association" />
+    </>
   );
 }

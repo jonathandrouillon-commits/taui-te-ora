@@ -21,39 +21,36 @@ export default function DashboardSettings({
           href="/adoptant/profile"
           className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
         >
-          <span>
-            Modifier mon profil
-          </span>
-
-          <span>
-            ›
-          </span>
+          <span>Modifier mon profil</span>
+          <span>›</span>
         </Link>
 
         <Link
           href="/adoption/questionnaire"
           className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
         >
-          <span>
-            Modifier mon questionnaire
-          </span>
-
-          <span>
-            ›
-          </span>
+          <span>Modifier mon questionnaire</span>
+          <span>›</span>
         </Link>
 
         <Link
           href="/"
           className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] px-5 py-4 text-[#2f241c]"
         >
-          <span>
-            Voir les animaux à adopter
+          <span>Voir les animaux à adopter</span>
+          <span>›</span>
+        </Link>
+
+        <Link
+          href="/profile/mes-donnees"
+          className="flex items-center justify-between rounded-2xl border border-[#dcebe5] bg-[#edf6f2] px-5 py-4 font-black text-[#064b42] transition hover:bg-[#e1f1eb]"
+        >
+          <span className="flex items-center gap-3">
+            <span aria-hidden="true">🔐</span>
+            <span>Mes données & Confidentialité</span>
           </span>
 
-          <span>
-            ›
-          </span>
+          <span>›</span>
         </Link>
 
         <div className="pt-2">
@@ -66,18 +63,11 @@ export default function DashboardSettings({
 
         <button
           type="button"
-          onClick={
-            onLogout
-          }
+          onClick={onLogout}
           className="flex w-full items-center justify-between rounded-2xl bg-red-50 px-5 py-4 text-left font-semibold text-red-600"
         >
-          <span>
-            Déconnexion
-          </span>
-
-          <span>
-            ›
-          </span>
+          <span>Déconnexion</span>
+          <span>›</span>
         </button>
       </div>
     </section>

@@ -1,7 +1,11 @@
 import PublisherDashboard from "../../components/PublisherDashboard";
+import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
 
 export default function FourriereDashboardPage() {
   return (
-    <PublisherDashboard expectedRole="fourriere" />
+    <>
+      <DashboardPrivacyAccess />
+      <PublisherDashboard expectedRole="fourriere" />
+    </>
   );
 }

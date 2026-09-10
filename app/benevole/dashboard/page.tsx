@@ -1,7 +1,11 @@
 import PublisherDashboard from "../../components/PublisherDashboard";
+import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
 
 export default function BenevoleDashboardPage() {
   return (
-    <PublisherDashboard expectedRole="benevole" />
+    <>
+      <DashboardPrivacyAccess />
+      <PublisherDashboard expectedRole="benevole" />
+    </>
   );
 }

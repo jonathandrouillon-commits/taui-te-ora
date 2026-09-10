@@ -1844,6 +1844,44 @@ export default function AdminDashboardPage() {
 
               {tr("Gestion des pages", "Page management")}
             </button>
+
+            {/* MES DONNEES & CONFIDENTIALITE */}
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/profile/mes-donnees"
+                )
+              }
+              className="
+                flex
+                min-h-[48px]
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                border
+                border-[#d8e9e3]
+                bg-[#edf6f2]
+                px-4
+                py-3
+                font-black
+                text-[#064b42]
+                transition
+                hover:bg-[#e1f1eb]
+                active:scale-[0.98]
+              "
+            >
+              <ShieldCheck
+                size={20}
+              />
+
+              {tr(
+                "Mes données & Confidentialité",
+                "My Data & Privacy"
+              )}
+            </button>
           </div>
 
           {/* ===================================================
@@ -2269,4 +2307,5 @@ function openAdminSignedCertificate({
   popup.document.write(html);
   popup.document.close();
 }
+
 
