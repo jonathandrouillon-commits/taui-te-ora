@@ -1,4 +1,9 @@
 import {
+  createHash,
+  timingSafeEqual,
+} from "crypto";
+
+import {
   NextResponse,
 } from "next/server";
 
@@ -11,6 +16,9 @@ import webpush from "web-push";
 export const runtime =
   "nodejs";
 
+const ANONYMOUS_PUSH_WINDOW_MS =
+  30 * 60 * 1000;
+
 type PushSubscriptionRow = {
   id: string;
   endpoint: string;
@@ -20,31 +28,105 @@ type PushSubscriptionRow = {
 
 type Signalement = {
   id: string;
+
   type_signalement:
     | string
     | null;
+
   animal_type:
     | string
     | null;
+
   animal_name:
     | string
     | null;
+
   island:
     | string
     | null;
+
   city:
     | string
     | null;
+
   color:
     | string
     | null;
+
   breed:
     | string
     | null;
+
   push_sent_at:
     | string
     | null;
+
+  user_id:
+    | string
+    | null;
+
+  upload_token_hash:
+    | string
+    | null;
+
+  created_at: string;
 };
+
+function jsonError(
+  message: string,
+  status: number
+) {
+  return NextResponse.json(
+    {
+      error: message,
+    },
+    {
+      status,
+    }
+  );
+}
+
+function sha256(
+  value: string
+) {
+  return createHash(
+    "sha256"
+  )
+    .update(
+      value,
+      "utf8"
+    )
+    .digest(
+      "hex"
+    );
+}
+
+function safeHashEquals(
+  left: string,
+  right: string
+) {
+  if (
+    !/^[a-f0-9]{64}$/i.test(
+      left
+    ) ||
+    !/^[a-f0-9]{64}$/i.test(
+      right
+    )
+  ) {
+    return false;
+  }
+
+  return timingSafeEqual(
+    Buffer.from(
+      left.toLowerCase(),
+      "hex"
+    ),
+    Buffer.from(
+      right.toLowerCase(),
+      "hex"
+    )
+  );
+}
 
 function getAdmin() {
   const url =
@@ -71,6 +153,7 @@ function getAdmin() {
       auth: {
         persistSession:
           false,
+
         autoRefreshToken:
           false,
       },
@@ -89,7 +172,9 @@ function getBearerToken(
   if (
     !header
       .toLowerCase()
-      .startsWith("bearer ")
+      .startsWith(
+        "bearer "
+      )
   ) {
     return "";
   }
@@ -98,6 +183,7 @@ function getBearerToken(
     .slice(7)
     .trim();
 }
+
 function configureWebPush() {
   const publicKey =
     process.env
@@ -188,7 +274,9 @@ function buildBody(
   }
 
   let body =
-    parts.join(" • ");
+    parts.join(
+      " • "
+    );
 
   if (
     description.length >
@@ -209,24 +297,32 @@ export async function POST(
   try {
     configureWebPush();
 
-    const {
-      signalementId,
-    } =
+    const body =
       (await request.json()) as {
         signalementId?: string;
+        uploadToken?: string;
       };
 
+    const signalementId =
+      String(
+        body.signalementId ||
+          ""
+      ).trim();
+
+    const uploadToken =
+      String(
+        body.uploadToken ||
+          ""
+      ).trim();
+
     if (
-      !signalementId
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        signalementId
+      )
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Signalement manquant.",
-        },
-        {
-          status: 400,
-        }
+      return jsonError(
+        "Identifiant de signalement invalide.",
+        400
       );
     }
 
@@ -253,32 +349,149 @@ export async function POST(
           color,
           breed,
           push_sent_at,
-          user_id
+          user_id,
+          upload_token_hash,
+          created_at
         `
         )
         .eq(
           "id",
           signalementId
         )
-        .single();
+        .maybeSingle();
 
     if (
-      signalementError ||
+      signalementError
+    ) {
+      console.error(
+        "Signalement push lookup:",
+        signalementError
+      );
+
+      return jsonError(
+        "Impossible de vérifier le signalement.",
+        500
+      );
+    }
+
+    if (
       !data
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Signalement introuvable.",
-        },
-        {
-          status: 404,
-        }
+      return jsonError(
+        "Signalement introuvable.",
+        404
       );
     }
 
     const signalement =
       data as Signalement;
+
+    /*
+     * ------------------------------------------------
+     * AUTORISATION
+     * ------------------------------------------------
+     *
+     * Deux possibilités :
+     *
+     * 1. Signalement d'un utilisateur connecté :
+     *    Bearer token obligatoire et user_id doit
+     *    correspondre au propriétaire du signalement.
+     *
+     * 2. Signalement anonyme :
+     *    uploadToken obligatoire, vérifié avec le
+     *    SHA-256 stocké en base.
+     */
+
+    let authenticatedUserId:
+      | string
+      | null = null;
+
+    const accessToken =
+      getBearerToken(
+        request
+      );
+
+    if (
+      accessToken
+    ) {
+      const {
+        data: authData,
+        error: authError,
+      } =
+        await supabase.auth.getUser(
+          accessToken
+        );
+
+      if (
+        !authError &&
+        authData.user
+      ) {
+        authenticatedUserId =
+          authData.user.id;
+      }
+    }
+
+    const isAuthenticatedOwner =
+      Boolean(
+        authenticatedUserId
+      ) &&
+      signalement.user_id ===
+        authenticatedUserId;
+
+    let hasAnonymousProof =
+      false;
+
+    if (
+      !signalement.user_id
+    ) {
+      const createdAt =
+        new Date(
+          signalement.created_at
+        ).getTime();
+
+      const age =
+        Date.now() -
+        createdAt;
+
+      const isFresh =
+        Number.isFinite(
+          createdAt
+        ) &&
+        age >= 0 &&
+        age <=
+          ANONYMOUS_PUSH_WINDOW_MS;
+
+      if (
+        isFresh &&
+        uploadToken &&
+        typeof signalement.upload_token_hash ===
+          "string"
+      ) {
+        hasAnonymousProof =
+          safeHashEquals(
+            sha256(
+              uploadToken
+            ),
+            signalement.upload_token_hash
+          );
+      }
+    }
+
+    if (
+      !isAuthenticatedOwner &&
+      !hasAnonymousProof
+    ) {
+      return jsonError(
+        "Vous n'êtes pas autorisé à déclencher cette notification.",
+        403
+      );
+    }
+
+    /*
+     * ------------------------------------------------
+     * TYPE DE SIGNALEMENT
+     * ------------------------------------------------
+     */
 
     const isLost =
       signalement.type_signalement ===
@@ -288,13 +501,6 @@ export async function POST(
       signalement.type_signalement ===
       "Animal trouvé";
 
-    /*
-     * Les autres types :
-     * errant, blessé,
-     * maltraité, etc.
-     * ne déclenchent pas
-     * cette alerte.
-     */
     if (
       !isLost &&
       !isFound
@@ -307,10 +513,11 @@ export async function POST(
     }
 
     /*
-     * Empêche d'envoyer
-     * plusieurs fois le même
-     * signalement.
+     * ------------------------------------------------
+     * ANTI-DOUBLON
+     * ------------------------------------------------
      */
+
     if (
       signalement.push_sent_at
     ) {
@@ -356,11 +563,6 @@ export async function POST(
       throw claimError;
     }
 
-    /*
-     * Une autre requête a
-     * éventuellement déjà
-     * pris en charge l'alerte.
-     */
     if (
       !claimed ||
       claimed.length ===
@@ -372,6 +574,12 @@ export async function POST(
         alreadySent: true,
       });
     }
+
+    /*
+     * ------------------------------------------------
+     * ABONNEMENTS PUSH
+     * ------------------------------------------------
+     */
 
     let query =
       supabase
@@ -387,7 +595,9 @@ export async function POST(
         `
         );
 
-    if (isLost) {
+    if (
+      isLost
+    ) {
       query =
         query.eq(
           "alert_lost",
@@ -395,7 +605,9 @@ export async function POST(
         );
     }
 
-    if (isFound) {
+    if (
+      isFound
+    ) {
       query =
         query.eq(
           "alert_found",
@@ -416,6 +628,12 @@ export async function POST(
     ) {
       throw subscriptionsError;
     }
+
+    /*
+     * ------------------------------------------------
+     * PAYLOAD
+     * ------------------------------------------------
+     */
 
     const title =
       isLost
@@ -444,7 +662,6 @@ export async function POST(
       });
 
     let sent = 0;
-
     let removed = 0;
 
     const rows =
@@ -452,6 +669,12 @@ export async function POST(
         subscriptions ||
         []
       ) as PushSubscriptionRow[];
+
+    /*
+     * ------------------------------------------------
+     * ENVOI
+     * ------------------------------------------------
+     */
 
     for (
       const subscription
@@ -474,7 +697,9 @@ export async function POST(
           payload,
           {
             TTL:
-              60 * 60 * 12,
+              60 *
+              60 *
+              12,
 
             urgency:
               "high",
@@ -491,9 +716,9 @@ export async function POST(
           };
 
         /*
-         * Le téléphone ou
-         * navigateur a supprimé
-         * l'abonnement.
+         * Abonnement supprimé
+         * du navigateur ou du
+         * téléphone.
          */
         if (
           pushError.statusCode ===
@@ -545,4 +770,3 @@ export async function POST(
     );
   }
 }
-

@@ -16,14 +16,6 @@ import {
 } from "../lib/supabase";
 
 import LostFoundPushPreferences from "../components/LostFoundPushPreferences";
-import AnimalBreedSelect from "../components/AnimalBreedSelect";
-import {
-  ANIMAL_AGES,
-  ANIMAL_SEXES,
-  ANIMAL_TYPES,
-  POLYNESIA_ISLANDS,
-  getCommunesForIsland,
-} from "../lib/animalFormOptions";
 
 const MAX_FILES = 5;
 
@@ -37,74 +29,41 @@ const ALLOWED_FILE_TYPES =
     "image/webp",
   ]);
 
-const SAFE_EXTENSIONS: Record<
-  string,
-  string
-> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-function validateFile(
-  file: File
-) {
-  if (
-    !ALLOWED_FILE_TYPES.has(
-      file.type
-    )
-  ) {
+function validateFile(file: File) {
+  if (!ALLOWED_FILE_TYPES.has(file.type)) {
     throw new Error(
-      `Le fichier "${file.name}" n'est pas autorisé. Formats acceptés : JPG, PNG et WEBP.`
+      `Le fichier "${file.name}" n'est pas autorisé. Utilisez une image JPG, PNG ou WEBP.`
     );
   }
 
-  if (
-    file.size <= 0
-  ) {
+  if (file.size <= 0) {
     throw new Error(
       `Le fichier "${file.name}" est vide.`
     );
   }
 
-  if (
-    file.size >
-    MAX_FILE_SIZE
-  ) {
+  if (file.size > MAX_FILE_SIZE) {
     throw new Error(
       `Le fichier "${file.name}" dépasse la taille maximale de 8 Mo.`
     );
   }
 }
 
-function buildSafeFilePath(
-  signalementId: string,
-  file: File
-) {
-  const extension =
-    SAFE_EXTENSIONS[
-      file.type
-    ];
+async function createSignalementUploadProof() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
 
-  if (
-    !extension
-  ) {
-    throw new Error(
-      "Type de fichier non autorisé."
-    );
-  }
+  const uploadToken = Array.from(bytes)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
 
-  const randomId =
-    typeof crypto !==
-      "undefined" &&
-    "randomUUID" in
-      crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}`;
+  const encoded = new TextEncoder().encode(uploadToken);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  const uploadTokenHash = Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
 
-  return `${signalementId}/${randomId}.${extension}`;
+  return { uploadToken, uploadTokenHash };
 }
 
 type LeafletModule =
@@ -860,6 +819,11 @@ export default function SignalementPage() {
       );
 
       const {
+        uploadToken,
+        uploadTokenHash,
+      } = await createSignalementUploadProof();
+
+      const {
         data:
           signalement,
         error,
@@ -987,6 +951,9 @@ export default function SignalementPage() {
 
             status:
               "nouveau",
+
+            upload_token_hash:
+              uploadTokenHash,
           })
           .select(
             "id"
@@ -1012,79 +979,39 @@ export default function SignalementPage() {
             file
           );
 
-          const filePath =
-            buildSafeFilePath(
-              signalement.id,
-              file
-            );
+          const formData = new FormData();
+          formData.append("signalementId", signalement.id);
+          formData.append("uploadToken", uploadToken);
+          formData.append("file", file);
 
-          const {
-            error:
-              uploadError,
-          } =
-            await supabase.storage
-              .from(
-                "signalements"
-              )
-              .upload(
-                filePath,
-                file,
-                {
-                  cacheControl:
-                    "3600",
+          const { data: sessionData } =
+            await supabase.auth.getSession();
 
-                  upsert:
-                    false,
+          const headers: HeadersInit = {};
 
-                  contentType:
-                    file.type,
-                }
-              );
-
-          if (
-            uploadError
-          ) {
-            throw uploadError;
+          if (sessionData.session?.access_token) {
+            headers.Authorization =
+              `Bearer ${sessionData.session.access_token}`;
           }
 
-          const {
-            data:
-              publicUrlData,
-          } =
-            supabase.storage
-              .from(
-                "signalements"
-              )
-              .getPublicUrl(
-                filePath
-              );
+          const uploadResponse = await fetch(
+            "/api/signalement/upload",
+            {
+              method: "POST",
+              headers,
+              body: formData,
+            }
+          );
 
-          const {
-            error:
-              mediaError,
-          } =
-            await supabase
-              .from(
-                "signalement_medias"
-              )
-              .insert({
-                signalement_id:
-                  signalement.id,
+          const uploadResult = await uploadResponse
+            .json()
+            .catch(() => null);
 
-                file_url:
-                  publicUrlData.publicUrl,
-
-                file_type:
-                  file.type,
-
-                file_name:
-                  file.name,
-              });
-
-          if (
-            mediaError
-          ) {
-            throw mediaError;
+          if (!uploadResponse.ok) {
+            throw new Error(
+              uploadResult?.error ||
+                "Impossible d'envoyer la photo du signalement."
+            );
           }
         }
       }
@@ -1516,17 +1443,20 @@ export default function SignalementPage() {
               value={
                 form.animal_type
               }
-              onChange={(value) => {
+              onChange={(
+                value
+              ) =>
                 updateField(
                   "animal_type",
                   value
-                );
-                updateField(
-                  "breed",
-                  ""
-                );
-              }}
-              options={[...ANIMAL_TYPES]}
+                )
+              }
+              options={[
+                "Chien",
+                "Chat",
+                "Oiseau",
+                "Autre",
+              ]}
             />
 
             <Input
@@ -1557,10 +1487,14 @@ export default function SignalementPage() {
                   value
                 )
               }
-              options={[...ANIMAL_SEXES]}
+              options={[
+                "Inconnu",
+                "Mâle",
+                "Femelle",
+              ]}
             />
 
-            <Select
+            <Input
               label="Âge estimé"
               value={
                 form.age_label
@@ -1573,7 +1507,6 @@ export default function SignalementPage() {
                   value
                 )
               }
-              options={[...ANIMAL_AGES]}
             />
 
             <Input
@@ -1591,23 +1524,20 @@ export default function SignalementPage() {
               }
             />
 
-            <div>
-              <label className="mb-2 block font-bold text-[#064b42]">
-                Race
-              </label>
-
-              <AnimalBreedSelect
-                species={form.animal_type}
-                value={form.breed}
-                onChange={(value) =>
-                  updateField(
-                    "breed",
-                    value
-                  )
-                }
-                className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
-              />
-            </div>
+            <Input
+              label="Race"
+              value={
+                form.breed
+              }
+              onChange={(
+                value
+              ) =>
+                updateField(
+                  "breed",
+                  value
+                )
+              }
+            />
 
             {(form.type_signalement === "Animal perdu" ||
               form.type_signalement === "Animal trouvé") && (
@@ -1660,25 +1590,22 @@ export default function SignalementPage() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
-              <Select
+              <Input
                 label="Île"
                 value={
                   form.island
                 }
-                onChange={(value) => {
+                onChange={(
+                  value
+                ) =>
                   updateField(
                     "island",
                     value
-                  );
-                  updateField(
-                    "city",
-                    ""
-                  );
-                }}
-                options={[...POLYNESIA_ISLANDS]}
+                  )
+                }
               />
 
-              <Select
+              <Input
                 label="Commune"
                 value={
                   form.city
@@ -1691,11 +1618,6 @@ export default function SignalementPage() {
                     value
                   )
                 }
-                options={[
-                  ...getCommunesForIsland(
-                    form.island
-                  ),
-                ]}
               />
 
               <Input
