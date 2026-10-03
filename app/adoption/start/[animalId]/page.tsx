@@ -568,23 +568,43 @@ export default function AdoptionStartPage() {
 
       const typedAnimal = animalData as AnimalRow;
 
-      const { data: ownerData, error: ownerError } = await supabase
+      const ownerResponse = await fetch(
+        `/api/adoption/owner-profile?ownerId=${encodeURIComponent(
+          typedAnimal.owner_id
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          cache: "no-store",
+        }
+      );
 
-        .from("profiles")
+      const ownerPayload = (await ownerResponse
+        .json()
+        .catch(() => null)) as
+        | {
+            owner?: OwnerProfile;
+            error?: string;
+          }
+        | null;
 
-        .select("id, role, organization_name, first_name, last_name")
-
-        .eq("id", typedAnimal.owner_id)
-
-        .maybeSingle();
-
-      if (ownerError) throw ownerError;
-
-      if (!ownerData) {
-
-        throw new Error("Le profil de la structure est introuvable.");
-
+      if (!ownerResponse.ok) {
+        throw new Error(
+          ownerPayload?.error ||
+            "Impossible de récupérer le profil de la structure."
+        );
       }
+
+      if (!ownerPayload?.owner) {
+        throw new Error(
+          "Le profil de la structure est introuvable."
+        );
+      }
+
+      const ownerData =
+        ownerPayload.owner;
 
       const { data: conditionRows, error: conditionError } = await supabase
 
