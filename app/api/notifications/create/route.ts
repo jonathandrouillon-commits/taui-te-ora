@@ -14,19 +14,24 @@ export const dynamic =
 
 type NotificationBody = {
   recipient_id?: string;
-
   type?: string;
-  title?: string;
-  message?: string;
 
   animal_id?: string | null;
   adoption_request_id?: string | null;
-  conversation_id?: string | null;
-  signalement_id?: string | null;
+};
+
+type AdoptionRequestRow = {
+  id: string;
+  animal_id: string;
+  requester_id: string;
+  owner_id: string;
+  status: string | null;
 };
 
 type ProfileRow = {
   id: string;
+  role?: string | null;
+  is_active?: boolean | null;
 };
 
 function getBearerToken(
@@ -85,12 +90,44 @@ function getSupabaseAdmin() {
   );
 }
 
+function normalizeRole(
+  role:
+    | string
+    | null
+    | undefined
+) {
+  return String(
+    role || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeStatus(
+  status:
+    | string
+    | null
+    | undefined
+) {
+  return String(
+    status || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
 export async function POST(
   request: Request
 ) {
   try {
     const supabase =
       getSupabaseAdmin();
+
+    /*
+     * =====================================================
+     * AUTHENTIFICATION
+     * =====================================================
+     */
 
     const token =
       getBearerToken(
@@ -104,18 +141,14 @@ export async function POST(
             "Authentification requise.",
         },
         {
-          status:
-            401,
+          status: 401,
         }
       );
     }
 
     const {
-      data:
-        userData,
-
-      error:
-        userError,
+      data: userData,
+      error: userError,
     } =
       await supabase
         .auth
@@ -133,11 +166,19 @@ export async function POST(
             "Session invalide.",
         },
         {
-          status:
-            401,
+          status: 401,
         }
       );
     }
+
+    const currentUser =
+      userData.user;
+
+    /*
+     * =====================================================
+     * PAYLOAD
+     * =====================================================
+     */
 
     let body:
       NotificationBody;
@@ -155,53 +196,267 @@ export async function POST(
             "Requête invalide.",
         },
         {
-          status:
-            400,
+          status: 400,
         }
       );
     }
-
-    const recipientId =
-      String(
-        body.recipient_id ||
-          ""
-      ).trim();
 
     const type =
       String(
         body.type ||
           ""
-      ).trim();
+      )
+        .trim()
+        .toLowerCase();
 
-    const title =
+    const adoptionRequestId =
       String(
-        body.title ||
-          ""
-      ).trim();
-
-    const message =
-      String(
-        body.message ||
+        body
+          .adoption_request_id ||
           ""
       ).trim();
 
     if (
-      !recipientId ||
-      !type ||
-      !title ||
-      !message
+      type !==
+        "reponse_adoption" ||
+      !adoptionRequestId
     ) {
       return NextResponse.json(
         {
           error:
-            "Notification incomplète.",
+            "Type de notification non autorisé.",
         },
         {
-          status:
-            400,
+          status: 403,
         }
       );
     }
+
+    /*
+     * =====================================================
+     * PROFIL UTILISATEUR
+     * =====================================================
+     */
+
+    const {
+      data:
+        currentProfile,
+
+      error:
+        profileError,
+    } =
+      await supabase
+        .from(
+          "profiles"
+        )
+        .select(
+          "id, role, is_active"
+        )
+        .eq(
+          "id",
+          currentUser.id
+        )
+        .maybeSingle();
+
+    if (
+      profileError ||
+      !currentProfile
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Profil utilisateur introuvable.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const profile =
+      currentProfile as
+        ProfileRow;
+
+    const isAdmin =
+      normalizeRole(
+        profile.role
+      ) ===
+        "admin" ||
+      normalizeRole(
+        profile.role
+      ) ===
+        "administrateur";
+
+    if (
+      profile.is_active ===
+        false
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Compte utilisateur inactif.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+     * =====================================================
+     * DEMANDE D'ADOPTION
+     * =====================================================
+     */
+
+    const {
+      data:
+        adoptionRequest,
+
+      error:
+        adoptionError,
+    } =
+      await supabase
+        .from(
+          "adoption_requests"
+        )
+        .select(
+          `
+            id,
+            animal_id,
+            requester_id,
+            owner_id,
+            status
+          `
+        )
+        .eq(
+          "id",
+          adoptionRequestId
+        )
+        .maybeSingle();
+
+    if (
+      adoptionError ||
+      !adoptionRequest
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Demande d'adoption introuvable.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const adoption =
+      adoptionRequest as
+        AdoptionRequestRow;
+
+    /*
+     * Seul le propriétaire responsable
+     * de la demande ou un admin
+     * peut envoyer la réponse.
+     */
+
+    if (
+      !isAdmin &&
+      adoption.owner_id !==
+        currentUser.id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Vous n'êtes pas autorisé à répondre à cette demande d'adoption.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+     * Vérification supplémentaire :
+     * le destinataire fourni par le client,
+     * s'il existe, doit être le vrai demandeur.
+     */
+
+    if (
+      body.recipient_id &&
+      body.recipient_id !==
+        adoption.requester_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Destinataire invalide.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+     * Vérification supplémentaire de l'animal.
+     */
+
+    if (
+      body.animal_id &&
+      body.animal_id !==
+        adoption.animal_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Animal invalide.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+     * =====================================================
+     * STATUT
+     * =====================================================
+     */
+
+    const status =
+      normalizeStatus(
+        adoption.status
+      );
+
+    if (
+      status !== "accepted" &&
+      status !== "refused"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "La demande n'a pas encore été acceptée ou refusée.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    /*
+     * Le client ne contrôle plus
+     * le titre ni le message.
+     */
+
+    const title =
+      status === "accepted"
+        ? "Demande d'adoption acceptée"
+        : "Demande d'adoption refusée";
+
+    const message =
+      status === "accepted"
+        ? "Bonne nouvelle, votre demande d'adoption a été acceptée."
+        : "Votre demande d'adoption a été refusée.";
 
     /*
      * =====================================================
@@ -223,9 +478,12 @@ export async function POST(
         .select(
           "id"
         )
-        .eq(
+        .in(
           "role",
-          "admin"
+          [
+            "admin",
+            "administrateur",
+          ]
         )
         .eq(
           "is_active",
@@ -246,40 +504,54 @@ export async function POST(
             "Impossible de récupérer les administrateurs.",
         },
         {
-          status:
-            500,
+          status: 500,
         }
       );
     }
 
     /*
-     * Destinataire normal
-     * +
-     * tous les admins.
+     * =====================================================
+     * DESTINATAIRES
+     * =====================================================
      */
 
     const recipients =
       new Set<string>();
 
+    /*
+     * Vrai demandeur uniquement.
+     */
+
     recipients.add(
-      recipientId
+      adoption.requester_id
     );
 
+    /*
+     * On conserve le fonctionnement actuel :
+     * copie aux admins actifs.
+     */
+
     for (
-      const profile
+      const admin
       of (
         adminProfiles ||
         []
       ) as ProfileRow[]
     ) {
       if (
-        profile.id
+        admin.id
       ) {
         recipients.add(
-          profile.id
+          admin.id
         );
       }
     }
+
+    /*
+     * =====================================================
+     * INSERTION
+     * =====================================================
+     */
 
     const rows =
       Array.from(
@@ -291,29 +563,23 @@ export async function POST(
           recipient_id:
             recipient,
 
-          type,
+          type:
+            "reponse_adoption",
 
           title,
 
           message,
 
           animal_id:
-            body.animal_id ??
-            null,
+            adoption.animal_id,
 
           adoption_request_id:
-            body
-              .adoption_request_id ??
-            null,
+            adoption.id,
 
           conversation_id:
-            body
-              .conversation_id ??
             null,
 
           signalement_id:
-            body
-              .signalement_id ??
             null,
 
           is_read:
@@ -355,8 +621,7 @@ export async function POST(
             "Impossible de créer les notifications.",
         },
         {
-          status:
-            500,
+          status: 500,
         }
       );
     }
@@ -370,7 +635,7 @@ export async function POST(
           item
         ) =>
           item.recipient_id ===
-          recipientId
+          adoption.requester_id
       ) ||
       (
         inserted ||
@@ -380,8 +645,7 @@ export async function POST(
 
     return NextResponse.json(
       {
-        success:
-          true,
+        success: true,
 
         notification:
           recipientNotification,
@@ -396,8 +660,7 @@ export async function POST(
           ).length,
       },
       {
-        status:
-          200,
+        status: 200,
       }
     );
   } catch (
@@ -417,8 +680,7 @@ export async function POST(
             : "Erreur serveur.",
       },
       {
-        status:
-          500,
+        status: 500,
       }
     );
   }

@@ -6,12 +6,34 @@ import {
   useState,
 } from "react";
 
-import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  supabase,
+} from "../lib/supabase";
 
 /* =========================================================
-   ROLES
+   PROFILS
 ========================================================= */
+
+type ProfileGroup =
+  | "user"
+  | "vet_association"
+  | "refuge_sigfa"
+  | "independent_volunteer"
+  | "municipality_pound";
+
+type ProfileSubtype =
+  | "particulier"
+  | "veterinaire"
+  | "association"
+  | "refuge"
+  | "sigfa"
+  | "benevole"
+  | "commune"
+  | "fourriere";
 
 type UserRole =
   | "adoptant"
@@ -20,24 +42,16 @@ type UserRole =
   | "benevole"
   | "fourriere";
 
-const ALLOWED_ROLES: UserRole[] = [
-  "adoptant",
-  "association",
-  "refuge",
-  "benevole",
-  "fourriere",
+const ALLOWED_GROUPS: ProfileGroup[] = [
+  "user",
+  "vet_association",
+  "refuge_sigfa",
+  "independent_volunteer",
+  "municipality_pound",
 ];
 
-const ROLE_LABELS: Record<
-  UserRole,
-  string
-> = {
-  adoptant: "Utilisateur",
-  association: "Association",
-  refuge: "Refuge / SIGFA",
-  benevole: "Bénévole indépendant",
-  fourriere: "Fourrière",
-};
+const INPUT_CLASS =
+  "w-full rounded-2xl border border-[#e4cfaa] bg-white px-4 py-4 font-semibold text-[#3b2417] outline-none transition placeholder:text-gray-400 focus:border-[#064b42]";
 
 /* =========================================================
    PAYS
@@ -131,136 +145,6 @@ const COUNTRIES: Country[] = [
     dial: "+353",
   },
   {
-    code: "AT",
-    name: "Autriche",
-    dial: "+43",
-  },
-  {
-    code: "DK",
-    name: "Danemark",
-    dial: "+45",
-  },
-  {
-    code: "SE",
-    name: "Suède",
-    dial: "+46",
-  },
-  {
-    code: "NO",
-    name: "Norvège",
-    dial: "+47",
-  },
-  {
-    code: "FI",
-    name: "Finlande",
-    dial: "+358",
-  },
-  {
-    code: "IS",
-    name: "Islande",
-    dial: "+354",
-  },
-  {
-    code: "GR",
-    name: "Grèce",
-    dial: "+30",
-  },
-  {
-    code: "PL",
-    name: "Pologne",
-    dial: "+48",
-  },
-  {
-    code: "CZ",
-    name: "République tchèque",
-    dial: "+420",
-  },
-  {
-    code: "RO",
-    name: "Roumanie",
-    dial: "+40",
-  },
-  {
-    code: "HR",
-    name: "Croatie",
-    dial: "+385",
-  },
-  {
-    code: "MX",
-    name: "Mexique",
-    dial: "+52",
-  },
-  {
-    code: "BR",
-    name: "Brésil",
-    dial: "+55",
-  },
-  {
-    code: "AR",
-    name: "Argentine",
-    dial: "+54",
-  },
-  {
-    code: "CL",
-    name: "Chili",
-    dial: "+56",
-  },
-  {
-    code: "CO",
-    name: "Colombie",
-    dial: "+57",
-  },
-  {
-    code: "JP",
-    name: "Japon",
-    dial: "+81",
-  },
-  {
-    code: "KR",
-    name: "Corée du Sud",
-    dial: "+82",
-  },
-  {
-    code: "SG",
-    name: "Singapour",
-    dial: "+65",
-  },
-  {
-    code: "TH",
-    name: "Thaïlande",
-    dial: "+66",
-  },
-  {
-    code: "ID",
-    name: "Indonésie",
-    dial: "+62",
-  },
-  {
-    code: "PH",
-    name: "Philippines",
-    dial: "+63",
-  },
-  {
-    code: "IN",
-    name: "Inde",
-    dial: "+91",
-  },
-  {
-    code: "ZA",
-    name: "Afrique du Sud",
-    dial: "+27",
-  },
-  {
-    code: "MA",
-    name: "Maroc",
-    dial: "+212",
-  },
-  {
-    code: "AE",
-    name: "Émirats arabes unis",
-    dial: "+971",
-  },
-  {
     code: "NC",
     name: "Nouvelle-Calédonie",
     dial: "+687",
@@ -271,26 +155,6 @@ const COUNTRIES: Country[] = [
     dial: "+681",
   },
   {
-    code: "RE",
-    name: "La Réunion",
-    dial: "+262",
-  },
-  {
-    code: "MQ",
-    name: "Martinique",
-    dial: "+596",
-  },
-  {
-    code: "GP",
-    name: "Guadeloupe",
-    dial: "+590",
-  },
-  {
-    code: "GF",
-    name: "Guyane française",
-    dial: "+594",
-  },
-  {
     code: "OTHER",
     name: "Autre pays",
     dial: "",
@@ -298,92 +162,279 @@ const COUNTRIES: Country[] = [
 ];
 
 /* =========================================================
+   HELPERS PROFIL
+========================================================= */
+
+function getDefaultSubtype(
+  group: ProfileGroup
+): ProfileSubtype {
+  switch (group) {
+    case "user":
+      return "particulier";
+
+    case "vet_association":
+      return "association";
+
+    case "refuge_sigfa":
+      return "refuge";
+
+    case "independent_volunteer":
+      return "benevole";
+
+    case "municipality_pound":
+      return "commune";
+  }
+}
+
+function getTechnicalRole(
+  group: ProfileGroup
+): UserRole {
+  switch (group) {
+    case "user":
+      return "adoptant";
+
+    case "vet_association":
+      return "association";
+
+    case "refuge_sigfa":
+      return "refuge";
+
+    case "independent_volunteer":
+      return "benevole";
+
+    case "municipality_pound":
+      return "fourriere";
+  }
+}
+
+function getGroupLabel(
+  group: ProfileGroup
+) {
+  switch (group) {
+    case "user":
+      return "Utilisateur";
+
+    case "vet_association":
+      return "Vétérinaire & Association";
+
+    case "refuge_sigfa":
+      return "Refuge / SIGFA";
+
+    case "independent_volunteer":
+      return "Bénévole indépendant";
+
+    case "municipality_pound":
+      return "Commune & Fourrière";
+  }
+}
+
+function getSubtypeLabel(
+  subtype: ProfileSubtype
+) {
+  switch (subtype) {
+    case "particulier":
+      return "Utilisateur";
+
+    case "veterinaire":
+      return "Vétérinaire";
+
+    case "association":
+      return "Association";
+
+    case "refuge":
+      return "Refuge";
+
+    case "sigfa":
+      return "SIGFA";
+
+    case "benevole":
+      return "Bénévole indépendant";
+
+    case "commune":
+      return "Commune";
+
+    case "fourriere":
+      return "Fourrière";
+  }
+}
+
+/* =========================================================
    PAGE
 ========================================================= */
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [role, setRole] =
-    useState<UserRole>("adoptant");
+  const [
+    profileGroup,
+    setProfileGroup,
+  ] =
+    useState<ProfileGroup>(
+      "user"
+    );
 
-  const [preferredLanguage, setPreferredLanguage] =
-    useState<"fr" | "en">("fr");
+  const [
+    profileSubtype,
+    setProfileSubtype,
+  ] =
+    useState<ProfileSubtype>(
+      "particulier"
+    );
 
   const [
     redirectAfterAuth,
     setRedirectAfterAuth,
-  ] = useState("");
+  ] =
+    useState("");
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(false);
 
-  const [cooldown, setCooldown] =
+  const [
+    cooldown,
+    setCooldown,
+  ] =
     useState(false);
 
-  const [logoFile, setLogoFile] =
-    useState<File | null>(null);
+  const [
+    logoFile,
+    setLogoFile,
+  ] =
+    useState<File | null>(
+      null
+    );
 
   const [
     logoPreview,
     setLogoPreview,
-  ] = useState("");
+  ] =
+    useState("");
 
-  const [fullName, setFullName] =
+  const [
+    fullName,
+    setFullName,
+  ] =
     useState("");
 
   const [
     organizationName,
     setOrganizationName,
-  ] = useState("");
-
-  const [email, setEmail] =
+  ] =
     useState("");
 
-  const [password, setPassword] =
+  const [
+    email,
+    setEmail,
+  ] =
+    useState("");
+
+  const [
+    password,
+    setPassword,
+  ] =
     useState("");
 
   /* =======================================================
-     LOCALISATION INTERNATIONALE
+     LOCALISATION
   ======================================================= */
 
   const [
     countryCode,
     setCountryCode,
-  ] = useState("PF");
+  ] =
+    useState("PF");
 
   const [
     customCountry,
     setCustomCountry,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     dialCode,
     setDialCode,
-  ] = useState("+689");
+  ] =
+    useState("+689");
 
-  const [phone, setPhone] =
+  const [
+    phone,
+    setPhone,
+  ] =
     useState("");
 
-  const [address, setAddress] =
+  const [
+    address,
+    setAddress,
+  ] =
     useState("");
 
   const [
     postalCode,
     setPostalCode,
-  ] = useState("");
-
-  const [region, setRegion] =
+  ] =
     useState("");
 
-  const [island, setIsland] =
+  const [
+    region,
+    setRegion,
+  ] =
     useState("");
 
-  const [city, setCity] =
+  const [
+    island,
+    setIsland,
+  ] =
+    useState("");
+
+  const [
+    city,
+    setCity,
+  ] =
     useState("");
 
   /* =======================================================
-     URL ROLE + REDIRECT
+     PROFIL TECHNIQUE
+  ======================================================= */
+
+  const role =
+    getTechnicalRole(
+      profileGroup
+    );
+
+  const roleLabel =
+    getSubtypeLabel(
+      profileSubtype
+    );
+
+  const groupLabel =
+    getGroupLabel(
+      profileGroup
+    );
+
+  const isOrganization =
+    [
+      "veterinaire",
+      "association",
+      "refuge",
+      "sigfa",
+      "commune",
+      "fourriere",
+    ].includes(
+      profileSubtype
+    );
+
+  const canPublishAnimals =
+    role !== "adoptant";
+
+  const canUploadAvatar =
+    canPublishAnimals;
+
+  /* =======================================================
+     URL
   ======================================================= */
 
   useEffect(() => {
@@ -392,27 +443,126 @@ export default function RegisterPage() {
         window.location.search
       );
 
-    const requestedRole =
-      params.get("role");
+    const requestedGroup =
+      params.get(
+        "group"
+      );
+
+    const requestedSubtype =
+      params.get(
+        "subtype"
+      );
+
+    const legacyRole =
+      params.get(
+        "role"
+      );
 
     const redirect =
-      params.get("redirect") || "";
+      params.get(
+        "redirect"
+      ) || "";
+
+    let nextGroup:
+      ProfileGroup =
+        "user";
 
     if (
-      requestedRole &&
-      ALLOWED_ROLES.includes(
-        requestedRole as UserRole
+      requestedGroup &&
+      ALLOWED_GROUPS.includes(
+        requestedGroup as ProfileGroup
       )
     ) {
-      window.setTimeout(
-        () => setRole(requestedRole as UserRole),
-        0
-      );
+      nextGroup =
+        requestedGroup as ProfileGroup;
+    } else {
+      switch (
+        legacyRole
+      ) {
+        case "association":
+          nextGroup =
+            "vet_association";
+          break;
+
+        case "refuge":
+          nextGroup =
+            "refuge_sigfa";
+          break;
+
+        case "benevole":
+          nextGroup =
+            "independent_volunteer";
+          break;
+
+        case "fourriere":
+          nextGroup =
+            "municipality_pound";
+          break;
+
+        case "adoptant":
+        default:
+          nextGroup =
+            "user";
+          break;
+      }
     }
 
-    window.setTimeout(
-      () => setRedirectAfterAuth(redirect),
-      0
+    let nextSubtype =
+      getDefaultSubtype(
+        nextGroup
+      );
+
+    const allowedSubtypes:
+      Record<
+        ProfileGroup,
+        ProfileSubtype[]
+      > = {
+        user: [
+          "particulier",
+        ],
+
+        vet_association: [
+          "veterinaire",
+          "association",
+        ],
+
+        refuge_sigfa: [
+          "refuge",
+          "sigfa",
+        ],
+
+        independent_volunteer: [
+          "benevole",
+        ],
+
+        municipality_pound: [
+          "commune",
+          "fourriere",
+        ],
+      };
+
+    if (
+      requestedSubtype &&
+      allowedSubtypes[
+        nextGroup
+      ].includes(
+        requestedSubtype as ProfileSubtype
+      )
+    ) {
+      nextSubtype =
+        requestedSubtype as ProfileSubtype;
+    }
+
+    setProfileGroup(
+      nextGroup
+    );
+
+    setProfileSubtype(
+      nextSubtype
+    );
+
+    setRedirectAfterAuth(
+      redirect
     );
   }, []);
 
@@ -421,8 +571,13 @@ export default function RegisterPage() {
   ======================================================= */
 
   useEffect(() => {
-    if (!logoFile) {
-      window.setTimeout(() => setLogoPreview(""), 0);
+    if (
+      !logoFile
+    ) {
+      setLogoPreview(
+        ""
+      );
+
       return;
     }
 
@@ -431,9 +586,8 @@ export default function RegisterPage() {
         logoFile
       );
 
-    window.setTimeout(
-      () => setLogoPreview(preview),
-      0
+    setLogoPreview(
+      preview
     );
 
     return () => {
@@ -451,7 +605,9 @@ export default function RegisterPage() {
     useMemo(
       () =>
         COUNTRIES.find(
-          (country) =>
+          (
+            country
+          ) =>
             country.code ===
             countryCode
         ),
@@ -459,71 +615,168 @@ export default function RegisterPage() {
     );
 
   const countryName =
-    countryCode === "OTHER"
+    countryCode ===
+    "OTHER"
       ? customCountry.trim()
-      : selectedCountry?.name ||
+      : selectedCountry
+          ?.name ||
         "";
 
   const isFrenchPolynesia =
-    countryCode === "PF";
+    countryCode ===
+    "PF";
 
   function changeCountry(
-    newCode: string
+    newCode:
+      string
   ) {
-    setCountryCode(newCode);
+    setCountryCode(
+      newCode
+    );
 
     const country =
       COUNTRIES.find(
-        (item) =>
-          item.code === newCode
+        (
+          item
+        ) =>
+          item.code ===
+          newCode
       );
 
     setDialCode(
-      country?.dial || ""
+      country?.dial ||
+        ""
     );
 
-    /*
-     * Si on quitte la Polynésie,
-     * l'île ne doit plus rester
-     * enregistrée.
-     */
-    if (newCode !== "PF") {
-      setIsland("");
+    if (
+      newCode !==
+      "PF"
+    ) {
+      setIsland(
+        ""
+      );
     }
 
     if (
-      newCode !== "OTHER"
+      newCode !==
+      "OTHER"
     ) {
-      setCustomCountry("");
+      setCustomCountry(
+        ""
+      );
     }
   }
 
   /* =======================================================
-     ROLE
+     CHANGEMENT GROUPE
   ======================================================= */
 
-  const isOrganization =
-    role === "association" ||
-    role === "refuge" ||
-    role === "fourriere";
+  function changeProfileGroup(
+    newGroup:
+      ProfileGroup
+  ) {
+    setProfileGroup(
+      newGroup
+    );
 
-  const canPublishAnimals =
-    role !== "adoptant";
+    setProfileSubtype(
+      getDefaultSubtype(
+        newGroup
+      )
+    );
 
-  const canUploadAvatar =
-    canPublishAnimals;
+    setOrganizationName(
+      ""
+    );
 
-  const roleLabel =
-    ROLE_LABELS[role];
+    setLogoFile(
+      null
+    );
+  }
+
+  /* =======================================================
+     SOUS-TYPES
+  ======================================================= */
+
+  const subtypeOptions =
+    useMemo(() => {
+      switch (
+        profileGroup
+      ) {
+        case "vet_association":
+          return [
+            {
+              value:
+                "veterinaire" as ProfileSubtype,
+              label:
+                "Vétérinaire",
+            },
+            {
+              value:
+                "association" as ProfileSubtype,
+              label:
+                "Association",
+            },
+          ];
+
+        case "refuge_sigfa":
+          return [
+            {
+              value:
+                "refuge" as ProfileSubtype,
+              label:
+                "Refuge",
+            },
+            {
+              value:
+                "sigfa" as ProfileSubtype,
+              label:
+                "SIGFA",
+            },
+          ];
+
+        case "municipality_pound":
+          return [
+            {
+              value:
+                "commune" as ProfileSubtype,
+              label:
+                "Commune",
+            },
+            {
+              value:
+                "fourriere" as ProfileSubtype,
+              label:
+                "Fourrière",
+            },
+          ];
+
+        default:
+          return [];
+      }
+    }, [
+      profileGroup,
+    ]);
 
   const organizationPlaceholder =
     useMemo(() => {
-      switch (role) {
+      switch (
+        profileSubtype
+      ) {
+        case "veterinaire":
+          return "Nom de la clinique / du cabinet";
+
         case "association":
           return "Nom de l'association";
 
         case "refuge":
-          return "Nom du refuge / SIGFA";
+          return "Nom du refuge";
+
+        case "sigfa":
+          return "Nom de la structure SIGFA";
+
+        case "commune":
+          return "Nom de la commune";
 
         case "fourriere":
           return "Nom de la fourrière";
@@ -531,16 +784,21 @@ export default function RegisterPage() {
         default:
           return "";
       }
-    }, [role]);
+    }, [
+      profileSubtype,
+    ]);
 
   /* =======================================================
-     DESTINATIONS
+     DESTINATION
   ======================================================= */
 
   function getDefaultDestination(
-    currentRole: UserRole
+    currentRole:
+      UserRole
   ) {
-    switch (currentRole) {
+    switch (
+      currentRole
+    ) {
       case "adoptant":
         return "/adoptant/questionnaire";
 
@@ -562,8 +820,13 @@ export default function RegisterPage() {
   }
 
   function getDestinationAfterSignup() {
-    if (role === "adoptant") {
-      if (redirectAfterAuth) {
+    if (
+      role ===
+      "adoptant"
+    ) {
+      if (
+        redirectAfterAuth
+      ) {
         return (
           "/adoptant/questionnaire" +
           "?redirect=" +
@@ -576,7 +839,9 @@ export default function RegisterPage() {
       return "/adoptant/questionnaire";
     }
 
-    if (redirectAfterAuth) {
+    if (
+      redirectAfterAuth
+    ) {
       return redirectAfterAuth;
     }
 
@@ -590,7 +855,8 @@ export default function RegisterPage() {
   ======================================================= */
 
   function cleanPhoneNumber(
-    value: string
+    value:
+      string
   ) {
     return value.replace(
       /[^\d]/g,
@@ -600,7 +866,9 @@ export default function RegisterPage() {
 
   function getInternationalPhone() {
     const cleanPhone =
-      cleanPhoneNumber(phone);
+      cleanPhoneNumber(
+        phone
+      );
 
     const cleanDial =
       dialCode
@@ -610,11 +878,15 @@ export default function RegisterPage() {
         )
         .trim();
 
-    if (!cleanPhone) {
+    if (
+      !cleanPhone
+    ) {
       return "";
     }
 
-    if (!cleanDial) {
+    if (
+      !cleanDial
+    ) {
       return cleanPhone;
     }
 
@@ -622,10 +894,13 @@ export default function RegisterPage() {
   }
 
   /* =======================================================
-     UPLOAD LOGO / PHOTO
+     UPLOAD LOGO
   ======================================================= */
 
-  async function uploadLogo() {
+  async function uploadLogo(
+    userId:
+      string
+  ) {
     if (
       !logoFile ||
       !canUploadAvatar
@@ -635,7 +910,9 @@ export default function RegisterPage() {
 
     const safeName =
       logoFile.name
-        .normalize("NFD")
+        .normalize(
+          "NFD"
+        )
         .replace(
           /[\u0300-\u036f]/g,
           ""
@@ -652,33 +929,46 @@ export default function RegisterPage() {
         : "volunteer-profiles";
 
     const path =
-      `${folder}/${Date.now()}-${safeName}`;
+      `${folder}/${userId}/${Date.now()}-${safeName}`;
 
-    const { error } =
+    const {
+      error,
+    } =
       await supabase.storage
-        .from("profiles")
+        .from(
+          "profiles"
+        )
         .upload(
           path,
           logoFile,
           {
-            upsert: true,
+            upsert:
+              true,
           }
         );
 
-    if (error) {
+    if (
+      error
+    ) {
       throw error;
     }
 
-    const { data } =
+    const {
+      data,
+    } =
       supabase.storage
-        .from("profiles")
-        .getPublicUrl(path);
+        .from(
+          "profiles"
+        )
+        .getPublicUrl(
+          path
+        );
 
     return data.publicUrl;
   }
 
   /* =======================================================
-     NOTIFICATION ADMIN
+     ADMIN NOTIFICATION
   ======================================================= */
 
   async function notifyAdmin({
@@ -687,85 +977,100 @@ export default function RegisterPage() {
     avatarUrl,
     accessToken,
   }: {
-    firstName: string;
-    lastName: string;
-    avatarUrl: string;
-    accessToken: string;
+    firstName:
+      string;
+    lastName:
+      string;
+    avatarUrl:
+      string;
+    accessToken:
+      string;
   }) {
     try {
       await fetch(
         "/api/send-new-user",
         {
-          method: "POST",
+          method:
+            "POST",
 
           headers: {
             "Content-Type":
               "application/json",
+
             Authorization:
               `Bearer ${accessToken}`,
           },
 
-          body: JSON.stringify({
-            email:
-              email.trim(),
+          body:
+            JSON.stringify({
+              email:
+                email.trim(),
 
-            first_name:
-              firstName,
+              first_name:
+                firstName,
 
-            last_name:
-              lastName,
+              last_name:
+                lastName,
 
-            role,
+              role,
 
-            role_label:
-              roleLabel,
+              role_label:
+                roleLabel,
 
-            organization_name:
-              isOrganization
-                ? organizationName.trim()
-                : "",
+              profile_group:
+                profileGroup,
 
-            country_code:
-              countryCode,
+              profile_subtype:
+                profileSubtype,
 
-            country:
-              countryName,
+              organization_name:
+                isOrganization
+                  ? organizationName.trim()
+                  : "",
 
-            phone_country_code:
-              dialCode.trim(),
+              country_code:
+                countryCode,
 
-            phone:
-              cleanPhoneNumber(
-                phone
-              ),
+              country:
+                countryName,
 
-            phone_international:
-              getInternationalPhone(),
+              phone_country_code:
+                dialCode.trim(),
 
-            address:
-              address.trim(),
+              phone:
+                cleanPhoneNumber(
+                  phone
+                ),
 
-            postal_code:
-              postalCode.trim(),
+              phone_international:
+                getInternationalPhone(),
 
-            region:
-              region.trim(),
+              address:
+                address.trim(),
 
-            island:
-              island.trim(),
+              postal_code:
+                postalCode.trim(),
 
-            city:
-              city.trim(),
+              region:
+                region.trim(),
 
-            avatar_url:
-              avatarUrl,
+              island:
+                island.trim(),
 
-            can_publish_animals:
-              canPublishAnimals,
-          }),
+              city:
+                city.trim(),
+
+              avatar_url:
+                avatarUrl,
+
+              can_publish_animals:
+                canPublishAnimals,
+            }),
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "ERREUR EMAIL ADMIN:",
         error
@@ -774,29 +1079,34 @@ export default function RegisterPage() {
   }
 
   /* =======================================================
-     RATE LIMIT
+     ERREURS
   ======================================================= */
 
-function isRateLimitError(
-    error: unknown
+  function isRateLimitError(
+    error:
+      unknown
   ) {
     const details =
       error &&
-      typeof error === "object"
-        ? (error as Record<string, unknown>)
+      typeof error ===
+        "object"
+        ? (
+            error as Record<
+              string,
+              unknown
+            >
+          )
         : {};
 
     const message =
-      typeof details.message === "string"
+      typeof details.message ===
+      "string"
         ? details.message.toLowerCase()
         : error instanceof Error
           ? error.message.toLowerCase()
           : "";
 
     return (
-      message.includes(
-        "email rate limit"
-      ) ||
       message.includes(
         "rate limit"
       ) ||
@@ -808,16 +1118,21 @@ function isRateLimitError(
       )
     );
   }
+
   function getRegistrationErrorMessage(
-    error: unknown
+    error:
+      unknown
   ) {
     const details =
       error &&
-      typeof error === "object"
-        ? (error as Record<
-            string,
-            unknown
-          >)
+      typeof error ===
+        "object"
+        ? (
+            error as Record<
+              string,
+              unknown
+            >
+          )
         : {};
 
     const rawMessage =
@@ -831,7 +1146,7 @@ function isRateLimitError(
     const code =
       typeof details.code ===
       "string"
-        ? details.code.trim()
+        ? details.code
         : "";
 
     const status =
@@ -839,7 +1154,9 @@ function isRateLimitError(
         "number" ||
       typeof details.status ===
         "string"
-        ? String(details.status)
+        ? String(
+            details.status
+          )
         : "";
 
     const searchable =
@@ -848,91 +1165,37 @@ function isRateLimitError(
 
     if (
       searchable.includes(
-        "user_already_exists"
-      ) ||
-      searchable.includes(
         "already registered"
       ) ||
       searchable.includes(
-        "already been registered"
+        "user_already_exists"
       )
     ) {
-      return "Cette adresse e-mail possède déjà un compte. Utilisez la page de connexion ou la fonction « Mot de passe oublié ».";
+      return "Cette adresse e-mail possède déjà un compte.";
     }
 
     if (
       searchable.includes(
         "signup_disabled"
-      ) ||
-      searchable.includes(
-        "signups not allowed"
       )
     ) {
-      return "La création de nouveaux comptes est momentanément désactivée dans Supabase.";
+      return "La création de compte est momentanément désactivée.";
     }
 
     if (
       searchable.includes(
         "invalid api key"
       ) ||
-      searchable.includes(
-        "apikey"
-      ) ||
-      status === "401"
+      status ===
+        "401"
     ) {
-      return "La connexion à Supabase est invalide. Vérifiez que l'URL et la clé publique appartiennent au même projet.";
+      return "La connexion à Supabase est invalide.";
     }
 
-    if (
-      searchable.includes(
-        "database error"
-      ) ||
-      searchable.includes(
-        "unexpected_failure"
-      ) ||
-      status === "500"
-    ) {
-      return "Supabase n'a pas pu enregistrer le profil dans la base de données. La configuration de création des profils doit être vérifiée.";
-    }
-
-    if (
-      rawMessage &&
-      rawMessage !== "{}" &&
-      rawMessage !==
-        "[object Object]"
-    ) {
-      const technicalDetails =
-        [
-          code
-            ? `code ${code}`
-            : "",
-          status
-            ? `statut ${status}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join(", ");
-
-      return technicalDetails
-        ? `${rawMessage} (${technicalDetails})`
-        : rawMessage;
-    }
-
-    const technicalDetails =
-      [
-        code
-          ? `code ${code}`
-          : "",
-        status
-          ? `statut ${status}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-    return technicalDetails
-      ? `Supabase a refusé la création du compte (${technicalDetails}).`
-      : "Supabase a refusé la création du compte sans fournir de détail. Vérifiez que cette adresse e-mail n'est pas déjà enregistrée.";
+    return (
+      rawMessage ||
+      "Impossible de créer le compte."
+    );
   }
 
   /* =======================================================
@@ -953,18 +1216,8 @@ function isRateLimitError(
     }
 
     if (
-      isOrganization &&
-      !organizationName.trim()
-    ) {
-      alert(
-        `Merci d'indiquer ${organizationPlaceholder.toLowerCase()}.`
-      );
-
-      return false;
-    }
-
-    if (
-      password.length < 6
+      password.length <
+      6
     ) {
       alert(
         "Le mot de passe doit contenir au moins 6 caractères."
@@ -973,42 +1226,52 @@ function isRateLimitError(
       return false;
     }
 
-    /*
-     * Pour tous les comptes,
-     * on demande désormais le pays.
-     */
-    if (!countryName) {
+    if (
+      isOrganization &&
+      !organizationName.trim()
+    ) {
       alert(
-        "Merci d'indiquer votre pays de résidence."
-      );
-
-      return false;
-    }
-
-    /*
-     * Le téléphone est important
-     * pour les demandes d'adoption.
-     */
-    if (!phone.trim()) {
-      alert(
-        "Merci d'indiquer votre numéro de téléphone."
+        `Merci d'indiquer : ${organizationPlaceholder}.`
       );
 
       return false;
     }
 
     if (
-      countryCode === "OTHER" &&
-      !dialCode.trim()
+      !countryName
     ) {
       alert(
-        "Merci d'indiquer l'indicatif téléphonique de votre pays."
+        "Merci d'indiquer votre pays."
       );
 
       return false;
     }
 
-    if (!city.trim()) {
+    if (
+      !phone.trim()
+    ) {
+      alert(
+        "Merci d'indiquer votre téléphone."
+      );
+
+      return false;
+    }
+
+    if (
+      countryCode ===
+        "OTHER" &&
+      !dialCode.trim()
+    ) {
+      alert(
+        "Merci d'indiquer l'indicatif téléphonique."
+      );
+
+      return false;
+    }
+
+    if (
+      !city.trim()
+    ) {
       alert(
         "Merci d'indiquer votre ville ou commune."
       );
@@ -1016,10 +1279,6 @@ function isRateLimitError(
       return false;
     }
 
-    /*
-     * Île obligatoire uniquement
-     * en Polynésie française.
-     */
     if (
       isFrenchPolynesia &&
       !island.trim()
@@ -1035,36 +1294,43 @@ function isRateLimitError(
   }
 
   /* =======================================================
-     REGISTER
+     INSCRIPTION
   ======================================================= */
 
   async function register() {
+    if (
+      cooldown ||
+      loading
+    ) {
+      return;
+    }
+
     try {
-      if (cooldown) {
-        return;
-      }
+      setLoading(
+        true
+      );
 
-      setLoading(true);
-
-      if (!validateForm()) {
+      if (
+        !validateForm()
+      ) {
         return;
       }
 
       const nameParts =
         fullName
           .trim()
-          .split(/\s+/);
+          .split(
+            /\s+/
+          );
 
       const firstName =
-        nameParts[0] || "";
+        nameParts[0] ||
+        "";
 
       const lastName =
         nameParts
           .slice(1)
           .join(" ");
-
-      const avatarUrl =
-        await uploadLogo();
 
       const phoneClean =
         cleanPhoneNumber(
@@ -1074,118 +1340,127 @@ function isRateLimitError(
       const phoneInternational =
         getInternationalPhone();
 
+      /*
+       * Les 3 niveaux sont enregistrés :
+       *
+       * role = compatibilité avec le système actuel.
+       * profile_group = nouvelle catégorie Taui.
+       * profile_subtype = type exact.
+       */
+
       const {
         data,
         error,
       } =
-        await supabase.auth.signUp(
-          {
-            email:
-              email.trim(),
+        await supabase.auth.signUp({
+          email:
+            email.trim(),
 
-            password,
+          password,
 
-            options: {
-              data: {
-                first_name:
-                  firstName,
+          options: {
+            data: {
+              first_name:
+                firstName,
 
-                last_name:
-                  lastName,
+              last_name:
+                lastName,
 
-                full_name:
-                  fullName.trim(),
+              full_name:
+                fullName.trim(),
 
-                organization_name:
-                  isOrganization
-                    ? organizationName.trim()
-                    : "",
+              organization_name:
+                isOrganization
+                  ? organizationName.trim()
+                  : "",
 
-                role,
+              role,
 
-                role_label:
-                  roleLabel,
+              role_label:
+                roleLabel,
 
-                preferred_language:
-                  preferredLanguage,
+              profile_group:
+                profileGroup,
 
-                /*
-                 * LOCALISATION
-                 */
-                country_code:
-                  countryCode,
+              profile_subtype:
+                profileSubtype,
 
-                country:
-                  countryName,
+              country_code:
+                countryCode,
 
-                address:
-                  address.trim(),
+              country:
+                countryName,
 
-                postal_code:
-                  postalCode.trim(),
+              address:
+                address.trim(),
 
-                region:
-                  region.trim(),
+              postal_code:
+                postalCode.trim(),
 
-                island:
-                  isFrenchPolynesia
-                    ? island.trim()
-                    : "",
+              region:
+                region.trim(),
 
-                city:
-                  city.trim(),
+              island:
+                isFrenchPolynesia
+                  ? island.trim()
+                  : "",
 
-                /*
-                 * TELEPHONE
-                 */
-                phone_country_code:
-                  dialCode.trim(),
+              city:
+                city.trim(),
 
-                phone:
-                  phoneClean,
+              phone_country_code:
+                dialCode.trim(),
 
-                phone_international:
-                  phoneInternational,
+              phone:
+                phoneClean,
 
-                avatar_url:
-                  avatarUrl,
+              phone_international:
+                phoneInternational,
 
-can_publish_animals:
-  canPublishAnimals,
+              avatar_url:
+                "",
 
-approval_status:
-  "pending",
+              can_publish_animals:
+                canPublishAnimals,
 
-is_active:
-  true,
+              approval_status:
+                "pending",
 
-is_verified:
-  false,
+              is_active:
+                true,
 
-approved_at:
-  null,
-              },
+              is_verified:
+                false,
+
+              approved_at:
+                null,
             },
-          }
-        );
+          },
+        });
 
-      if (error) {
+      if (
+        error
+      ) {
         if (
           isRateLimitError(
             error
           )
         ) {
-          setCooldown(true);
-
-          alert(
-            "Trop de demandes d'inscription ont été envoyées. Merci d'attendre quelques minutes avant de réessayer."
+          setCooldown(
+            true
           );
 
-          setTimeout(() => {
-            setCooldown(
-              false
-            );
-          }, 60000);
+          alert(
+            "Trop de demandes ont été envoyées. Merci d'attendre quelques minutes."
+          );
+
+          window.setTimeout(
+            () =>
+              setCooldown(
+                false
+              ),
+            60000
+          );
 
           return;
         }
@@ -1194,50 +1469,179 @@ approved_at:
       }
 
       if (
-        data.user &&
+        !data.user
+      ) {
+        throw new Error(
+          "Le compte n'a pas pu être créé."
+        );
+      }
+
+      if (
         Array.isArray(
           data.user.identities
         ) &&
         data.user.identities
-          .length === 0
+          .length ===
+          0
       ) {
         alert(
-          "Cette adresse e-mail possède déjà un compte. Utilisez la page de connexion ou la fonction « Mot de passe oublié »."
+          "Cette adresse e-mail possède déjà un compte."
         );
 
         return;
       }
 
-      if (data.session?.access_token && data.user?.id) {
-        const { error: languageProfileError } =
-          await supabase
-            .from("profiles")
-            .update({
-              preferred_language:
-                preferredLanguage,
-            })
-            .eq("id", data.user.id);
+      let avatarUrl =
+        "";
 
-        if (languageProfileError) {
+      /*
+       * Si Supabase fournit immédiatement une session,
+       * on peut uploader le logo/photo puis compléter profiles.
+       */
+
+      if (
+        data.session
+      ) {
+        if (
+          logoFile &&
+          canUploadAvatar
+        ) {
+          avatarUrl =
+            await uploadLogo(
+              data.user.id
+            );
+        }
+
+        const {
+          error:
+            profileUpdateError,
+        } =
+          await supabase
+            .from(
+              "profiles"
+            )
+            .update({
+              first_name:
+                firstName,
+
+              last_name:
+                lastName,
+
+              email:
+                email.trim(),
+
+              phone:
+                phoneInternational,
+
+              organization_name:
+                isOrganization
+                  ? organizationName.trim()
+                  : null,
+
+              role,
+
+              profile_group:
+                profileGroup,
+
+              profile_subtype:
+                profileSubtype,
+
+              country_code:
+                countryCode,
+
+              country:
+                countryName,
+
+              address:
+                address.trim(),
+
+              postal_code:
+                postalCode.trim(),
+
+              region:
+                region.trim(),
+
+              island:
+                isFrenchPolynesia
+                  ? island.trim()
+                  : null,
+
+              city:
+                city.trim(),
+
+              avatar_url:
+                avatarUrl ||
+                null,
+
+              can_publish_animals:
+                canPublishAnimals,
+
+              approval_status:
+                "pending",
+            })
+            .eq(
+              "id",
+              data.user.id
+            );
+
+        if (
+          profileUpdateError
+        ) {
           console.error(
-            "ERREUR ENREGISTREMENT LANGUE PROFIL:",
-            languageProfileError
+            "ERREUR MISE À JOUR PROFIL:",
+            profileUpdateError
           );
         }
-      }
 
-      if (data.session?.access_token) {
-        await notifyAdmin({
-          firstName,
-          lastName,
-          avatarUrl,
-          accessToken:
-            data.session.access_token,
-        });
-      } else {
-        console.info(
-          "Notification admin différée : aucune session Supabase disponible après l'inscription."
-        );
+        /*
+         * Met également à jour les métadonnées Auth
+         * avec l'avatar définitif.
+         */
+
+        const {
+          error:
+            authUpdateError,
+        } =
+          await supabase.auth.updateUser({
+            data: {
+              avatar_url:
+                avatarUrl,
+
+              role,
+
+              role_label:
+                roleLabel,
+
+              profile_group:
+                profileGroup,
+
+              profile_subtype:
+                profileSubtype,
+            },
+          });
+
+        if (
+          authUpdateError
+        ) {
+          console.error(
+            "ERREUR METADATA AUTH:",
+            authUpdateError
+          );
+        }
+
+        if (
+          data.session
+            .access_token
+        ) {
+          await notifyAdmin({
+            firstName,
+            lastName,
+            avatarUrl,
+            accessToken:
+              data.session
+                .access_token,
+          });
+        }
       }
 
       const destination =
@@ -1245,14 +1649,20 @@ approved_at:
 
       const notificationDestination =
         "/notifications/setup?next=" +
-        encodeURIComponent(destination);
+        encodeURIComponent(
+          destination
+        );
 
-      if (data.session) {
+      if (
+        data.session
+      ) {
         alert(
           "Votre compte a été créé. Vous êtes maintenant connecté."
         );
 
-        router.push(notificationDestination);
+        router.push(
+          notificationDestination
+        );
 
         router.refresh();
 
@@ -1260,7 +1670,7 @@ approved_at:
       }
 
       alert(
-        "Votre compte a été créé avec succès. Connectez-vous pour continuer."
+        "Votre compte a été créé. Vérifiez votre e-mail puis connectez-vous pour continuer."
       );
 
       router.push(
@@ -1269,9 +1679,12 @@ approved_at:
             notificationDestination
           )
       );
-    } catch (error: unknown) {
+    } catch (
+      error:
+        unknown
+    ) {
       console.error(
-        "ERREUR CREATION COMPTE COMPLETE:",
+        "ERREUR CREATION COMPTE:",
         error
       );
 
@@ -1281,61 +1694,32 @@ approved_at:
         )
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
-  /* =========================================================
-     AFFICHAGE
-  ========================================================= */
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
-    <main
-      className="
-        min-h-[100dvh]
-        bg-[#f5ead8]
-        px-4
-        py-6
-        text-[#3b2417]
-        sm:p-6
-      "
-    >
-      <section
-        className="
-          mx-auto
-          max-w-4xl
-          rounded-[32px]
-          border
-          border-[#e4cfaa]
-          bg-[#fff3dc]
-          p-5
-          shadow-2xl
-          sm:p-8
-        "
-      >
+    <main className="min-h-[100dvh] bg-[#f5ead8] px-4 py-6 text-[#3b2417] sm:p-6">
+
+      <section className="mx-auto max-w-4xl rounded-[32px] border border-[#e4cfaa] bg-[#fff3dc] p-5 shadow-2xl sm:p-8">
+
         {/* HEADER */}
 
         <div className="text-center">
+
           <img
             src="/logo-taui-te-ora.png"
             alt="Taui Te Ora"
-            className="
-              mx-auto
-              h-28
-              w-28
-              object-contain
-            "
+            className="mx-auto h-28 w-28 object-contain"
           />
 
-          <h1
-            className="
-              mt-3
-              text-3xl
-              font-black
-              text-[#064b42]
-              sm:text-5xl
-            "
-          >
+          <h1 className="mt-3 text-3xl font-black text-[#064b42] sm:text-5xl">
             Créer un compte
           </h1>
 
@@ -1343,28 +1727,18 @@ approved_at:
             Profil sélectionné :
           </p>
 
-          <div
-            className="
-              mx-auto
-              mt-3
-              inline-flex
-              rounded-full
-              bg-[#ef919b]
-              px-5
-              py-2
-              text-sm
-              font-black
-              text-white
-              shadow
-            "
-          >
+          <div className="mx-auto mt-3 inline-flex rounded-full bg-[#ef919b] px-5 py-2 text-sm font-black text-white shadow">
             {roleLabel}
           </div>
+
+          <p className="mt-2 text-sm font-bold text-[#6f625a]">
+            {groupLabel}
+          </p>
+
         </div>
 
-        {/* CHANGER PROFIL */}
-
         <div className="mt-6 flex justify-center">
+
           <button
             type="button"
             onClick={() =>
@@ -1372,130 +1746,139 @@ approved_at:
                 "/choose-role"
               )
             }
-            className="
-              text-sm
-              font-bold
-              text-[#064b42]
-              underline
-              underline-offset-4
-            "
+            className="text-sm font-bold text-[#064b42] underline underline-offset-4"
           >
             Changer de type de compte
           </button>
-        </div>
 
-        {/* FORMULAIRE */}
+        </div>
 
         <div className="mt-8 space-y-5">
 
-          {/* LANGUE */}
+          {/* GROUPE */}
 
-          <div className="rounded-[26px] bg-white p-5 shadow">
-            <label className="block">
-              <span className="mb-2 block text-sm font-black text-[#064b42]">
-                Langue de l&apos;application
-              </span>
+          <label className="block">
 
-              <select
-                className="input"
-                value={preferredLanguage}
-                onChange={(event) =>
-                  setPreferredLanguage(
-                    event.target.value === "en"
-                      ? "en"
-                      : "fr"
-                  )
-                }
-              >
-                <option value="fr">
-                  🇫🇷 Français
-                </option>
-                <option value="en">
-                  🇬🇧 English
-                </option>
-              </select>
-
-              <p className="mt-2 text-sm text-gray-500">
-                Vous pourrez modifier cette langue plus tard dans votre profil.
-              </p>
-            </label>
-          </div>
-
-          {/* ROLE */}
-
-          <div>
-            <label
-              className="
-                mb-2
-                block
-                text-sm
-                font-black
-                text-[#064b42]
-              "
-            >
-              Type de compte
-            </label>
+            <span className="mb-2 block text-sm font-black text-[#064b42]">
+              Type de profil
+            </span>
 
             <select
-              className="input"
-              value={role}
+              className={INPUT_CLASS}
+              value={
+                profileGroup
+              }
               onChange={(
                 event
-              ) => {
-                const nextRole =
+              ) =>
+                changeProfileGroup(
                   event.target
-                    .value as UserRole;
-
-                setRole(
-                  nextRole
-                );
-
-                setOrganizationName(
-                  ""
-                );
-
-                setLogoFile(
-                  null
-                );
-              }}
+                    .value as ProfileGroup
+                )
+              }
             >
-              <option value="adoptant">
+              <option value="user">
                 Utilisateur
               </option>
 
-              <option value="association">
-                Association
+              <option value="vet_association">
+                Vétérinaire & Association
               </option>
 
-              <option value="refuge">
+              <option value="refuge_sigfa">
                 Refuge / SIGFA
               </option>
 
-              <option value="benevole">
+              <option value="independent_volunteer">
                 Bénévole indépendant
               </option>
 
-              <option value="fourriere">
-                Fourrière
+              <option value="municipality_pound">
+                Commune & Fourrière
               </option>
             </select>
-          </div>
+
+          </label>
+
+          {/* SOUS-TYPE */}
+
+          {subtypeOptions.length >
+            0 && (
+
+            <label className="block">
+
+              <span className="mb-2 block text-sm font-black text-[#064b42]">
+                Précisez votre profil
+              </span>
+
+              <select
+                className={INPUT_CLASS}
+                value={
+                  profileSubtype
+                }
+                onChange={(
+                  event
+                ) => {
+                  setProfileSubtype(
+                    event.target
+                      .value as ProfileSubtype
+                  );
+
+                  setOrganizationName(
+                    ""
+                  );
+
+                  setLogoFile(
+                    null
+                  );
+                }}
+              >
+
+                {subtypeOptions.map(
+                  (
+                    option
+                  ) => (
+
+                    <option
+                      key={
+                        option.value
+                      }
+                      value={
+                        option.value
+                      }
+                    >
+                      {
+                        option.label
+                      }
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
 
           {/* NOM */}
 
           <input
-            className="input"
+            className={INPUT_CLASS}
             placeholder={
-              role === "adoptant"
-                ? "Nom complet"
-                : "Nom complet du responsable"
+              isOrganization
+                ? "Nom complet du responsable"
+                : "Nom complet"
             }
-            value={fullName}
+            value={
+              fullName
+            }
             onChange={(
               event
             ) =>
               setFullName(
-                event.target.value
+                event.target
+                  .value
               )
             }
           />
@@ -1503,8 +1886,9 @@ approved_at:
           {/* STRUCTURE */}
 
           {isOrganization && (
+
             <input
-              className="input"
+              className={INPUT_CLASS}
               placeholder={
                 organizationPlaceholder
               }
@@ -1515,37 +1899,28 @@ approved_at:
                 event
               ) =>
                 setOrganizationName(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
             />
+
           )}
 
-          {/* LOGO / PHOTO */}
+          {/* LOGO */}
 
           {canUploadAvatar && (
-            <div
-              className="
-                rounded-[26px]
-                bg-white
-                p-5
-                shadow
-              "
-            >
-              <h2
-                className="
-                  text-xl
-                  font-black
-                  text-[#064b42]
-                "
-              >
+
+            <div className="rounded-[26px] bg-white p-5 shadow">
+
+              <h2 className="text-xl font-black text-[#064b42]">
                 {isOrganization
-                  ? "Logo de la structure"
-                  : "Photo du bénévole"}
+                  ? "Logo / photo de la structure"
+                  : "Photo de profil"}
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Cette image pourra être affichée sur les fiches des animaux que vous créez.
+                Facultatif. Vous pourrez également l&apos;ajouter plus tard.
               </p>
 
               <input
@@ -1560,49 +1935,41 @@ approved_at:
                       null
                   )
                 }
-                className="
-                  mt-4
-                  w-full
-                  rounded-2xl
-                  bg-[#f8f4ec]
-                  p-4
-                "
+                className="mt-4 w-full rounded-2xl bg-[#f8f4ec] p-4"
               />
 
               {logoPreview && (
+
                 <img
                   src={
                     logoPreview
                   }
                   alt="Aperçu"
-                  className="
-                    mt-5
-                    h-32
-                    w-32
-                    rounded-full
-                    border-4
-                    border-white
-                    object-cover
-                    shadow-xl
-                  "
+                  className="mt-5 h-32 w-32 rounded-full border-4 border-white object-cover shadow-xl"
                 />
+
               )}
+
             </div>
+
           )}
 
           {/* EMAIL */}
 
           <input
-            className="input"
+            className={INPUT_CLASS}
             type="email"
             autoComplete="email"
             placeholder="Email"
-            value={email}
+            value={
+              email
+            }
             onChange={(
               event
             ) =>
               setEmail(
-                event.target.value
+                event.target
+                  .value
               )
             }
           />
@@ -1610,44 +1977,33 @@ approved_at:
           {/* PASSWORD */}
 
           <input
-            className="input"
+            className={INPUT_CLASS}
             type="password"
             autoComplete="new-password"
             placeholder="Mot de passe"
-            value={password}
+            value={
+              password
+            }
             onChange={(
               event
             ) =>
               setPassword(
-                event.target.value
+                event.target
+                  .value
               )
             }
           />
 
-          {/* =================================================
-              LOCALISATION
-          ================================================== */}
+          {/* COORDONNEES */}
 
-          <div
-            className="
-              rounded-[26px]
-              bg-white
-              p-5
-              shadow
-            "
-          >
-            <h2
-              className="
-                text-xl
-                font-black
-                text-[#064b42]
-              "
-            >
+          <div className="rounded-[26px] bg-white p-5 shadow">
+
+            <h2 className="text-xl font-black text-[#064b42]">
               Coordonnées
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Ces informations permettent à Taui Te Ora de gérer également les utilisateurs vivant hors de Polynésie française.
+              Ces informations permettent notamment de vous contacter concernant les animaux dont vous avez la charge.
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -1655,12 +2011,13 @@ approved_at:
               {/* PAYS */}
 
               <label className="sm:col-span-2">
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   Pays de résidence *
                 </span>
 
                 <select
-                  className="input"
+                  className={INPUT_CLASS}
                   value={
                     countryCode
                   }
@@ -1668,12 +2025,17 @@ approved_at:
                     event
                   ) =>
                     changeCountry(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 >
+
                   {COUNTRIES.map(
-                    (country) => (
+                    (
+                      country
+                    ) => (
+
                       <option
                         key={
                           country.code
@@ -1682,204 +2044,231 @@ approved_at:
                           country.code
                         }
                       >
-                        {country.name}
+                        {
+                          country.name
+                        }
                       </option>
+
                     )
                   )}
+
                 </select>
+
               </label>
 
               {/* AUTRE PAYS */}
 
               {countryCode ===
                 "OTHER" && (
+
                 <label className="sm:col-span-2">
+
                   <span className="mb-2 block text-sm font-black text-[#064b42]">
-                    Nom du pays *
+                    Pays *
                   </span>
 
                   <input
-                    className="input"
-                    placeholder="Votre pays"
+                    className={INPUT_CLASS}
                     value={
                       customCountry
                     }
+                    placeholder="Votre pays"
                     onChange={(
                       event
                     ) =>
                       setCustomCountry(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                   />
+
                 </label>
+
               )}
 
               {/* INDICATIF */}
 
               <label>
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   Indicatif *
                 </span>
 
                 <input
-                  className="input"
-                  placeholder="+689"
+                  className={INPUT_CLASS}
                   value={
                     dialCode
                   }
+                  placeholder="+689"
                   onChange={(
                     event
                   ) =>
                     setDialCode(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
               {/* TELEPHONE */}
 
               <label>
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   Téléphone *
                 </span>
 
                 <input
-                  className="input"
+                  className={INPUT_CLASS}
                   type="tel"
+                  value={
+                    phone
+                  }
                   placeholder="Numéro de téléphone"
-                  value={phone}
                   onChange={(
                     event
                   ) =>
                     setPhone(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
-              {/* APERCU TELEPHONE */}
-
               {phone.trim() && (
-                <div
-                  className="
-                    sm:col-span-2
-                    rounded-2xl
-                    bg-[#f7f2eb]
-                    px-4
-                    py-3
-                    text-sm
-                    text-[#6d655e]
-                  "
-                >
+
+                <div className="sm:col-span-2 rounded-2xl bg-[#f7f2eb] px-4 py-3 text-sm text-[#6d655e]">
+
                   Numéro international :{" "}
+
                   <strong className="text-[#064b42]">
-                    {getInternationalPhone()}
+                    {
+                      getInternationalPhone()
+                    }
                   </strong>
+
                 </div>
+
               )}
 
               {/* ADRESSE */}
 
               <label className="sm:col-span-2">
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   Adresse
                 </span>
 
                 <input
-                  className="input"
-                  placeholder="Adresse"
+                  className={INPUT_CLASS}
                   value={
                     address
                   }
+                  placeholder="Adresse"
                   onChange={(
                     event
                   ) =>
                     setAddress(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
               {/* CODE POSTAL */}
 
               <label>
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   Code postal
                 </span>
 
                 <input
-                  className="input"
-                  placeholder="Code postal"
+                  className={INPUT_CLASS}
                   value={
                     postalCode
                   }
+                  placeholder="Code postal"
                   onChange={(
                     event
                   ) =>
                     setPostalCode(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
               {/* REGION */}
 
               <label>
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
-                  Région / Province / État
+                  Région / Archipel
                 </span>
 
                 <input
-                  className="input"
-                  placeholder={
-                    isFrenchPolynesia
-                      ? "Archipel / région"
-                      : "Région, province ou État"
-                  }
+                  className={INPUT_CLASS}
                   value={
                     region
+                  }
+                  placeholder={
+                    isFrenchPolynesia
+                      ? "Archipel"
+                      : "Région / Province / État"
                   }
                   onChange={(
                     event
                   ) =>
                     setRegion(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
-              {/* ILE POLYNESIE */}
+              {/* ILE */}
 
               {isFrenchPolynesia && (
+
                 <label>
+
                   <span className="mb-2 block text-sm font-black text-[#064b42]">
                     Île *
                   </span>
 
                   <input
-                    className="input"
-                    placeholder="Tahiti, Moorea, Bora Bora..."
+                    className={INPUT_CLASS}
                     value={
                       island
                     }
+                    placeholder="Tahiti, Moorea, Bora Bora..."
                     onChange={(
                       event
                     ) =>
                       setIsland(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                   />
+
                 </label>
+
               )}
 
-              {/* VILLE */}
+              {/* COMMUNE */}
 
               <label
                 className={
@@ -1888,6 +2277,7 @@ approved_at:
                     : "sm:col-span-2"
                 }
               >
+
                 <span className="mb-2 block text-sm font-black text-[#064b42]">
                   {isFrenchPolynesia
                     ? "Commune *"
@@ -1895,79 +2285,64 @@ approved_at:
                 </span>
 
                 <input
-                  className="input"
+                  className={INPUT_CLASS}
+                  value={
+                    city
+                  }
                   placeholder={
                     isFrenchPolynesia
-                      ? "Papeete, Punaauia..."
+                      ? "Papeete, Faa'a, Punaauia..."
                       : "Ville"
                   }
-                  value={city}
                   onChange={(
                     event
                   ) =>
                     setCity(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 />
+
               </label>
 
             </div>
+
           </div>
 
-          {/* MESSAGE ROLE */}
+          {/* INFO PROFIL */}
 
-          {role ===
-          "adoptant" ? (
-            <div
-              className="
-                rounded-[22px]
-                bg-[#fce8ec]
-                p-4
-                text-sm
-                leading-relaxed
-                text-[#76545b]
-              "
-            >
-              Après la création de votre compte, vous compléterez votre questionnaire d&apos;adoption. Les personnes résidant en France ou à l&apos;étranger peuvent également déposer une demande d&apos;adoption.
+          {profileGroup ===
+          "user" ? (
+
+            <div className="rounded-[22px] bg-[#fce8ec] p-4 text-sm leading-relaxed text-[#76545b]">
+              Votre compte vous permettra d&apos;enregistrer vos compagnons,
+              de participer aux fonctionnalités communautaires et de faire des
+              demandes d&apos;adoption.
             </div>
+
           ) : (
-            <div
-              className="
-                rounded-[22px]
-                bg-[#eaf5f1]
-                p-4
-                text-sm
-                leading-relaxed
-                text-[#48675e]
-              "
-            >
-              Ce type de compte permet de créer et gérer des fiches d&apos;animaux sur Taui Te Ora.
+
+            <div className="rounded-[22px] bg-[#eaf5f1] p-4 text-sm leading-relaxed text-[#48675e]">
+              Le profil <strong>{roleLabel}</strong> permet de gérer des
+              animaux et d&apos;accéder aux fonctionnalités correspondant à
+              votre activité sur Taui Te Ora.
             </div>
+
           )}
 
           {/* SUBMIT */}
 
           <button
             type="button"
-            onClick={register}
+            onClick={
+              register
+            }
             disabled={
               loading ||
               cooldown
             }
-            className="
-              w-full
-              rounded-full
-              bg-[#064b42]
-              py-4
-              text-lg
-              font-black
-              text-white
-              shadow-xl
-              transition
-              active:scale-[.99]
-              disabled:opacity-60
-            "
+            className="w-full rounded-full bg-[#064b42] py-4 text-lg font-black text-white shadow-xl transition active:scale-[.99] disabled:opacity-60"
           >
             {loading
               ? "Création..."
@@ -1991,21 +2366,15 @@ approved_at:
                   )
               );
             }}
-            className="
-              w-full
-              py-2
-              text-sm
-              font-bold
-              text-[#df8995]
-              underline
-              underline-offset-4
-            "
+            className="w-full py-2 text-sm font-bold text-[#df8995] underline underline-offset-4"
           >
             J&apos;ai déjà un compte
           </button>
 
         </div>
+
       </section>
+
     </main>
   );
 }

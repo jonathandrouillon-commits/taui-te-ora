@@ -13,6 +13,8 @@ import {
   Building2,
   Camera,
   ClipboardCheck,
+  Database,
+  FileText,
   GripVertical,
   Plus,
   CheckCircle2,
@@ -1028,6 +1030,55 @@ export default function ProfilePage() {
                 </button>
               </section>
             )}
+
+            <section className="mt-8 rounded-[28px] border border-[#dcebe5] bg-[#edf6f2] p-5 sm:p-6">
+              <div className="flex items-start gap-3">
+                <Database
+                  size={26}
+                  className="mt-1 shrink-0 text-[#064b42]"
+                />
+
+                <div className="flex-1">
+                  <h2 className="text-2xl font-black text-[#064b42]">
+                    Confidentialité &amp; Mes données
+                  </h2>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#607069]">
+                    Consultez les principales données liées à votre compte,
+                    téléchargez un résumé de vos informations et retrouvez vos
+                    droits concernant vos données personnelles.
+                  </p>
+
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          "/profile/mes-donnees"
+                        )
+                      }
+                      className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[#064b42] px-6 py-3 font-black text-white shadow"
+                    >
+                      <Database size={18} />
+                      Gérer mes données
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          "/confidentialite"
+                        )
+                      }
+                      className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border-2 border-[#064b42] bg-white px-6 py-3 font-black text-[#064b42]"
+                    >
+                      <FileText size={18} />
+                      Politique de confidentialité
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button

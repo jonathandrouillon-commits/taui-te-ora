@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { supabase } from "../lib/supabase";
+import { useLanguage } from "../lib/i18n";
 
 function getProfileDestination(role: unknown) {
   const normalizedRole = String(role || "")
@@ -45,6 +46,27 @@ function getProfileDestination(role: unknown) {
 
 export default function BottomNavigation() {
   const pathname = usePathname();
+  const { language } = useLanguage();
+
+  const t = language === "en" ? {
+    home: "Home", search: "Search", menu: "Menu", profile: "Profile",
+    info: "Info", associations: "Associations", reports: "Reports",
+    events: "Events", walksFriends: "Walks & Friends", donations: "Donations",
+    shop: "Shop", veterinarians: "Veterinarians", healthAdvice: "Health advice",
+    food: "Nutrition", education: "Training", fosterFamily: "Foster family",
+    grooming: "Grooming", petSitting: "Pet sitting", boarding: "Boarding",
+    tribute: "Tribute", closeMenu: "Close menu", openMenu: "Open menu",
+    reportAnimal: "Report an animal", profilePhoto: "Profile photo",
+  } : {
+    home: "Accueil", search: "Recherche", menu: "Menu", profile: "Profil",
+    info: "Info", associations: "Associations", reports: "Signalements",
+    events: "Événements", walksFriends: "Balades & Copains", donations: "Dons",
+    shop: "Boutique", veterinarians: "Vétérinaires", healthAdvice: "Conseils santé",
+    food: "Alimentation", education: "Éducation", fosterFamily: "Famille d'accueil",
+    grooming: "Toilettage", petSitting: "Gardiennage", boarding: "Pension",
+    tribute: "Hommage", closeMenu: "Fermer le menu", openMenu: "Ouvrir le menu",
+    reportAnimal: "Signaler un animal", profilePhoto: "Photo de profil",
+  };
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileHref, setProfileHref] = useState("/profile");
@@ -129,12 +151,12 @@ export default function BottomNavigation() {
   const mainItems = [
     {
       href: "/",
-      label: "Accueil",
+      label: t.home,
       icon: "🏠",
     },
     {
       href: "/search",
-      label: "Search",
+      label: t.search,
       icon: "🔎",
     },
     {
@@ -145,13 +167,13 @@ export default function BottomNavigation() {
     },
     {
       href: "#",
-      label: "Menu",
+      label: t.menu,
       icon: "☰",
       menu: true,
     },
     {
       href: profileHref,
-      label: "Profil",
+      label: t.profile,
       icon: "👤",
       profile: true,
     },
@@ -167,13 +189,13 @@ export default function BottomNavigation() {
     {
       slug: "info",
       href: "/info",
-      label: "Info",
+      label: t.info,
       icon: "ℹ️",
     },
     {
       slug: "associations",
       href: "/associations",
-      label: "Associations",
+      label: t.associations,
       icon: "🤝",
     },
     {
@@ -185,85 +207,85 @@ export default function BottomNavigation() {
     {
       slug: "signalements",
       href: "/signalements",
-      label: "Signalements",
+      label: t.reports,
       icon: "🚨",
     },
     {
       slug: "evenements",
       href: "/evenements",
-      label: "Événements",
+      label: t.events,
       icon: "📅",
     },
     {
       slug: "balades",
       href: "/balades",
-      label: "Balades & Copains",
+      label: t.walksFriends,
       icon: "🐕",
     },
     {
       slug: "dons",
       href: "/dons",
-      label: "Dons",
+      label: t.donations,
       icon: "💝",
     },
     {
       slug: "boutique",
       href: "/boutique",
-      label: "Boutique",
+      label: t.shop,
       icon: "🛍️",
     },
     {
       slug: "veterinaires",
       href: "/veterinaires",
-      label: "Vétérinaires",
+      label: t.veterinarians,
       icon: "🩺",
     },
     {
       slug: "conseils-sante",
       href: "/conseils-sante",
-      label: "Conseils santé",
+      label: t.healthAdvice,
       icon: "❤️‍🩹",
     },
     {
       slug: "alimentation",
       href: "/alimentation",
-      label: "Alimentation",
+      label: t.food,
       icon: "🥣",
     },
     {
       slug: "education",
       href: "/education",
-      label: "Éducation",
+      label: t.education,
       icon: "🎓",
     },
     {
       slug: "famille-accueil",
       href: "/famille-accueil",
-      label: "Famille d'accueil",
+      label: t.fosterFamily,
       icon: "🏠",
     },
     {
       slug: "toilettage",
       href: "/toilettage",
-      label: "Toilettage",
+      label: t.grooming,
       icon: "✂️",
     },
     {
       slug: "gardiennage",
       href: "/gardiennage",
-      label: "Gardiennage",
+      label: t.petSitting,
       icon: "🏡",
     },
     {
       slug: "pension",
       href: "/pension",
-      label: "Pension",
+      label: t.boarding,
       icon: "🛏️",
     },
     {
       slug: "hommage",
       href: "/hommage",
-      label: "Hommage",
+      label: t.tribute,
       icon: "🕯️",
     },
   ];
@@ -328,12 +350,12 @@ export default function BottomNavigation() {
   const sortedMenuItems = useMemo(
     () =>
       [...menuItems, ...dynamicMenuPages].sort((a, b) =>
-        a.label.localeCompare(b.label, "fr", {
+        a.label.localeCompare(b.label, language === "en" ? "en" : "fr", {
           sensitivity: "base",
           ignorePunctuation: true,
         })
       ),
-    [dynamicMenuPages]
+    [dynamicMenuPages, language]
   );
 
   function toggleMenu() {
@@ -350,7 +372,7 @@ export default function BottomNavigation() {
         <>
           <button
             type="button"
-            aria-label="Fermer le menu"
+            aria-label={t.closeMenu}
             onClick={closeMenu}
             className="fixed inset-0 z-[200] cursor-default bg-black/40"
           />
@@ -364,14 +386,14 @@ export default function BottomNavigation() {
               <button
                 type="button"
                 onClick={closeMenu}
-                aria-label="Fermer le menu"
+                aria-label={t.closeMenu}
                 className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f4ec] text-lg font-black text-[#064b42] shadow-sm"
               >
                 ✕
               </button>
 
               <h2 className="mb-5 text-center text-xl font-black text-[#064b42]">
-                Menu
+                {t.menu}
               </h2>
 
               <div className="max-h-[52vh] space-y-2 overflow-y-auto pb-2">
@@ -425,8 +447,8 @@ export default function BottomNavigation() {
                   aria-expanded={menuOpen}
                   aria-label={
                     menuOpen
-                      ? "Fermer le menu"
-                      : "Ouvrir le menu"
+                      ? t.closeMenu
+                      : t.openMenu
                   }
                   className="flex flex-col items-center justify-center gap-0.5"
                 >
@@ -458,7 +480,7 @@ export default function BottomNavigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  aria-label="Signaler un animal"
+                  aria-label={t.reportAnimal}
                   className="relative -mt-5 flex items-center justify-center"
                 >
                   <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#dc7a4b] shadow-xl ring-[3px] ring-white">
@@ -489,7 +511,7 @@ export default function BottomNavigation() {
                     >
                       <img
                         src={profilePhoto}
-                        alt="Photo de profil"
+                        alt={t.profilePhoto}
                         className="h-full w-full object-cover"
                       />
                     </span>
@@ -506,7 +528,7 @@ export default function BottomNavigation() {
                         : "text-[#6f7b63]"
                     }`}
                   >
-                    Profil
+                    {t.profile}
                   </span>
                 </Link>
               );
