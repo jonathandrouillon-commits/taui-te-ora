@@ -40,25 +40,34 @@ function getSupabaseConfig() {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  const anonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   const serviceRole =
     process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (
     !url ||
-    !anonKey ||
     !serviceRole
   ) {
+    const missing: string[] = [];
+
+    if (!url) {
+      missing.push(
+        "NEXT_PUBLIC_SUPABASE_URL"
+      );
+    }
+
+    if (!serviceRole) {
+      missing.push(
+        "SUPABASE_SERVICE_ROLE_KEY"
+      );
+    }
+
     throw new Error(
-      "Configuration Supabase serveur manquante."
+      `Configuration Supabase serveur manquante : ${missing.join(", ")}.`
     );
   }
 
   return {
     url,
-    anonKey,
     serviceRole,
   };
 }
@@ -415,7 +424,6 @@ export async function POST(
   try {
     const {
       url,
-      anonKey,
       serviceRole,
     } =
       getSupabaseConfig();
@@ -441,7 +449,7 @@ export async function POST(
     const authSupabase =
       createClient(
         url,
-        anonKey,
+        serviceRole,
         {
           auth: {
             persistSession: false,
