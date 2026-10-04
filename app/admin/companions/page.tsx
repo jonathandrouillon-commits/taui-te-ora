@@ -471,6 +471,16 @@ export default function AdminCompanionsPage() {
     >(null);
 
   const [
+    pendingPhotos,
+    setPendingPhotos,
+  ] = useState<Record<string, File>>({});
+
+  const [
+    pendingPhotoPreviews,
+    setPendingPhotoPreviews,
+  ] = useState<Record<string, string>>({});
+
+  const [
     editing,
     setEditing,
   ] =
@@ -1171,180 +1181,92 @@ export default function AdminCompanionsPage() {
      PHOTO
   ======================================================= */
 
-  async function changePhoto(
+  function changePhoto(
     companion: Companion,
-    event:
-      ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<HTMLInputElement>
   ) {
-    const file =
-      event.target
-        .files?.[0];
+    const file = event.target.files?.[0];
+    event.target.value = "";
 
-    event.target.value =
-      "";
+    if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Sélectionnez une image.");
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      alert("Photo trop lourde. Maximum 15 Mo.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const preview = typeof reader.result === "string" ? reader.result : "";
+      setPendingPhotos((previous) => ({ ...previous, [companion.id]: file }));
+      setPendingPhotoPreviews((previous) => ({ ...previous, [companion.id]: preview }));
+    };
+    reader.onerror = () => alert("Impossible de lire cette image.");
+    reader.readAsDataURL(file);
+  }
+
+  function cancelPendingPhoto(companionId: string) {
+    setPendingPhotos((previous) => {
+      const next = { ...previous };
+      delete next[companionId];
+      return next;
+    });
+    setPendingPhotoPreviews((previous) => {
+      const next = { ...previous };
+      delete next[companionId];
+      return next;
+    });
+  }
+
+  async function savePhoto(companion: Companion) {
+    const file = pendingPhotos[companion.id];
     if (!file) {
-      return;
-    }
-
-    if (
-      !file.type.startsWith(
-        "image/"
-      )
-    ) {
-      alert(
-        "Sélectionnez une image."
-      );
-
-      return;
-    }
-
-    if (
-      file.size >
-      15 *
-        1024 *
-        1024
-    ) {
-      alert(
-        "Photo trop lourde. Maximum 15 Mo."
-      );
-
+      alert("Choisissez d'abord une photo.");
       return;
     }
 
     try {
-      setActionId(
-        companion.id
-      );
+      setActionId(companion.id);
+      const extension = getFileExtension(file);
+      const path = `companions/${companion.owner_id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-      const extension =
-        getFileExtension(
-          file
-        );
+      const { error: uploadError } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
 
-      /*
-       * IMPORTANT :
-       * le premier dossier est l'ID du compagnon.
-       */
-      const path =
-        `${companion.id}/${Date.now()}.${extension}`;
+      const { data: publicData } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+      const newUrl = publicData.publicUrl;
 
-      const {
-        error:
-          uploadError,
-      } =
-        await supabase.storage
-          .from(
-            PHOTO_BUCKET
-          )
-          .upload(
-            path,
-            file,
-            {
-              cacheControl:
-                "3600",
+      const { error: updateError } = await supabase
+        .from("companions")
+        .update({ photo_url: newUrl, updated_at: new Date().toISOString() })
+        .eq("id", companion.id);
 
-              upsert:
-                false,
-
-              contentType:
-                file.type,
-            }
-          );
-
-      if (
-        uploadError
-      ) {
-        throw uploadError;
-      }
-
-      const {
-        data:
-          publicData,
-      } =
-        supabase.storage
-          .from(
-            PHOTO_BUCKET
-          )
-          .getPublicUrl(
-            path
-          );
-
-      const newUrl =
-        publicData.publicUrl;
-
-      const {
-        error:
-          updateError,
-      } =
-        await supabase
-          .from(
-            "companions"
-          )
-          .update({
-            photo_url:
-              newUrl,
-
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq(
-            "id",
-            companion.id
-          );
-
-      if (
-        updateError
-      ) {
-        await supabase.storage
-          .from(
-            PHOTO_BUCKET
-          )
-          .remove([
-            path,
-          ]);
-
+      if (updateError) {
+        await supabase.storage.from(PHOTO_BUCKET).remove([path]);
         throw updateError;
       }
 
-      const oldPath =
-        getStoragePathFromUrl(
-          companion.photo_url
-        );
-
-      if (
-        oldPath &&
-        oldPath !==
-          path
-      ) {
-        await supabase.storage
-          .from(
-            PHOTO_BUCKET
-          )
-          .remove([
-            oldPath,
-          ]);
+      const oldPath = getStoragePathFromUrl(companion.photo_url);
+      if (oldPath && oldPath !== path) {
+        const { error: removeError } = await supabase.storage.from(PHOTO_BUCKET).remove([oldPath]);
+        if (removeError) console.warn("Ancienne photo non supprimée :", removeError);
       }
 
+      cancelPendingPhoto(companion.id);
       await loadData();
-    } catch (
-      error
-    ) {
-      console.error(
-        "Erreur photo :",
-        error
-      );
-
-      alert(
-        error instanceof
-          Error
-          ? error.message
-          : "Impossible de modifier la photo."
-      );
+      alert("Photo sauvegardée.");
+    } catch (error) {
+      console.error("Erreur sauvegarde photo :", error);
+      alert(error instanceof Error ? error.message : "Impossible de sauvegarder la photo.");
     } finally {
-      setActionId(
-        null
-      );
+      setActionId(null);
     }
   }
 
@@ -1808,11 +1730,11 @@ export default function AdminCompanionsPage() {
 
                       <div className="relative min-h-[230px] bg-[#f3eee5]">
 
-                        {companion.photo_url ? (
+                        {(pendingPhotoPreviews[companion.id] || companion.photo_url) ? (
 
                           <img
                             src={
-                              companion.photo_url
+                              pendingPhotoPreviews[companion.id] || companion.photo_url || ""
                             }
                             alt={
                               companion.name
@@ -1867,6 +1789,27 @@ export default function AdminCompanionsPage() {
                             }
                             className="hidden"
                           />
+
+                          {pendingPhotos[companion.id] && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={processing}
+                                onClick={() => void savePhoto(companion)}
+                                className="flex items-center gap-2 rounded-full bg-[#064b42] px-3 py-2 text-xs font-black text-white shadow disabled:opacity-50"
+                              >
+                                {processing ? "Sauvegarde..." : "Sauvegarder la photo"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={processing}
+                                onClick={() => cancelPendingPhoto(companion.id)}
+                                className="flex items-center gap-2 rounded-full bg-[#f8f4ec] px-3 py-2 text-xs font-black text-[#064b42] shadow disabled:opacity-50"
+                              >
+                                Annuler
+                              </button>
+                            </>
+                          )}
 
                           {companion.photo_url && (
 
