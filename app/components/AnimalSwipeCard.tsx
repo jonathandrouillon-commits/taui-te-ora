@@ -121,6 +121,12 @@ export default function AnimalSwipeCard({
   ] = useState(false);
 
 
+  const [
+    adoptedBadgeLoaded,
+    setAdoptedBadgeLoaded,
+  ] = useState(false);
+
+
 
   const [swipeFeedback, setSwipeFeedback] =
 
@@ -259,6 +265,8 @@ export default function AnimalSwipeCard({
   useEffect(() => {
 
     window.setTimeout(() => {
+
+      setAdoptedBadgeLoaded(false);
 
       setStartX(null);
 
@@ -2225,14 +2233,16 @@ export default function AnimalSwipeCard({
               pointer-events-none
               absolute
               left-1/2
-              top-[38%]
+              bottom-[150px]
               z-[80]
-              w-[230px]
+              w-[150px]
               -translate-x-1/2
-              -translate-y-1/2
-              drop-shadow-[0_8px_18px_rgba(0,0,0,.28)]
-              sm:w-[265px]
-              md:w-[290px]
+              sm:bottom-[148px]
+              sm:w-[170px]
+              md:bottom-[158px]
+              md:w-[185px]
+              lg:bottom-[170px]
+              lg:w-[195px]
             "
             aria-label={
               isFemale
@@ -2240,11 +2250,52 @@ export default function AnimalSwipeCard({
                 : "Adopté"
             }
           >
+            {!adoptedBadgeLoaded && (
+              <div
+                className={`
+                  flex
+                  min-h-[54px]
+                  w-full
+                  items-center
+                  justify-center
+                  rounded-[20px]
+                  border-[3px]
+                  border-white
+                  px-4
+                  py-2
+                  text-center
+                  text-[18px]
+                  font-black
+                  uppercase
+                  tracking-[0.08em]
+                  text-white
+                  shadow-[0_8px_22px_rgba(0,0,0,.28)]
+                  sm:min-h-[60px]
+                  sm:text-[20px]
+                  ${
+                    isFemale
+                      ? "bg-[#ef8196]"
+                      : "bg-[#4d9eea]"
+                  }
+                `}
+              >
+                <span aria-hidden="true" className="mr-2">
+                  🐾
+                </span>
+                {isFemale
+                  ? "ADOPTÉE"
+                  : "ADOPTÉ"}
+                <span aria-hidden="true" className="ml-2">
+                  ❤
+                </span>
+              </div>
+            )}
+
             <img
               src={
                 isFemale
-                  ? "/badges/adoptee.png"
-                  : "/badges/adopte.png"
+                  ? "/badges/adoptee.png?v=20261004-2"
+                  : "/badges/adopte.png?v=20261004-2"
               }
               alt={
                 isFemale
@@ -2252,16 +2303,29 @@ export default function AnimalSwipeCard({
                   : "Adopté"
               }
               draggable={false}
-              className="
+              onLoad={() => {
+                setAdoptedBadgeLoaded(true);
+              }}
+              onError={(event) => {
+                event.currentTarget.style.display =
+                  "none";
+
+                setAdoptedBadgeLoaded(false);
+              }}
+              className={`
                 h-auto
                 w-full
                 object-contain
-              "
+                drop-shadow-[0_8px_18px_rgba(0,0,0,.28)]
+                ${
+                  adoptedBadgeLoaded
+                    ? "block"
+                    : "absolute opacity-0"
+                }
+              `}
             />
           </div>
         )}
-
-
 
         {photoUrls.length > 1 && (
 
