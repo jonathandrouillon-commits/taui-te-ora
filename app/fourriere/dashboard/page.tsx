@@ -1,11 +1,9 @@
-import PublisherDashboard from "../../components/PublisherDashboard";
-import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
+import UnifiedPublisherDashboard from "../../components/dashboard/UnifiedPublisherDashboard";
 
 export default function FourriereDashboardPage() {
   return (
-    <>
-      <DashboardPrivacyAccess />
-      <PublisherDashboard expectedRole="fourriere" />
-    </>
+    <UnifiedPublisherDashboard
+      expectedRole="fourriere"
+    />
   );
 }

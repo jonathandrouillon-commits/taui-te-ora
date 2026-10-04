@@ -55,6 +55,7 @@ import {
   HeartHandshake,
 
   Bell,
+  ChevronDown,
 
 } from "lucide-react";
 
@@ -169,6 +170,23 @@ export default function AdminDashboardPage() {
     setProfile,
 
   ] = useState<any>(null);
+
+  const [profileForm, setProfileForm] = useState({
+    first_name: "",
+    last_name: "",
+    birth_date: "",
+    phone: "",
+    email: "",
+    avatar_url: "",
+    island: "",
+    city: "",
+    address: "",
+    postal_code: "",
+    organization_name: "",
+  });
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
 
 
 
@@ -337,6 +355,20 @@ export default function AdminDashboardPage() {
         currentProfile
 
       );
+
+      setProfileForm({
+        first_name: currentProfile.first_name || "",
+        last_name: currentProfile.last_name || "",
+        birth_date: currentProfile.birth_date || "",
+        phone: currentProfile.phone || "",
+        email: currentProfile.email || "",
+        avatar_url: currentProfile.avatar_url || "",
+        island: currentProfile.island || "",
+        city: currentProfile.city || "",
+        address: currentProfile.address || "",
+        postal_code: currentProfile.postal_code || "",
+        organization_name: currentProfile.organization_name || "",
+      });
 
 
 
@@ -733,6 +765,65 @@ export default function AdminDashboardPage() {
   }, [profile?.id]);
 
 
+
+  function updateProfileField(
+    field: keyof typeof profileForm,
+    value: string
+  ) {
+    setProfileSaved(false);
+    setProfileForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function saveAdminProfile() {
+    if (!profile?.id || savingProfile) {
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      setProfileSaved(false);
+
+      const payload = {
+        first_name: profileForm.first_name.trim() || null,
+        last_name: profileForm.last_name.trim() || null,
+        birth_date: profileForm.birth_date || null,
+        phone: profileForm.phone.trim() || null,
+        island: profileForm.island.trim() || null,
+        city: profileForm.city.trim() || null,
+        address: profileForm.address.trim() || null,
+        postal_code: profileForm.postal_code.trim() || null,
+        organization_name: profileForm.organization_name.trim() || null,
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", profile.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setProfile((current: any) => ({
+        ...current,
+        ...payload,
+      }));
+
+      setProfileSaved(true);
+      window.setTimeout(() => setProfileSaved(false), 2500);
+    } catch (error: any) {
+      console.error("Erreur sauvegarde profil admin :", error);
+      alert(
+        error?.message ||
+          "Impossible d'enregistrer le profil administrateur."
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function savePreferredLanguage() {
 
@@ -1618,128 +1709,214 @@ export default function AdminDashboardPage() {
 
 
 
-        {/* =====================================================
-
-            LANGUE DE L'APPLICATION
-
-        ====================================================== */}
-
-
-
-        <Card className="mt-10 border border-[#d8e9e3]">
-
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-
-            <div className="flex-1">
-
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
-
-                {tr("Préférences", "Preferences")}
-
-              </p>
-
-
-
-              <h2 className="mt-1 text-2xl font-black text-[#064b42]">
-
-                🌐 {tr("Langue de l’application", "Application language")}
-
-              </h2>
-
-
-
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-
-                {tr("Choisissez la langue utilisée par Taui Te Ora pour votre compte administrateur.", "Choose the language used by Taui Te Ora for your administrator account.")}
-
-              </p>
-
-
-
-              <select
-
-                value={preferredLanguage}
-
-                onChange={(event) => {
-
-                  setPreferredLanguage(
-
-                    event.target.value === "en"
-
-                      ? "en"
-
-                      : "fr"
-
-                  );
-
-                  setLanguageSaved(false);
-
-                }}
-
-                className="mt-4 w-full max-w-sm rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-bold text-[#064b42] outline-none transition focus:border-[#064b42]"
-
-              >
-
-                <option value="fr">
-
-                  🇫🇷 Français
-
-                </option>
-
-                <option value="en">
-
-                  🇬🇧 English
-
-                </option>
-
-              </select>
-
-            </div>
-
-
-
-            <div className="flex flex-col items-stretch gap-2 sm:items-end">
-
-              <button
-
-                type="button"
-
-                onClick={() => void savePreferredLanguage()}
-
-                disabled={savingLanguage}
-
-                className="min-h-[48px] rounded-xl bg-[#064b42] px-6 py-3 font-black text-white transition hover:bg-[#08695d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-
-              >
-
-                {savingLanguage
-
-                  ? tr("Enregistrement...", "Saving...")
-
-                  : tr("Enregistrer la langue", "Save language")}
-
-              </button>
-
-
-
-              {languageSaved && (
-
-                <p className="text-sm font-black text-green-700">
-
-                  ✓ {tr("Langue enregistrée", "Language saved")}
-
+        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                👤
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Mon profil administrateur", "My administrator profile")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Vos coordonnées, votre identité et vos préférences sans quitter le dashboard.", "Your contact details, identity and preferences without leaving the dashboard.")}
                 </p>
-
-              )}
-
+              </div>
             </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+            <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
+              <div className="rounded-2xl bg-[#f8f4ec] p-5 text-center">
+                {profileForm.avatar_url ? (
+                  <img
+                    src={profileForm.avatar_url}
+                    alt={tr("Photo de profil", "Profile picture")}
+                    className="mx-auto h-28 w-28 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[#e8f5f1] text-4xl">
+                    👤
+                  </div>
+                )}
+                <p className="mt-4 font-black text-[#064b42]">
+                  {profileService.getDisplayName(profile)}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {profileForm.email || "—"}
+                </p>
+                <span className="mt-3 inline-flex rounded-full bg-[#064b42] px-3 py-1 text-xs font-black uppercase text-white">
+                  Admin
+                </span>
+              </div>
 
+              <div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Prénom", "First name")}
+                    <input
+                      value={profileForm.first_name}
+                      onChange={(e) => updateProfileField("first_name", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Nom", "Last name")}
+                    <input
+                      value={profileForm.last_name}
+                      onChange={(e) => updateProfileField("last_name", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Téléphone", "Phone")}
+                    <input
+                      value={profileForm.phone}
+                      onChange={(e) => updateProfileField("phone", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    Email
+                    <input
+                      value={profileForm.email}
+                      readOnly
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-gray-50 px-4 py-3 font-semibold text-gray-500"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Date de naissance", "Birth date")}
+                    <input
+                      type="date"
+                      value={profileForm.birth_date}
+                      onChange={(e) => updateProfileField("birth_date", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Organisation", "Organization")}
+                    <input
+                      value={profileForm.organization_name}
+                      onChange={(e) => updateProfileField("organization_name", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Île", "Island")}
+                    <input
+                      value={profileForm.island}
+                      onChange={(e) => updateProfileField("island", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Commune", "City")}
+                    <input
+                      value={profileForm.city}
+                      onChange={(e) => updateProfileField("city", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42] sm:col-span-2">
+                    {tr("Adresse", "Address")}
+                    <input
+                      value={profileForm.address}
+                      onChange={(e) => updateProfileField("address", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Code postal", "Postal code")}
+                    <input
+                      value={profileForm.postal_code}
+                      onChange={(e) => updateProfileField("postal_code", e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                    />
+                  </label>
+
+                  <label className="text-sm font-black text-[#064b42]">
+                    {tr("Langue", "Language")}
+                    <select
+                      value={preferredLanguage}
+                      onChange={(event) => {
+                        setPreferredLanguage(event.target.value === "en" ? "en" : "fr");
+                        setLanguageSaved(false);
+                      }}
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-bold outline-none focus:border-[#064b42]"
+                    >
+                      <option value="fr">🇫🇷 Français</option>
+                      <option value="en">🇬🇧 English</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => void saveAdminProfile()}
+                    disabled={savingProfile}
+                    className="min-h-[48px] rounded-xl bg-[#064b42] px-6 py-3 font-black text-white transition hover:bg-[#08695d] disabled:opacity-60"
+                  >
+                    {savingProfile
+                      ? tr("Enregistrement...", "Saving...")
+                      : tr("Enregistrer mon profil", "Save my profile")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void savePreferredLanguage()}
+                    disabled={savingLanguage}
+                    className="min-h-[48px] rounded-xl border border-[#064b42] bg-white px-6 py-3 font-black text-[#064b42] transition hover:bg-[#e8f5f1] disabled:opacity-60"
+                  >
+                    {savingLanguage
+                      ? tr("Enregistrement...", "Saving...")
+                      : tr("Enregistrer la langue", "Save language")}
+                  </button>
+                </div>
+
+                {(profileSaved || languageSaved) && (
+                  <p className="mt-3 text-sm font-black text-green-700">
+                    ✓ {tr("Modifications enregistrées", "Changes saved")}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-
-        </Card>
-
-
-
+        </details>
+        <details open className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                📊
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Vue d’ensemble", "Overview")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Les chiffres essentiels et l’état actuel de la plateforme.", "Key figures and the current state of the platform.")}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
         {/* =====================================================
 
             STATISTIQUES
@@ -2272,6 +2449,29 @@ export default function AdminDashboardPage() {
 
 
 
+          </div>
+        </details>
+        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                🐾
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Adoptions & traçabilité", "Adoptions & traceability")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Demandes signées, conditions acceptées et attestations.", "Signed requests, accepted conditions and certificates.")}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
         {/* =====================================================
 
             CONDITIONS D'ADOPTION SIGNEES
@@ -2776,6 +2976,29 @@ export default function AdminDashboardPage() {
 
 
 
+          </div>
+        </details>
+        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                📈
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Statistiques du site", "Site statistics")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Visites, pages vues et performances publicitaires.", "Visits, page views and advertising performance.")}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
         {/* =====================================================
 
             ANALYTICS
@@ -2992,6 +3215,29 @@ export default function AdminDashboardPage() {
 
 
 
+          </div>
+        </details>
+        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                🤝
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Activité & entraide", "Activity & community help")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Messages, réseau d’aide et gestion des SOS.", "Messages, help network and SOS management.")}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
         <div className="mt-10">
 
           <DashboardMessages />
@@ -3148,6 +3394,29 @@ export default function AdminDashboardPage() {
 
 
 
+          </div>
+        </details>
+        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+                ⚙️
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                  {tr("Gestion & création", "Management & creation")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {tr("Tous les raccourcis d’administration au même endroit.", "All administration shortcuts in one place.")}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={24}
+              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
         {/* =====================================================
 
             ACTIONS RAPIDES
@@ -3291,6 +3560,20 @@ export default function AdminDashboardPage() {
               }
             >
               {tr("Gérer les compagnons", "Manage companions")}
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/admin/animals/create")}
+            >
+              {tr("Créer un animal pour un profil", "Create animal for a profile")}
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/admin/companions")}
+            >
+              {tr("Créer un compagnon pour un profil", "Create companion for a profile")}
             </Button>
 
             {/* SIGNALEMENTS */}
@@ -3930,6 +4213,8 @@ export default function AdminDashboardPage() {
           </div>
 
         </Card>
+          </div>
+        </details>
 
       </section>
 

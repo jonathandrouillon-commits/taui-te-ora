@@ -1,11 +1,9 @@
-import PublisherDashboard from "../../components/PublisherDashboard";
-import DashboardPrivacyAccess from "../../components/dashboard/DashboardPrivacyAccess";
+import UnifiedPublisherDashboard from "../../components/dashboard/UnifiedPublisherDashboard";
 
 export default function BenevoleDashboardPage() {
   return (
-    <>
-      <DashboardPrivacyAccess />
-      <PublisherDashboard expectedRole="benevole" />
-    </>
+    <UnifiedPublisherDashboard
+      expectedRole="benevole"
+    />
   );
 }
