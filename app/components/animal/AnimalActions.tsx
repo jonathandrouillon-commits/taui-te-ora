@@ -10,10 +10,16 @@ interface AnimalActionsProps {
   animalId: string;
   animalName?: string;
   ownerProfileId?: string;
+  isAdopted?: boolean;
+  onAdopted?: () => void;
 }
 
 export default function AnimalActions({
   animalId,
+  animalName,
+  ownerProfileId,
+  isAdopted = false,
+  onAdopted,
 }: AnimalActionsProps) {
   const router = useRouter();
 
@@ -85,7 +91,7 @@ export default function AnimalActions({
   }
 
   async function handleAdopt() {
-    if (!animalId) {
+    if (!animalId || isAdopted) {
       return;
     }
 
@@ -147,17 +153,20 @@ export default function AnimalActions({
       ) {
         await navigator.share({
           title:
+            animalName ||
             "Taui Te Ora",
+          text: animalName
+            ? `Découvrez ${animalName} sur Taui Te Ora`
+            : "Découvrez cet animal sur Taui Te Ora",
           url: shareUrl,
         });
 
         return;
       }
 
-      await navigator.clipboard
-        .writeText(
-          shareUrl
-        );
+      await navigator.clipboard.writeText(
+        shareUrl
+      );
 
       setMessage(
         "🔗 Lien copié."
@@ -182,6 +191,22 @@ export default function AnimalActions({
     }
   }
 
+  /*
+   * Cette fonction reste disponible si,
+   * depuis ce composant, on doit un jour
+   * confirmer directement le passage
+   * d'un animal au statut adopté.
+   *
+   * Pour le moment le parcours principal
+   * d'adoption passe par /adoption/start/[id].
+   */
+  function notifyAdopted() {
+    onAdopted?.();
+  }
+
+  void ownerProfileId;
+  void notifyAdopted;
+
   return (
     <div className="mt-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -189,7 +214,7 @@ export default function AnimalActions({
           type="button"
           onClick={handleFavorite}
           disabled={loadingFavorite}
-          className="rounded-2xl bg-[#064b42] px-5 py-3 font-bold text-white shadow transition active:scale-[0.98] disabled:opacity-60"
+          className="rounded-2xl bg-[#064b42] px-5 py-3 font-bold text-white shadow transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loadingFavorite
             ? "Enregistrement..."
@@ -199,12 +224,17 @@ export default function AnimalActions({
         <button
           type="button"
           onClick={handleAdopt}
-          disabled={loadingAdopt}
-          className="rounded-2xl bg-[#b68b2f] px-5 py-3 font-black text-white shadow transition active:scale-[0.98] disabled:opacity-60"
+          disabled={
+            loadingAdopt ||
+            isAdopted
+          }
+          className="rounded-2xl bg-[#b68b2f] px-5 py-3 font-black text-white shadow transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loadingAdopt
-            ? "Ouverture..."
-            : "🐾 Je veux adopter"}
+          {isAdopted
+            ? "❤️ Déjà adopté"
+            : loadingAdopt
+              ? "Ouverture..."
+              : "🐾 Je veux adopter"}
         </button>
 
         <button
@@ -214,7 +244,7 @@ export default function AnimalActions({
           }
           className="rounded-2xl bg-white px-5 py-3 font-bold text-[#064b42] shadow transition active:scale-[0.98]"
         >
-          ℹ️ Partager
+          🔗 Partager
         </button>
       </div>
 

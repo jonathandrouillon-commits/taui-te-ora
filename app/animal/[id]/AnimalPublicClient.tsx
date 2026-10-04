@@ -230,7 +230,13 @@ export default function AnimalPublicPage() {
 
   ] = useState(0);
 
-  const loadLikesCount = useCallback(async () => {
+  
+  const [
+    localAdopted,
+    setLocalAdopted,
+  ] = useState(false);
+
+const loadLikesCount = useCallback(async () => {
 
     const {
 
@@ -306,7 +312,14 @@ export default function AnimalPublicPage() {
 
       setAnimal(data);
 
-      try {
+      setLocalAdopted(
+        Boolean(
+          data.is_adopted ||
+            data.status === "adopted"
+        )
+      );
+
+try {
 
         const videoData =
 
@@ -678,13 +691,151 @@ export default function AnimalPublicPage() {
 
         };
 
+        const compatibilitySource = animal as Animal & {
+
+          housing_need?: string | null;
+
+          garden_requirement?: string | null;
+
+          accepte_foyer_chiens?: string | null;
+
+          accepte_foyer_chats?: string | null;
+
+          accepte_foyer_autres?: string | null;
+
+          foyer_chiens?: string | null;
+
+          foyer_chats?: string | null;
+
+          foyer_autres?: string | null;
+
+          enfants_moins_8?: string | null;
+
+          enfants_8_14?: string | null;
+
+          enfants_15_plus?: string | null;
+
+          activity_level?: string | null;
+
+          experience_recommandee?: string | null;
+
+          handicap?: unknown;
+
+          traitement_regulier?: unknown;
+
+          craintif_traumatise?: unknown;
+
+          education_a_poursuivre?: unknown;
+
+        };
+
+        const compatibilityAnimal = {
+
+          id: compatibilitySource.id,
+
+          animal_name:
+
+            compatibilitySource.animal_name ||
+
+            compatibilitySource.nom ||
+
+            null,
+
+          owner_id:
+
+            compatibilitySource.owner_id ||
+
+            compatibilitySource.created_by ||
+
+            null,
+
+          garden_requirement:
+
+            compatibilitySource.housing_need ||
+
+            compatibilitySource.garden_requirement ||
+
+            null,
+
+          enfants_moins_8:
+
+            compatibilitySource.enfants_moins_8 ||
+
+            null,
+
+          enfants_8_14:
+
+            compatibilitySource.enfants_8_14 ||
+
+            null,
+
+          enfants_15_plus:
+
+            compatibilitySource.enfants_15_plus ||
+
+            null,
+
+          foyer_chiens:
+
+            compatibilitySource.accepte_foyer_chiens ||
+
+            compatibilitySource.foyer_chiens ||
+
+            null,
+
+          foyer_chats:
+
+            compatibilitySource.accepte_foyer_chats ||
+
+            compatibilitySource.foyer_chats ||
+
+            null,
+
+          foyer_autres:
+
+            compatibilitySource.accepte_foyer_autres ||
+
+            compatibilitySource.foyer_autres ||
+
+            null,
+
+          activity_level:
+
+            compatibilitySource.activity_level ||
+
+            null,
+
+          experience_recommandee:
+
+            compatibilitySource.experience_recommandee ||
+
+            null,
+
+          handicap:
+
+            compatibilitySource.handicap,
+
+          traitement_regulier:
+
+            compatibilitySource.traitement_regulier,
+
+          craintif_traumatise:
+
+            compatibilitySource.craintif_traumatise,
+
+          education_a_poursuivre:
+
+            compatibilitySource.education_a_poursuivre,
+
+        };
+
         setMatchResult(
 
           compatibilityService.calculate(
 
             questionnaire,
 
-            animal
+            compatibilityAnimal
 
           )
 
@@ -966,13 +1117,19 @@ export default function AnimalPublicPage() {
 
     "";
 
+  const isAdopted =
+    localAdopted ||
+    Boolean(
+      animal.is_adopted ||
+        animal.status === "adopted"
+    );
+
   const statut =
-
-    animal.is_published
-
-      ? "À adopter"
-
-      : "Brouillon";
+    isAdopted
+      ? "Adopté ❤️"
+      : animal.is_published
+        ? "À adopter"
+        : "Brouillon";
 
   /* =========================================================
 
@@ -1195,28 +1352,47 @@ export default function AnimalPublicPage() {
             />
 
             <AnimalActions
-
               animalId={
-
                 animal.id
-
               }
-
               animalName={
-
                 name
-
               }
-
               ownerProfileId={
-
                 ownerProfileId
-
               }
+              isAdopted={
+                isAdopted
+              }
+              onAdopted={() => {
+                setLocalAdopted(
+                  true
+                );
 
+                setAdoptionMode(
+                  false
+                );
+
+                setAnimal(
+                  (
+                    previous
+                  ) =>
+                    previous
+                      ? ({
+                          ...previous,
+                          is_adopted:
+                            true,
+                          is_published:
+                            false,
+                          status:
+                            "adopted",
+                        } as Animal)
+                      : previous
+                );
+              }}
             />
 
-            {adoptionMode && (
+            {adoptionMode && !isAdopted && (
 
               <section className="mt-5 rounded-[28px] border-2 border-[#df8995] bg-[#fff8f8] p-5 shadow-lg">
 
