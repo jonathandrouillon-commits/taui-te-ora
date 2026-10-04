@@ -115,6 +115,12 @@ export default function AnimalSwipeCard({
     useState(false);
 
 
+  const [
+    facebookPublishing,
+    setFacebookPublishing,
+  ] = useState(false);
+
+
 
   const [swipeFeedback, setSwipeFeedback] =
 
@@ -1448,39 +1454,161 @@ export default function AnimalSwipeCard({
 
 
 
-  function handleShareFacebook() {
+  async function handleShareFacebook() {
 
-    if (!animal?.id || typeof window === "undefined") return;
-
-
-
-    const animalUrl = `${window.location.origin}/animal/${encodeURIComponent(
-
-      animal.id
-
-    )}`;
+    if (
+      !animal?.id ||
+      facebookPublishing
+    ) {
+      return;
+    }
 
 
 
-    const facebookUrl =
+    try {
 
-      `https\://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-
-        animalUrl
-
-      )}`;
+      setFacebookPublishing(
+        true
+      );
 
 
 
-    window.open(
+      const {
+        data: {
+          session,
+        },
+      } =
+        await supabase
+          .auth
+          .getSession();
 
-      facebookUrl,
 
-      "facebook-share",
 
-      "width=680,height=560,noopener,noreferrer"
+      if (
+        !session?.access_token
+      ) {
 
-    );
+        router.push(
+
+          "/login?redirect=" +
+
+            encodeURIComponent(
+
+              "/"
+
+            )
+
+        );
+
+
+
+        return;
+
+      }
+
+
+
+      const response =
+        await fetch(
+
+          "/api/facebook/publish-animal-manual",
+
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${session.access_token}`,
+
+            },
+
+            body:
+              JSON.stringify({
+
+                animalId:
+                  animal.id,
+
+              }),
+
+          }
+
+        );
+
+
+
+      const result =
+        await response
+          .json()
+          .catch(
+            () => null
+          );
+
+
+
+      if (
+        !response.ok ||
+        !result?.ok
+      ) {
+
+        throw new Error(
+
+          result?.error ||
+
+            "Impossible de publier sur Facebook."
+
+        );
+
+      }
+
+
+
+      alert(
+
+        isAdopted
+
+          ? `${animalName} a été publié sur Facebook avec son annonce d'adoption.`
+
+          : `${animalName} a été publié sur Facebook.`
+
+      );
+
+    } catch (
+      error: unknown
+    ) {
+
+      console.error(
+
+        "Erreur publication Facebook :",
+
+        error
+
+      );
+
+
+
+      alert(
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Impossible de publier sur Facebook."
+
+      );
+
+    } finally {
+
+      setFacebookPublishing(
+        false
+      );
+
+    }
 
   }
 
@@ -2097,14 +2225,14 @@ export default function AnimalSwipeCard({
               pointer-events-none
               absolute
               left-1/2
-              top-[104px]
+              top-[38%]
               z-[80]
-              w-[210px]
+              w-[230px]
               -translate-x-1/2
+              -translate-y-1/2
               drop-shadow-[0_8px_18px_rgba(0,0,0,.28)]
-              sm:top-[118px]
-              sm:w-[245px]
-              md:w-[270px]
+              sm:w-[265px]
+              md:w-[290px]
             "
             aria-label={
               isFemale
@@ -2376,6 +2504,10 @@ export default function AnimalSwipeCard({
                 transition
 
                 active:scale-95
+
+                disabled:cursor-wait
+
+                disabled:opacity-60
 
               "
 
