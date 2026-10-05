@@ -1138,6 +1138,25 @@ export default function AdminDashboardPage() {
     );
 
 
+  const adoptedAnimals = animals.filter((animal) => {
+    const status = String(
+      animal?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+      animal?.is_adopted === true ||
+      status === "adopted" ||
+      status === "adopte" ||
+      status === "adoptee"
+    );
+  });
+
+
 
   function normalizeSignalementStatus(status: string | null | undefined) {
 
@@ -1455,13 +1474,17 @@ export default function AdminDashboardPage() {
 
         min-h-screen
 
-        bg-[#fbf7ef]
+        bg-[linear-gradient(180deg,#f7f1e8_0%,#fbf8f2_48%,#f3eee7_100%)]
 
-        p-5
+        px-3
+
+        py-4
 
         text-[#064b42]
 
-        sm:p-8
+        sm:px-6
+
+        sm:py-6
 
       "
 
@@ -1473,265 +1496,95 @@ export default function AdminDashboardPage() {
 
           mx-auto
 
-          max-w-7xl
+          max-w-[1500px]
 
         "
 
       >
 
         {/* =====================================================
-
-            HEADER
-
+            HEADER - CENTRE DE PILOTAGE
         ====================================================== */}
 
+        <div className="overflow-hidden rounded-[34px] border border-[#0f675d]/10 bg-[#07594f] shadow-[0_24px_70px_rgba(7,89,79,.16)]">
+          <div className="relative flex flex-col gap-5 overflow-hidden bg-[radial-gradient(circle_at_88%_15%,rgba(255,255,255,.08),transparent_24%),linear-gradient(135deg,#07594f_0%,#0b6c5f_100%)] px-6 py-7 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-white/65">
+                TAUI TE ORA
+              </p>
+              <h1 className="mt-1 text-2xl font-black sm:text-3xl">
+                {tr("Centre de pilotage", "Control center")}
+              </h1>
+              <p className="mt-1 truncate text-sm font-semibold text-white/75">
+                {tr("Bonjour", "Hello")} {profileService.getDisplayName(profile)}
+              </p>
+            </div>
 
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/admin/communications")}
+                className="flex min-h-[44px] items-center gap-2 rounded-2xl bg-[#ef8f7c] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e67f6b]"
+              >
+                💬 {tr("Messages", "Messages")}
+              </button>
 
-        <div
-
-          className="
-
-            flex
-
-            flex-col
-
-            gap-5
-
-            sm:flex-row
-
-            sm:items-center
-
-            sm:justify-between
-
-          "
-
-        >
-
-          <div>
-
-            <h1
-
-              className="
-
-                mt-12
-
-                text-4xl
-
-                font-black
-
-                sm:mt-10
-
-                sm:text-5xl
-
-              "
-
-            >
-
-              {tr("Administration", "Administration")}
-
-            </h1>
-
-
-
-            <p
-
-              className="
-
-                mt-2
-
-                text-gray-500
-
-              "
-
-            >
-
-              {tr("Bonjour", "Hello")}{" "}
-
-              {profileService.getDisplayName(
-
-                profile
-
-              )}
-
-            </p>
-
+              <button
+                type="button"
+                onClick={() => router.push("/notifications")}
+                className="relative flex min-h-[42px] items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
+                aria-label="Notifications"
+              >
+                <Bell size={18} />
+                {tr("Notifications", "Notifications")}
+                {unreadNotifications > 0 && (
+                  <span className="flex min-w-5 items-center justify-center rounded-full bg-[#df8995] px-1.5 py-0.5 text-[10px] font-black text-white">
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-
-
-
-          <div
-
-            className="
-
-              flex
-
-              flex-wrap
-
-              items-center
-
-              gap-3
-
-            "
-
-          >
-
-            <button
-
-              type="button"
-
-              onClick={() =>
-
-                router.push(
-
-                  "/notifications"
-
-                )
-
-              }
-
-              className="
-
-                relative
-
-                flex
-
-                min-h-[48px]
-
-                items-center
-
-                justify-center
-
-                gap-2
-
-                rounded-xl
-
-                border
-
-                border-[#d8e9e3]
-
-                bg-white
-
-                px-4
-
-                py-3
-
-                font-black
-
-                text-[#064b42]
-
-                shadow-sm
-
-                transition
-
-                hover:bg-[#e8f5f1]
-
-                active:scale-[0.98]
-
-              "
-
-              aria-label="Notifications"
-
-            >
-
-              <Bell size={21} />
-
-              {tr("Notifications", "Notifications")}
-
-
-
-              {unreadNotifications > 0 && (
-
-                <span
-
-                  className="
-
-                    flex
-
-                    min-w-6
-
-                    items-center
-
-                    justify-center
-
-                    rounded-full
-
-                    bg-red-600
-
-                    px-1.5
-
-                    py-0.5
-
-                    text-xs
-
-                    font-black
-
-                    text-white
-
-                  "
-
-                >
-
-                  {unreadNotifications > 99
-
-                    ? "99+"
-
-                    : unreadNotifications}
-
-                </span>
-
-              )}
-
-            </button>
-
-
-
-            <Button
-
-              onClick={() =>
-
-                router.push(
-
-                  "/admin/users"
-
-                )
-
-              }
-
-            >
-
-              {tr("Gérer les utilisateurs", "Manage users")}
-
-            </Button>
-
-          </div>
-
         </div>
 
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#eadfd4] bg-[#fff6ef]/85 px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#d86f5c]">Administration Taui Te Ora</p>
+            <p className="mt-1 text-sm font-bold text-[#5f554d]">Tes chiffres essentiels restent visibles, le reste s'ouvre uniquement quand tu en as besoin.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/communications")}
+            className="rounded-full bg-[#e7f3ee] px-4 py-2 text-xs font-black text-[#07594f] transition hover:bg-[#d8ece4]"
+          >
+            Ouvrir la communication
+          </button>
+        </div>
 
-
-        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 👤
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Mon profil administrateur", "My administrator profile")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
                   {tr("Vos coordonnées, votre identité et vos préférences sans quitter le dashboard.", "Your contact details, identity and preferences without leaving the dashboard.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
             <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
-              <div className="rounded-2xl bg-[#f8f4ec] p-5 text-center">
+              <div className="rounded-2xl bg-[#f4eee6] p-5 text-center">
                 {profileForm.avatar_url ? (
                   <img
                     src={profileForm.avatar_url}
@@ -1746,7 +1599,7 @@ export default function AdminDashboardPage() {
                 <p className="mt-4 font-black text-[#064b42]">
                   {profileService.getDisplayName(profile)}
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
                   {profileForm.email || "—"}
                 </p>
                 <span className="mt-3 inline-flex rounded-full bg-[#064b42] px-3 py-1 text-xs font-black uppercase text-white">
@@ -1761,7 +1614,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.first_name}
                       onChange={(e) => updateProfileField("first_name", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1770,7 +1623,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.last_name}
                       onChange={(e) => updateProfileField("last_name", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1779,7 +1632,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.phone}
                       onChange={(e) => updateProfileField("phone", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1788,7 +1641,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.email}
                       readOnly
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-gray-50 px-4 py-3 font-semibold text-gray-500"
+                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-gray-50 px-4 py-3 font-semibold text-[#81756c]"
                     />
                   </label>
 
@@ -1798,7 +1651,7 @@ export default function AdminDashboardPage() {
                       type="date"
                       value={profileForm.birth_date}
                       onChange={(e) => updateProfileField("birth_date", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1807,7 +1660,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.organization_name}
                       onChange={(e) => updateProfileField("organization_name", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1816,7 +1669,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.island}
                       onChange={(e) => updateProfileField("island", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1825,7 +1678,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.city}
                       onChange={(e) => updateProfileField("city", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1834,7 +1687,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.address}
                       onChange={(e) => updateProfileField("address", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1843,7 +1696,7 @@ export default function AdminDashboardPage() {
                     <input
                       value={profileForm.postal_code}
                       onChange={(e) => updateProfileField("postal_code", e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-semibold outline-none focus:border-[#064b42]"
                     />
                   </label>
 
@@ -1855,7 +1708,7 @@ export default function AdminDashboardPage() {
                         setPreferredLanguage(event.target.value === "en" ? "en" : "fr");
                         setLanguageSaved(false);
                       }}
-                      className="mt-2 w-full rounded-xl border border-[#d8e9e3] bg-white px-4 py-3 font-bold outline-none focus:border-[#064b42]"
+                      className="mt-2 w-full rounded-xl border border-[#dfd3c8] bg-[#fffdf9] px-4 py-3 font-bold outline-none focus:border-[#064b42]"
                     >
                       <option value="fr">🇫🇷 Français</option>
                       <option value="en">🇬🇧 English</option>
@@ -1896,27 +1749,27 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </details>
-        <details open className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <details open className="group col-span-full overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_12px_34px_rgba(73,58,43,.07)]">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 📊
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Vue d’ensemble", "Overview")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
                   {tr("Les chiffres essentiels et l’état actuel de la plateforme.", "Key figures and the current state of the platform.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
         {/* =====================================================
 
             STATISTIQUES
@@ -1933,11 +1786,13 @@ export default function AdminDashboardPage() {
 
             grid
 
-            gap-6
+            gap-3
 
-            md:grid-cols-2
+            grid-cols-2
 
-            lg:grid-cols-4
+            md:grid-cols-3
+
+            xl:grid-cols-5
 
           "
 
@@ -1947,7 +1802,13 @@ export default function AdminDashboardPage() {
 
             className="
 
+              rounded-2xl
+              border
+              border-[#e5eee9]
+              bg-white
+              p-4
               text-center
+              shadow-sm
 
             "
 
@@ -1963,7 +1824,7 @@ export default function AdminDashboardPage() {
 
               "
 
-              size={42}
+              size={30}
 
             />
 
@@ -1975,7 +1836,7 @@ export default function AdminDashboardPage() {
 
                 mt-3
 
-                text-4xl
+                text-3xl
 
                 font-black
 
@@ -1997,7 +1858,7 @@ export default function AdminDashboardPage() {
 
               className="
 
-                text-gray-500
+                text-[#81756c]
 
               "
 
@@ -2015,7 +1876,13 @@ export default function AdminDashboardPage() {
 
             className="
 
+              rounded-2xl
+              border
+              border-[#e5eee9]
+              bg-white
+              p-4
               text-center
+              shadow-sm
 
             "
 
@@ -2031,7 +1898,7 @@ export default function AdminDashboardPage() {
 
               "
 
-              size={42}
+              size={30}
 
             />
 
@@ -2043,7 +1910,7 @@ export default function AdminDashboardPage() {
 
                 mt-3
 
-                text-4xl
+                text-3xl
 
                 font-black
 
@@ -2065,7 +1932,7 @@ export default function AdminDashboardPage() {
 
               className="
 
-                text-gray-500
+                text-[#81756c]
 
               "
 
@@ -2083,7 +1950,13 @@ export default function AdminDashboardPage() {
 
             className="
 
+              rounded-2xl
+              border
+              border-[#e5eee9]
+              bg-white
+              p-4
               text-center
+              shadow-sm
 
             "
 
@@ -2099,7 +1972,7 @@ export default function AdminDashboardPage() {
 
               "
 
-              size={42}
+              size={30}
 
             />
 
@@ -2111,7 +1984,7 @@ export default function AdminDashboardPage() {
 
                 mt-3
 
-                text-4xl
+                text-3xl
 
                 font-black
 
@@ -2133,7 +2006,7 @@ export default function AdminDashboardPage() {
 
               className="
 
-                text-gray-500
+                text-[#81756c]
 
               "
 
@@ -2151,7 +2024,89 @@ export default function AdminDashboardPage() {
 
             className="
 
+              rounded-2xl
+              border
+              border-[#e5eee9]
+              bg-white
+              p-4
               text-center
+              shadow-sm
+
+            "
+
+          >
+
+            <HeartHandshake
+
+              className="
+
+                mx-auto
+
+                text-pink-600
+
+              "
+
+              size={30}
+
+            />
+
+
+
+            <h2
+
+              className="
+
+                mt-3
+
+                text-3xl
+
+                font-black
+
+              "
+
+            >
+
+              {adoptedAnimals.length}
+
+            </h2>
+
+
+
+            <p
+
+              className="
+
+                text-[#81756c]
+
+              "
+
+            >
+
+              {tr("Animaux adoptés", "Animals adopted")}
+
+            </p>
+
+
+
+            <p className="mt-1 text-xs font-bold text-[#a0958c]">
+              {tr("Via Taui Te Ora", "Via Taui Te Ora")}
+            </p>
+
+          </Card>
+
+
+
+          <Card
+
+            className="
+
+              rounded-2xl
+              border
+              border-[#e5eee9]
+              bg-white
+              p-4
+              text-center
+              shadow-sm
 
             "
 
@@ -2167,7 +2122,7 @@ export default function AdminDashboardPage() {
 
               "
 
-              size={42}
+              size={30}
 
             />
 
@@ -2179,7 +2134,7 @@ export default function AdminDashboardPage() {
 
                 mt-3
 
-                text-4xl
+                text-3xl
 
                 font-black
 
@@ -2201,7 +2156,7 @@ export default function AdminDashboardPage() {
 
               className="
 
-                text-gray-500
+                text-[#81756c]
 
               "
 
@@ -2255,7 +2210,7 @@ export default function AdminDashboardPage() {
 
               <h2 className="text-3xl font-black">{tr("Rapport des signalements", "Report overview")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
 
                 {tr("Analyse par période et par commune.", "Analysis by period and municipality.")}
 
@@ -2289,7 +2244,7 @@ export default function AdminDashboardPage() {
 
               <h3 className="text-4xl font-black text-red-600">{signalementsToday}</h3>
 
-              <p className="mt-1 text-gray-500">{tr("Aujourd’hui", "Today")}</p>
+              <p className="mt-1 text-[#81756c]">{tr("Aujourd’hui", "Today")}</p>
 
             </Card>
 
@@ -2299,7 +2254,7 @@ export default function AdminDashboardPage() {
 
               <h3 className="text-4xl font-black text-orange-600">{signalementsWeek}</h3>
 
-              <p className="mt-1 text-gray-500">{tr("Cette semaine", "This week")}</p>
+              <p className="mt-1 text-[#81756c]">{tr("Cette semaine", "This week")}</p>
 
             </Card>
 
@@ -2309,7 +2264,7 @@ export default function AdminDashboardPage() {
 
               <h3 className="text-4xl font-black text-[#064b42]">{signalementsMonth}</h3>
 
-              <p className="mt-1 text-gray-500">{tr("Ce mois", "This month")}</p>
+              <p className="mt-1 text-[#81756c]">{tr("Ce mois", "This month")}</p>
 
             </Card>
 
@@ -2319,7 +2274,7 @@ export default function AdminDashboardPage() {
 
               <h3 className="text-4xl font-black text-[#064b42]">{signalements.length}</h3>
 
-              <p className="mt-1 text-gray-500">{tr("Cumulé", "Total")}</p>
+              <p className="mt-1 text-[#81756c]">{tr("Cumulé", "Total")}</p>
 
             </Card>
 
@@ -2335,7 +2290,7 @@ export default function AdminDashboardPage() {
 
                 <h3 className="text-2xl font-black">{tr("Signalements par commune", "Reports by municipality")}</h3>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
 
                   {tr("Nombre et part de chaque commune dans les signalements reçus.", "Number and share of reports received for each municipality.")}
 
@@ -2365,7 +2320,7 @@ export default function AdminDashboardPage() {
 
             {signalementsByCity.length === 0 ? (
 
-              <p className="mt-5 text-gray-500">{tr("Aucun signalement enregistré.", "No reports recorded.")}</p>
+              <p className="mt-5 text-[#81756c]">{tr("Aucun signalement enregistré.", "No reports recorded.")}</p>
 
             ) : (
 
@@ -2425,7 +2380,7 @@ export default function AdminDashboardPage() {
 
 
 
-                      <p className="mt-2 text-xs font-bold text-gray-500">
+                      <p className="mt-2 text-xs font-bold text-[#81756c]">
 
                         {percentage}% {tr("du total", "of total")}
 
@@ -2451,27 +2406,27 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 🐾
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Adoptions & traçabilité", "Adoptions & traceability")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="hidden max-w-[220px] text-[11px] leading-4 text-[#81756c] lg:block">
                   {tr("Demandes signées, conditions acceptées et attestations.", "Signed requests, accepted conditions and certificates.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
         {/* =====================================================
 
             CONDITIONS D'ADOPTION SIGNEES
@@ -2500,7 +2455,7 @@ export default function AdminDashboardPage() {
 
 
 
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[#81756c]">
 
               L&apos;administration peut consulter les conditions acceptées,
 
@@ -2536,7 +2491,7 @@ export default function AdminDashboardPage() {
 
             <Card>
 
-              <div className="py-6 text-center text-gray-500">
+              <div className="py-6 text-center text-[#81756c]">
 
                 {tr("Aucune demande avec conditions signées pour le moment.", "No requests with signed conditions yet.")}
 
@@ -2638,7 +2593,7 @@ export default function AdminDashboardPage() {
 
 
 
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-0.5 text-xs text-[#81756c]">
 
                             {tr("Adoptant", "Adopter")} :{" "}
 
@@ -2652,7 +2607,7 @@ export default function AdminDashboardPage() {
 
 
 
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-0.5 text-xs text-[#81756c]">
 
                             {tr("Structure", "Organization")} :{" "}
 
@@ -2682,7 +2637,7 @@ export default function AdminDashboardPage() {
 
 
 
-                      <div className="grid gap-3 rounded-2xl bg-[#f8f4ec] p-4 sm:grid-cols-2">
+                      <div className="grid gap-3 rounded-2xl bg-[#f4eee6] p-4 sm:grid-cols-2">
 
                         <div>
 
@@ -2978,27 +2933,27 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 📈
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Statistiques du site", "Site statistics")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-0.5 text-xs text-[#81756c]">
                   {tr("Visites, pages vues et performances publicitaires.", "Visits, page views and advertising performance.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
         {/* =====================================================
 
             ANALYTICS
@@ -3019,7 +2974,7 @@ export default function AdminDashboardPage() {
 
 
 
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-0.5 text-xs text-[#81756c]">
 
               Suivi des visites et des performances publicitaires depuis
 
@@ -3083,7 +3038,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Visiteurs aujourd’hui", "Visitors today")}</p>
+              <p className="text-[#81756c]">{tr("Visiteurs aujourd’hui", "Visitors today")}</p>
 
             </Card>
 
@@ -3099,7 +3054,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Visiteurs cumulés", "Total visitors")}</p>
+              <p className="text-[#81756c]">{tr("Visiteurs cumulés", "Total visitors")}</p>
 
             </Card>
 
@@ -3115,7 +3070,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Pages vues aujourd’hui", "Page views today")}</p>
+              <p className="text-[#81756c]">{tr("Pages vues aujourd’hui", "Page views today")}</p>
 
             </Card>
 
@@ -3131,7 +3086,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Pages vues cumulées", "Total page views")}</p>
+              <p className="text-[#81756c]">{tr("Pages vues cumulées", "Total page views")}</p>
 
             </Card>
 
@@ -3151,7 +3106,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Affichages publicitaires", "Ad impressions")}</p>
+              <p className="text-[#81756c]">{tr("Affichages publicitaires", "Ad impressions")}</p>
 
             </Card>
 
@@ -3173,7 +3128,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("Clics publicitaires", "Ad clicks")}</p>
+              <p className="text-[#81756c]">{tr("Clics publicitaires", "Ad clicks")}</p>
 
             </Card>
 
@@ -3201,7 +3156,7 @@ export default function AdminDashboardPage() {
 
               </h3>
 
-              <p className="text-gray-500">{tr("CTR publicitaire global", "Overall ad CTR")}</p>
+              <p className="text-[#81756c]">{tr("CTR publicitaire global", "Overall ad CTR")}</p>
 
             </Card>
 
@@ -3217,27 +3172,27 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 🤝
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Activité & entraide", "Activity & community help")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-0.5 text-xs text-[#81756c]">
                   {tr("Messages, réseau d’aide et gestion des SOS.", "Messages, help network and SOS management.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
         <div className="mt-10">
 
           <DashboardMessages />
@@ -3276,7 +3231,7 @@ export default function AdminDashboardPage() {
 
 
 
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#81756c]">
 
                 {tr("Consultez les bénévoles et familles d’accueil disponibles, puis créez, suivez et clôturez les SOS du réseau TAUI TE ORA.", "View available volunteers and foster families, then create, track and close SOS requests across the TAUI TE ORA network.")}
 
@@ -3396,27 +3351,27 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group mt-8 overflow-hidden rounded-3xl border border-[#d8e9e3] bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 sm:px-7">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8f5f1] text-2xl">
+        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+          <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
                 ⚙️
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl font-black text-[#064b42] sm:text-2xl">
+                <h2 className="text-sm font-black leading-tight text-[#064b42] sm:text-base">
                   {tr("Gestion & création", "Management & creation")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-0.5 text-xs text-[#81756c]">
                   {tr("Tous les raccourcis d’administration au même endroit.", "All administration shortcuts in one place.")}
                 </p>
               </div>
             </div>
             <ChevronDown
               size={24}
-              className="shrink-0 text-[#064b42] transition-transform duration-200 group-open:rotate-180"
+              className="mt-1 shrink-0 text-[#9a8d82] transition-transform duration-200 group-open:rotate-180"
             />
           </summary>
-          <div className="border-t border-[#e7f0ec] px-5 pb-7 sm:px-7">
+          <div className="border-t border-[#eee3d8] px-4 pb-5 sm:px-5">
         {/* =====================================================
 
             ACTIONS RAPIDES
@@ -3439,7 +3394,7 @@ export default function AdminDashboardPage() {
 
             className="
 
-              text-3xl
+              text-xl
 
               font-black
 
@@ -3457,17 +3412,15 @@ export default function AdminDashboardPage() {
 
             className="
 
-              mt-6
+              mt-4
 
-              grid
+              flex
 
-              gap-4
+              gap-2
 
-              md:grid-cols-2
+              overflow-x-auto
 
-              lg:grid-cols-3
-
-              xl:grid-cols-10
+              pb-2
 
             "
 
@@ -3496,6 +3449,16 @@ export default function AdminDashboardPage() {
             </Button>
 
 
+
+            {/* COMMUNICATION GROUPEE */}
+
+            <button
+              type="button"
+              onClick={() => router.push("/admin/communications")}
+              className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#064b42] px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#08695d]"
+            >
+              💬 {tr("Messages aux profils", "Message profiles")}
+            </button>
 
             {/* MESSAGES */}
 
@@ -4215,6 +4178,7 @@ export default function AdminDashboardPage() {
         </Card>
           </div>
         </details>
+        </div>
 
       </section>
 

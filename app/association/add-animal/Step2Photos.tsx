@@ -1,258 +1,943 @@
 "use client";
 
-import { ImagePlus, Star, Trash2, Video, X } from "lucide-react";
+import {
+  type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-type Props = {
+import Cropper, {
+  type Area,
+} from "react-easy-crop";
+
+import {
+  Camera,
+  Check,
+  Crop,
+  Film,
+  RotateCcw,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import {
+  cropImageFile,
+} from "../../lib/cropImage";
+
+type Step2PhotosProps = {
   photos: File[];
-  setPhotos: React.Dispatch<React.SetStateAction<File[]>>;
+
+  setPhotos: Dispatch<
+    SetStateAction<File[]>
+  >;
+
   video: File | null;
-  setVideo: React.Dispatch<React.SetStateAction<File | null>>;
+
+  setVideo: Dispatch<
+    SetStateAction<File | null>
+  >;
 };
 
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+type CropMode =
+  | "new"
+  | "edit"
+  | null;
 
 export default function Step2Photos({
   photos,
   setPhotos,
   video,
   setVideo,
-}: Props) {
-  function addPhotos(files: FileList | null) {
-    if (!files) return;
-
-    const selected = Array.from(files).filter((file) =>
-      file.type.startsWith("image/")
+}: Step2PhotosProps) {
+  const photoInputRef =
+    useRef<HTMLInputElement | null>(
+      null
     );
 
-    setPhotos((prev) => [...prev, ...selected]);
-  }
+  const [
+    cropQueue,
+    setCropQueue,
+  ] = useState<File[]>([]);
 
-  function removePhoto(index: number) {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-  }
+  const [
+    processedPhotos,
+    setProcessedPhotos,
+  ] = useState<File[]>([]);
 
-  function makeCover(index: number) {
-    setPhotos((prev) => {
-      const copy = [...prev];
-      const cover = copy.splice(index, 1)[0];
-      copy.unshift(cover);
-      return copy;
-    });
-  }
+  const [
+    currentIndex,
+    setCurrentIndex,
+  ] = useState(0);
 
-  function selectVideo(file: File | null) {
-    if (!file) return;
+  const [
+    editPhotoIndex,
+    setEditPhotoIndex,
+  ] = useState<number | null>(
+    null
+  );
 
-    if (!file.type.startsWith("video/")) {
-      alert("Merci de sélectionner un fichier vidéo.");
+  const [
+    cropMode,
+    setCropMode,
+  ] = useState<CropMode>(
+    null
+  );
+
+  const [
+    imageUrl,
+    setImageUrl,
+  ] = useState("");
+
+  const [
+    crop,
+    setCrop,
+  ] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  const [
+    zoom,
+    setZoom,
+  ] = useState(1);
+
+  const [
+    croppedAreaPixels,
+    setCroppedAreaPixels,
+  ] = useState<Area | null>(
+    null
+  );
+
+  const [
+    processing,
+    setProcessing,
+  ] = useState(false);
+
+  const currentFile =
+    cropQueue[currentIndex] ??
+    null;
+
+  const cropOpen =
+    Boolean(
+      currentFile &&
+        imageUrl &&
+        cropMode
+    );
+
+  const previews =
+    useMemo(() => {
+      return photos.map(
+        (file) => ({
+          file,
+          url:
+            URL.createObjectURL(
+              file
+            ),
+        })
+      );
+    }, [photos]);
+
+  useEffect(() => {
+    return () => {
+      previews.forEach(
+        ({ url }) => {
+          URL.revokeObjectURL(
+            url
+          );
+        }
+      );
+    };
+  }, [previews]);
+
+  useEffect(() => {
+    if (!currentFile) {
+      setImageUrl("");
       return;
     }
 
-    if (file.size > MAX_VIDEO_SIZE) {
-      alert("La vidéo ne doit pas dépasser 100 Mo.");
+    const url =
+      URL.createObjectURL(
+        currentFile
+      );
+
+    setImageUrl(url);
+
+    setCrop({
+      x: 0,
+      y: 0,
+    });
+
+    setZoom(1);
+
+    setCroppedAreaPixels(
+      null
+    );
+
+    return () => {
+      URL.revokeObjectURL(
+        url
+      );
+    };
+  }, [currentFile]);
+
+  const handleCropComplete =
+    useCallback(
+      (
+        _area: Area,
+        pixels: Area
+      ) => {
+        setCroppedAreaPixels(
+          pixels
+        );
+      },
+      []
+    );
+
+  function resetCropState() {
+    setCropQueue([]);
+    setProcessedPhotos([]);
+    setCurrentIndex(0);
+    setEditPhotoIndex(
+      null
+    );
+    setCropMode(
+      null
+    );
+    setImageUrl("");
+
+    setCrop({
+      x: 0,
+      y: 0,
+    });
+
+    setZoom(1);
+
+    setCroppedAreaPixels(
+      null
+    );
+
+    if (
+      photoInputRef.current
+    ) {
+      photoInputRef.current.value =
+        "";
+    }
+  }
+
+  function handlePhotosSelected(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFiles =
+      Array.from(
+        event.target.files ??
+          []
+      );
+
+    event.target.value = "";
+
+    if (
+      selectedFiles.length ===
+      0
+    ) {
+      return;
+    }
+
+    const remaining =
+      5 - photos.length;
+
+    if (
+      remaining <= 0
+    ) {
+      alert(
+        "Maximum 5 photos."
+      );
+
+      return;
+    }
+
+    const invalidFile =
+      selectedFiles.find(
+        (file) =>
+          !file.type.startsWith(
+            "image/"
+          )
+      );
+
+    if (invalidFile) {
+      alert(
+        `"${invalidFile.name}" n'est pas une image valide.`
+      );
+
+      return;
+    }
+
+    const tooLargeFile =
+      selectedFiles.find(
+        (file) =>
+          file.size >
+          15 *
+            1024 *
+            1024
+      );
+
+    if (tooLargeFile) {
+      alert(
+        `"${tooLargeFile.name}" dépasse 15 Mo.`
+      );
+
+      return;
+    }
+
+    const acceptedFiles =
+      selectedFiles.slice(
+        0,
+        remaining
+      );
+
+    setCropQueue(
+      acceptedFiles
+    );
+
+    setProcessedPhotos(
+      []
+    );
+
+    setCurrentIndex(
+      0
+    );
+
+    setEditPhotoIndex(
+      null
+    );
+
+    setCropMode(
+      "new"
+    );
+  }
+
+  function openEditCrop(
+    index: number
+  ) {
+    const file =
+      photos[index];
+
+    if (!file) {
+      return;
+    }
+
+    setCropQueue([
+      file,
+    ]);
+
+    setProcessedPhotos(
+      []
+    );
+
+    setCurrentIndex(
+      0
+    );
+
+    setEditPhotoIndex(
+      index
+    );
+
+    setCropMode(
+      "edit"
+    );
+  }
+
+  async function validateCrop() {
+    if (
+      !currentFile ||
+      !imageUrl ||
+      !croppedAreaPixels ||
+      !cropMode ||
+      processing
+    ) {
+      return;
+    }
+
+    try {
+      setProcessing(
+        true
+      );
+
+      const croppedFile =
+        await cropImageFile(
+          imageUrl,
+          croppedAreaPixels,
+          currentFile.name
+        );
+
+      if (
+        cropMode ===
+          "edit" &&
+        editPhotoIndex !==
+          null
+      ) {
+        setPhotos(
+          (
+            currentPhotos
+          ) =>
+            currentPhotos.map(
+              (
+                file,
+                index
+              ) =>
+                index ===
+                editPhotoIndex
+                  ? croppedFile
+                  : file
+            )
+        );
+
+        resetCropState();
+
+        return;
+      }
+
+      const nextProcessed =
+        [
+          ...processedPhotos,
+          croppedFile,
+        ];
+
+      const hasNextPhoto =
+        currentIndex <
+        cropQueue.length -
+          1;
+
+      if (hasNextPhoto) {
+        setProcessedPhotos(
+          nextProcessed
+        );
+
+        setCurrentIndex(
+          (
+            previous
+          ) =>
+            previous +
+            1
+        );
+
+        return;
+      }
+
+      setPhotos(
+        (
+          currentPhotos
+        ) =>
+          [
+            ...currentPhotos,
+            ...nextProcessed,
+          ].slice(
+            0,
+            5
+          )
+      );
+
+      resetCropState();
+    } catch (
+      error
+    ) {
+      console.error(
+        "Erreur recadrage photo :",
+        error
+      );
+
+      alert(
+        error instanceof
+          Error
+          ? error.message
+          : "Impossible de recadrer la photo."
+      );
+    } finally {
+      setProcessing(
+        false
+      );
+    }
+  }
+
+  function removePhoto(
+    index: number
+  ) {
+    setPhotos(
+      (
+        currentPhotos
+      ) =>
+        currentPhotos.filter(
+          (
+            _file,
+            currentIndex
+          ) =>
+            currentIndex !==
+            index
+        )
+    );
+  }
+
+  function handleVideo(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0] ??
+      null;
+
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (
+      !file.type.startsWith(
+        "video/"
+      )
+    ) {
+      alert(
+        "Merci de sélectionner une vidéo valide."
+      );
+
+      return;
+    }
+
+    if (
+      file.size >
+      80 *
+        1024 *
+        1024
+    ) {
+      alert(
+        "La vidéo ne doit pas dépasser 80 Mo."
+      );
+
       return;
     }
 
     setVideo(file);
   }
 
-  function formatFileSize(size: number) {
-    if (size < 1024 * 1024) {
-      return `${Math.round(size / 1024)} Ko`;
-    }
-
-    return `${(size / (1024 * 1024)).toFixed(1)} Mo`;
-  }
-
   return (
-    <div className="space-y-10">
-      <section className="space-y-8">
+    <>
+      <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-black text-[#064b42]">
-            Photos de l&apos;animal
+          <h2 className="text-2xl font-black text-[#064b42]">
+            Photos & vidéo
           </h2>
 
-          <p className="mt-2 text-gray-500">
-            Ajoutez plusieurs photos. La première sera utilisée comme photo principale.
+          <p className="mt-2 text-sm text-[#746c64]">
+            Ajoutez jusqu&apos;à
+            5 photos. Vous
+            pouvez ensuite
+            recadrer chaque
+            photo autant de
+            fois que nécessaire.
           </p>
         </div>
 
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[#064b42] bg-[#f8f4ec] p-12 transition hover:bg-[#efe5d4]">
-          <ImagePlus size={60} className="text-[#064b42]" />
-
-          <p className="mt-4 text-xl font-black">
-            Ajouter des photos
-          </p>
-
-          <p className="mt-2 text-center text-gray-500">
-            JPG • PNG • WEBP
-          </p>
-
+        <div className="rounded-[26px] border border-dashed border-[#d8e9e3] bg-[#fffaf7] p-5">
           <input
+            ref={
+              photoInputRef
+            }
             type="file"
             accept="image/*"
             multiple
+            onChange={
+              handlePhotosSelected
+            }
             className="hidden"
-            onChange={(e) => addPhotos(e.target.files)}
           />
-        </label>
 
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-black">
-            {photos.length} photo{photos.length > 1 && "s"}
-          </h3>
+          <button
+            type="button"
+            disabled={
+              photos.length >=
+              5
+            }
+            onClick={() =>
+              photoInputRef.current?.click()
+            }
+            className="flex w-full items-center justify-center gap-3 rounded-[20px] bg-[#064b42] px-6 py-4 font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Camera
+              size={20}
+            />
 
-          <p className="text-sm text-gray-500">
-            ★ = Photo principale
+            {photos.length >=
+            5
+              ? "Maximum 5 photos"
+              : "Ajouter des photos"}
+          </button>
+
+          <p className="mt-3 text-center text-xs text-[#746c64]">
+            JPG, PNG, WEBP —
+            15 Mo maximum par
+            photo
+          </p>
+
+          <p className="mt-1 text-center text-xs font-black text-[#064b42]">
+            {photos.length}/5
+            photo
+            {photos.length >
+            1
+              ? "s"
+              : ""}
           </p>
         </div>
 
-        {photos.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {photos.map((photo, index) => {
-              const preview = URL.createObjectURL(photo);
+        {photos.length >
+          0 && (
+          <div>
+            <h3 className="mb-4 text-lg font-black text-[#064b42]">
+              Photos
+              sélectionnées
+            </h3>
 
-              return (
-                <div
-                  key={`${photo.name}-${photo.lastModified}-${index}`}
-                  className="overflow-hidden rounded-3xl bg-white shadow-lg"
-                >
-                  <div className="relative">
-                    <img
-                      src={preview}
-                      alt={photo.name}
-                      className="h-72 w-full object-cover"
-                      onLoad={() => URL.revokeObjectURL(preview)}
-                    />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {previews.map(
+                (
+                  {
+                    file,
+                    url,
+                  },
+                  index
+                ) => (
+                  <div
+                    key={`${file.name}-${file.lastModified}-${index}`}
+                    className="overflow-hidden rounded-[22px] bg-white shadow"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-gray-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          url
+                        }
+                        alt={`Photo ${
+                          index +
+                          1
+                        }`}
+                        className="h-full w-full object-cover"
+                      />
 
-                    {index === 0 && (
-                      <div className="absolute left-3 top-3 rounded-full bg-yellow-400 p-2 shadow">
-                        <Star
-                          size={20}
-                          fill="white"
-                          className="text-white"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3 p-4">
-                    <p
-                      className="truncate text-sm font-bold"
-                      title={photo.name}
-                    >
-                      {photo.name}
-                    </p>
-
-                    <div className="flex gap-2">
-                      {index !== 0 && (
-                        <button
-                          type="button"
-                          onClick={() => makeCover(index)}
-                          className="flex-1 rounded-xl bg-[#064b42] py-3 font-black text-white"
-                        >
-                          Définir principale
-                        </button>
+                      {index ===
+                        0 && (
+                        <span className="absolute left-2 top-2 rounded-full bg-[#064b42] px-3 py-1 text-[11px] font-black text-white shadow">
+                          Principale
+                        </span>
                       )}
+                    </div>
+
+                    <div className="space-y-2 p-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openEditCrop(
+                            index
+                          )
+                        }
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#e7f2ef] px-3 py-2 text-sm font-black text-[#064b42] transition hover:bg-[#064b42] hover:text-white"
+                      >
+                        <Crop
+                          size={
+                            16
+                          }
+                        />
+
+                        Recadrer
+                      </button>
 
                       <button
                         type="button"
-                        onClick={() => removePhoto(index)}
-                        className="rounded-xl bg-red-100 p-3 text-red-600"
-                        aria-label="Supprimer la photo"
+                        onClick={() =>
+                          removePhoto(
+                            index
+                          )
+                        }
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#fff1f2] px-3 py-2 text-sm font-black text-[#b42336] transition hover:bg-[#b42336] hover:text-white"
                       >
-                        <Trash2 size={20} />
+                        <Trash2
+                          size={
+                            16
+                          }
+                        />
+
+                        Supprimer
                       </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-3xl bg-white p-10 text-center shadow">
-            <p className="text-lg font-bold text-gray-500">
-              Aucune photo sélectionnée.
+                )
+              )}
+            </div>
+
+            <p className="mt-3 text-sm font-bold text-[#746c64]">
+              La première
+              photo sera
+              utilisée comme
+              photo principale.
             </p>
           </div>
         )}
-      </section>
 
-      <section className="border-t border-[#eadfce] pt-10">
-        <div className="flex items-center gap-3">
-          <Video size={30} className="text-[#064b42]" />
+        <div className="rounded-[26px] bg-[#f8f4ec] p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#064b42] shadow-sm">
+              <Film
+                size={20}
+              />
+            </div>
 
-          <h2 className="text-3xl font-black text-[#064b42]">
-            Vidéo de l&apos;animal
-          </h2>
-        </div>
+            <div>
+              <h3 className="font-black text-[#064b42]">
+                Vidéo
+              </h3>
 
-        <p className="mt-2 text-gray-500">
-          Ajoutez une courte vidéo pour montrer son caractère, sa démarche ou son comportement.
-        </p>
+              <p className="text-xs text-[#746c64]">
+                Facultative
+              </p>
+            </div>
+          </div>
 
-        {!video ? (
-          <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[#df8995] bg-[#fff7f8] p-10 transition hover:bg-[#fdebed]">
-            <Video size={54} className="text-[#df8995]" />
+          {!video ? (
+            <label className="mt-4 block cursor-pointer rounded-2xl border border-dashed border-[#cabfae] bg-white px-5 py-4 text-center font-black text-[#064b42]">
+              Choisir une
+              vidéo
 
-            <p className="mt-4 text-xl font-black text-[#064b42]">
-              Ajouter une vidéo
-            </p>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={
+                  handleVideo
+                }
+                className="hidden"
+              />
+            </label>
+          ) : (
+            <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Film
+                  size={22}
+                  className="shrink-0 text-[#064b42]"
+                />
 
-            <p className="mt-2 text-center text-sm text-gray-500">
-              MP4 • MOV • WEBM
-            </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-black text-[#064b42]">
+                    {
+                      video.name
+                    }
+                  </p>
 
-            <p className="mt-1 text-center text-xs text-gray-400">
-              100 Mo maximum
-            </p>
-
-            <input
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm,video/*"
-              className="hidden"
-              onChange={(e) => selectVideo(e.target.files?.[0] || null)}
-            />
-          </label>
-        ) : (
-          <div className="mt-6 overflow-hidden rounded-3xl bg-white shadow-lg">
-            <video
-              src={URL.createObjectURL(video)}
-              controls
-              preload="metadata"
-              className="max-h-[440px] w-full bg-black object-contain"
-            />
-
-            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p
-                  className="truncate font-black text-[#064b42]"
-                  title={video.name}
-                >
-                  {video.name}
-                </p>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  {formatFileSize(video.size)}
-                </p>
+                  <p className="mt-1 text-xs text-[#746c64]">
+                    {(
+                      video.size /
+                      1024 /
+                      1024
+                    ).toFixed(
+                      1
+                    )}{" "}
+                    Mo
+                  </p>
+                </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setVideo(null)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-100 px-5 py-3 font-black text-red-600"
+                onClick={() =>
+                  setVideo(
+                    null
+                  )
+                }
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#fff1f2] px-4 py-3 font-black text-[#b42336]"
               >
-                <X size={18} />
-                Retirer la vidéo
+                <Trash2
+                  size={18}
+                />
+
+                Retirer la
+                vidéo
               </button>
             </div>
-          </div>
-        )}
-
-        <div className="mt-5 rounded-2xl bg-[#f8f4ec] p-4 text-sm leading-6 text-gray-600">
-          Une seule vidéo est ajoutée à la création de la fiche.
+          )}
         </div>
-      </section>
-    </div>
+      </div>
+
+      {cropOpen && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 p-3 sm:p-6">
+          <div className="w-full max-w-3xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black text-[#064b42]">
+                  Recadrer la
+                  photo
+                </h2>
+
+                {cropMode ===
+                  "new" &&
+                  cropQueue.length >
+                    1 && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      Photo{" "}
+                      {currentIndex +
+                        1}
+                      /
+                      {
+                        cropQueue.length
+                      }
+                    </p>
+                  )}
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  processing
+                }
+                onClick={
+                  resetCropState
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700"
+              >
+                <X
+                  size={20}
+                />
+              </button>
+            </div>
+
+            <div className="relative h-[55vh] min-h-[320px] max-h-[620px] bg-[#151515]">
+              <Cropper
+                image={
+                  imageUrl
+                }
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                minZoom={1}
+                maxZoom={3}
+                showGrid
+                onCropChange={
+                  setCrop
+                }
+                onZoomChange={
+                  setZoom
+                }
+                onCropComplete={
+                  handleCropComplete
+                }
+              />
+            </div>
+
+            <div className="space-y-5 p-5">
+              <div>
+                <div className="mb-2 flex items-center justify-between text-sm font-black text-[#064b42]">
+                  <span>
+                    Zoom
+                  </span>
+
+                  <span>
+                    {zoom.toFixed(
+                      1
+                    )}
+                    ×
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.05}
+                  value={zoom}
+                  onChange={(
+                    event
+                  ) =>
+                    setZoom(
+                      Number(
+                        event
+                          .target
+                          .value
+                      )
+                    )
+                  }
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={
+                    processing
+                  }
+                  onClick={() => {
+                    setCrop({
+                      x: 0,
+                      y: 0,
+                    });
+
+                    setZoom(
+                      1
+                    );
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-100 px-5 py-3 font-black text-gray-700"
+                >
+                  <RotateCcw
+                    size={
+                      18
+                    }
+                  />
+
+                  Réinitialiser
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    processing
+                  }
+                  onClick={
+                    resetCropState
+                  }
+                  className="rounded-2xl border border-gray-300 px-5 py-3 font-black text-gray-700"
+                >
+                  Annuler
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    processing ||
+                    !croppedAreaPixels
+                  }
+                  onClick={
+                    validateCrop
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#064b42] px-6 py-3 font-black text-white disabled:opacity-50"
+                >
+                  <Check
+                    size={18}
+                  />
+
+                  {processing
+                    ? "Traitement..."
+                    : cropMode ===
+                        "edit"
+                      ? "Enregistrer le recadrage"
+                      : currentIndex <
+                          cropQueue.length -
+                            1
+                        ? "Valider et suivante"
+                        : "Valider le recadrage"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
