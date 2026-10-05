@@ -1,4 +1,4 @@
-import {
+﻿import {
   NextResponse,
 } from "next/server";
 
@@ -19,6 +19,8 @@ type SubscribeBody = {
 
   alertLost?: boolean;
   alertFound?: boolean;
+  alertMessages?: boolean;
+  alertProfile?: boolean;
   alertSos?: boolean;
 };
 
@@ -81,23 +83,8 @@ export async function POST(
   request: Request
 ) {
   try {
-    let body:
-      SubscribeBody;
-
-    try {
-      body =
-        (await request.json()) as SubscribeBody;
-    } catch {
-      return NextResponse.json(
-        {
-          error:
-            "Corps de requête invalide.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    const body =
+      (await request.json()) as SubscribeBody;
 
     const endpoint =
       String(
@@ -117,24 +104,6 @@ export async function POST(
           ""
       ).trim();
 
-    const alertLost =
-      Boolean(
-        body.alertLost
-      );
-
-    const alertFound =
-      Boolean(
-        body.alertFound
-      );
-
-    const alertSos =
-      body.alertSos ===
-      undefined
-        ? true
-        : Boolean(
-            body.alertSos
-          );
-
     if (
       !endpoint ||
       !p256dh ||
@@ -144,22 +113,6 @@ export async function POST(
         {
           error:
             "Abonnement push incomplet.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      !alertLost &&
-      !alertFound &&
-      !alertSos
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Choisissez au moins un type d'alerte.",
         },
         {
           status: 400,
@@ -183,201 +136,127 @@ export async function POST(
       );
     }
 
-    const supabase =
-      getAdmin();
-
-    /*
-     * On rattache l'abonnement push au profil connecté.
-     * C'est indispensable pour envoyer un SOS seulement
-     * aux personnes compatibles.
-     */
-    let userId:
-      string | null =
-      null;
-
     const token =
       getBearerToken(
         request
       );
 
-    if (token) {
-      const {
-        data:
-          userData,
-        error:
-          userError,
-      } =
-        await supabase
-          .auth
-          .getUser(
-            token
-          );
-
-      if (
-        userError ||
-        !userData.user
-      ) {
-        console.error(
-          "Token push invalide :",
-          userError
-        );
-
-        return NextResponse.json(
-          {
-            error:
-              "Session invalide.",
-          },
-          {
-            status: 401,
-          }
-        );
-      }
-
-      userId =
-        userData.user.id;
-    }
-
-    const subscriptionData = {
-      endpoint,
-      p256dh,
-      auth,
-
-      alert_lost:
-        alertLost,
-
-      alert_found:
-        alertFound,
-
-      alert_sos:
-        alertSos,
-
-      updated_at:
-        new Date()
-          .toISOString(),
-    };
-
-    let error;
-
-    if (userId) {
-      const result =
-        await supabase
-          .from(
-            "push_subscriptions"
-          )
-          .upsert(
-            {
-              ...subscriptionData,
-
-              user_id:
-                userId,
-            },
-            {
-              onConflict:
-                "endpoint",
-            }
-          );
-
-      error =
-        result.error;
-    } else {
-      const {
-        data:
-          existing,
-        error:
-          existingError,
-      } =
-        await supabase
-          .from(
-            "push_subscriptions"
-          )
-          .select(
-            "user_id"
-          )
-          .eq(
-            "endpoint",
-            endpoint
-          )
-          .maybeSingle();
-
-      if (
-        existingError
-      ) {
-        throw existingError;
-      }
-
-      const result =
-        await supabase
-          .from(
-            "push_subscriptions"
-          )
-          .upsert(
-            {
-              ...subscriptionData,
-
-              user_id:
-                existing?.user_id ??
-                null,
-            },
-            {
-              onConflict:
-                "endpoint",
-            }
-          );
-
-      error =
-        result.error;
-    }
-
-    if (error) {
-      console.error(
-        "Erreur Supabase push_subscriptions :",
-        error
-      );
-
+    if (!token) {
       return NextResponse.json(
         {
           error:
-            error.message ||
-            "Impossible d'enregistrer ce téléphone.",
+            "Connexion requise pour activer les notifications.",
         },
         {
-          status: 500,
+          status: 401,
         }
       );
     }
 
-    return NextResponse.json(
-      {
-        ok: true,
+    const supabase =
+      getAdmin();
 
-        userLinked:
-          Boolean(
-            userId
-          ),
+    const {
+      data:
+        userData,
+      error:
+        userError,
+    } =
+      await supabase
+        .auth
+        .getUser(
+          token
+        );
 
-        alertLost,
-        alertFound,
-        alertSos,
-      },
-      {
-        status: 200,
-      }
-    );
+    if (
+      userError ||
+      !userData.user
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Session invalide ou expirée.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const preferences = {
+      alert_lost:
+        body.alertLost ??
+        true,
+
+      alert_found:
+        body.alertFound ??
+        true,
+
+      alert_messages:
+        body.alertMessages ??
+        true,
+
+      alert_profile:
+        body.alertProfile ??
+        true,
+
+      alert_sos:
+        body.alertSos ??
+        true,
+    };
+
+    const {
+      error,
+    } =
+      await supabase
+        .from(
+          "push_subscriptions"
+        )
+        .upsert(
+          {
+            endpoint,
+            p256dh,
+            auth,
+
+            user_id:
+              userData.user.id,
+
+            ...preferences,
+
+            updated_at:
+              new Date()
+                .toISOString(),
+          },
+          {
+            onConflict:
+              "endpoint",
+          }
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      ok: true,
+      userLinked: true,
+      preferences,
+    });
   } catch (
-    caughtError
+    error
   ) {
     console.error(
       "POST /api/push/subscribe :",
-      caughtError
+      error
     );
 
     return NextResponse.json(
       {
         error:
-          caughtError instanceof
+          error instanceof
             Error
-            ? caughtError.message
-            : "Erreur serveur lors de l'activation des notifications.",
+            ? error.message
+            : "Impossible d'enregistrer les notifications.",
       },
       {
         status: 500,

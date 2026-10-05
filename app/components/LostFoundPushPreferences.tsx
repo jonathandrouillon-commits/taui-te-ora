@@ -5,10 +5,9 @@ import {
   useState,
 } from "react";
 
-type AlertPreference =
-  | "lost"
-  | "found"
-  | "both";
+import {
+  supabase,
+} from "../lib/supabase";
 
 type PushState =
   | "loading"
@@ -17,6 +16,25 @@ type PushState =
   | "denied"
   | "unsupported"
   | "error";
+
+type Preferences = {
+  lost: boolean;
+  found: boolean;
+  messages: boolean;
+  profile: boolean;
+  sos: boolean;
+};
+
+const STORAGE_KEY =
+  "taui-push-preferences-v2";
+
+const DEFAULT_PREFERENCES: Preferences = {
+  lost: true,
+  found: true,
+  messages: true,
+  profile: true,
+  sos: true,
+};
 
 function urlBase64ToUint8Array(
   base64String: string
@@ -52,37 +70,89 @@ function urlBase64ToUint8Array(
   );
 }
 
-function preferenceToValues(
-  preference: AlertPreference
-) {
-  return {
-    alertLost:
-      preference ===
-        "lost" ||
-      preference ===
-        "both",
+function loadStoredPreferences(): Preferences {
+  try {
+    const current =
+      window.localStorage
+        .getItem(
+          STORAGE_KEY
+        );
 
-    alertFound:
-      preference ===
-        "found" ||
-      preference ===
-        "both",
-  };
+    if (current) {
+      const parsed =
+        JSON.parse(
+          current
+        ) as Partial<Preferences>;
+
+      return {
+        lost:
+          parsed.lost ??
+          true,
+        found:
+          parsed.found ??
+          true,
+        messages:
+          parsed.messages ??
+          true,
+        profile:
+          parsed.profile ??
+          true,
+        sos:
+          parsed.sos ??
+          true,
+      };
+    }
+
+    /*
+     * Migration de l'ancienne préférence :
+     * lost / found / both.
+     */
+    const legacy =
+      window.localStorage
+        .getItem(
+          "taui-push-preference"
+        );
+
+    if (
+      legacy === "lost"
+    ) {
+      return {
+        ...DEFAULT_PREFERENCES,
+        lost: true,
+        found: false,
+      };
+    }
+
+    if (
+      legacy === "found"
+    ) {
+      return {
+        ...DEFAULT_PREFERENCES,
+        lost: false,
+        found: true,
+      };
+    }
+
+    return {
+      ...DEFAULT_PREFERENCES,
+    };
+  } catch {
+    return {
+      ...DEFAULT_PREFERENCES,
+    };
+  }
 }
 
-function getPermissionState() {
-  if (
-    typeof window ===
-      "undefined" ||
-    !(
-      "Notification" in
-      window
-    )
-  ) {
-    return null;
-  }
-
-  return Notification.permission;
+function saveStoredPreferences(
+  preferences: Preferences
+) {
+  window.localStorage
+    .setItem(
+      STORAGE_KEY,
+      JSON.stringify(
+        preferences
+      )
+    );
 }
 
 export default function LostFoundPushPreferences() {
@@ -95,11 +165,11 @@ export default function LostFoundPushPreferences() {
     );
 
   const [
-    selected,
-    setSelected,
+    preferences,
+    setPreferences,
   ] =
-    useState<AlertPreference | null>(
-      null
+    useState<Preferences>(
+      DEFAULT_PREFERENCES
     );
 
   const [
@@ -109,12 +179,10 @@ export default function LostFoundPushPreferences() {
     useState("");
 
   const [
-    activating,
-    setActivating,
+    saving,
+    setSaving,
   ] =
-    useState<AlertPreference | null>(
-      null
-    );
+    useState(false);
 
   useEffect(() => {
     if (
@@ -124,7 +192,7 @@ export default function LostFoundPushPreferences() {
       return;
     }
 
-    const timeoutId =
+    const timer =
       window.setTimeout(
         () => {
           if (
@@ -148,18 +216,19 @@ export default function LostFoundPushPreferences() {
             return;
           }
 
-          const permission =
-            Notification.permission;
+          setPreferences(
+            loadStoredPreferences()
+          );
 
           if (
-            permission ===
+            Notification.permission ===
             "denied"
           ) {
             setState(
               "denied"
             );
           } else if (
-            permission ===
+            Notification.permission ===
             "granted"
           ) {
             setState(
@@ -170,64 +239,24 @@ export default function LostFoundPushPreferences() {
               "ready"
             );
           }
-
-          const stored =
-            window.localStorage
-              .getItem(
-                "taui-push-preference"
-              );
-
-          if (
-            stored ===
-              "lost" ||
-            stored ===
-              "found" ||
-            stored ===
-              "both"
-          ) {
-            setSelected(
-              stored
-            );
-          }
         },
         0
       );
 
     return () => {
       window.clearTimeout(
-        timeoutId
+        timer
       );
     };
   }, []);
 
   async function getServiceWorkerRegistration() {
-    if (
-      !(
-        "serviceWorker" in
-        navigator
-      )
-    ) {
-      throw new Error(
-        "Service Worker non disponible."
-      );
-    }
-
-    /*
-     * On cherche d'abord
-     * un worker déjà installé.
-     */
-
     let registration =
       await navigator
         .serviceWorker
         .getRegistration(
           "/"
         );
-
-    /*
-     * Sinon on installe le
-     * Service Worker Taui Te Ora.
-     */
 
     if (!registration) {
       registration =
@@ -241,43 +270,22 @@ export default function LostFoundPushPreferences() {
           );
     }
 
-    /*
-     * Attend qu'un Service Worker
-     * soit réellement actif.
-     */
-
-    const readyRegistration =
-      await navigator
-        .serviceWorker
-        .ready;
-
-    return (
-      readyRegistration ||
-      registration
-    );
+    return navigator
+      .serviceWorker
+      .ready;
   }
 
-  async function activate(
-    preference: AlertPreference
+  async function savePreferences(
+    nextPreferences: Preferences
   ) {
-    if (
-      activating !==
-      null
-    ) {
+    if (saving) {
       return;
     }
 
-    setActivating(
-      preference
-    );
-
+    setSaving(true);
     setMessage("");
 
     try {
-      /*
-       * Vérification navigateur
-       */
-
       if (
         typeof window ===
           "undefined" ||
@@ -299,31 +307,9 @@ export default function LostFoundPushPreferences() {
         );
 
         throw new Error(
-          "Les notifications push ne sont pas disponibles sur cet appareil ou ce navigateur."
+          "Les notifications push ne sont pas disponibles sur cet appareil."
         );
       }
-
-      /*
-       * Vérification clé VAPID
-       */
-
-      const publicKey =
-        process.env
-          .NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-      if (!publicKey) {
-        throw new Error(
-          "La clé NEXT_PUBLIC_VAPID_PUBLIC_KEY n'est pas configurée."
-        );
-      }
-
-      /*
-       * Demande d'autorisation.
-       *
-       * IMPORTANT :
-       * elle est déclenchée directement
-       * suite au clic utilisateur.
-       */
 
       let permission =
         Notification.permission;
@@ -346,7 +332,7 @@ export default function LostFoundPushPreferences() {
         );
 
         throw new Error(
-          "Les notifications sont bloquées. Autorisez-les dans les réglages de votre navigateur ou téléphone."
+          "Les notifications sont bloquées sur cet appareil."
         );
       }
 
@@ -359,58 +345,36 @@ export default function LostFoundPushPreferences() {
         );
       }
 
-      /*
-       * Service Worker
-       */
+      const publicKey =
+        process.env
+          .NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-      const registration =
-        await getServiceWorkerRegistration();
-
-      if (
-        !registration
-          .pushManager
-      ) {
+      if (!publicKey) {
         throw new Error(
-          "PushManager indisponible."
+          "Clé VAPID publique manquante."
         );
       }
 
-      /*
-       * Cherche abonnement existant
-       */
+      const registration =
+        await getServiceWorkerRegistration();
 
       let subscription =
         await registration
           .pushManager
           .getSubscription();
 
-      /*
-       * Sinon crée l'abonnement
-       */
-
-      if (
-        !subscription
-      ) {
+      if (!subscription) {
         subscription =
           await registration
             .pushManager
             .subscribe({
               userVisibleOnly:
                 true,
-
               applicationServerKey:
                 urlBase64ToUint8Array(
                   publicKey
                 ),
             });
-      }
-
-      if (
-        !subscription
-      ) {
-        throw new Error(
-          "Impossible de créer l'abonnement push."
-        );
       }
 
       const json =
@@ -428,22 +392,29 @@ export default function LostFoundPushPreferences() {
         !auth
       ) {
         throw new Error(
-          "L'abonnement push généré par le navigateur est incomplet."
+          "Abonnement push incomplet."
         );
       }
 
-      /*
-       * Préférences utilisateur
-       */
+      const {
+        data: {
+          session,
+        },
+        error:
+          sessionError,
+      } =
+        await supabase
+          .auth
+          .getSession();
 
-      const values =
-        preferenceToValues(
-          preference
+      if (
+        sessionError ||
+        !session?.access_token
+      ) {
+        throw new Error(
+          "Vous devez être connecté pour enregistrer vos notifications."
         );
-
-      /*
-       * Enregistrement serveur
-       */
+      }
 
       const response =
         await fetch(
@@ -451,45 +422,44 @@ export default function LostFoundPushPreferences() {
           {
             method:
               "POST",
-
             headers: {
               "Content-Type":
                 "application/json",
+              Authorization:
+                `Bearer ${session.access_token}`,
             },
-
             body:
               JSON.stringify({
                 endpoint:
                   subscription.endpoint,
-
                 p256dh,
-
                 auth,
-
                 alertLost:
-                  values.alertLost,
-
+                  nextPreferences.lost,
                 alertFound:
-                  values.alertFound,
+                  nextPreferences.found,
+                alertMessages:
+                  nextPreferences.messages,
+                alertProfile:
+                  nextPreferences.profile,
+                alertSos:
+                  nextPreferences.sos,
               }),
           }
         );
 
-      let result:
-        | {
-            ok?: boolean;
-            error?: string;
-          }
-        | null =
-        null;
-
-      try {
-        result =
-          await response.json();
-      } catch {
-        result =
-          null;
-      }
+      const result =
+        (await response
+          .json()
+          .catch(
+            () => null
+          )) as
+          | {
+              ok?: boolean;
+              error?: string;
+              userLinked?: boolean;
+            }
+          | null;
 
       if (
         !response.ok
@@ -500,79 +470,93 @@ export default function LostFoundPushPreferences() {
         );
       }
 
-      /*
-       * Sauvegarde préférence locale
-       */
-
-      window.localStorage
-        .setItem(
-          "taui-push-preference",
-          preference
+      if (
+        result?.userLinked !==
+        true
+      ) {
+        throw new Error(
+          "Le téléphone n'a pas pu être rattaché à votre compte."
         );
+      }
 
-      setSelected(
-        preference
+      setPreferences(
+        nextPreferences
+      );
+
+      saveStoredPreferences(
+        nextPreferences
       );
 
       setState(
         "enabled"
       );
 
-      if (
-        preference ===
-        "lost"
-      ) {
-        setMessage(
-          "✅ Notifications pour les animaux perdus activées."
-        );
-      } else if (
-        preference ===
-        "found"
-      ) {
-        setMessage(
-          "✅ Notifications pour les animaux trouvés activées."
-        );
-      } else {
-        setMessage(
-          "✅ Notifications animaux perdus et trouvés activées."
-        );
-      }
+      setMessage(
+        "✅ Préférences de notifications enregistrées."
+      );
     } catch (
-      caughtError
+      error
     ) {
       console.error(
-        "Activation push Taui Te Ora :",
-        caughtError
+        "Préférences PUSH Taui Te Ora :",
+        error
       );
 
-      const permission =
-        getPermissionState();
-
-      if (
-        permission ===
-        "denied"
-      ) {
-        setState(
+      setState(
+        Notification.permission ===
           "denied"
-        );
-      } else {
-        setState(
-          "error"
-        );
-      }
+          ? "denied"
+          : "error"
+      );
 
       setMessage(
-        caughtError instanceof
+        error instanceof
           Error
-          ? caughtError.message
-          : "Impossible d'activer les notifications."
+          ? error.message
+          : "Impossible d'enregistrer les notifications."
       );
     } finally {
-      setActivating(
-        null
+      setSaving(
+        false
       );
     }
   }
+
+  function toggle(
+    key: keyof Preferences
+  ) {
+    const next = {
+      ...preferences,
+      [key]:
+        !preferences[key],
+    };
+
+    /*
+     * On autorise tout désactiver :
+     * l'abonnement reste lié au téléphone,
+     * mais aucun push de cette catégorie ne partira.
+     */
+    void savePreferences(
+      next
+    );
+  }
+
+  function enableAll() {
+    void savePreferences({
+      lost: true,
+      found: true,
+      messages: true,
+      profile: true,
+      sos: true,
+    });
+  }
+
+  const allEnabled =
+    preferences.lost &&
+    preferences.found &&
+    preferences.messages &&
+    preferences.profile &&
+    preferences.sos;
 
   if (
     state ===
@@ -585,12 +569,12 @@ export default function LostFoundPushPreferences() {
             🔕
           </div>
 
-          <h2 className="mt-3 text-xl font-black text-[#064b42] sm:text-2xl">
+          <h2 className="mt-3 text-xl font-black text-[#064b42]">
             Notifications non disponibles
           </h2>
 
-          <p className="mt-3 text-sm leading-6 text-[#6f5a47]">
-            Ce navigateur ou cet appareil ne permet pas encore les notifications push.
+          <p className="mt-3 text-sm text-[#6f5a47]">
+            Ce navigateur ou cet appareil ne permet pas les notifications push.
           </p>
         </div>
       </section>
@@ -605,88 +589,132 @@ export default function LostFoundPushPreferences() {
         </div>
 
         <h2 className="mt-3 text-2xl font-black text-[#064b42]">
-          Recevoir les alertes
+          Mes notifications
         </h2>
 
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6f5a47]">
-          Soyez prévenu immédiatement lorsqu&apos;un animal est signalé perdu ou trouvé.
+          Choisissez ce que vous souhaitez recevoir sur votre téléphone.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <PushButton
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <PreferenceButton
           active={
-            selected ===
-            "lost"
-          }
-          loading={
-            activating ===
-            "lost"
+            preferences.lost
           }
           disabled={
-            activating !==
-            null
-          }
-          onClick={() =>
-            void activate(
-              "lost"
-            )
+            saving
           }
           icon="🔎"
           title="Animaux perdus"
+          subtitle="Alertes de disparition"
+          onClick={() =>
+            toggle(
+              "lost"
+            )
+          }
         />
 
-        <PushButton
+        <PreferenceButton
           active={
-            selected ===
-            "found"
-          }
-          loading={
-            activating ===
-            "found"
+            preferences.found
           }
           disabled={
-            activating !==
-            null
-          }
-          onClick={() =>
-            void activate(
-              "found"
-            )
+            saving
           }
           icon="🐾"
           title="Animaux trouvés"
-        />
-
-        <PushButton
-          active={
-            selected ===
-            "both"
-          }
-          loading={
-            activating ===
-            "both"
-          }
-          disabled={
-            activating !==
-            null
-          }
+          subtitle="Animaux trouvés ou récupérés"
           onClick={() =>
-            void activate(
-              "both"
+            toggle(
+              "found"
             )
           }
-          icon="🚨"
-          title="Les deux"
         />
+
+        <PreferenceButton
+          active={
+            preferences.messages
+          }
+          disabled={
+            saving
+          }
+          icon="💬"
+          title="Messages"
+          subtitle="Nouveaux messages privés"
+          onClick={() =>
+            toggle(
+              "messages"
+            )
+          }
+        />
+
+        <PreferenceButton
+          active={
+            preferences.profile
+          }
+          disabled={
+            saving
+          }
+          icon="👤"
+          title="Mon profil & mes démarches"
+          subtitle="Adoption, compte, validation et suivi"
+          onClick={() =>
+            toggle(
+              "profile"
+            )
+          }
+        />
+
+        <PreferenceButton
+          active={
+            preferences.sos
+          }
+          disabled={
+            saving
+          }
+          icon="🚨"
+          title="SOS Animal"
+          subtitle="Demandes d'aide urgentes"
+          onClick={() =>
+            toggle(
+              "sos"
+            )
+          }
+        />
+
+        <button
+          type="button"
+          disabled={
+            saving
+          }
+          onClick={
+            enableAll
+          }
+          className={`rounded-[22px] border-2 px-4 py-5 text-center font-black transition ${
+            allEnabled
+              ? "border-[#064b42] bg-[#064b42] text-white"
+              : "border-[#d7c89d] bg-[#fff8df] text-[#705b20]"
+          } disabled:opacity-50`}
+        >
+          <div className="text-3xl">
+            🔔
+          </div>
+
+          <div className="mt-2">
+            Tout recevoir
+          </div>
+
+          <div className="mt-1 text-xs font-semibold opacity-80">
+            Active toutes les catégories
+          </div>
+        </button>
       </div>
 
       {state ===
         "denied" && (
         <div className="mt-5 rounded-2xl bg-red-50 px-4 py-4 text-center text-sm font-semibold text-red-700">
-          🔕 Les notifications sont actuellement bloquées sur cet appareil.
-          <br />
-          Autorisez les notifications pour Taui Te Ora dans les réglages du navigateur.
+          🔕 Les notifications sont bloquées sur cet appareil.
         </div>
       )}
 
@@ -704,35 +732,35 @@ export default function LostFoundPushPreferences() {
       )}
 
       <p className="mt-5 text-center text-xs leading-5 text-gray-500">
-        Lors du premier choix, votre téléphone ou navigateur vous demandera l&apos;autorisation d&apos;envoyer des notifications.
+        Vous pourrez modifier ces choix à tout moment.
       </p>
     </section>
   );
 }
 
-function PushButton({
+function PreferenceButton({
   active,
-  loading,
   disabled,
-  onClick,
   icon,
   title,
+  subtitle,
+  onClick,
 }: {
   active: boolean;
-  loading: boolean;
   disabled: boolean;
-  onClick: () => void;
   icon: string;
   title: string;
+  subtitle: string;
+  onClick: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={
-        onClick
-      }
       disabled={
         disabled
+      }
+      onClick={
+        onClick
       }
       className={`rounded-[22px] border-2 px-4 py-5 text-center transition active:scale-[0.98] ${
         active
@@ -745,16 +773,18 @@ function PushButton({
       </div>
 
       <div className="mt-2 font-black">
-        {loading
-          ? "Activation..."
-          : title}
+        {title}
       </div>
 
-      {active && (
-        <div className="mt-1 text-xs font-bold">
-          ✓ Activé
-        </div>
-      )}
+      <div className="mt-1 text-xs font-semibold opacity-80">
+        {subtitle}
+      </div>
+
+      <div className="mt-2 text-xs font-black">
+        {active
+          ? "✓ Activé"
+          : "Désactivé"}
+      </div>
     </button>
   );
 }
