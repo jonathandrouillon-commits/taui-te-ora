@@ -69,7 +69,8 @@ export default function BottomNavigation() {
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileHref, setProfileHref] = useState("/profile");
+  const [profileHref, setProfileHref] = useState("");
+  const [profileReady, setProfileReady] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [dynamicMenuPages, setDynamicMenuPages] = useState<
     {
@@ -89,7 +90,13 @@ export default function BottomNavigation() {
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (!active || !user) {
+        if (!active) {
+          return;
+        }
+
+        if (!user) {
+          setProfileHref("/login");
+          setProfileReady(true);
           return;
         }
 
@@ -115,6 +122,7 @@ export default function BottomNavigation() {
             data?.role ?? user.user_metadata?.role
           )
         );
+        setProfileReady(true);
 
         const avatar =
           data?.avatar_url ||
@@ -132,6 +140,11 @@ export default function BottomNavigation() {
           "Erreur chargement profil bottom navigation :",
           error
         );
+
+        if (active) {
+          setProfileHref("/profile");
+          setProfileReady(true);
+        }
       }
     }
 
@@ -172,7 +185,7 @@ export default function BottomNavigation() {
       menu: true,
     },
     {
-      href: profileHref,
+      href: profileHref || "#",
       label: t.profile,
       icon: "👤",
       profile: true,
@@ -495,6 +508,35 @@ export default function BottomNavigation() {
             }
 
             if (item.profile) {
+              if (!profileReady) {
+                return (
+                  <div
+                    key="profile-loading"
+                    aria-label={t.profile}
+                    aria-disabled="true"
+                    className="flex cursor-wait flex-col items-center justify-center gap-0.5 opacity-60"
+                  >
+                    {profilePhoto ? (
+                      <span className="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border-2 border-[#d9d2c6] bg-[#f8f4ec]">
+                        <img
+                          src={profilePhoto}
+                          alt={t.profilePhoto}
+                          className="h-full w-full object-cover"
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-[24px] leading-none">
+                        👤
+                      </span>
+                    )}
+
+                    <span className="text-[9px] font-black uppercase leading-none text-[#6f7b63]">
+                      {t.profile}
+                    </span>
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={item.href}

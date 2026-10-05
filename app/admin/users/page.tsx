@@ -19,6 +19,7 @@ import {
   Check,
 
   CirclePause,
+  MessageCircleMore,
 
   Pencil,
 
@@ -1714,6 +1715,112 @@ export default function AdminUsersPage() {
 
   /* =========================================================
 
+     MESSAGERIE DIRECTE
+
+  ========================================================= */
+
+  async function startDirectMessage(
+    recipientId: string
+  ) {
+    if (
+      actionId ||
+      recipientId === currentAdminId
+    ) {
+      return;
+    }
+
+    try {
+      setActionId(
+        recipientId
+      );
+
+      const {
+        data: {
+          session,
+        },
+        error:
+          sessionError,
+      } =
+        await supabase
+          .auth
+          .getSession();
+
+      if (
+        sessionError ||
+        !session?.access_token
+      ) {
+        throw new Error(
+          "Session administrateur introuvable."
+        );
+      }
+
+      const response =
+        await fetch(
+          "/api/messages/start",
+          {
+            method:
+              "POST",
+            headers: {
+              Authorization:
+                `Bearer ${session.access_token}`,
+              "Content-Type":
+                "application/json",
+            },
+            body:
+              JSON.stringify({
+                recipientId,
+              }),
+          }
+        );
+
+      const result =
+        (await response
+          .json()
+          .catch(
+            () => ({})
+          )) as {
+          ok?: boolean;
+          url?: string;
+          error?: string;
+        };
+
+      if (
+        !response.ok ||
+        !result.url
+      ) {
+        throw new Error(
+          result.error ||
+            "Impossible d'ouvrir la conversation."
+        );
+      }
+
+      router.push(
+        result.url
+      );
+    } catch (
+      error:
+        unknown
+    ) {
+      console.error(
+        "Erreur ouverture messagerie :",
+        error
+      );
+
+      alert(
+        getErrorMessage(
+          error
+        ) ||
+          "Impossible d'ouvrir la conversation."
+      );
+    } finally {
+      setActionId(
+        null
+      );
+    }
+  }
+
+  /* =========================================================
+
      FILTRES
 
   ========================================================= */
@@ -2362,7 +2469,13 @@ export default function AdminUsersPage() {
 
                   >
 
-                    <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+                    <div
+                      className={
+                        isEditing
+                          ? "flex flex-col gap-6"
+                          : "flex flex-col justify-between gap-6 lg:flex-row lg:items-start"
+                      }
+                    >
 
                       {/* INFORMATIONS */}
 
@@ -2854,7 +2967,38 @@ export default function AdminUsersPage() {
 
                       {/* ACTIONS */}
 
-                      <div className="flex min-w-fit flex-wrap items-center gap-3">
+                      <div
+                        className={
+                          isEditing
+                            ? "flex w-full flex-wrap items-center gap-3 border-t border-[#eadfce] pt-5"
+                            : "flex min-w-fit flex-wrap items-center gap-3"
+                        }
+                      >
+                        {status ===
+                          "approved" &&
+                          user.is_active !==
+                            false &&
+                          !isCurrentAdmin && (
+                            <button
+                              type="button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                void startDirectMessage(
+                                  user.id
+                                )
+                              }
+                              className="flex items-center gap-2 rounded-2xl bg-[#0f766e] px-5 py-3 font-black text-white shadow-sm transition hover:bg-[#0b5f59] disabled:opacity-50"
+                            >
+                              <MessageCircleMore
+                                size={18}
+                              />
+                              {isProcessing
+                                ? "Ouverture..."
+                                : "Envoyer un message"}
+                            </button>
+                          )}
 
                         {!isEditing ? (
 
