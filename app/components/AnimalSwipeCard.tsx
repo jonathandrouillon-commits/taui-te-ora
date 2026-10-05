@@ -3255,31 +3255,27 @@ export default function AnimalSwipeCard({
 
                       pointer-events-none
 
-                      absolute
-
-                      bottom-[250px]
-
-                      right-[18px]
+                      relative
 
                       z-[65]
 
-                      h-[120px]
+                      h-[72px]
 
-                      w-[120px]
+                      w-[72px]
 
-                      max-w-none
+                      shrink-0
 
                       object-contain
 
                       drop-shadow-lg
 
-                      sm:bottom-[270px]
+                      sm:h-[82px]
 
-                      sm:right-[20px]
+                      sm:w-[82px]
 
-                      sm:h-[135px]
+                      md:h-[90px]
 
-                      sm:w-[135px]
+                      md:w-[90px]
 
                     "
 
