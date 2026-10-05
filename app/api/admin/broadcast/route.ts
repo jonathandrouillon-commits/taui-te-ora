@@ -1,12 +1,28 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import {
+  NextResponse,
+} from "next/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+import {
+  createClient,
+} from "@supabase/supabase-js";
+
+import {
+  sendPushToUser,
+} from "../../../lib/server/push";
+
+export const runtime =
+  "nodejs";
+
+export const dynamic =
+  "force-dynamic";
 
 type BroadcastBody = {
-  action?: "preview" | "send";
+  action?:
+    | "profiles"
+    | "preview"
+    | "send";
   roles?: string[];
+  recipient_ids?: string[];
   title?: string;
   message?: string;
   channels?: {
@@ -25,33 +41,59 @@ type ProfileRow = {
   is_active: boolean | null;
 };
 
-const ALLOWED_ROLES = new Set([
-  "adoptant",
-  "association",
-  "refuge",
-  "fourriere",
-  "sigfa",
-  "benevole",
-  "famille_accueil",
-  "famille_d_accueil",
-  "admin",
-]);
+const ALLOWED_ROLES =
+  new Set([
+    "adoptant",
+    "association",
+    "refuge",
+    "fourriere",
+    "sigfa",
+    "benevole",
+    "famille_accueil",
+    "famille_d_accueil",
+    "admin",
+  ]);
 
-function clean(value: unknown): string {
-  return String(value ?? "").trim();
+function clean(
+  value: unknown
+): string {
+  return String(
+    value ?? ""
+  ).trim();
 }
 
-function escapeHtml(value: string): string {
+function escapeHtml(
+  value: string
+): string {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
 
-function messageToHtml(value: string): string {
-  return escapeHtml(value).replace(
+function messageToHtml(
+  value: string
+): string {
+  return escapeHtml(
+    value
+  ).replace(
     /\n/g,
     "<br />"
   );
@@ -65,14 +107,18 @@ function getBearerToken(
       "authorization"
     );
 
-  if (!authorization) {
+  if (
+    !authorization
+  ) {
     return "";
   }
 
   if (
     !authorization
       .toLowerCase()
-      .startsWith("bearer ")
+      .startsWith(
+        "bearer "
+      )
   ) {
     return "";
   }
@@ -85,18 +131,53 @@ function getBearerToken(
 function sanitizeRoles(
   roles: unknown
 ): string[] {
-  if (!Array.isArray(roles)) {
+  if (
+    !Array.isArray(
+      roles
+    )
+  ) {
     return [];
   }
 
   return Array.from(
     new Set(
       roles
-        .map((role) =>
-          clean(role).toLowerCase()
+        .map(
+          (role) =>
+            clean(
+              role
+            ).toLowerCase()
         )
-        .filter((role) =>
-          ALLOWED_ROLES.has(role)
+        .filter(
+          (role) =>
+            ALLOWED_ROLES.has(
+              role
+            )
+        )
+    )
+  );
+}
+
+function sanitizeRecipientIds(
+  value: unknown
+): string[] {
+  if (
+    !Array.isArray(
+      value
+    )
+  ) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map(
+          (id) =>
+            clean(id)
+        )
+        .filter(
+          Boolean
         )
     )
   );
@@ -116,16 +197,20 @@ async function sendEmail({
   message: string;
 }) {
   const resendApiKey =
-    process.env.RESEND_API_KEY;
+    process.env
+      .RESEND_API_KEY;
 
-  if (!resendApiKey) {
+  if (
+    !resendApiKey
+  ) {
     throw new Error(
       "RESEND_API_KEY manquant."
     );
   }
 
   const from =
-    process.env.RESEND_FROM_EMAIL ||
+    process.env
+      .RESEND_FROM_EMAIL ||
     "TAUI TE ORA <onboarding@resend.dev>";
 
   const displayName =
@@ -143,92 +228,30 @@ async function sendEmail({
   const html = `
 <!doctype html>
 <html lang="fr">
-  <body
-    style="
-      margin:0;
-      padding:0;
-      background:#fbf7ef;
-      font-family:Arial,Helvetica,sans-serif;
-      color:#332d29;
-    "
-  >
-    <div
-      style="
-        max-width:640px;
-        margin:0 auto;
-        padding:32px 16px;
-      "
-    >
-      <div
-        style="
-          background:#ffffff;
-          border-radius:24px;
-          overflow:hidden;
-          border:1px solid #eadfd8;
-        "
-      >
-        <div
-          style="
-            background:#064b42;
-            padding:28px;
-            color:#ffffff;
-          "
-        >
-          <div
-            style="
-              font-size:13px;
-              font-weight:800;
-              letter-spacing:.08em;
-              text-transform:uppercase;
-              opacity:.8;
-            "
-          >
+  <body style="margin:0;padding:0;background:#fbf7ef;font-family:Arial,Helvetica,sans-serif;color:#332d29;">
+    <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
+      <div style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #eadfd8;">
+        <div style="background:#064b42;padding:28px;color:#ffffff;">
+          <div style="font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8;">
             TAUI TE ORA
           </div>
-
-          <h1
-            style="
-              margin:10px 0 0;
-              font-size:26px;
-              line-height:1.25;
-            "
-          >
-            ${escapeHtml(title)}
+          <h1 style="margin:10px 0 0;font-size:26px;line-height:1.25;">
+            ${escapeHtml(
+              title
+            )}
           </h1>
         </div>
-
         <div style="padding:28px;">
-          <p
-            style="
-              margin:0 0 18px;
-              font-size:16px;
-              line-height:1.6;
-            "
-          >
+          <p style="margin:0 0 18px;font-size:16px;line-height:1.6;">
             ${greeting}
           </p>
-
-          <div
-            style="
-              font-size:16px;
-              line-height:1.7;
-            "
-          >
-            ${messageToHtml(message)}
+          <div style="font-size:16px;line-height:1.7;">
+            ${messageToHtml(
+              message
+            )}
           </div>
-
-          <div
-            style="
-              margin-top:28px;
-              padding-top:20px;
-              border-top:1px solid #eee4dc;
-              font-size:13px;
-              line-height:1.6;
-              color:#756d67;
-            "
-          >
-            Message envoyé par l'administration
-            de TAUI TE ORA.
+          <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee4dc;font-size:13px;line-height:1.6;color:#756d67;">
+            Message envoyé par l'administration de TAUI TE ORA.
           </div>
         </div>
       </div>
@@ -241,36 +264,34 @@ async function sendEmail({
     await fetch(
       "https://api.resend.com/emails",
       {
-        method: "POST",
-
+        method:
+          "POST",
         headers: {
           Authorization:
             `Bearer ${resendApiKey}`,
-
           "Content-Type":
             "application/json",
         },
-
         body:
-          JSON.stringify({
-            from,
-
-            to: [
-              email,
-            ],
-
-            subject:
-              title,
-
-            html,
-          }),
-
+          JSON.stringify(
+            {
+              from,
+              to: [
+                email,
+              ],
+              subject:
+                title,
+              html,
+            }
+          ),
         cache:
           "no-store",
       }
     );
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     const providerError =
       await response
         .text()
@@ -290,7 +311,8 @@ async function sendEmailsInChunks({
   title,
   message,
 }: {
-  recipients: ProfileRow[];
+  recipients:
+    ProfileRow[];
   title: string;
   message: string;
 }) {
@@ -302,7 +324,8 @@ async function sendEmailsInChunks({
       (recipient) =>
         clean(
           recipient.email
-        ).length > 0
+        ).length >
+        0
     );
 
   const chunkSize = 10;
@@ -311,12 +334,14 @@ async function sendEmailsInChunks({
     let index = 0;
     index <
     emailRecipients.length;
-    index += chunkSize
+    index +=
+      chunkSize
   ) {
     const chunk =
       emailRecipients.slice(
         index,
-        index + chunkSize
+        index +
+          chunkSize
       );
 
     const results =
@@ -330,20 +355,15 @@ async function sendEmailsInChunks({
                 clean(
                   recipient.email
                 ),
-
               firstName:
                 clean(
                   recipient.first_name
                 ),
-
               organizationName:
                 clean(
-                  recipient
-                    .organization_name
+                  recipient.organization_name
                 ),
-
               title,
-
               message,
             });
           }
@@ -370,11 +390,95 @@ async function sendEmailsInChunks({
                 chunk[
                   resultIndex
                 ]?.id,
-
               reason:
                 result.reason,
             }
           );
+        }
+      }
+    );
+  }
+
+  return {
+    sent,
+    failed,
+  };
+}
+
+async function sendPushesInChunks({
+  recipients,
+  title,
+  message,
+}: {
+  recipients:
+    ProfileRow[];
+  title: string;
+  message: string;
+}) {
+  let sent = 0;
+  let failed = 0;
+
+  const chunkSize = 10;
+
+  for (
+    let index = 0;
+    index <
+    recipients.length;
+    index +=
+      chunkSize
+  ) {
+    const chunk =
+      recipients.slice(
+        index,
+        index +
+          chunkSize
+      );
+
+    const results =
+      await Promise.allSettled(
+        chunk.map(
+          async (
+            recipient
+          ) => {
+            const result =
+              await sendPushToUser(
+                recipient.id,
+                {
+                  title,
+                  body:
+                    message.length >
+                    180
+                      ? `${message.slice(
+                          0,
+                          180
+                        )}…`
+                      : message,
+                  url:
+                    "/notifications",
+                  type:
+                    "admin_broadcast",
+                  tag:
+                    `admin-broadcast-${recipient.id}`,
+                }
+              );
+
+            return result;
+          }
+        )
+      );
+
+    results.forEach(
+      (result) => {
+        if (
+          result.status ===
+          "fulfilled"
+        ) {
+          sent +=
+            result.value.sent;
+          failed +=
+            result.value.failed;
+        } else {
+          failed += 1;
         }
       }
     );
@@ -409,7 +513,8 @@ export async function POST(
             "Configuration Supabase serveur manquante.",
         },
         {
-          status: 500,
+          status:
+            500,
         }
       );
     }
@@ -427,7 +532,8 @@ export async function POST(
             "Connexion requise.",
         },
         {
-          status: 401,
+          status:
+            401,
         }
       );
     }
@@ -440,20 +546,15 @@ export async function POST(
           auth: {
             persistSession:
               false,
-
             autoRefreshToken:
               false,
           },
         }
       );
 
-    /*
-     * Vérification du compte connecté.
-     */
     const {
       data:
         authData,
-
       error:
         authError,
     } =
@@ -474,18 +575,15 @@ export async function POST(
             "Session invalide.",
         },
         {
-          status: 401,
+          status:
+            401,
         }
       );
     }
 
-    /*
-     * Vérification ADMIN.
-     */
     const {
       data:
         adminProfile,
-
       error:
         adminProfileError,
     } =
@@ -512,7 +610,8 @@ export async function POST(
             adminProfileError.message,
         },
         {
-          status: 500,
+          status:
+            500,
         }
       );
     }
@@ -533,7 +632,8 @@ export async function POST(
             "Accès administrateur requis.",
         },
         {
-          status: 403,
+          status:
+            403,
         }
       );
     }
@@ -541,7 +641,7 @@ export async function POST(
     if (
       adminProfile
         ?.is_active ===
-        false
+      false
     ) {
       return NextResponse.json(
         {
@@ -550,20 +650,19 @@ export async function POST(
             "Compte administrateur désactivé.",
         },
         {
-          status: 403,
+          status:
+            403,
         }
       );
     }
 
-    /*
-     * Lecture du formulaire.
-     */
     const body =
       (
         await request
           .json()
           .catch(
-            () => null
+            () =>
+              null
           )
       ) as
         | BroadcastBody
@@ -577,7 +676,8 @@ export async function POST(
             "Requête invalide.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
@@ -598,22 +698,19 @@ export async function POST(
             "Sélectionne au moins un type de profil.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
 
-    /*
-     * Récupération des destinataires.
-     */
-    const {
-      data:
-        recipientData,
+    const recipientIds =
+      sanitizeRecipientIds(
+        body.recipient_ids
+      );
 
-      error:
-        recipientError,
-    } =
-      await supabaseAdmin
+    let query =
+      supabaseAdmin
         .from(
           "profiles"
         )
@@ -635,14 +732,34 @@ export async function POST(
         .neq(
           "is_active",
           false
-        )
-        .order(
-          "created_at",
-          {
-            ascending:
-              true,
-          }
         );
+
+    if (
+      recipientIds.length >
+      0
+    ) {
+      query =
+        query.in(
+          "id",
+          recipientIds
+        );
+    }
+
+    const {
+      data:
+        recipientData,
+      error:
+        recipientError,
+    } =
+      await query.order(
+        "organization_name",
+        {
+          ascending:
+            true,
+          nullsFirst:
+            false,
+        }
+      );
 
     if (
       recipientError
@@ -654,7 +771,8 @@ export async function POST(
             recipientError.message,
         },
         {
-          status: 500,
+          status:
+            500,
         }
       );
     }
@@ -665,19 +783,44 @@ export async function POST(
         []
       ) as ProfileRow[];
 
-    /*
-     * Mode compteur.
-     */
+    if (
+      body.action ===
+      "profiles"
+    ) {
+      return NextResponse.json({
+        ok: true,
+        count:
+          recipients.length,
+        profiles:
+          recipients.map(
+            (
+              recipient
+            ) => ({
+              id:
+                recipient.id,
+              email:
+                recipient.email,
+              first_name:
+                recipient.first_name,
+              last_name:
+                recipient.last_name,
+              organization_name:
+                recipient.organization_name,
+              role:
+                recipient.role,
+            })
+          ),
+      });
+    }
+
     if (
       body.action ===
       "preview"
     ) {
       return NextResponse.json({
         ok: true,
-
         count:
           recipients.length,
-
         roles,
       });
     }
@@ -703,7 +846,8 @@ export async function POST(
             "Le titre et le message sont obligatoires.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
@@ -719,7 +863,8 @@ export async function POST(
             "Le titre est trop long.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
@@ -735,7 +880,8 @@ export async function POST(
             "Le message est trop long.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
@@ -763,21 +909,37 @@ export async function POST(
             "Choisis au moins un canal d'envoi.",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       );
     }
 
-    /*
-     * Notifications internes Taui Te Ora.
-     */
+    if (
+      recipients.length ===
+      0
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Aucun destinataire ne correspond à cette sélection.",
+        },
+        {
+          status:
+            400,
+        }
+      );
+    }
+
     let notificationsCreated =
       0;
 
+    let pushesSent = 0;
+    let pushesFailed = 0;
+
     if (
-      wantNotification &&
-      recipients.length >
-        0
+      wantNotification
     ) {
       const rows =
         recipients.map(
@@ -786,14 +948,10 @@ export async function POST(
           ) => ({
             recipient_id:
               recipient.id,
-
             type:
               "admin_broadcast",
-
             title,
-
             message,
-
             is_read:
               false,
           })
@@ -838,7 +996,8 @@ export async function POST(
                 `Erreur notifications : ${notificationError.message}`,
             },
             {
-              status: 500,
+              status:
+                500,
             }
           );
         }
@@ -846,11 +1005,23 @@ export async function POST(
         notificationsCreated +=
           chunk.length;
       }
+
+      const pushResult =
+        await sendPushesInChunks(
+          {
+            recipients,
+            title,
+            message,
+          }
+        );
+
+      pushesSent =
+        pushResult.sent;
+
+      pushesFailed =
+        pushResult.failed;
     }
 
-    /*
-     * E-mails.
-     */
     let emailsSent = 0;
     let emailsFailed = 0;
 
@@ -878,18 +1049,19 @@ export async function POST(
       {
         admin_id:
           authData.user.id,
-
         roles,
-
+        selected_ids:
+          recipientIds,
         recipients:
           recipients.length,
-
         notifications:
           notificationsCreated,
-
+        pushes_sent:
+          pushesSent,
+        pushes_failed:
+          pushesFailed,
         emails_sent:
           emailsSent,
-
         emails_failed:
           emailsFailed,
       }
@@ -897,16 +1069,16 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-
       recipients:
         recipients.length,
-
       notifications_created:
         notificationsCreated,
-
+      pushes_sent:
+        pushesSent,
+      pushes_failed:
+        pushesFailed,
       emails_sent:
         emailsSent,
-
       emails_failed:
         emailsFailed,
     });
@@ -921,14 +1093,15 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
-
         error:
-          error instanceof Error
+          error instanceof
+            Error
             ? error.message
             : "Erreur inconnue.",
       },
       {
-        status: 500,
+        status:
+          500,
       }
     );
   }
