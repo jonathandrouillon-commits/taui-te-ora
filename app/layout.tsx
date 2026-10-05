@@ -9,6 +9,7 @@ import PwaRegister from "./components/PwaRegister";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import GlobalBackButton from "./components/GlobalBackButton";
 import LostAnimalAlert from "./components/LostAnimalAlert";
+import GlobalNotificationBadge from "./components/GlobalNotificationBadge";
 import PageTextOverridesRuntime from "./components/admin/PageTextOverridesRuntime";
 import VisualPageEditor from "./components/admin/VisualPageEditor";
 
@@ -69,6 +70,8 @@ export default function RootLayout({
         <PwaRegister />
 
         <AnalyticsTracker />
+
+        <GlobalNotificationBadge />
 
         <GlobalBackButton />
 

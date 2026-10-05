@@ -1,10 +1,14 @@
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const STATIC_CACHE = `taui-te-ora-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
 ];
+
+/* =========================================================
+   INSTALLATION
+========================================================= */
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -18,6 +22,10 @@ self.addEventListener("install", (event) => {
       )
   );
 });
+
+/* =========================================================
+   ACTIVATION
+========================================================= */
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -47,15 +55,11 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/*
- * =========================================================
- * BADGE APPLICATION
- * =========================================================
- */
+/* =========================================================
+   BADGE APPLICATION
+========================================================= */
 
-async function setApplicationBadge(
-  count
-) {
+async function setApplicationBadge(count) {
   try {
     const badgeCount =
       Number(count);
@@ -99,8 +103,8 @@ async function setApplicationBadge(
 }
 
 /*
- * Permet à l'application ouverte
- * de synchroniser le badge.
+ * L'application ouverte peut demander
+ * une synchronisation directe du badge.
  */
 
 self.addEventListener(
@@ -118,6 +122,8 @@ self.addEventListener(
           data.count
         )
       );
+
+      return;
     }
 
     if (
@@ -133,11 +139,9 @@ self.addEventListener(
   }
 );
 
-/*
- * =========================================================
- * PUSH
- * =========================================================
- */
+/* =========================================================
+   PUSH
+========================================================= */
 
 self.addEventListener(
   "push",
@@ -145,9 +149,7 @@ self.addEventListener(
     let data = {};
 
     try {
-      if (
-        event.data
-      ) {
+      if (event.data) {
         data =
           event.data.json();
       }
@@ -171,22 +173,12 @@ self.addEventListener(
     const body =
       data.body ||
       data.message ||
-      "Nouvelle alerte animal.";
+      "Nouvelle notification Taui Te Ora.";
 
     const url =
       data.url ||
       data.link ||
       "/notifications";
-
-    /*
-     * Si l'API push nous donne
-     * directement le nombre total
-     * de notifications non lues,
-     * on l'utilise.
-     *
-     * Sinon on met au minimum
-     * un badge générique 1.
-     */
 
     const badgeCount =
       Number(
@@ -202,16 +194,6 @@ self.addEventListener(
 
       icon:
         "/icon-192.png",
-
-      /*
-       * ATTENTION :
-       * "badge" ici est l'icône
-       * monochrome de notification
-       * Android.
-       *
-       * Ce n'est PAS le compteur
-       * rouge de l'icône PWA.
-       */
 
       badge:
         "/icon-192.png",
@@ -229,6 +211,20 @@ self.addEventListener(
       data: {
         url,
 
+        type:
+          data.type ||
+          "notification",
+
+        notificationId:
+          data.notificationId ||
+          data.notification_id ||
+          null,
+
+        conversationId:
+          data.conversationId ||
+          data.conversation_id ||
+          null,
+
         animalId:
           data.animalId ||
           data.animal_id ||
@@ -237,6 +233,16 @@ self.addEventListener(
         signalementId:
           data.signalementId ||
           data.signalement_id ||
+          null,
+
+        adoptionRequestId:
+          data.adoptionRequestId ||
+          data.adoption_request_id ||
+          null,
+
+        sosId:
+          data.sosId ||
+          data.sos_id ||
           null,
 
         unreadCount:
@@ -250,38 +256,25 @@ self.addEventListener(
           title,
           options
         ),
-    ];
-
-    /*
-     * Mise à jour du badge
-     * de l'application installée.
-     */
-
-    tasks.push(
       setApplicationBadge(
         badgeCount
-      )
-    );
+      ),
+    ];
 
     event.waitUntil(
-      Promise.all(
-        tasks
-      )
+      Promise.all(tasks)
     );
   }
 );
 
-/*
- * =========================================================
- * CLIC NOTIFICATION
- * =========================================================
- */
+/* =========================================================
+   CLIC SUR UNE NOTIFICATION
+========================================================= */
 
 self.addEventListener(
   "notificationclick",
   (event) => {
-    event.notification
-      .close();
+    event.notification.close();
 
     const rawTarget =
       event.notification
@@ -298,12 +291,6 @@ self.addEventListener(
           self.location.origin
         );
 
-      /*
-       * Une notification TAUI TE ORA
-       * ne peut ouvrir qu'une URL
-       * du même domaine.
-       */
-
       if (
         parsedUrl.origin ===
         self.location.origin
@@ -319,51 +306,42 @@ self.addEventListener(
     }
 
     event.waitUntil(
-      self.clients
-        .matchAll({
-          type:
-            "window",
+      (async () => {
+        const clientList =
+          await self.clients
+            .matchAll({
+              type: "window",
+              includeUncontrolled:
+                true,
+            });
 
-          includeUncontrolled:
-            true,
-        })
-        .then(
-          async (
-            clientList
-          ) => {
-            for (
-              const client
-              of clientList
-            ) {
-              if (
-                "navigate" in
-                  client &&
-                "focus" in
-                  client
-              ) {
-                await client
-                  .navigate(
-                    targetUrl
-                  );
+        for (
+          const client
+          of clientList
+        ) {
+          if (
+            "navigate" in client &&
+            "focus" in client
+          ) {
+            await client.navigate(
+              targetUrl
+            );
 
-                return client
-                  .focus();
-              }
-            }
+            await client.focus();
 
-            if (
-              self.clients
-                .openWindow
-            ) {
-              return self.clients
-                .openWindow(
-                  targetUrl
-                );
-            }
-
-            return undefined;
+            return;
           }
-        )
+        }
+
+        if (
+          self.clients.openWindow
+        ) {
+          await self.clients
+            .openWindow(
+              targetUrl
+            );
+        }
+      })()
     );
   }
 );
@@ -371,15 +349,16 @@ self.addEventListener(
 self.addEventListener(
   "notificationclose",
   () => {
-    // Rien à faire.
+    /*
+     * Fermer visuellement une notification
+     * ne la marque pas comme lue.
+     */
   }
 );
 
-/*
- * =========================================================
- * CACHE
- * =========================================================
- */
+/* =========================================================
+   CACHE
+========================================================= */
 
 self.addEventListener(
   "fetch",
@@ -405,11 +384,6 @@ self.addEventListener(
       return;
     }
 
-    /*
-     * Jamais de cache
-     * pour origine externe.
-     */
-
     if (
       url.origin !==
       self.location.origin
@@ -417,24 +391,16 @@ self.addEventListener(
       return;
     }
 
-    /*
-     * Jamais de cache
-     * pour API / auth.
-     */
-
     if (
-      url.pathname
-        .startsWith(
-          "/api/"
-        ) ||
-      url.pathname
-        .startsWith(
-          "/auth/"
-        ) ||
-      url.pathname
-        .startsWith(
-          "/login"
-        )
+      url.pathname.startsWith(
+        "/api/"
+      ) ||
+      url.pathname.startsWith(
+        "/auth/"
+      ) ||
+      url.pathname.startsWith(
+        "/login"
+      )
     ) {
       return;
     }
@@ -465,15 +431,12 @@ self.addEventListener(
             cache
           ) => {
             const cached =
-              await cache
-                .match(
-                  request
-                );
+              await cache.match(
+                request
+              );
 
             const networkRequest =
-              fetch(
-                request
-              )
+              fetch(request)
                 .then(
                   (
                     response
@@ -483,11 +446,10 @@ self.addEventListener(
                       response.type ===
                         "basic"
                     ) {
-                      void cache
-                        .put(
-                          request,
-                          response.clone()
-                        );
+                      void cache.put(
+                        request,
+                        response.clone()
+                      );
                     }
 
                     return response;
