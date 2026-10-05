@@ -2233,67 +2233,90 @@ export default function AdminUsersPage() {
 
           </div>
 
-          <select
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
 
-            value={
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/admin/users/create"
+                )
+              }
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#064b42] px-5 py-4 font-black text-white shadow transition hover:bg-[#053d36]"
+            >
+              <span
+                aria-hidden="true"
+                className="text-lg leading-none"
+              >
+                ＋
+              </span>
 
-              filter
+              Créer un profil
+            </button>
 
-            }
+            <select
 
-            onChange={(
+              value={
 
-              event
+                filter
 
-            ) =>
+              }
 
-              setFilter(
+              onChange={(
 
                 event
 
-                  .target
+              ) =>
 
-                  .value as UserFilter
+                setFilter(
 
-              )
+                  event
 
-            }
+                    .target
 
-            className="rounded-2xl bg-white px-5 py-4 font-bold shadow outline-none"
+                    .value as UserFilter
 
-          >
+                )
 
-            <option value="pending">
+              }
 
-              En attente
+              className="rounded-2xl bg-white px-5 py-4 font-bold shadow outline-none"
 
-            </option>
+            >
 
-            <option value="approved">
+              <option value="pending">
 
-              Validés
+                En attente
 
-            </option>
+              </option>
 
-            <option value="rejected">
+              <option value="approved">
 
-              Refusés
+                Validés
 
-            </option>
+              </option>
 
-            <option value="suspended">
+              <option value="rejected">
 
-              Suspendus
+                Refusés
 
-            </option>
+              </option>
 
-            <option value="all">
+              <option value="suspended">
 
-              Tous
+                Suspendus
 
-            </option>
+              </option>
 
-          </select>
+              <option value="all">
+
+                Tous
+
+              </option>
+
+            </select>
+
+          </div>
 
         </div>
 
