@@ -99,6 +99,21 @@ function messageToHtml(
   );
 }
 
+function sleep(
+  milliseconds: number
+) {
+  return new Promise<void>(
+    (
+      resolve
+    ) => {
+      setTimeout(
+        resolve,
+        milliseconds
+      );
+    }
+  );
+}
+
 function getBearerToken(
   request: Request
 ): string {
@@ -208,10 +223,18 @@ async function sendEmail({
     );
   }
 
+  /*
+   * Domaine Resend maintenant vérifié.
+   *
+   * Tu peux éventuellement définir RESEND_FROM_EMAIL
+   * dans Vercel plus tard.
+   *
+   * Sinon cette adresse sera utilisée automatiquement.
+   */
   const from =
     process.env
       .RESEND_FROM_EMAIL ||
-    "TAUI TE ORA <onboarding@resend.dev>";
+    "TAUI TE ORA <info@taui-te-ora.com>";
 
   const displayName =
     firstName ||
@@ -235,21 +258,25 @@ async function sendEmail({
           <div style="font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8;">
             TAUI TE ORA
           </div>
+
           <h1 style="margin:10px 0 0;font-size:26px;line-height:1.25;">
             ${escapeHtml(
               title
             )}
           </h1>
         </div>
+
         <div style="padding:28px;">
           <p style="margin:0 0 18px;font-size:16px;line-height:1.6;">
             ${greeting}
           </p>
+
           <div style="font-size:16px;line-height:1.7;">
             ${messageToHtml(
               message
             )}
           </div>
+
           <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee4dc;font-size:13px;line-height:1.6;color:#756d67;">
             Message envoyé par l'administration de TAUI TE ORA.
           </div>
@@ -260,44 +287,77 @@ async function sendEmail({
 </html>
 `;
 
-  const response =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method:
-          "POST",
-        headers: {
-          Authorization:
-            `Bearer ${resendApiKey}`,
-          "Content-Type":
-            "application/json",
-        },
-        body:
-          JSON.stringify(
-            {
-              from,
-              to: [
-                email,
-              ],
-              subject:
-                title,
-              html,
-            }
-          ),
-        cache:
-          "no-store",
-      }
-    );
+  /*
+   * Retry automatique si Resend répond 429.
+   */
+  const maxAttempts =
+    3;
 
-  if (
-    !response.ok
+  for (
+    let attempt = 1;
+    attempt <=
+    maxAttempts;
+    attempt += 1
   ) {
+    const response =
+      await fetch(
+        "https://api.resend.com/emails",
+        {
+          method:
+            "POST",
+          headers: {
+            Authorization:
+              `Bearer ${resendApiKey}`,
+            "Content-Type":
+              "application/json",
+          },
+          body:
+            JSON.stringify(
+              {
+                from,
+                to: [
+                  email,
+                ],
+                subject:
+                  title,
+                html,
+              }
+            ),
+          cache:
+            "no-store",
+        }
+      );
+
+    if (
+      response.ok
+    ) {
+      return;
+    }
+
     const providerError =
       await response
         .text()
         .catch(
           () => ""
         );
+
+    /*
+     * Rate limit Resend :
+     * on attend puis on réessaie.
+     */
+    if (
+      response.status ===
+        429 &&
+      attempt <
+        maxAttempts
+    ) {
+      await sleep(
+        attempt *
+          1500
+      );
+
+      continue;
+    }
 
     throw new Error(
       providerError ||
@@ -321,14 +381,26 @@ async function sendEmailsInChunks({
 
   const emailRecipients =
     recipients.filter(
-      (recipient) =>
+      (
+        recipient
+      ) =>
         clean(
           recipient.email
         ).length >
         0
     );
 
-  const chunkSize = 10;
+  /*
+   * Resend limite actuellement les requêtes.
+   *
+   * On envoie maximum 5 mails simultanément,
+   * puis on laisse 750 ms avant le groupe suivant.
+   *
+   * Cela évite les erreurs 429 rencontrées
+   * lors de l'envoi des 35 profils.
+   */
+  const chunkSize =
+    5;
 
   for (
     let index = 0;
@@ -355,15 +427,19 @@ async function sendEmailsInChunks({
                 clean(
                   recipient.email
                 ),
+
               firstName:
                 clean(
                   recipient.first_name
                 ),
+
               organizationName:
                 clean(
                   recipient.organization_name
                 ),
+
               title,
+
               message,
             });
           }
@@ -379,24 +455,49 @@ async function sendEmailsInChunks({
           result.status ===
           "fulfilled"
         ) {
-          sent += 1;
-        } else {
-          failed += 1;
+          sent +=
+            1;
 
-          console.error(
-            "Erreur email broadcast :",
-            {
-              recipient_id:
-                chunk[
-                  resultIndex
-                ]?.id,
-              reason:
-                result.reason,
-            }
-          );
+          return;
         }
+
+        failed +=
+          1;
+
+        console.error(
+          "Erreur email broadcast :",
+          {
+            recipient_id:
+              chunk[
+                resultIndex
+              ]?.id,
+
+            email:
+              chunk[
+                resultIndex
+              ]?.email,
+
+            reason:
+              result.reason,
+          }
+        );
       }
     );
+
+    /*
+     * Pause entre deux groupes.
+     *
+     * Pas nécessaire après le dernier groupe.
+     */
+    if (
+      index +
+        chunkSize <
+      emailRecipients.length
+    ) {
+      await sleep(
+        750
+      );
+    }
   }
 
   return {
@@ -418,7 +519,8 @@ async function sendPushesInChunks({
   let sent = 0;
   let failed = 0;
 
-  const chunkSize = 10;
+  const chunkSize =
+    10;
 
   for (
     let index = 0;
@@ -445,6 +547,7 @@ async function sendPushesInChunks({
                 recipient.id,
                 {
                   title,
+
                   body:
                     message.length >
                     180
@@ -453,10 +556,13 @@ async function sendPushesInChunks({
                           180
                         )}…`
                       : message,
+
                   url:
                     "/notifications",
+
                   type:
                     "admin_broadcast",
+
                   tag:
                     `admin-broadcast-${recipient.id}`,
                 }
@@ -468,17 +574,21 @@ async function sendPushesInChunks({
       );
 
     results.forEach(
-      (result) => {
+      (
+        result
+      ) => {
         if (
           result.status ===
           "fulfilled"
         ) {
           sent +=
             result.value.sent;
+
           failed +=
             result.value.failed;
         } else {
-          failed += 1;
+          failed +=
+            1;
         }
       }
     );
@@ -508,7 +618,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Configuration Supabase serveur manquante.",
         },
@@ -524,10 +636,14 @@ export async function POST(
         request
       );
 
-    if (!token) {
+    if (
+      !token
+    ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Connexion requise.",
         },
@@ -546,6 +662,7 @@ export async function POST(
           auth: {
             persistSession:
               false,
+
             autoRefreshToken:
               false,
           },
@@ -555,6 +672,7 @@ export async function POST(
     const {
       data:
         authData,
+
       error:
         authError,
     } =
@@ -570,7 +688,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Session invalide.",
         },
@@ -584,6 +704,7 @@ export async function POST(
     const {
       data:
         adminProfile,
+
       error:
         adminProfileError,
     } =
@@ -605,7 +726,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             adminProfileError.message,
         },
@@ -627,7 +750,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Accès administrateur requis.",
         },
@@ -645,7 +770,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Compte administrateur désactivé.",
         },
@@ -668,10 +795,14 @@ export async function POST(
         | BroadcastBody
         | null;
 
-    if (!body) {
+    if (
+      !body
+    ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Requête invalide.",
         },
@@ -693,7 +824,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Sélectionne au moins un type de profil.",
         },
@@ -748,6 +881,7 @@ export async function POST(
     const {
       data:
         recipientData,
+
       error:
         recipientError,
     } =
@@ -756,6 +890,7 @@ export async function POST(
         {
           ascending:
             true,
+
           nullsFirst:
             false,
         }
@@ -766,7 +901,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             recipientError.message,
         },
@@ -788,9 +925,12 @@ export async function POST(
       "profiles"
     ) {
       return NextResponse.json({
-        ok: true,
+        ok:
+          true,
+
         count:
           recipients.length,
+
         profiles:
           recipients.map(
             (
@@ -798,14 +938,19 @@ export async function POST(
             ) => ({
               id:
                 recipient.id,
+
               email:
                 recipient.email,
+
               first_name:
                 recipient.first_name,
+
               last_name:
                 recipient.last_name,
+
               organization_name:
                 recipient.organization_name,
+
               role:
                 recipient.role,
             })
@@ -818,9 +963,12 @@ export async function POST(
       "preview"
     ) {
       return NextResponse.json({
-        ok: true,
+        ok:
+          true,
+
         count:
           recipients.length,
+
         roles,
       });
     }
@@ -841,7 +989,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Le titre et le message sont obligatoires.",
         },
@@ -858,7 +1008,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Le titre est trop long.",
         },
@@ -875,7 +1027,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Le message est trop long.",
         },
@@ -904,7 +1058,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Choisis au moins un canal d'envoi.",
         },
@@ -921,7 +1077,9 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Aucun destinataire ne correspond à cette sélection.",
         },
@@ -935,8 +1093,11 @@ export async function POST(
     let notificationsCreated =
       0;
 
-    let pushesSent = 0;
-    let pushesFailed = 0;
+    let pushesSent =
+      0;
+
+    let pushesFailed =
+      0;
 
     if (
       wantNotification
@@ -948,10 +1109,14 @@ export async function POST(
           ) => ({
             recipient_id:
               recipient.id,
+
             type:
               "admin_broadcast",
+
             title,
+
             message,
+
             is_read:
               false,
           })
@@ -991,7 +1156,9 @@ export async function POST(
         ) {
           return NextResponse.json(
             {
-              ok: false,
+              ok:
+                false,
+
               error:
                 `Erreur notifications : ${notificationError.message}`,
             },
@@ -1010,7 +1177,9 @@ export async function POST(
         await sendPushesInChunks(
           {
             recipients,
+
             title,
+
             message,
           }
         );
@@ -1022,8 +1191,11 @@ export async function POST(
         pushResult.failed;
     }
 
-    let emailsSent = 0;
-    let emailsFailed = 0;
+    let emailsSent =
+      0;
+
+    let emailsFailed =
+      0;
 
     if (
       wantEmail
@@ -1032,7 +1204,9 @@ export async function POST(
         await sendEmailsInChunks(
           {
             recipients,
+
             title,
+
             message,
           }
         );
@@ -1049,36 +1223,51 @@ export async function POST(
       {
         admin_id:
           authData.user.id,
+
         roles,
+
         selected_ids:
           recipientIds,
+
         recipients:
           recipients.length,
+
         notifications:
           notificationsCreated,
+
         pushes_sent:
           pushesSent,
+
         pushes_failed:
           pushesFailed,
+
         emails_sent:
           emailsSent,
+
         emails_failed:
           emailsFailed,
       }
     );
 
     return NextResponse.json({
-      ok: true,
+      ok:
+        true,
+
       recipients:
         recipients.length,
+
       notifications_created:
         notificationsCreated,
+
       pushes_sent:
         pushesSent,
+
       pushes_failed:
         pushesFailed,
+
       emails_sent:
         emailsSent,
+
       emails_failed:
         emailsFailed,
     });
@@ -1092,7 +1281,9 @@ export async function POST(
 
     return NextResponse.json(
       {
-        ok: false,
+        ok:
+          false,
+
         error:
           error instanceof
             Error
