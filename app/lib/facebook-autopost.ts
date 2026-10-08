@@ -26,22 +26,27 @@ export function tahitiTime(date = new Date()) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Tahiti', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
 }
 
-export async function publishFacebook(message: string, imageUrl?: string | null, linkUrl?: string | null) {
+export async function publishFacebook(message: string, imageUrl?: string | null, linkUrl?: string | null, mediaType?: string | null) {
   const pageId = process.env.FACEBOOK_PAGE_ID;
   const token = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
   const version = process.env.FACEBOOK_GRAPH_VERSION || 'v26.0';
   if (!pageId || !token) throw new Error('Facebook configuration missing');
-  const photo = Boolean(imageUrl);
   const params = new URLSearchParams({ access_token: token });
-  if (photo) {
-    params.set('url', imageUrl!);
+  let endpoint = 'feed';
+  if (imageUrl && mediaType === 'video') {
+    endpoint = 'videos';
+    params.set('file_url', imageUrl);
+    params.set('description', [message, linkUrl].filter(Boolean).join('\n\n'));
+  } else if (imageUrl) {
+    endpoint = 'photos';
+    params.set('url', imageUrl);
     params.set('caption', [message, linkUrl].filter(Boolean).join('\n\n'));
     params.set('published', 'true');
   } else {
     params.set('message', message);
     if (linkUrl) params.set('link', linkUrl);
   }
-  const response = await fetch(`https://graph.facebook.com/${version}/${pageId}/${photo ? 'photos' : 'feed'}`, { method: 'POST', body: params, cache: 'no-store' });
+  const response = await fetch(`https://graph.facebook.com/${version}/${pageId}/${endpoint}`, { method: 'POST', body: params, cache: 'no-store' });
   const result = await response.json();
   if (!response.ok) throw new Error(result?.error?.message || 'Facebook publishing failed');
   return String(result.post_id || result.id || '');

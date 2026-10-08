@@ -1,9 +1,5 @@
-
 {
   "crons": [
-    {
-      "path": "/api/cron/facebook-daily",
-      "schedule": "0 18 * * *"
-    }
+    { "path": "/api/cron/facebook-daily", "schedule": "0 18 * * *" }
   ]
 }

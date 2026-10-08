@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       const { data: animal, error: animalError } = await db.from('animals').select('is_published,is_adopted').eq('id', post.animal_id).single();
       if (animalError || !animal?.is_published || animal?.is_adopted) throw new Error('Animal no longer eligible');
     }
-    const fbId = await publishFacebook(post.message || '', post.image_url, post.link_url);
+    const fbId = await publishFacebook(post.message || '', post.image_url, post.link_url, post.media_type);
     await db.from('facebook_auto_posts').update({ status: 'published', facebook_post_id: fbId, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', post.id);
     await db.from('facebook_auto_daily_runs').update({ status: 'published', post_id: post.id }).eq('day', day);
     await db.from('facebook_auto_logs').insert({ post_id: post.id, action: 'publish', status: 'published', details: fbId });

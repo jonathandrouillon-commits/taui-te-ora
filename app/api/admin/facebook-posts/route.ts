@@ -33,11 +33,12 @@ export async function POST(request: Request) {
       if (!message || message.length > 10000) return Response.json({ error: 'Message required (max 10000 characters)' }, { status: 400 });
       if (!scheduled || !Number.isFinite(Date.parse(scheduled)) || Date.parse(scheduled) <= Date.now()) return Response.json({ error: 'Future date required' }, { status: 400 });
       const image = String(body.image_url || '').trim();
+      const mediaType = body.media_type === 'video' ? 'video' : body.media_type === 'image' ? 'image' : null;
       const link = String(body.link_url || '').trim();
       for (const value of [image, link]) {
         if (value && (!/^https:\/\//i.test(value) || value.length > 2000)) return Response.json({ error: 'Public HTTPS URLs only' }, { status: 400 });
       }
-      const { error } = await db.from('facebook_auto_posts').insert({ post_type: 'manual', title: String(body.title || '').slice(0, 200), message, image_url: image || null, link_url: link || null, scheduled_at: new Date(scheduled).toISOString(), status: 'scheduled' });
+      const { error } = await db.from('facebook_auto_posts').insert({ post_type: 'manual', title: String(body.title || '').slice(0, 200), message, image_url: image || null, media_type: mediaType, link_url: link || null, scheduled_at: new Date(scheduled).toISOString(), status: 'scheduled' });
       if (error) throw error;
       return Response.json({ ok: true });
     }
