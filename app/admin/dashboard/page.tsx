@@ -136,6 +136,7 @@ type SignedCondition = {
 export default function AdminDashboardPage() {
 
   const router = useRouter();
+  const [activeAdminSection, setActiveAdminSection] = useState<string | null>(null);
 
 
 
@@ -1551,34 +1552,45 @@ export default function AdminDashboardPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {[
-              { title: "Compagnons", icon: "🐾", href: "/admin/companions", description: "Animaux enregistrés" },
-              { title: "Animaux à adopter", icon: "🐕", href: "/admin/animals", description: "Annonces d’adoption" },
+              { title: "Mon profil", icon: "👤", section: "profile", description: "Coordonnées et préférences" },
+              { title: "Vue d’ensemble", icon: "📊", section: "overview", description: "Chiffres et signalements" },
+              { title: "Adoptions & traçabilité", icon: "🐾", section: "adoptions", description: "Signatures et attestations" },
+              { title: "Statistiques du site", icon: "📈", section: "analytics", description: "Visites et publicités" },
+              { title: "Activité & entraide", icon: "🤝", section: "activity", description: "Messages et réseau d’aide" },
+              { title: "Compagnons", icon: "🐕", href: "/admin/companions", description: "Animaux enregistrés" },
+              { title: "Animaux à adopter", icon: "🐈", href: "/admin/animals", description: "Annonces d’adoption" },
               { title: "Créer un animal", icon: "➕", href: "/admin/animals/create", description: "Pour un profil" },
               { title: "Utilisateurs", icon: "👥", href: "/admin/users", description: "Comptes et validations" },
-              { title: "Créer un profil", icon: "👤", href: "/admin/users/create", description: "Nouveau compte" },
+              { title: "Créer un profil", icon: "👤", href: "/admin/users", description: "Depuis la gestion des utilisateurs" },
               { title: "Signalements", icon: "🚨", href: "/admin/signalements", description: "Alertes et suivi" },
               { title: "SOS animal", icon: "🆘", href: "/sos-aide", description: "Demandes d’aide" },
-              { title: "Réseau d’aide", icon: "🤝", href: "/reseau-aide", description: "Bénévoles et accueil" },
+              { title: "Réseau d’aide", icon: "🤲", href: "/reseau-aide", description: "Bénévoles et accueil" },
               { title: "Communication", icon: "💬", href: "/admin/communications", description: "Messages et e-mails" },
               { title: "Publicités", icon: "📣", href: "/admin/publicites", description: "Campagnes et partenaires" },
               { title: "Pages", icon: "📝", href: "/admin/pages", description: "Textes du site" },
               { title: "Vétérinaires", icon: "🩺", href: "/admin/veterinaires", description: "Professionnels" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="group flex min-h-[108px] flex-col justify-center rounded-2xl border border-[#e8eee9] bg-[#fbf8f2] p-3 transition hover:-translate-y-0.5 hover:border-[#9ac9b9] hover:bg-[#eaf5ef] sm:p-4"
-              >
+              { title: "Associations", icon: "🏠", href: "/associations", description: "Structures partenaires" },
+              { title: "Mes données", icon: "🔒", href: "/profile/mes-donnees", description: "Confidentialité" },
+            ].map((item) => {
+              const tileClass = `group flex min-h-[108px] flex-col justify-center rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 sm:p-4 ${item.section && activeAdminSection === item.section ? "border-[#07594f] bg-[#e7f3ee]" : "border-[#e8eee9] bg-[#fbf8f2] hover:border-[#9ac9b9] hover:bg-[#eaf5ef]"}`;
+              const content = <>
                 <span aria-hidden="true" className="text-2xl">{item.icon}</span>
                 <span className="mt-2 text-sm font-black leading-tight text-[#064b42]">{item.title}</span>
                 <span className="mt-1 text-xs leading-tight text-[#81756c]">{item.description}</span>
-              </Link>
-            ))}
+              </>;
+              return item.section ? (
+                <button key={item.section} type="button" aria-pressed={activeAdminSection === item.section}
+                  onClick={() => setActiveAdminSection(activeAdminSection === item.section ? null : item.section)}
+                  className={tileClass}>{content}</button>
+              ) : (
+                <Link key={`${item.title}-${item.href}`} href={item.href!} className={tileClass}>{content}</Link>
+              );
+            })}
           </div>
         </nav>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+        <details open className={`group ${activeAdminSection === "profile" ? "col-span-full" : "hidden"}  overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0`}>
           <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
@@ -1765,7 +1777,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </details>
-        <details open className="group col-span-full overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_12px_34px_rgba(73,58,43,.07)]">
+        <details open className={`group ${activeAdminSection === "overview" ? "col-span-full" : "hidden"}  col-span-full overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_12px_34px_rgba(73,58,43,.07)]`}>
           <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
@@ -2422,7 +2434,7 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+        <details open className={`group ${activeAdminSection === "adoptions" ? "col-span-full" : "hidden"}  overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0`}>
           <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
@@ -2949,7 +2961,7 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+        <details open className={`group ${activeAdminSection === "analytics" ? "col-span-full" : "hidden"}  overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0`}>
           <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
@@ -3188,7 +3200,7 @@ export default function AdminDashboardPage() {
 
           </div>
         </details>
-        <details className="group overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0">
+        <details open className={`group ${activeAdminSection === "activity" ? "col-span-full" : "hidden"}  overflow-hidden rounded-[24px] border border-[#e8ddd2] bg-[#fffaf4] shadow-[0_10px_30px_rgba(73,58,43,.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(6,75,66,0.10)] open:col-span-full open:hover:translate-y-0`}>
           <summary className="flex min-h-[116px] cursor-pointer list-none flex-col items-center justify-center gap-2 px-4 py-4 text-center sm:min-h-[124px] sm:px-5">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e7f3ee] text-xl shadow-sm">
