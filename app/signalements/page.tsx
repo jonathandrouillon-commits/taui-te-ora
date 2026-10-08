@@ -1,67 +1,44 @@
 "use client";
-
 import {
   useEffect,
   useMemo,
   useState,
 } from "react";
-
 import Link from "next/link";
-
 import {
   AlertTriangle,
   CalendarDays,
   MapPin,
   Search,
 } from "lucide-react";
-
 import { supabase } from "../lib/supabase";
-
 type SignalementStatus =
   | "nouveau"
   | "en_cours"
   | "animal_retrouve"
   | "cloture";
-
 type Signalement = {
   id: string;
-
   created_at: string;
-
   type_signalement: string | null;
-
   animal_type: string | null;
-
   animal_name: string | null;
-
   island: string | null;
-
   city: string | null;
-
   address: string | null;
-
   situation: string | null;
-
   description: string | null;
-
   status: string | null;
-
   photo_url?: string | null;
-
   image_url?: string | null;
-
-
   resolution_note?: string | null;
-
   resolved_at?: string | null;
 };
-
 type SignalementMedia = {
   signalement_id: string;
   file_url: string;
   file_type?: string | null;
 };
-
 const TYPE_FILTERS = [
   {
     value: "all",
@@ -73,7 +50,7 @@ const TYPE_FILTERS = [
   },
   {
     value: "trouve",
-    label: "TrouvÃ©s",
+    label: "Trouvés",
   },
   {
     value: "errant",
@@ -81,7 +58,7 @@ const TYPE_FILTERS = [
   },
   {
     value: "blesse",
-    label: "BlessÃ©s",
+    label: "Blessés",
   },
   {
     value: "maltraitance",
@@ -96,11 +73,10 @@ const TYPE_FILTERS = [
     label: "Autres",
   },
 ];
-
 const STATUS_FILTERS = [
   {
     value: "all",
-    label: "Tous les Ã©tats",
+    label: "Tous les états",
   },
   {
     value: "nouveau",
@@ -112,47 +88,39 @@ const STATUS_FILTERS = [
   },
   {
     value: "animal_retrouve",
-    label: "Animal retrouvÃ©",
+    label: "Animal retrouvé",
   },
   {
     value: "cloture",
-    label: "ClÃ´turÃ©",
+    label: "Clôturé",
   },
 ];
-
 export default function SignalementsPublicPage() {
   const [
     loading,
     setLoading,
   ] = useState(true);
-
   const [
     signalements,
     setSignalements,
   ] = useState<Signalement[]>([]);
-
   const [
     search,
     setSearch,
   ] = useState("");
-
   const [
     typeFilter,
     setTypeFilter,
   ] = useState("all");
-
   const [
     statusFilter,
     setStatusFilter,
   ] = useState("all");
-
   useEffect(() => {
     let active = true;
-
     async function loadSignalements() {
       try {
         setLoading(true);
-
         const {
           data,
           error,
@@ -179,20 +147,15 @@ export default function SignalementsPublicPage() {
               ascending: false,
             }
           );
-
         if (error) {
           throw error;
         }
-
         const rows =
           (data || []) as Signalement[];
-
         const ids = rows.map(
           (item) => item.id
         );
-
         let medias: SignalementMedia[] = [];
-
         if (ids.length > 0) {
           const {
             data: mediaData,
@@ -208,10 +171,9 @@ export default function SignalementsPublicPage() {
               "signalement_id",
               ids
             );
-
           if (mediaError) {
             console.error(
-              "Erreur chargement mÃ©dias signalements :",
+              "Erreur chargement médias signalements :",
               mediaError
             );
           } else {
@@ -219,11 +181,9 @@ export default function SignalementsPublicPage() {
               (mediaData || []) as SignalementMedia[];
           }
         }
-
         if (!active) {
           return;
         }
-
         const rowsWithPhotos =
           rows.map((item) => {
             const media = medias.find(
@@ -234,7 +194,6 @@ export default function SignalementsPublicPage() {
                   candidate.file_type.startsWith("image/")
                 )
             );
-
             return {
               ...item,
               photo_url:
@@ -242,7 +201,6 @@ export default function SignalementsPublicPage() {
               image_url: null,
             };
           });
-
         setSignalements(
           rowsWithPhotos
         );
@@ -257,43 +215,35 @@ export default function SignalementsPublicPage() {
         }
       }
     }
-
     void loadSignalements();
-
     return () => {
       active = false;
     };
   }, []);
-
   const filteredSignalements =
     useMemo(() => {
       const query =
         search
           .trim()
           .toLowerCase();
-
       return signalements.filter(
         (item) => {
           const normalizedType =
             normalizeSignalementType(
               item.type_signalement
             );
-
           const normalizedStatus =
             normalizeStatus(
               item.status
             );
-
           const matchesType =
             typeFilter === "all" ||
             normalizedType ===
               typeFilter;
-
           const matchesStatus =
             statusFilter === "all" ||
             normalizedStatus ===
               statusFilter;
-
           const haystack = [
             item.animal_name,
             item.animal_type,
@@ -306,13 +256,11 @@ export default function SignalementsPublicPage() {
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
-
           const matchesSearch =
             !query ||
             haystack.includes(
               query
             );
-
           return (
             matchesType &&
             matchesStatus &&
@@ -326,7 +274,6 @@ export default function SignalementsPublicPage() {
       statusFilter,
       search,
     ]);
-
   if (loading) {
     return (
       <main
@@ -349,7 +296,6 @@ export default function SignalementsPublicPage() {
       </main>
     );
   }
-
   return (
     <main
       className="
@@ -384,7 +330,6 @@ export default function SignalementsPublicPage() {
           >
             TAUI TE ORA
           </p>
-
           <h1
             className="
               mt-1
@@ -395,7 +340,6 @@ export default function SignalementsPublicPage() {
           >
             Signalements
           </h1>
-
           <p
             className="
               mt-3
@@ -406,15 +350,13 @@ export default function SignalementsPublicPage() {
           >
             Consultez les signalements
             d&apos;animaux perdus,
-            trouvÃ©s, errants,
-            blessÃ©s ou en danger,
-            ainsi que leur Ã©tat
+            trouvés, errants,
+            blessés ou en danger,
+            ainsi que leur état
             d&apos;avancement.
           </p>
         </div>
-
         {/* FILTRES */}
-
         <section
           className="
             mt-8
@@ -448,7 +390,6 @@ export default function SignalementsPublicPage() {
                   text-gray-400
                 "
               />
-
               <input
                 type="text"
                 value={search}
@@ -475,7 +416,6 @@ export default function SignalementsPublicPage() {
                 "
               />
             </div>
-
             <select
               value={
                 typeFilter
@@ -516,7 +456,6 @@ export default function SignalementsPublicPage() {
                 )
               )}
             </select>
-
             <select
               value={
                 statusFilter
@@ -558,7 +497,6 @@ export default function SignalementsPublicPage() {
               )}
             </select>
           </div>
-
           <p
             className="
               mt-4
@@ -579,9 +517,7 @@ export default function SignalementsPublicPage() {
             }
           </p>
         </section>
-
         {/* LISTE */}
-
         {filteredSignalements.length ===
         0 ? (
           <div
@@ -602,7 +538,6 @@ export default function SignalementsPublicPage() {
                 text-[#df8995]
               "
             />
-
             <h2
               className="
                 mt-4
@@ -612,16 +547,15 @@ export default function SignalementsPublicPage() {
             >
               Aucun signalement
             </h2>
-
             <p
               className="
                 mt-2
                 text-gray-500
               "
             >
-              Aucun rÃ©sultat
+              Aucun résultat
               ne correspond
-              Ã  vos filtres.
+              à vos filtres.
             </p>
           </div>
         ) : (
@@ -654,7 +588,6 @@ export default function SignalementsPublicPage() {
     </main>
   );
 }
-
 function SignalementCard({
   item,
 }: {
@@ -664,17 +597,14 @@ function SignalementCard({
     normalizeStatus(
       item.status
     );
-
   const type =
     normalizeSignalementType(
       item.type_signalement
     );
-
   const imageUrl =
     item.photo_url ||
     item.image_url ||
     "";
-
   return (
     <Link
       href={`/signalement/${item.id}`}
@@ -730,7 +660,6 @@ function SignalementCard({
           </div>
         )}
       </div>
-
       <div
         className="
           p-5
@@ -760,7 +689,6 @@ function SignalementCard({
               )
             }
           </span>
-
           <span
             className={`
               rounded-full
@@ -781,7 +709,6 @@ function SignalementCard({
             }
           </span>
         </div>
-
         <h2
           className="
             mt-3
@@ -792,9 +719,8 @@ function SignalementCard({
         >
           {item.animal_name ||
             item.animal_type ||
-            "Animal signalÃ©"}
+            "Animal signalé"}
         </h2>
-
         <div
           className="
             mt-4
@@ -814,14 +740,12 @@ function SignalementCard({
             <CalendarDays
               size={17}
             />
-
             <span>
               {formatDate(
                 item.created_at
               )}
             </span>
           </div>
-
           {(item.city ||
             item.island) && (
             <div
@@ -838,19 +762,17 @@ function SignalementCard({
                   shrink-0
                 "
               />
-
               <span>
                 {[
                   item.city,
                   item.island,
                 ]
                   .filter(Boolean)
-                  .join(" Â· ")}
+                  .join(" · ")}
               </span>
             </div>
           )}
         </div>
-
         {(item.situation ||
           item.description) && (
           <p
@@ -866,7 +788,6 @@ function SignalementCard({
               item.description}
           </p>
         )}
-
         <div
           className="
             mt-5
@@ -885,7 +806,6 @@ function SignalementCard({
     </Link>
   );
 }
-
 function normalizeStatus(
   status:
     | string
@@ -898,7 +818,6 @@ function normalizeStatus(
     )
       .trim()
       .toLowerCase();
-
   if (
     value === "en_cours" ||
     value ===
@@ -908,7 +827,6 @@ function normalizeStatus(
   ) {
     return "en_cours";
   }
-
   if (
     value ===
       "animal_retrouve" ||
@@ -917,7 +835,6 @@ function normalizeStatus(
   ) {
     return "animal_retrouve";
   }
-
   if (
     value ===
       "cloture" ||
@@ -928,46 +845,36 @@ function normalizeStatus(
   ) {
     return "cloture";
   }
-
   return "nouveau";
 }
-
 function getStatusLabel(
   status: SignalementStatus
 ) {
   switch (status) {
     case "en_cours":
-      return "ðŸŸ  En cours";
-
+      return "🟠 En cours";
     case "animal_retrouve":
-      return "ðŸŸ¢ Animal retrouvÃ©";
-
+      return "🟢 Animal retrouvé";
     case "cloture":
-      return "âœ… ClÃ´turÃ©";
-
+      return "✅ Clôturé";
     default:
-      return "ðŸŸ¡ Nouveau";
+      return "🟡 Nouveau";
   }
 }
-
 function getStatusClasses(
   status: SignalementStatus
 ) {
   switch (status) {
     case "en_cours":
       return "border-orange-200 bg-orange-100 text-orange-800";
-
     case "animal_retrouve":
       return "border-green-200 bg-green-100 text-green-800";
-
     case "cloture":
       return "border-[#064b42] bg-[#064b42] text-white";
-
     default:
       return "border-amber-200 bg-amber-50 text-amber-800";
   }
 }
-
 function normalizeSignalementType(
   value:
     | string
@@ -980,101 +887,79 @@ function normalizeSignalementType(
     )
       .trim()
       .toLowerCase();
-
   if (
     type.includes("perdu") ||
     type.includes("disparu")
   ) {
     return "perdu";
   }
-
   if (
     type.includes("trouv")
   ) {
     return "trouve";
   }
-
   if (
     type.includes("errant")
   ) {
     return "errant";
   }
-
   if (
     type.includes("bless")
   ) {
     return "blesse";
   }
-
   if (
     type.includes("maltrait")
   ) {
     return "maltraitance";
   }
-
   if (
     type.includes("abandon")
   ) {
     return "abandon";
   }
-
   return "autre";
 }
-
 function getSignalementTypeLabel(
   type: string
 ) {
   switch (type) {
     case "perdu":
       return "Animal perdu";
-
     case "trouve":
-      return "Animal trouvÃ©";
-
+      return "Animal trouvé";
     case "errant":
       return "Animal errant";
-
     case "blesse":
-      return "Animal blessÃ©";
-
+      return "Animal blessé";
     case "maltraitance":
       return "Maltraitance";
-
     case "abandon":
       return "Abandon";
-
     default:
       return "Autre signalement";
   }
 }
-
 function getSignalementIcon(
   type: string
 ) {
   switch (type) {
     case "perdu":
-      return "ðŸ”Ž";
-
+      return "🔎";
     case "trouve":
-      return "ðŸ¾";
-
+      return "🐾";
     case "errant":
-      return "ðŸ•";
-
+      return "🐕";
     case "blesse":
-      return "ðŸ©¹";
-
+      return "🩹";
     case "maltraitance":
-      return "âš ï¸";
-
+      return "⚠️";
     case "abandon":
-      return "ðŸ’”";
-
+      return "💔";
     default:
-      return "ðŸš¨";
+      return "🚨";
   }
 }
-
 function formatDate(
   value: string
 ) {
