@@ -783,10 +783,6 @@ export default function HomePage() {
 
       <div className="relative min-h-[100dvh] w-full">
 
-        <button type="button" onClick={backToMenu}
-          className="fixed left-4 top-4 z-[180] rounded-full border border-white bg-[#fffaf7] px-4 py-2 text-sm font-black text-[#064b42] shadow-lg">
-          ← Menu principal
-        </button>
         {favoriteRestored && (
 
           <div
