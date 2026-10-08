@@ -1,0 +1,190 @@
+diff --git a/app/signalements/page.tsx b/app/signalements/page.tsx
+index f82b932..142753e 100644
+--- a/app/signalements/page.tsx
++++ b/app/signalements/page.tsx
+@@ -73,7 +50,7 @@ const TYPE_FILTERS = [
+   },
+   {
+     value: "trouve",
+-    label: "TrouvÃ©s",
++    label: "Trouvés",
+   },
+   {
+     value: "errant",
+@@ -81,7 +58,7 @@ const TYPE_FILTERS = [
+   },
+   {
+     value: "blesse",
+-    label: "BlessÃ©s",
++    label: "Blessés",
+   },
+   {
+     value: "maltraitance",
+@@ -100,7 +76,7 @@ const TYPE_FILTERS = [
+ const STATUS_FILTERS = [
+   {
+     value: "all",
+-    label: "Tous les Ã©tats",
++    label: "Tous les états",
+   },
+   {
+     value: "nouveau",
+@@ -112,14 +88,13 @@ const STATUS_FILTERS = [
+   },
+   {
+     value: "animal_retrouve",
+-    label: "Animal retrouvÃ©",
++    label: "Animal retrouvé",
+   },
+   {
+     value: "cloture",
+-    label: "ClÃ´turÃ©",
++    label: "Clôturé",
+   },
+ ];
+-
+ export default function SignalementsPublicPage() {
+   const [
+     loading,
+@@ -208,10 +171,9 @@ export default function SignalementsPublicPage() {
+               "signalement_id",
+               ids
+             );
+-
+           if (mediaError) {
+             console.error(
+-              "Erreur chargement mÃ©dias signalements :",
++              "Erreur chargement médias signalements :",
+               mediaError
+             );
+           } else {
+@@ -406,9 +350,9 @@ export default function SignalementsPublicPage() {
+           >
+             Consultez les signalements
+             d&apos;animaux perdus,
+-            trouvÃ©s, errants,
+-            blessÃ©s ou en danger,
+-            ainsi que leur Ã©tat
++            trouvés, errants,
++            blessés ou en danger,
++            ainsi que leur état
+             d&apos;avancement.
+           </p>
+         </div>
+@@ -619,9 +553,9 @@ export default function SignalementsPublicPage() {
+                 text-gray-500
+               "
+             >
+-              Aucun rÃ©sultat
++              Aucun résultat
+               ne correspond
+-              Ã  vos filtres.
++              à vos filtres.
+             </p>
+           </div>
+         ) : (
+@@ -792,9 +719,8 @@ function SignalementCard({
+         >
+           {item.animal_name ||
+             item.animal_type ||
+-            "Animal signalÃ©"}
++            "Animal signalé"}
+         </h2>
+-
+         <div
+           className="
+             mt-4
+@@ -845,7 +768,7 @@ function SignalementCard({
+                   item.island,
+                 ]
+                   .filter(Boolean)
+-                  .join(" Â· ")}
++                  .join(" · ")}
+               </span>
+             </div>
+           )}
+@@ -937,19 +852,15 @@ function getStatusLabel(
+ ) {
+   switch (status) {
+     case "en_cours":
+-      return "ðŸŸ  En cours";
+-
++      return "🟠 En cours";
+     case "animal_retrouve":
+-      return "ðŸŸ¢ Animal retrouvÃ©";
+-
++      return "🟢 Animal retrouvé";
+     case "cloture":
+-      return "âœ… ClÃ´turÃ©";
+-
++      return "✅ Clôturé";
+     default:
+-      return "ðŸŸ¡ Nouveau";
++      return "🟡 Nouveau";
+   }
+ }
+-
+ function getStatusClasses(
+   status: SignalementStatus
+ ) {
+@@ -1027,22 +926,16 @@ function getSignalementTypeLabel(
+   switch (type) {
+     case "perdu":
+       return "Animal perdu";
+-
+     case "trouve":
+-      return "Animal trouvÃ©";
+-
++      return "Animal trouvé";
+     case "errant":
+       return "Animal errant";
+-
+     case "blesse":
+-      return "Animal blessÃ©";
+-
++      return "Animal blessé";
+     case "maltraitance":
+       return "Maltraitance";
+-
+     case "abandon":
+       return "Abandon";
+-
+     default:
+       return "Autre signalement";
+   }
+@@ -1053,28 +945,21 @@ function getSignalementIcon(
+ ) {
+   switch (type) {
+     case "perdu":
+-      return "ðŸ”Ž";
+-
++      return "🔎";
+     case "trouve":
+-      return "ðŸ¾";
+-
++      return "🐾";
+     case "errant":
+-      return "ðŸ•";
+-
++      return "🐕";
+     case "blesse":
+-      return "ðŸ©¹";
+-
++      return "🩹";
+     case "maltraitance":
+-      return "âš ï¸";
+-
++      return "⚠️";
+     case "abandon":
+-      return "ðŸ’”";
+-
++      return "💔";
+     default:
+-      return "ðŸš¨";
++      return "🚨";
+   }
+ }
+-
+ function formatDate(
+   value: string
+ ) {

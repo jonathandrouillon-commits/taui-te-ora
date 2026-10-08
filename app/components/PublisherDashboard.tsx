@@ -1,7 +1,5 @@
 ﻿"use client";
 
-
-
 import Link from "next/link";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,8 +14,6 @@ import SupportButton from "./SupportButton";
 
 import DashboardMessages from "./dashboard/DashboardMessages";
 
-
-
 export type PublisherRole =
 
   | "association"
@@ -29,8 +25,6 @@ export type PublisherRole =
   | "sigfa"
 
   | "benevole";
-
-
 
 type Profile = {
 
@@ -52,8 +46,6 @@ type Profile = {
 
 };
 
-
-
 type AnimalPhoto = {
 
   id?: string;
@@ -65,8 +57,6 @@ type AnimalPhoto = {
   sort_order?: number | null;
 
 };
-
-
 
 type Animal = {
 
@@ -93,8 +83,6 @@ type Animal = {
   animal_photos?: AnimalPhoto[] | null;
 
 };
-
-
 
 type AdoptionRequest = {
 
@@ -130,8 +118,6 @@ type AdoptionRequest = {
 
 };
 
-
-
 type Conversation = {
 
   id: string;
@@ -148,8 +134,6 @@ type Conversation = {
 
 };
 
-
-
 type Favorite = {
 
   id: string;
@@ -159,8 +143,6 @@ type Favorite = {
   profile_id?: string | null;
 
 };
-
-
 
 type DashboardData = {
 
@@ -176,8 +158,6 @@ type DashboardData = {
 
 };
 
-
-
 const ROLE_LABELS: Record<PublisherRole, string> = {
 
   association: "Association",
@@ -192,23 +172,17 @@ const ROLE_LABELS: Record<PublisherRole, string> = {
 
 };
 
-
-
 function getAddAnimalPath(_role: PublisherRole) {
 
   return "/association/add-animal";
 
 }
 
-
-
 function getAnimalsManagementPath(_role: PublisherRole) {
 
   return "/association/animals";
 
 }
-
-
 
 function getEditAnimalPath(
 
@@ -221,8 +195,6 @@ function getEditAnimalPath(
   return `/association/edit-animal/${animalId}`;
 
 }
-
-
 
 type DashboardSectionKey =
 
@@ -237,8 +209,6 @@ type DashboardSectionKey =
   | "help"
 
   | "support";
-
-
 
 const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = {
 
@@ -256,15 +226,11 @@ const DEFAULT_SECTION_VISIBILITY: Record<DashboardSectionKey, boolean> = {
 
 };
 
-
-
 type PublisherDashboardProps = {
 
   expectedRole: PublisherRole;
 
 };
-
-
 
 export default function PublisherDashboard({
 
@@ -274,33 +240,23 @@ export default function PublisherDashboard({
 
   const router = useRouter();
 
-
-
   const [data, setData] =
 
     useState<DashboardData | null>(null);
-
-
 
   const [loading, setLoading] =
 
     useState(true);
 
-
-
   const [actionId, setActionId] =
 
     useState<string | null>(null);
-
-
 
   const [sectionVisibility, setSectionVisibility] = useState<
 
     Record<DashboardSectionKey, boolean>
 
   >(DEFAULT_SECTION_VISIBILITY);
-
-
 
   useEffect(() => {
 
@@ -312,19 +268,13 @@ export default function PublisherDashboard({
 
       );
 
-
-
       if (!saved) return;
-
-
 
       const parsed = JSON.parse(saved) as Partial<
 
         Record<DashboardSectionKey, boolean>
 
       >;
-
-
 
       setSectionVisibility({
 
@@ -342,8 +292,6 @@ export default function PublisherDashboard({
 
   }, [expectedRole]);
 
-
-
   function setSectionVisible(
 
     key: DashboardSectionKey,
@@ -355,8 +303,6 @@ export default function PublisherDashboard({
     setSectionVisibility((current) => {
 
       const next = { ...current, [key]: visible };
-
-
 
       try {
 
@@ -374,15 +320,11 @@ export default function PublisherDashboard({
 
       }
 
-
-
       return next;
 
     });
 
   }
-
-
 
   function setAllSections(visible: boolean) {
 
@@ -392,11 +334,7 @@ export default function PublisherDashboard({
 
     ) as Record<DashboardSectionKey, boolean>;
 
-
-
     setSectionVisibility(next);
-
-
 
     try {
 
@@ -416,15 +354,11 @@ export default function PublisherDashboard({
 
   }
 
-
-
   const loadDashboard = useCallback(async () => {
 
     try {
 
       setLoading(true);
-
-
 
       const {
 
@@ -434,11 +368,7 @@ export default function PublisherDashboard({
 
       } = await supabase.auth.getUser();
 
-
-
       if (userError) throw userError;
-
-
 
       if (!user) {
 
@@ -458,8 +388,6 @@ export default function PublisherDashboard({
 
       }
 
-
-
       const { data: profile, error: profileError } =
 
         await supabase
@@ -476,23 +404,15 @@ export default function PublisherDashboard({
 
           .maybeSingle();
 
-
-
       if (profileError) throw profileError;
-
-
 
       const access =
 
         await animalService.getCurrentUserAccess();
 
-
-
       const role =
 
         access.role || "";
-
-
 
       if (!access.role) {
 
@@ -502,8 +422,6 @@ export default function PublisherDashboard({
 
       }
 
-
-
       if (!access.isActive) {
 
         router.replace("/");
@@ -511,8 +429,6 @@ export default function PublisherDashboard({
         return;
 
       }
-
-
 
       if (
 
@@ -528,8 +444,6 @@ export default function PublisherDashboard({
 
       }
 
-
-
       if (role === "adoptant") {
 
         router.replace("/dashboard");
@@ -537,8 +451,6 @@ export default function PublisherDashboard({
         return;
 
       }
-
-
 
       if (
 
@@ -558,8 +470,6 @@ export default function PublisherDashboard({
 
       }
 
-
-
       /*
 
        * IMPORTANT :
@@ -571,8 +481,6 @@ export default function PublisherDashboard({
        * On ne force donc pas un questionnaire adoptant.
 
        */
-
-
 
       const { data: animals, error: animalsError } =
 
@@ -624,21 +532,13 @@ export default function PublisherDashboard({
 
           });
 
-
-
       if (animalsError) throw animalsError;
-
-
 
       const animalIds =
 
         (animals || []).map((animal) => animal.id);
 
-
-
       let favorites: Favorite[] = [];
-
-
 
       if (animalIds.length > 0) {
 
@@ -652,19 +552,13 @@ export default function PublisherDashboard({
 
             .in("animal_id", animalIds);
 
-
-
         if (favoriteError) throw favoriteError;
-
-
 
         favorites =
 
           (favoriteRows || []) as Favorite[];
 
       }
-
-
 
       const {
 
@@ -704,11 +598,7 @@ export default function PublisherDashboard({
 
         });
 
-
-
       if (requestsError) throw requestsError;
-
-
 
       const requesterIds = Array.from(
 
@@ -724,11 +614,7 @@ export default function PublisherDashboard({
 
       ) as string[];
 
-
-
       let requesterProfiles: any[] = [];
-
-
 
       if (requesterIds.length > 0) {
 
@@ -750,17 +636,11 @@ export default function PublisherDashboard({
 
           .in("id", requesterIds);
 
-
-
         if (requesterError) throw requesterError;
-
-
 
         requesterProfiles = profileRows || [];
 
       }
-
-
 
       const animalsById =
 
@@ -776,8 +656,6 @@ export default function PublisherDashboard({
 
         );
 
-
-
       const requestersById =
 
         new Map(
@@ -791,8 +669,6 @@ export default function PublisherDashboard({
           ])
 
         );
-
-
 
       const enrichedRequests =
 
@@ -826,8 +702,6 @@ export default function PublisherDashboard({
 
         })) as AdoptionRequest[];
 
-
-
       const {
 
         data: conversations,
@@ -852,15 +726,11 @@ export default function PublisherDashboard({
 
         });
 
-
-
       if (conversationsError) {
 
         throw conversationsError;
 
       }
-
-
 
       setData({
 
@@ -916,8 +786,6 @@ export default function PublisherDashboard({
 
   }, [expectedRole, router]);
 
-
-
   useEffect(() => {
 
     const timeoutId = window.setTimeout(() => {
@@ -926,13 +794,9 @@ export default function PublisherDashboard({
 
     }, 0);
 
-
-
     return () => window.clearTimeout(timeoutId);
 
   }, [loadDashboard]);
-
-
 
   async function handleLogout() {
 
@@ -942,15 +806,11 @@ export default function PublisherDashboard({
 
         await supabase.auth.signOut();
 
-
-
       if (error) {
 
         throw error;
 
       }
-
-
 
       router.replace("/login");
 
@@ -966,8 +826,6 @@ export default function PublisherDashboard({
 
       );
 
-
-
       alert(
 
         error?.message ||
@@ -980,10 +838,6 @@ export default function PublisherDashboard({
 
   }
 
-
-
-
-
   async function archiveAnimal(animalId: string) {
 
     const confirmed = window.confirm(
@@ -992,17 +846,11 @@ export default function PublisherDashboard({
 
     );
 
-
-
     if (!confirmed) return;
-
-
 
     try {
 
       setActionId(animalId);
-
-
 
       const {
 
@@ -1012,8 +860,6 @@ export default function PublisherDashboard({
 
       } = await supabase.auth.getUser();
 
-
-
       if (userError) throw userError;
 
       if (!user) {
@@ -1021,8 +867,6 @@ export default function PublisherDashboard({
         throw new Error("Utilisateur non connecté.");
 
       }
-
-
 
       const { data: profile, error: profileError } = await supabase
 
@@ -1034,11 +878,7 @@ export default function PublisherDashboard({
 
         .maybeSingle();
 
-
-
       if (profileError) throw profileError;
-
-
 
       let query = supabase
 
@@ -1054,8 +894,6 @@ export default function PublisherDashboard({
 
         .eq("id", animalId);
 
-
-
       // Une association, un refuge, une fourrière ou un bénévole
 
       // ne peut retirer que ses propres animaux.
@@ -1068,19 +906,13 @@ export default function PublisherDashboard({
 
       }
 
-
-
       const { data: updatedAnimal, error } = await query
 
         .select("id, is_published, status")
 
         .maybeSingle();
 
-
-
       if (error) throw error;
-
-
 
       if (!updatedAnimal) {
 
@@ -1091,8 +923,6 @@ export default function PublisherDashboard({
         );
 
       }
-
-
 
       await loadDashboard();
 
@@ -1116,10 +946,6 @@ export default function PublisherDashboard({
 
   }
 
-
-
-
-
   async function updateAdoptionStatus(
 
     request: AdoptionRequest,
@@ -1135,8 +961,6 @@ export default function PublisherDashboard({
   ) {
 
     if (!request?.id) return;
-
-
 
     const labels = {
 
@@ -1154,8 +978,6 @@ export default function PublisherDashboard({
 
     };
 
-
-
     const confirmed =
 
       window.confirm(
@@ -1164,17 +986,11 @@ export default function PublisherDashboard({
 
       );
 
-
-
     if (!confirmed) return;
-
-
 
     try {
 
       setActionId(request.id);
-
-
 
       const {
 
@@ -1184,15 +1000,11 @@ export default function PublisherDashboard({
 
       } = await supabase.auth.getUser();
 
-
-
       if (userError) {
 
         throw userError;
 
       }
-
-
 
       if (!user) {
 
@@ -1203,8 +1015,6 @@ export default function PublisherDashboard({
         );
 
       }
-
-
 
       const {
 
@@ -1236,15 +1046,11 @@ export default function PublisherDashboard({
 
         );
 
-
-
       if (requestError) {
 
         throw requestError;
 
       }
-
-
 
       /*
 
@@ -1296,8 +1102,6 @@ export default function PublisherDashboard({
 
           );
 
-
-
         if (animalError) {
 
           throw animalError;
@@ -1305,8 +1109,6 @@ export default function PublisherDashboard({
         }
 
       }
-
-
 
       await loadDashboard();
 
@@ -1319,8 +1121,6 @@ export default function PublisherDashboard({
         error
 
       );
-
-
 
       alert(
 
@@ -1338,13 +1138,9 @@ export default function PublisherDashboard({
 
   }
 
-
-
   const favoriteCounts = useMemo(() => {
 
     const counts = new Map<string, number>();
-
-
 
     for (const favorite of data?.favorites || []) {
 
@@ -1358,25 +1154,17 @@ export default function PublisherDashboard({
 
     }
 
-
-
     return counts;
 
   }, [data?.favorites]);
-
-
 
   const requestCounts = useMemo(() => {
 
     const counts = new Map<string, number>();
 
-
-
     for (const request of data?.adoptionRequests || []) {
 
       if (!request.animal_id) continue;
-
-
 
       counts.set(
 
@@ -1388,13 +1176,9 @@ export default function PublisherDashboard({
 
     }
 
-
-
     return counts;
 
   }, [data?.adoptionRequests]);
-
-
 
   if (loading) {
 
@@ -1410,8 +1194,6 @@ export default function PublisherDashboard({
 
   }
 
-
-
   if (!data) {
 
     return (
@@ -1426,8 +1208,6 @@ export default function PublisherDashboard({
 
   }
 
-
-
   const profileName =
 
     data.profile.organization_name ||
@@ -1439,8 +1219,6 @@ export default function PublisherDashboard({
     }`.trim() ||
 
     "Mon espace";
-
-
 
   const published =
 
@@ -1454,8 +1232,6 @@ export default function PublisherDashboard({
 
     ).length;
 
-
-
   const adopted =
 
     data.animals.filter(
@@ -1463,8 +1239,6 @@ export default function PublisherDashboard({
       (animal) => animal.is_adopted
 
     ).length;
-
-
 
   const pendingRequests =
 
@@ -1478,62 +1252,108 @@ export default function PublisherDashboard({
 
     ).length;
 
-
-
   return (
 
-    <main className="min-h-[100dvh] bg-[#f4eee3] px-4 py-8 pb-28 text-[#064b42] sm:px-6">
+    <main className="min-h-[100dvh] min-w-0 overflow-x-hidden bg-[#f4eee3] px-3 py-8 pb-28 text-[#064b42] sm:px-6">
 
-      <section className="mx-auto max-w-7xl">
+      <section className="mx-auto w-full min-w-0 max-w-7xl">
 
         <header className="overflow-hidden rounded-[30px] bg-white shadow-md">
+
           <div className="bg-[#064b42] px-6 py-7 text-white sm:px-8">
+
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#f1b4be]">
+
               TAUI TE ORA · {ROLE_LABELS[expectedRole]}
+
             </p>
+
             <div className="mt-4 flex flex-wrap items-center gap-4">
+
               {data.profile.avatar_url ? (
+
                 <img src={data.profile.avatar_url} alt={profileName} className="h-16 w-16 rounded-full border-2 border-white/60 object-cover" />
+
               ) : (
+
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-3xl">🐾</div>
+
               )}
+
               <div className="min-w-0">
+
                 <h1 className="break-words text-2xl font-black sm:text-3xl">{profileName}</h1>
+
                 <p className="mt-1 text-sm text-white/80">
+
                   {[data.profile.city, data.profile.island].filter(Boolean).join(" · ") || "Votre espace de gestion"}
+
                 </p>
+
               </div>
+
             </div>
+
           </div>
+
           <div className="px-5 py-6 sm:px-7">
+
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+
               <div>
+
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-[#df8995]">Tableau de bord</p>
+
                 <h2 className="mt-1 text-xl font-black text-[#064b42]">Accès rapides</h2>
+
               </div>
+
               <div className="flex flex-wrap gap-2">
+
                 <button type="button" onClick={() => setAllSections(true)} className="rounded-full border border-[#064b42] px-3 py-2 text-xs font-bold text-[#064b42]">Tout ouvrir</button>
+
                 <button type="button" onClick={() => setAllSections(false)} className="rounded-full border border-[#d6ccc0] px-3 py-2 text-xs font-bold text-[#6f5a47]">Tout fermer</button>
+
               </div>
+
             </div>
+
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
               <QuickAccessLink href={getAddAnimalPath(expectedRole)} icon="➕" label="Déposer un animal" />
+
               <QuickAccessLink href={getAnimalsManagementPath(expectedRole)} icon="🐕" label="Gérer mes animaux" />
+
               <QuickAccessToggle icon="📊" label="Statistiques" active={sectionVisibility.stats} onClick={() => setSectionVisible("stats", !sectionVisibility.stats)} />
+
               <QuickAccessToggle icon="🐾" label="Mes animaux" active={sectionVisibility.animals} onClick={() => setSectionVisible("animals", !sectionVisibility.animals)} />
+
               <QuickAccessToggle icon="💌" label="Demandes d’adoption" active={sectionVisibility.adoptions} count={pendingRequests} onClick={() => setSectionVisible("adoptions", !sectionVisibility.adoptions)} />
+
               <QuickAccessToggle icon="💬" label="Messagerie" active={sectionVisibility.messages} onClick={() => setSectionVisible("messages", !sectionVisibility.messages)} />
+
               <QuickAccessLink href="/messages" icon="✉️" label="Toutes les conversations" />
+
               <QuickAccessToggle icon="🤝" label="Réseau d’aide" active={sectionVisibility.help} onClick={() => setSectionVisible("help", !sectionVisibility.help)} />
+
               <QuickAccessLink href="/sos-aide" icon="🚨" label="SOS animal" />
+
               <QuickAccessToggle icon="🛟" label="Assistance" active={sectionVisibility.support} onClick={() => setSectionVisible("support", !sectionVisibility.support)} />
+
               <QuickAccessLink href="/profile" icon="👤" label="Modifier mon profil" />
+
               <button type="button" onClick={handleLogout} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-4 text-center text-sm font-black text-red-700 transition hover:bg-red-100">
+
                 <span className="text-2xl" aria-hidden="true">🚪</span>Déconnexion
+
               </button>
+
             </div>
+
             <p className="mt-4 text-xs text-[#6f5a47]">Sélectionnez une rubrique pour afficher ou masquer son contenu. Vos préférences sont conservées sur cet appareil.</p>
+
           </div>
+
         </header>
 
         {sectionVisibility.stats && (
@@ -1560,11 +1380,9 @@ export default function PublisherDashboard({
 
         )}
 
-
-
         {sectionVisibility.animals && (
 
-        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+        <section className="mt-7 min-w-0 rounded-[30px] bg-white p-4 shadow-md sm:p-6">
 
           <div className="mb-5 flex items-center justify-between gap-4">
 
@@ -1584,8 +1402,6 @@ export default function PublisherDashboard({
 
             </div>
 
-
-
             <Link
 
               href={getAddAnimalPath(expectedRole)}
@@ -1599,8 +1415,6 @@ export default function PublisherDashboard({
             </Link>
 
           </div>
-
-
 
           {data.animals.length === 0 ? (
 
@@ -1619,8 +1433,6 @@ export default function PublisherDashboard({
                 const photo =
 
                   getCoverPhoto(animal);
-
-
 
                 return (
 
@@ -1658,8 +1470,6 @@ export default function PublisherDashboard({
 
                     </div>
 
-
-
                     <div className="p-4">
 
                       <div className="flex items-start justify-between gap-3">
@@ -1671,8 +1481,6 @@ export default function PublisherDashboard({
                             {animal.animal_name || "Animal"}
 
                           </h3>
-
-
 
                           <p className="mt-1 text-sm text-[#6f5a47]">
 
@@ -1692,8 +1500,6 @@ export default function PublisherDashboard({
 
                         </div>
 
-
-
                         <span className="rounded-full bg-white px-3 py-1 text-xs font-black">
 
                           {animal.is_adopted
@@ -1710,8 +1516,6 @@ export default function PublisherDashboard({
 
                       </div>
 
-
-
                       <div className="mt-4 flex gap-2 text-sm font-bold">
 
                         <span className="rounded-full bg-white px-3 py-2">
@@ -1720,8 +1524,6 @@ export default function PublisherDashboard({
 
                         </span>
 
-
-
                         <span className="rounded-full bg-white px-3 py-2">
 
                           📩 {requestCounts.get(animal.id) || 0}
@@ -1729,8 +1531,6 @@ export default function PublisherDashboard({
                         </span>
 
                       </div>
-
-
 
                       <div className="mt-5 grid grid-cols-2 gap-2">
 
@@ -1746,8 +1546,6 @@ export default function PublisherDashboard({
 
                         </Link>
 
-
-
                         <Link
 
                           href={getEditAnimalPath(expectedRole, animal.id)}
@@ -1759,8 +1557,6 @@ export default function PublisherDashboard({
                           Modifier
 
                         </Link>
-
-
 
                         <button
 
@@ -1800,11 +1596,9 @@ export default function PublisherDashboard({
 
         )}
 
-
-
         {sectionVisibility.adoptions && (
 
-        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+        <section className="mt-7 min-w-0 rounded-[30px] bg-white p-4 shadow-md sm:p-6">
 
           <h2 className="text-2xl font-black">
 
@@ -1812,15 +1606,11 @@ export default function PublisherDashboard({
 
           </h2>
 
-
-
           <p className="mt-1 text-sm text-[#6f5a47]">
 
             Retrouvez l&apos;utilisateur, l&apos;animal concerné, le taux de compatibilité et gérez chaque étape de l&apos;adoption.
 
           </p>
-
-
 
           <div className="mt-5 space-y-4">
 
@@ -1848,8 +1638,6 @@ export default function PublisherDashboard({
 
                   );
 
-
-
                 const requesterName =
 
                   `${request.requester?.first_name || ""} ${
@@ -1859,8 +1647,6 @@ export default function PublisherDashboard({
                   }`.trim() ||
 
                   "Utilisateur";
-
-
 
                 const animalPhoto =
 
@@ -1873,8 +1659,6 @@ export default function PublisherDashboard({
                       )
 
                     : "";
-
-
 
                 const currentStatus =
 
@@ -1889,8 +1673,6 @@ export default function PublisherDashboard({
                     .trim()
 
                     .toLowerCase();
-
-
 
                 const isClosed =
 
@@ -1910,8 +1692,6 @@ export default function PublisherDashboard({
 
                     "cancelled";
 
-
-
                 return (
 
                   <article
@@ -1920,9 +1700,7 @@ export default function PublisherDashboard({
 
                     className="
 
-                      rounded-[28px]
-
-                      border
+                      min-w-0 w-full overflow-hidden rounded-[28px] border
 
                       border-[#eadfce]
 
@@ -1940,11 +1718,7 @@ export default function PublisherDashboard({
 
                       className="
 
-                        grid
-
-                        gap-5
-
-                        lg:grid-cols-[1fr_auto]
+                        grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]
 
                         lg:items-center
 
@@ -1956,11 +1730,7 @@ export default function PublisherDashboard({
 
                         className="
 
-                          grid
-
-                          gap-5
-
-                          sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]
+                          grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2
 
                         "
 
@@ -1968,9 +1738,7 @@ export default function PublisherDashboard({
 
                         {/* ADOPTANT */}
 
-
-
-                        <div className="flex items-center gap-4">
+                        <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
 
                           {request.requester
 
@@ -2052,8 +1820,6 @@ export default function PublisherDashboard({
 
                           )}
 
-
-
                           <div className="min-w-0">
 
                             <p
@@ -2078,17 +1844,11 @@ export default function PublisherDashboard({
 
                             </p>
 
-
-
                             <h3
 
                               className="
 
-                                mt-1
-
-                                truncate
-
-                                text-xl
+                                mt-1 break-words text-base leading-snug sm:text-xl
 
                                 font-black
 
@@ -2102,9 +1862,7 @@ export default function PublisherDashboard({
 
                             </h3>
 
-
-
-                            <div className="mt-2 flex flex-wrap gap-2">
+                            <div className="mt-2 flex min-w-0 flex-wrap gap-2">
 
                               {typeof request.match_score ===
 
@@ -2146,8 +1904,6 @@ export default function PublisherDashboard({
 
                               )}
 
-
-
                               <span
 
                                 className={`
@@ -2186,21 +1942,13 @@ export default function PublisherDashboard({
 
                         </div>
 
-
-
                         {/* ANIMAL */}
-
-
 
                         <div
 
                           className="
 
-                            flex
-
-                            items-center
-
-                            gap-4
+                            flex min-w-0 items-start gap-3 sm:items-center sm:gap-4
 
                             rounded-[22px]
 
@@ -2284,8 +2032,6 @@ export default function PublisherDashboard({
 
                           )}
 
-
-
                           <div className="min-w-0">
 
                             <p
@@ -2310,17 +2056,11 @@ export default function PublisherDashboard({
 
                             </p>
 
-
-
                             <h4
 
                               className="
 
-                                mt-1
-
-                                truncate
-
-                                text-lg
+                                mt-1 break-words text-lg
 
                                 font-black
 
@@ -2337,8 +2077,6 @@ export default function PublisherDashboard({
                                 "Animal"}
 
                             </h4>
-
-
 
                             <p
 
@@ -2390,25 +2128,13 @@ export default function PublisherDashboard({
 
                       </div>
 
-
-
                       {/* ACTIONS RAPIDES */}
-
-
 
                       <div
 
                         className="
 
-                          flex
-
-                          flex-wrap
-
-                          gap-2
-
-                          lg:max-w-[240px]
-
-                          lg:justify-end
+                          grid min-w-0 w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap xl:max-w-[300px] xl:justify-end
 
                         "
 
@@ -2422,11 +2148,7 @@ export default function PublisherDashboard({
 
                             className="
 
-                              rounded-full
-
-                              bg-[#ef8196]
-
-                              px-4
+                              flex min-w-0 items-center justify-center rounded-full bg-[#ef8196] px-2 text-center leading-tight sm:px-4
 
                               py-2.5
 
@@ -2446,8 +2168,6 @@ export default function PublisherDashboard({
 
                         )}
 
-
-
                         {request.animal_id && (
 
                           <Link
@@ -2456,11 +2176,7 @@ export default function PublisherDashboard({
 
                             className="
 
-                              rounded-full
-
-                              bg-[#9c7b54]
-
-                              px-4
+                              flex min-w-0 items-center justify-center rounded-full bg-[#9c7b54] px-2 text-center leading-tight sm:px-4
 
                               py-2.5
 
@@ -2480,21 +2196,15 @@ export default function PublisherDashboard({
 
                         )}
 
-
-
                         {conversation?.id ? (
 
                           <Link
 
                             href={`/messages/${conversation.id}`}
 
-                            className="
+                            className="col-span-2 sm:col-auto 
 
-                              rounded-full
-
-                              bg-[#064b42]
-
-                              px-4
+                              flex min-w-0 items-center justify-center rounded-full bg-[#064b42] px-2 text-center leading-tight sm:px-4
 
                               py-2.5
 
@@ -2516,13 +2226,9 @@ export default function PublisherDashboard({
 
                           <span
 
-                            className="
+                            className="col-span-2 sm:col-auto 
 
-                              rounded-full
-
-                              bg-white
-
-                              px-4
+                              flex min-w-0 items-center justify-center rounded-full bg-white px-2 text-center sm:px-4
 
                               py-2.5
 
@@ -2546,11 +2252,7 @@ export default function PublisherDashboard({
 
                     </div>
 
-
-
                     {/* WORKFLOW ADOPTION */}
-
-
 
                     {!isClosed && (
 
@@ -2593,8 +2295,6 @@ export default function PublisherDashboard({
                           Suivi de la demande
 
                         </p>
-
-
 
                         <div
 
@@ -2668,8 +2368,6 @@ export default function PublisherDashboard({
 
                           </button>
 
-
-
                           <button
 
                             type="button"
@@ -2733,8 +2431,6 @@ export default function PublisherDashboard({
                               : "Passer à la rencontre"}
 
                           </button>
-
-
 
                           <button
 
@@ -2810,8 +2506,6 @@ export default function PublisherDashboard({
 
         )}
 
-
-
         {sectionVisibility.messages && (
 
           <div className="mt-7">
@@ -2822,11 +2516,9 @@ export default function PublisherDashboard({
 
         )}
 
-
-
         {sectionVisibility.help && (
 
-          <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+          <section className="mt-7 min-w-0 rounded-[30px] bg-white p-4 shadow-md sm:p-6">
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
@@ -2870,11 +2562,9 @@ export default function PublisherDashboard({
 
         )}
 
-
-
         {sectionVisibility.support && (
 
-        <section className="mt-7 rounded-[30px] bg-white p-5 shadow-md sm:p-6">
+        <section className="mt-7 min-w-0 rounded-[30px] bg-white p-4 shadow-md sm:p-6">
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
@@ -2886,15 +2576,11 @@ export default function PublisherDashboard({
 
               </p>
 
-
-
               <h2 className="mt-1 text-2xl font-black">
 
                 Signaler un problème
 
               </h2>
-
-
 
               <p className="mt-1 text-sm text-[#6f5a47]">
 
@@ -2903,8 +2589,6 @@ export default function PublisherDashboard({
               </p>
 
             </div>
-
-
 
             <div className="w-full sm:w-auto sm:min-w-[240px]">
 
@@ -2926,10 +2610,6 @@ export default function PublisherDashboard({
 
 }
 
-
-
-
-
 function getPublisherDestination(
 
   role: string
@@ -2942,43 +2622,29 @@ function getPublisherDestination(
 
       return "/association/dashboard";
 
-
-
     case "refuge":
 
       return "/refuge/dashboard";
-
-
 
     case "fourriere":
 
       return "/fourriere/dashboard";
 
-
-
     case "sigfa":
 
       return "/sigfa/dashboard";
-
-
 
     case "benevole":
 
       return "/benevole/dashboard";
 
-
-
     case "admin":
 
       return "/admin/dashboard";
 
-
-
     case "adoptant":
 
       return "/profile";
-
-
 
     default:
 
@@ -2987,8 +2653,6 @@ function getPublisherDestination(
   }
 
 }
-
-
 
 function getRequestStatusLabel(
 
@@ -3026,8 +2690,6 @@ function getRequestStatusLabel(
 
 }
 
-
-
 function getRequestStatusStyle(
 
   status: string
@@ -3064,8 +2726,6 @@ function getRequestStatusStyle(
 
 }
 
-
-
 function getCoverPhoto(animal: Animal) {
 
   const photos =
@@ -3075,8 +2735,6 @@ function getCoverPhoto(animal: Animal) {
       ? animal.animal_photos
 
       : [];
-
-
 
   const cover =
 
@@ -3096,32 +2754,44 @@ function getCoverPhoto(animal: Animal) {
 
       )[0];
 
-
-
   return cover?.photo_url || "";
 
 }
 
-
-
 function QuickAccessLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+
   return (
+
     <Link href={href} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border border-[#e9e0d5] bg-[#f8f4ec] px-3 py-4 text-center text-sm font-black text-[#064b42] transition hover:border-[#064b42] hover:bg-[#e8f5f1]">
+
       <span className="text-2xl" aria-hidden="true">{icon}</span>
+
       <span>{label}</span>
+
     </Link>
+
   );
+
 }
 
 function QuickAccessToggle({ icon, label, active, count, onClick }: { icon: string; label: string; active: boolean; count?: number; onClick: () => void }) {
+
   return (
+
     <button type="button" aria-expanded={active} onClick={onClick} className={`relative flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border px-3 py-4 text-center text-sm font-black transition ${active ? "border-[#064b42] bg-[#e8f5f1] text-[#064b42]" : "border-[#e9e0d5] bg-[#f8f4ec] text-[#064b42] hover:border-[#064b42]"}`}>
+
       {typeof count === "number" && count > 0 && <span className="absolute right-2 top-2 rounded-full bg-[#ef8196] px-2 py-0.5 text-xs text-white">{count}</span>}
+
       <span className="text-2xl" aria-hidden="true">{icon}</span>
+
       <span>{label}</span>
+
       <span className="text-[10px] font-medium text-[#6f5a47]">{active ? "Masquer ▲" : "Afficher ▼"}</span>
+
     </button>
+
   );
+
 }
 
 function Stat({

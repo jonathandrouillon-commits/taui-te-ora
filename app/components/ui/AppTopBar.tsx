@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ import {
   Users,
   Building2,
   ArrowLeft,
+  CalendarClock,
 } from "lucide-react";
 
 import NotificationBell from "./NotificationBell";
@@ -29,54 +31,25 @@ export default function AppTopBar({
     <header className="sticky top-0 z-50 bg-white/95 shadow-lg backdrop-blur">
       <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4">
 
-        {/* =====================================================
-            MOBILE
-        ====================================================== */}
-
+        {/* MOBILE */}
         <div className="flex flex-col gap-3 md:hidden">
 
-          {/* PREMIERE LIGNE : RETOUR + LOGO */}
-
+          {/* RETOUR + LOGO */}
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => router.back()}
               aria-label="Retour"
-              className="
-                flex
-                h-12
-                shrink-0
-                items-center
-                justify-center
-                gap-2
-                rounded-full
-                bg-white
-                px-4
-                font-black
-                text-[#064b42]
-                shadow-md
-                transition
-                active:scale-95
-              "
+              className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-4 font-black text-[#064b42] shadow-md transition active:scale-95"
             >
               <ArrowLeft size={22} />
-
-              <span>
-                Retour
-              </span>
+              <span>Retour</span>
             </button>
 
             <button
               type="button"
               onClick={() => router.push("/")}
-              className="
-                flex
-                min-w-0
-                flex-1
-                items-center
-                justify-end
-                gap-2
-              "
+              className="flex min-w-0 flex-1 items-center justify-end gap-2"
             >
               <PawPrint
                 size={25}
@@ -87,7 +60,6 @@ export default function AppTopBar({
                 <div className="truncate text-sm font-black text-[#064b42]">
                   TAUI TE ORA
                 </div>
-
                 <div className="truncate text-[10px] text-gray-500">
                   Changer une vie
                 </div>
@@ -95,19 +67,8 @@ export default function AppTopBar({
             </button>
           </div>
 
-          {/* DEUXIEME LIGNE : NAVIGATION */}
-
-          <div
-            className="
-              flex
-              w-full
-              items-center
-              justify-center
-              gap-2
-              overflow-x-auto
-              pb-1
-            "
-          >
+          {/* NAVIGATION MOBILE */}
+          <div className="flex w-full items-center justify-center gap-2 overflow-x-auto pb-1">
             <IconButton
               onClick={() => router.push("/")}
               icon={<Home size={20} />}
@@ -142,9 +103,7 @@ export default function AppTopBar({
 
             {mode === "association" && (
               <IconButton
-                onClick={() =>
-                  router.push("/association/dashboard")
-                }
+                onClick={() => router.push("/association/dashboard")}
                 icon={<Users size={20} />}
                 tooltip="Association"
                 mobile
@@ -153,9 +112,7 @@ export default function AppTopBar({
 
             {mode === "refuge" && (
               <IconButton
-                onClick={() =>
-                  router.push("/refuge/dashboard")
-                }
+                onClick={() => router.push("/refuge/dashboard")}
                 icon={<Building2 size={20} />}
                 tooltip="Refuge"
                 mobile
@@ -163,26 +120,29 @@ export default function AppTopBar({
             )}
 
             {mode === "admin" && (
-              <IconButton
-                onClick={() =>
-                  router.push("/admin/dashboard")
-                }
-                icon={<Shield size={20} />}
-                tooltip="Administration"
-                mobile
-              />
+              <>
+                <IconButton
+                  onClick={() => router.push("/admin/dashboard")}
+                  icon={<Shield size={20} />}
+                  tooltip="Administration"
+                  mobile
+                />
+
+                <IconButton
+                  onClick={() => router.push("/admin/facebook")}
+                  icon={<CalendarClock size={20} />}
+                  tooltip="Facebook Auto Post"
+                  mobile
+                />
+              </>
             )}
           </div>
         </div>
 
-        {/* =====================================================
-            TABLETTE / PC
-        ====================================================== */}
-
+        {/* TABLETTE / PC */}
         <div className="hidden items-center justify-between gap-4 md:flex">
 
           {/* LOGO */}
-
           <button
             type="button"
             onClick={() => router.push("/")}
@@ -204,8 +164,7 @@ export default function AppTopBar({
             </div>
           </button>
 
-          {/* MENU */}
-
+          {/* NAVIGATION PC */}
           <div className="flex items-center gap-2">
             <IconButton
               onClick={() => router.push("/")}
@@ -235,9 +194,7 @@ export default function AppTopBar({
 
             {mode === "association" && (
               <IconButton
-                onClick={() =>
-                  router.push("/association/dashboard")
-                }
+                onClick={() => router.push("/association/dashboard")}
                 icon={<Users size={20} />}
                 tooltip="Association"
               />
@@ -245,22 +202,26 @@ export default function AppTopBar({
 
             {mode === "refuge" && (
               <IconButton
-                onClick={() =>
-                  router.push("/refuge/dashboard")
-                }
+                onClick={() => router.push("/refuge/dashboard")}
                 icon={<Building2 size={20} />}
                 tooltip="Refuge"
               />
             )}
 
             {mode === "admin" && (
-              <IconButton
-                onClick={() =>
-                  router.push("/admin/dashboard")
-                }
-                icon={<Shield size={20} />}
-                tooltip="Administration"
-              />
+              <>
+                <IconButton
+                  onClick={() => router.push("/admin/dashboard")}
+                  icon={<Shield size={20} />}
+                  tooltip="Administration"
+                />
+
+                <IconButton
+                  onClick={() => router.push("/admin/facebook")}
+                  icon={<CalendarClock size={20} />}
+                  tooltip="Facebook Auto Post"
+                />
+              </>
             )}
           </div>
         </div>

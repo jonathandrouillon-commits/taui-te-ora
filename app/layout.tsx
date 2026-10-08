@@ -1,3 +1,4 @@
+
 import type {
   Metadata,
   Viewport,
@@ -12,6 +13,7 @@ import LostAnimalAlert from "./components/LostAnimalAlert";
 import GlobalNotificationBadge from "./components/GlobalNotificationBadge";
 import PageTextOverridesRuntime from "./components/admin/PageTextOverridesRuntime";
 import VisualPageEditor from "./components/admin/VisualPageEditor";
+import TauiSplashScreen from "./components/TauiSplashScreen";
 
 export const metadata: Metadata = {
   title: "Taui Te Ora",
@@ -56,7 +58,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#ef8196",
+  themeColor: "#F4EEE3",
 };
 
 export default function RootLayout({
@@ -82,6 +84,8 @@ export default function RootLayout({
         <VisualPageEditor />
 
         {children}
+
+        <TauiSplashScreen />
       </body>
     </html>
   );
