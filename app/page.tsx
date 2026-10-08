@@ -17,6 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
+
 import TauiHomeMenu from "./components/TauiHomeMenu";
 
 import TauiPageBackground from "./components/ui/TauiPageBackground";
@@ -102,10 +103,12 @@ export default function HomePage() {
   const en = language === "en";
 
   const [adoptionMode, setAdoptionMode] = useState(false);
-  useEffect(() => {
-    setAdoptionMode(new URLSearchParams(window.location.search).get("adopter") === "1");
-  }, []);
 
+  useEffect(() => {
+
+    setAdoptionMode(new URLSearchParams(window.location.search).get("adopter") === "1");
+
+  }, []);
 
   const [animals, setAnimals] =
 
@@ -160,112 +163,36 @@ export default function HomePage() {
   ] = useState<AnimalFilter[]>([]);
 
   const loadWelcomePreferences = useCallback(async () => {
-
     try {
-
-      const alreadySeen =
-
-        sessionStorage.getItem(
-
-          WELCOME_STORAGE_KEY
-
-        );
-
-      const savedFilters =
-
-        sessionStorage.getItem(
-
-          FILTER_STORAGE_KEY
-
-        );
-
+      const savedFilters = sessionStorage.getItem(FILTER_STORAGE_KEY);
       if (savedFilters) {
-
-        const parsed =
-
-          JSON.parse(savedFilters);
-
+        const parsed: unknown = JSON.parse(savedFilters);
         if (Array.isArray(parsed)) {
-
-          setSelectedTypes(
-
-            parsed.filter(
-
-              (
-
-                value
-
-              ): value is AnimalFilter =>
-
-                [
-
-                  "chien",
-
-                  "chat",
-
-                  "cheval",
-
-                  "autre",
-
-                ].includes(value)
-
-            )
-
-          );
-
+          setSelectedTypes(parsed.filter((value): value is AnimalFilter =>
+            typeof value === "string" && ["chien", "chat", "cheval", "autre"].includes(value)
+          ));
         }
-
       }
-
-      const {
-
-        data: { user },
-
-      } =
-
-        await supabase.auth.getUser();
-
-      if (user) {
-
-        setWelcomeOpen(false);
-
-        sessionStorage.setItem(
-
-          WELCOME_STORAGE_KEY,
-
-          "yes"
-
-        );
-
-        return;
-
-      }
-
-      setWelcomeOpen(
-
-        alreadySeen !== "yes"
-
-      );
-
     } catch (error) {
-
-      console.error(
-
-        "Erreur préférence accueil :",
-
-        error
-
-      );
-
-      setWelcomeOpen(true);
-
+      console.error("Erreur préférences adoption :", error);
     } finally {
-
       setWelcomeReady(true);
-
+      setWelcomeOpen(true);
     }
-
   }, []);
+
+  function openAdoption() {
+    window.history.pushState({}, "", "/?adopter=1");
+    setAdoptionMode(true);
+    void loadWelcomePreferences();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function backToMenu() {
+    window.history.pushState({}, "", "/");
+    setAdoptionMode(false);
+    setWelcomeOpen(false);
+  }
 
   function toggleAnimalType(
 
@@ -568,7 +495,9 @@ export default function HomePage() {
       void loadAds();
 
       if (new URLSearchParams(window.location.search).get("adopter") === "1") {
+
         void loadWelcomePreferences();
+
       }
 
     }, 0);
@@ -839,12 +768,25 @@ export default function HomePage() {
 
     selectedTypes.length;
 
+  if (!adoptionMode) {
+    return (
+      <TauiPageBackground>
+        <TauiHomeMenu onAdopt={openAdoption} />
+        <BottomMenu />
+      </TauiPageBackground>
+    );
+  }
+
   return (
 
     <TauiPageBackground>
 
       <div className="relative min-h-[100dvh] w-full">
 
+        <button type="button" onClick={backToMenu}
+          className="fixed left-4 top-4 z-[180] rounded-full border border-white bg-[#fffaf7] px-4 py-2 text-sm font-black text-[#064b42] shadow-lg">
+          ← Menu principal
+        </button>
         {favoriteRestored && (
 
           <div
@@ -1289,31 +1231,7 @@ export default function HomePage() {
 
               }
 
-              onClose={() => {
-
-                const alreadySeen =
-
-                  sessionStorage.getItem(
-
-                    WELCOME_STORAGE_KEY
-
-                  );
-
-                if (
-
-                  alreadySeen === "yes"
-
-                ) {
-
-                  setWelcomeOpen(
-
-                    false
-
-                  );
-
-                }
-
-              }}
+              onClose={() => setWelcomeOpen(false)}
 
               router={router}
 
@@ -1974,9 +1892,7 @@ function SwipeAdCard({
 }
 
 /* =========================================================
-
    FENETRE ACCUEIL / FILTRE
-
 ========================================================= */
 
 function WelcomeModal({
@@ -2924,9 +2840,7 @@ function WelcomeModal({
 }
 
 /* =========================================================
-
    MENU BAS
-
 ========================================================= */
 
 function getProfileDestination(role: unknown) {

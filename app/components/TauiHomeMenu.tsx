@@ -29,6 +29,8 @@ const SYSTEM_ITEMS: MenuItem[] = [
   { label: "Pension", href: "/pension", icon: "🛏️" },
   { label: "Hommage", href: "/hommage", icon: "🕯️" },
   { label: "Info", href: "/info", icon: "ℹ️" },
+  { label: "Communauté des sans voix", href: "/communaute-des-sans-voix", icon: "🫶" },
+  { label: "Réseau d’aide", href: "/reseau-aide", icon: "🤲" },
 ];
 
 const PALETTES = [
@@ -37,7 +39,7 @@ const PALETTES = [
   ["#eee4ff", "#8153c6"], ["#ffeadf", "#d26e40"],
 ];
 
-export default function TauiHomeMenu() {
+export default function TauiHomeMenu({ onAdopt }: { onAdopt: () => void }) {
   const [dynamicItems, setDynamicItems] = useState<MenuItem[]>([]);
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function TauiHomeMenu() {
       <div className="rounded-[30px] border border-[#e8ded2] bg-[#fffaf5]/95 px-4 py-6 text-center shadow-lg sm:px-8">
         <img src="/logo-taui-te-ora.png" alt="TAUI TE ORA" className="mx-auto h-28 w-auto max-w-full object-contain sm:h-36" />
         <h1 className="mt-2 text-2xl font-black text-[#064b42] sm:text-3xl">Bienvenue sur TAUI TE ORA</h1>
-        <p className="mt-2 text-sm text-[#706b62]">Pour eux, avec vous. Choisissez ce que vous souhaitez découvrir.</p>
+        <p className="mt-2 text-sm text-[#706b62]">Une rencontre peut tout changer. Ensemble, agissons pour les animaux du fenua.</p>
         {!signedIn && (
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link href="/login" className="rounded-full border border-[#0f5d52] bg-white px-5 py-2 text-xs font-bold text-[#0f5d52]">Connexion</Link>
@@ -83,6 +85,7 @@ export default function TauiHomeMenu() {
           const [background, foreground] = PALETTES[index % PALETTES.length];
           return (
             <Link key={item.href} href={item.href}
+              onClick={item.href === "/?adopter=1" ? (event) => { event.preventDefault(); onAdopt(); } : undefined}
               className="flex min-h-[106px] flex-col items-center justify-center rounded-[22px] border border-white/80 px-2 py-4 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md active:scale-[.97] sm:min-h-[132px]"
               style={{ backgroundColor: background }}>
               <span aria-hidden="true" className="text-3xl sm:text-4xl">{item.icon}</span>
