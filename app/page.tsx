@@ -1,7 +1,5 @@
 ﻿"use client";
 
-
-
 import Link from "next/link";
 
 import {
@@ -18,25 +16,18 @@ import {
 
 import { useRouter } from "next/navigation";
 
-
-
 import AnimalSwipeCard from "./components/AnimalSwipeCard";
+import TauiHomeMenu from "./components/TauiHomeMenu";
 
 import TauiPageBackground from "./components/ui/TauiPageBackground";
-
-
 
 import { animalService } from "./services/animal.service";
 
 import { favoriteService } from "./services/favorite.service";
 
-
-
 import { supabase } from "./lib/supabase";
 
 import { useLanguage } from "./lib/i18n";
-
-
 
 type AnimalFilter =
 
@@ -47,8 +38,6 @@ type AnimalFilter =
   | "cheval"
 
   | "autre";
-
-
 
 type Ad = {
 
@@ -74,8 +63,6 @@ type Ad = {
 
 };
 
-
-
 type SwipeItem =
 
   | {
@@ -98,19 +85,13 @@ type SwipeItem =
 
     };
 
-
-
 const FILTER_STORAGE_KEY =
 
   "taui-selected-animal-types";
 
-
-
 const WELCOME_STORAGE_KEY =
 
   "taui-welcome-seen";
-
-
 
 export default function HomePage() {
 
@@ -120,19 +101,19 @@ export default function HomePage() {
 
   const en = language === "en";
 
+  const [adoptionMode, setAdoptionMode] = useState(false);
+  useEffect(() => {
+    setAdoptionMode(new URLSearchParams(window.location.search).get("adopter") === "1");
+  }, []);
 
 
   const [animals, setAnimals] =
 
     useState<any[]>([]);
 
-
-
   const [ads, setAds] =
 
     useState<Ad[]>([]);
-
-
 
   const [
 
@@ -142,13 +123,9 @@ export default function HomePage() {
 
   ] = useState(0);
 
-
-
   const [loading, setLoading] =
 
     useState(true);
-
-
 
   const [
 
@@ -158,8 +135,6 @@ export default function HomePage() {
 
   ] = useState(false);
 
-
-
   const [
 
     welcomeOpen,
@@ -167,8 +142,6 @@ export default function HomePage() {
     setWelcomeOpen,
 
   ] = useState(false);
-
-
 
   const [
 
@@ -178,8 +151,6 @@ export default function HomePage() {
 
   ] = useState(false);
 
-
-
   const [
 
     selectedTypes,
@@ -187,8 +158,6 @@ export default function HomePage() {
     setSelectedTypes,
 
   ] = useState<AnimalFilter[]>([]);
-
-
 
   const loadWelcomePreferences = useCallback(async () => {
 
@@ -202,8 +171,6 @@ export default function HomePage() {
 
         );
 
-
-
       const savedFilters =
 
         sessionStorage.getItem(
@@ -212,15 +179,11 @@ export default function HomePage() {
 
         );
 
-
-
       if (savedFilters) {
 
         const parsed =
 
           JSON.parse(savedFilters);
-
-
 
         if (Array.isArray(parsed)) {
 
@@ -254,8 +217,6 @@ export default function HomePage() {
 
       }
 
-
-
       const {
 
         data: { user },
@@ -264,13 +225,9 @@ export default function HomePage() {
 
         await supabase.auth.getUser();
 
-
-
       if (user) {
 
         setWelcomeOpen(false);
-
-
 
         sessionStorage.setItem(
 
@@ -280,13 +237,9 @@ export default function HomePage() {
 
         );
 
-
-
         return;
 
       }
-
-
 
       setWelcomeOpen(
 
@@ -304,8 +257,6 @@ export default function HomePage() {
 
       );
 
-
-
       setWelcomeOpen(true);
 
     } finally {
@@ -315,8 +266,6 @@ export default function HomePage() {
     }
 
   }, []);
-
-
 
   function toggleAnimalType(
 
@@ -344,8 +293,6 @@ export default function HomePage() {
 
         }
 
-
-
         return [
 
           ...previous,
@@ -360,8 +307,6 @@ export default function HomePage() {
 
   }
 
-
-
   function startDiscovery() {
 
     try {
@@ -373,8 +318,6 @@ export default function HomePage() {
         "yes"
 
       );
-
-
 
       sessionStorage.setItem(
 
@@ -394,21 +337,15 @@ export default function HomePage() {
 
     }
 
-
-
     setCurrentIndex(0);
 
     setWelcomeOpen(false);
 
   }
 
-
-
   function showAllAnimals() {
 
     setSelectedTypes([]);
-
-
 
     try {
 
@@ -419,8 +356,6 @@ export default function HomePage() {
         "yes"
 
       );
-
-
 
       sessionStorage.setItem(
 
@@ -436,15 +371,11 @@ export default function HomePage() {
 
     }
 
-
-
     setCurrentIndex(0);
 
     setWelcomeOpen(false);
 
   }
-
-
 
   const restoreFavoriteAfterLogin = useCallback(async () => {
 
@@ -458,21 +389,15 @@ export default function HomePage() {
 
         );
 
-
-
       const favoriteAnimalId =
 
         params.get("favorite");
-
-
 
       if (!favoriteAnimalId) {
 
         return;
 
       }
-
-
 
       const {
 
@@ -482,15 +407,11 @@ export default function HomePage() {
 
         await supabase.auth.getUser();
 
-
-
       if (!user) {
 
         return;
 
       }
-
-
 
       await favoriteService.add(
 
@@ -498,15 +419,9 @@ export default function HomePage() {
 
       );
 
-
-
       setFavoriteRestored(true);
 
-
-
       router.replace("/");
-
-
 
       window.setTimeout(() => {
 
@@ -528,29 +443,21 @@ export default function HomePage() {
 
   }, [router]);
 
-
-
   const loadAnimals = useCallback(async () => {
 
     try {
 
       setLoading(true);
 
-
-
       const data =
 
         await animalService.getPublishedWithPhotos();
-
-
 
       setAnimals(
 
         data || []
 
       );
-
-
 
       setCurrentIndex(0);
 
@@ -564,8 +471,6 @@ export default function HomePage() {
 
       );
 
-
-
       setAnimals([]);
 
     } finally {
@@ -575,8 +480,6 @@ export default function HomePage() {
     }
 
   }, []);
-
-
 
   const loadAds = useCallback(async () => {
 
@@ -628,15 +531,11 @@ export default function HomePage() {
 
         });
 
-
-
       if (error) {
 
         throw error;
 
       }
-
-
 
       setAds(
 
@@ -654,15 +553,11 @@ export default function HomePage() {
 
       );
 
-
-
       setAds([]);
 
     }
 
   }, []);
-
-
 
   useEffect(() => {
 
@@ -672,17 +567,15 @@ export default function HomePage() {
 
       void loadAds();
 
-      void loadWelcomePreferences();
+      if (new URLSearchParams(window.location.search).get("adopter") === "1") {
+        void loadWelcomePreferences();
+      }
 
     }, 0);
-
-
 
     return () => window.clearTimeout(timeoutId);
 
   }, [loadAnimals, loadAds, loadWelcomePreferences]);
-
-
 
   useEffect(() => {
 
@@ -692,13 +585,9 @@ export default function HomePage() {
 
     }, 0);
 
-
-
     return () => window.clearTimeout(timeoutId);
 
   }, [restoreFavoriteAfterLogin]);
-
-
 
   const filteredAnimals =
 
@@ -713,8 +602,6 @@ export default function HomePage() {
         return animals;
 
       }
-
-
 
       return animals.filter(
 
@@ -736,15 +623,11 @@ export default function HomePage() {
 
               .toLowerCase();
 
-
-
           const isDog =
 
             type.includes("chien") ||
 
             type.includes("dog");
-
-
 
           const isCat =
 
@@ -752,15 +635,11 @@ export default function HomePage() {
 
             type.includes("cat");
 
-
-
           const isHorse =
 
             type.includes("cheval") ||
 
             type.includes("horse");
-
-
 
           return selectedTypes.some(
 
@@ -776,8 +655,6 @@ export default function HomePage() {
 
               }
 
-
-
               if (
 
                 selected === "chat"
@@ -788,8 +665,6 @@ export default function HomePage() {
 
               }
 
-
-
               if (
 
                 selected === "cheval"
@@ -799,8 +674,6 @@ export default function HomePage() {
                 return isHorse;
 
               }
-
-
 
               if (
 
@@ -820,8 +693,6 @@ export default function HomePage() {
 
               }
 
-
-
               return false;
 
             }
@@ -840,19 +711,13 @@ export default function HomePage() {
 
     ]);
 
-
-
   const swipeItems =
 
     useMemo<SwipeItem[]>(() => {
 
       const items: SwipeItem[] = [];
 
-
-
       let adIndex = 0;
-
-
 
       filteredAnimals.forEach(
 
@@ -867,8 +732,6 @@ export default function HomePage() {
             animal,
 
           });
-
-
 
           const shouldInsertAd =
 
@@ -892,8 +755,6 @@ export default function HomePage() {
 
               filteredAnimals.length - 1;
 
-
-
           if (shouldInsertAd) {
 
             const ad =
@@ -906,8 +767,6 @@ export default function HomePage() {
 
               ];
 
-
-
             items.push({
 
               kind: "ad",
@@ -918,8 +777,6 @@ export default function HomePage() {
 
             });
 
-
-
             adIndex += 1;
 
           }
@@ -927,8 +784,6 @@ export default function HomePage() {
         }
 
       );
-
-
 
       return items;
 
@@ -939,8 +794,6 @@ export default function HomePage() {
       ads,
 
     ]);
-
-
 
   function goNext() {
 
@@ -954,8 +807,6 @@ export default function HomePage() {
 
   }
 
-
-
   const currentItem =
 
     swipeItems[
@@ -963,8 +814,6 @@ export default function HomePage() {
       currentIndex
 
     ];
-
-
 
   const currentAnimal =
 
@@ -976,8 +825,6 @@ export default function HomePage() {
 
       : null;
 
-
-
   const currentAd =
 
     currentItem?.kind ===
@@ -988,21 +835,15 @@ export default function HomePage() {
 
       : null;
 
-
-
   const filterCount =
 
     selectedTypes.length;
-
-
 
   return (
 
     <TauiPageBackground>
 
       <div className="relative min-h-[100dvh] w-full">
-
-
 
         {favoriteRestored && (
 
@@ -1047,8 +888,6 @@ export default function HomePage() {
           </div>
 
         )}
-
-
 
         <section
 
@@ -1140,8 +979,6 @@ export default function HomePage() {
 
                 />
 
-
-
                 <p
 
                   className="
@@ -1165,8 +1002,6 @@ export default function HomePage() {
             </div>
 
           )}
-
-
 
           {!loading &&
 
@@ -1212,8 +1047,6 @@ export default function HomePage() {
 
             )}
 
-
-
           {!loading &&
 
             currentAd && (
@@ -1245,8 +1078,6 @@ export default function HomePage() {
               />
 
             )}
-
-
 
           {!loading &&
 
@@ -1300,8 +1131,6 @@ export default function HomePage() {
 
                   </div>
 
-
-
                   <h2
 
                     className="
@@ -1326,8 +1155,6 @@ export default function HomePage() {
 
                   </h2>
 
-
-
                   <p className="mt-3 text-gray-600">
 
                     {filterCount > 0
@@ -1337,8 +1164,6 @@ export default function HomePage() {
                       : "Vous avez parcouru tous les animaux disponibles pour le moment."}
 
                   </p>
-
-
 
                   {filterCount > 0 ? (
 
@@ -1430,11 +1255,7 @@ export default function HomePage() {
 
         </section>
 
-
-
         <BottomMenu />
-
-
 
         {welcomeReady &&
 
@@ -1478,8 +1299,6 @@ export default function HomePage() {
 
                   );
 
-
-
                 if (
 
                   alreadySeen === "yes"
@@ -1510,8 +1329,6 @@ export default function HomePage() {
 
 }
 
-
-
 function SwipeAdCard({
 
   ad,
@@ -1540,8 +1357,6 @@ function SwipeAdCard({
 
   const en = language === "en";
 
-
-
   const [
 
     impressionSent,
@@ -1549,8 +1364,6 @@ function SwipeAdCard({
     setImpressionSent,
 
   ] = useState(false);
-
-
 
   useEffect(() => {
 
@@ -1560,8 +1373,6 @@ function SwipeAdCard({
 
     }
 
-
-
     window.setTimeout(
 
       () => setImpressionSent(true),
@@ -1569,8 +1380,6 @@ function SwipeAdCard({
       0
 
     );
-
-
 
     void supabase.rpc(
 
@@ -1585,8 +1394,6 @@ function SwipeAdCard({
     );
 
   }, [ad.id, impressionSent]);
-
-
 
   async function handleClick() {
 
@@ -1616,8 +1423,6 @@ function SwipeAdCard({
 
     }
 
-
-
     if (ad.target_url) {
 
       window.open(
@@ -1633,8 +1438,6 @@ function SwipeAdCard({
     }
 
   }
-
-
 
   return (
 
@@ -1788,8 +1591,6 @@ function SwipeAdCard({
 
         )}
 
-
-
         <div
 
           className="
@@ -1815,8 +1616,6 @@ function SwipeAdCard({
           "
 
         />
-
-
 
         <div
 
@@ -1863,8 +1662,6 @@ function SwipeAdCard({
           {en ? "Sponsored" : "Sponsorisé"}
 
         </div>
-
-
 
         <div
 
@@ -1918,8 +1715,6 @@ function SwipeAdCard({
 
             )}
 
-
-
             <div className="min-w-0">
 
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/75">
@@ -1927,8 +1722,6 @@ function SwipeAdCard({
                 Sponsorisé
 
               </p>
-
-
 
               <p className="mt-0.5 truncate text-sm font-black uppercase">
 
@@ -1939,8 +1732,6 @@ function SwipeAdCard({
             </div>
 
           </div>
-
-
 
           <h2
 
@@ -1974,8 +1765,6 @@ function SwipeAdCard({
 
           </h2>
 
-
-
           {ad.description && (
 
             <p className="mt-3 max-w-[92%] text-sm leading-5 text-white/90 sm:text-base sm:leading-6">
@@ -1985,8 +1774,6 @@ function SwipeAdCard({
             </p>
 
           )}
-
-
 
           {ad.target_url && (
 
@@ -2047,8 +1834,6 @@ function SwipeAdCard({
         </div>
 
       </article>
-
-
 
       <div
 
@@ -2130,8 +1915,6 @@ function SwipeAdCard({
 
         </button>
 
-
-
         <button
 
           type="button"
@@ -2190,15 +1973,11 @@ function SwipeAdCard({
 
 }
 
-
-
 /* =========================================================
 
    FENETRE ACCUEIL / FILTRE
 
 ========================================================= */
-
-
 
 function WelcomeModal({
 
@@ -2222,27 +2001,17 @@ function WelcomeModal({
 
   selectedTypes: AnimalFilter[];
 
-
-
   toggleAnimalType: (
 
     type: AnimalFilter
 
   ) => void;
 
-
-
   onStart: () => void;
-
-
 
   onShowAll: () => void;
 
-
-
   onClose: () => void;
-
-
 
   router: ReturnType<
 
@@ -2253,8 +2022,6 @@ function WelcomeModal({
 }) {
 
   const en = language === "en";
-
-
 
   const options: {
 
@@ -2307,8 +2074,6 @@ function WelcomeModal({
     },
 
   ];
-
-
 
   return (
 
@@ -2408,8 +2173,6 @@ function WelcomeModal({
 
         />
 
-
-
         <div
 
           className="
@@ -2435,8 +2198,6 @@ function WelcomeModal({
           "
 
         />
-
-
 
         <button
 
@@ -2483,8 +2244,6 @@ function WelcomeModal({
           ×
 
         </button>
-
-
 
         <div
 
@@ -2536,8 +2295,6 @@ function WelcomeModal({
 
             />
 
-
-
             <p
 
               className="
@@ -2563,8 +2320,6 @@ function WelcomeModal({
               {en ? "One encounter can change everything" : "Une rencontre peut tout changer"}
 
             </p>
-
-
 
             <h1
 
@@ -2598,8 +2353,6 @@ function WelcomeModal({
 
             </h1>
 
-
-
             <p
 
               className="
@@ -2630,8 +2383,6 @@ function WelcomeModal({
 
           </div>
 
-
-
           <div className="mt-4 sm:mt-5">
 
             <p
@@ -2655,8 +2406,6 @@ function WelcomeModal({
               {en ? "I want to adopt…" : "Je veux adopter…"}
 
             </p>
-
-
 
             <div
 
@@ -2687,8 +2436,6 @@ function WelcomeModal({
                       option.type
 
                     );
-
-
 
                   return (
 
@@ -2792,15 +2539,11 @@ function WelcomeModal({
 
                       )}
 
-
-
                       <span className="text-[27px] leading-none">
 
                         {option.icon}
 
                       </span>
-
-
 
                       <span
 
@@ -2840,8 +2583,6 @@ function WelcomeModal({
 
             </div>
 
-
-
             <p
 
               className="
@@ -2863,8 +2604,6 @@ function WelcomeModal({
             </p>
 
           </div>
-
-
 
           <button
 
@@ -2906,8 +2645,6 @@ function WelcomeModal({
 
           </button>
 
-
-
           {selectedTypes.length > 0 && (
 
             <button
@@ -2941,8 +2678,6 @@ function WelcomeModal({
             </button>
 
           )}
-
-
 
           <div
 
@@ -2988,8 +2723,6 @@ function WelcomeModal({
 
             </span>
 
-
-
             <span
 
               className="
@@ -3003,8 +2736,6 @@ function WelcomeModal({
               "
 
             />
-
-
 
             <span
 
@@ -3025,8 +2756,6 @@ function WelcomeModal({
             </span>
 
           </div>
-
-
 
           <div
 
@@ -3066,8 +2795,6 @@ function WelcomeModal({
 
             </p>
 
-
-
             <p
 
               className="
@@ -3085,8 +2812,6 @@ function WelcomeModal({
               {en ? "Go directly to your workspace." : "Accédez directement à votre espace."}
 
             </p>
-
-
 
             <div
 
@@ -3146,8 +2871,6 @@ function WelcomeModal({
 
               </button>
 
-
-
               <button
 
                 type="button"
@@ -3200,15 +2923,11 @@ function WelcomeModal({
 
 }
 
-
-
 /* =========================================================
 
    MENU BAS
 
 ========================================================= */
-
-
 
 function getProfileDestination(role: unknown) {
 
@@ -3224,8 +2943,6 @@ function getProfileDestination(role: unknown) {
 
     .replace(/[\s-]+/g, "_");
 
-
-
   switch (normalizedRole) {
 
     case "admin":
@@ -3234,27 +2951,19 @@ function getProfileDestination(role: unknown) {
 
       return "/admin/dashboard";
 
-
-
     case "association":
 
       return "/association/dashboard";
 
-
-
     case "refuge":
 
       return "/refuge/dashboard";
-
-
 
     case "fourriere":
 
     case "sigfa":
 
       return "/fourriere/dashboard";
-
-
 
     case "benevole":
 
@@ -3264,15 +2973,11 @@ function getProfileDestination(role: unknown) {
 
       return "/benevole/dashboard";
 
-
-
     case "adoptant":
 
     case "utilisateur":
 
       return "/dashboard";
-
-
 
     default:
 
@@ -3281,8 +2986,6 @@ function getProfileDestination(role: unknown) {
   }
 
 }
-
-
 
 function BottomMenu() {
 
@@ -3321,8 +3024,6 @@ function BottomMenu() {
     }[]
 
   >([]);
-
-
 
   const systemMenuPages = useMemo(
 
@@ -3600,13 +3301,9 @@ function BottomMenu() {
 
   );
 
-
-
   useEffect(() => {
 
     let active = true;
-
-
 
     async function loadProfileDestination() {
 
@@ -3618,15 +3315,11 @@ function BottomMenu() {
 
         } = await supabase.auth.getUser();
 
-
-
         if (!active || !user) {
 
           return;
 
         }
-
-
 
         const { data, error } = await supabase
 
@@ -3637,8 +3330,6 @@ function BottomMenu() {
           .eq("id", user.id)
 
           .maybeSingle();
-
-
 
         if (error) {
 
@@ -3652,8 +3343,6 @@ function BottomMenu() {
 
         }
 
-
-
         if (active) {
 
           setProfileHref(
@@ -3666,8 +3355,6 @@ function BottomMenu() {
 
           );
 
-
-
           const avatar =
 
             data?.avatar_url ||
@@ -3677,8 +3364,6 @@ function BottomMenu() {
             user.user_metadata?.picture ||
 
             null;
-
-
 
           setProfilePhoto(
 
@@ -3690,8 +3375,6 @@ function BottomMenu() {
 
           );
 
-
-
           const profileLanguage =
 
             data?.preferred_language === "en"
@@ -3700,8 +3383,6 @@ function BottomMenu() {
 
               : "fr";
 
-
-
           window.localStorage.setItem(
 
             "taui-te-ora-language",
@@ -3709,8 +3390,6 @@ function BottomMenu() {
             profileLanguage
 
           );
-
-
 
           window.dispatchEvent(
 
@@ -3744,11 +3423,7 @@ function BottomMenu() {
 
     }
 
-
-
     void loadProfileDestination();
-
-
 
     return () => {
 
@@ -3758,13 +3433,9 @@ function BottomMenu() {
 
   }, []);
 
-
-
   useEffect(() => {
 
     let active = true;
-
-
 
     async function loadDynamicMenuPages() {
 
@@ -3788,8 +3459,6 @@ function BottomMenu() {
 
         });
 
-
-
       if (error) {
 
         console.error(
@@ -3804,15 +3473,11 @@ function BottomMenu() {
 
       }
 
-
-
       if (!active) {
 
         return;
 
       }
-
-
 
       const systemSlugs = new Set(
 
@@ -3823,8 +3488,6 @@ function BottomMenu() {
         )
 
       );
-
-
 
       const pages = (data || [])
 
@@ -3882,17 +3545,11 @@ function BottomMenu() {
 
         }));
 
-
-
       setDynamicMenuPages(pages);
 
     }
 
-
-
     void loadDynamicMenuPages();
-
-
 
     return () => {
 
@@ -3901,8 +3558,6 @@ function BottomMenu() {
     };
 
   }, [systemMenuPages]);
-
-
 
   const menuPages = [
 
@@ -3940,15 +3595,11 @@ function BottomMenu() {
 
   );
 
-
-
   function closeMenu() {
 
     setMenuOpen(false);
 
   }
-
-
 
   return (
 
@@ -3970,8 +3621,6 @@ function BottomMenu() {
 
           />
 
-
-
           <div className="absolute bottom-[82px] left-3 right-3 z-10 mx-auto max-h-[75dvh] max-w-[440px] overflow-y-auto rounded-[30px] border border-white/70 bg-[#fffaf7]/98 p-5 shadow-[0_25px_70px_rgba(0,0,0,.25)] backdrop-blur-xl">
 
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -3984,8 +3633,6 @@ function BottomMenu() {
 
                 </p>
 
-
-
                 <h2 className="mt-1 text-xl font-black text-[#064b42]">
 
                   Menu
@@ -3993,8 +3640,6 @@ function BottomMenu() {
                 </h2>
 
               </div>
-
-
 
               <button
 
@@ -4013,8 +3658,6 @@ function BottomMenu() {
               </button>
 
             </div>
-
-
 
             <div className="grid grid-cols-2 gap-3">
 
@@ -4038,8 +3681,6 @@ function BottomMenu() {
 
                   </span>
 
-
-
                   <span className="mt-2 text-[12px] font-black text-[#064b42]">
 
                     {page.label}
@@ -4057,8 +3698,6 @@ function BottomMenu() {
         </div>
 
       )}
-
-
 
       <nav className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-[470px] border-t border-[#eadfd8] bg-[#fffaf7]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(50,40,35,0.10)] backdrop-blur-xl md:bottom-4 md:rounded-[28px] md:border">
 
@@ -4078,8 +3717,6 @@ function BottomMenu() {
 
             </div>
 
-
-
             <span className="text-[10px] font-bold">
 
               {en ? "Home" : "Accueil"}
@@ -4087,8 +3724,6 @@ function BottomMenu() {
             </span>
 
           </Link>
-
-
 
           <Link
 
@@ -4104,8 +3739,6 @@ function BottomMenu() {
 
             </div>
 
-
-
             <span className="text-[10px] font-semibold">
 
               {en ? "Search" : "Recherche"}
@@ -4113,8 +3746,6 @@ function BottomMenu() {
             </span>
 
           </Link>
-
-
 
           <Link
 
@@ -4143,8 +3774,6 @@ function BottomMenu() {
             </div>
 
           </Link>
-
-
 
           <button
 
@@ -4194,8 +3823,6 @@ function BottomMenu() {
 
             </div>
 
-
-
             <span className="text-[10px] font-semibold">
 
               Menu
@@ -4203,8 +3830,6 @@ function BottomMenu() {
             </span>
 
           </button>
-
-
 
           <Link
 
@@ -4240,8 +3865,6 @@ function BottomMenu() {
 
             )}
 
-
-
             <span className="text-[10px] font-semibold">
 
               {en ? "Profile" : "Profil"}
@@ -4259,8 +3882,6 @@ function BottomMenu() {
   );
 
 }
-
-
 
 function MenuIcon() {
 
@@ -4293,8 +3914,6 @@ function MenuIcon() {
   );
 
 }
-
-
 
 function HomeIcon() {
 
@@ -4330,8 +3949,6 @@ function HomeIcon() {
 
 }
 
-
-
 function SearchIcon() {
 
   return (
@@ -4363,8 +3980,6 @@ function SearchIcon() {
   );
 
 }
-
-
 
 function InfoIcon() {
 
@@ -4399,8 +4014,6 @@ function InfoIcon() {
   );
 
 }
-
-
 
 function ProfileIcon() {
 
