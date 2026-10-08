@@ -1547,6 +1547,40 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Navigation unique : les fonctions restent sur leurs pages existantes. */}
+        <nav aria-label="Navigation administration" className="mt-5 rounded-[26px] border border-[#e8ddd2] bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-black text-[#064b42]">Accès rapides administrateur</h2>
+            <span className="text-xs font-bold text-[#81756c]">Toutes les fonctions au même endroit</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {[
+              { title: "Compagnons", icon: "🐾", href: "/admin/companions", description: "Animaux enregistrés" },
+              { title: "Animaux à adopter", icon: "🐕", href: "/admin/animals", description: "Annonces d’adoption" },
+              { title: "Créer un animal", icon: "➕", href: "/admin/animals/create", description: "Pour un profil" },
+              { title: "Utilisateurs", icon: "👥", href: "/admin/users", description: "Comptes et validations" },
+              { title: "Créer un profil", icon: "👤", href: "/admin/users/create", description: "Nouveau compte" },
+              { title: "Signalements", icon: "🚨", href: "/admin/signalements", description: "Alertes et suivi" },
+              { title: "SOS animal", icon: "🆘", href: "/sos-aide", description: "Demandes d’aide" },
+              { title: "Réseau d’aide", icon: "🤝", href: "/reseau-aide", description: "Bénévoles et accueil" },
+              { title: "Communication", icon: "💬", href: "/admin/communications", description: "Messages et e-mails" },
+              { title: "Publicités", icon: "📣", href: "/admin/publicites", description: "Campagnes et partenaires" },
+              { title: "Pages", icon: "📝", href: "/admin/pages", description: "Textes du site" },
+              { title: "Vétérinaires", icon: "🩺", href: "/admin/veterinaires", description: "Professionnels" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group flex min-h-[108px] flex-col justify-center rounded-2xl border border-[#e8eee9] bg-[#fbf8f2] p-3 transition hover:-translate-y-0.5 hover:border-[#9ac9b9] hover:bg-[#eaf5ef] sm:p-4"
+              >
+                <span aria-hidden="true" className="text-2xl">{item.icon}</span>
+                <span className="mt-2 text-sm font-black leading-tight text-[#064b42]">{item.title}</span>
+                <span className="mt-1 text-xs leading-tight text-[#81756c]">{item.description}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#eadfd4] bg-[#fff6ef]/85 px-4 py-3 shadow-sm">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#d86f5c]">Administration Taui Te Ora</p>
