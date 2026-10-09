@@ -155,8 +155,8 @@ function companionSexLabel(sex: string | null) {
 }
 
 function buildFacebookSignalementShareUrl(signalementId: string) {
-  const publicUrl = `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(signalementId)}`;
-  return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(publicUrl);
+  const publicUrl = `https\://www.taui-te-ora.com/signalement/public/${encodeURIComponent(signalementId)}`;
+  return "https\://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(publicUrl);
 }
 
 export default function SignalementPage() {
@@ -210,6 +210,12 @@ export default function SignalementPage() {
     companions,
     setCompanions,
   ] = useState<Companion[]>([]);
+
+  const [reporterProfile, setReporterProfile] = useState<{
+    full_name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null>(null);
 
   const [
     companionsLoading,
@@ -325,6 +331,15 @@ export default function SignalementPage() {
           }
           return;
         }
+
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name, phone, email")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+        if (active) setReporterProfile(profileData);
 
         const { data, error } = await supabase
           .from("companions")
@@ -583,7 +598,7 @@ export default function SignalementPage() {
           map;
 
         L.tileLayer(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https\://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
           {
             attribution:
               "© OpenStreetMap",
@@ -767,6 +782,11 @@ export default function SignalementPage() {
         return;
       }
 
+      if (tauiAnimalChoice === "oui" && selectedCompanionId && !reporterProfile) {
+        alert("Impossible de charger vos coordonnées. Veuillez réessayer après avoir vérifié votre profil.");
+        return;
+      }
+
       if (
         files.length >
         MAX_FILES
@@ -817,6 +837,12 @@ export default function SignalementPage() {
         "USER SIGNALEMENT :",
         user?.id || null
       );
+
+      if (tauiAnimalChoice === "oui" && selectedCompanionId) {
+        if (!user || !companions.some((item) => item.id === selectedCompanionId)) {
+          throw new Error("Ce compagnon n'appartient pas au compte connecté.");
+        }
+      }
 
       const {
         uploadToken,
@@ -929,22 +955,22 @@ export default function SignalementPage() {
               `${form.description}\n\nPrécisions adresse : ${form.address_details}`,
 
             reporter_name:
-              form.anonymous
+              (tauiAnimalChoice === "oui" ? false : form.anonymous)
                 ? ""
-                : form.reporter_name,
+                : (tauiAnimalChoice === "oui" ? reporterProfile?.full_name || "" : form.reporter_name),
 
             reporter_phone:
-              form.anonymous
+              (tauiAnimalChoice === "oui" ? false : form.anonymous)
                 ? ""
-                : form.reporter_phone,
+                : (tauiAnimalChoice === "oui" ? reporterProfile?.phone || "" : form.reporter_phone),
 
             reporter_email:
-              form.anonymous
+              (tauiAnimalChoice === "oui" ? false : form.anonymous)
                 ? ""
-                : form.reporter_email,
+                : (tauiAnimalChoice === "oui" ? reporterProfile?.email || user?.email || "" : form.reporter_email),
 
             anonymous:
-              form.anonymous,
+              tauiAnimalChoice === "oui" ? false : form.anonymous,
 
             wants_contact:
               form.wants_contact,
@@ -1438,6 +1464,8 @@ export default function SignalementPage() {
               ]}
             />
 
+              {!(tauiAnimalChoice === "oui" && selectedCompanion) && (
+                <>
             <Select
               label="Type d'animal"
               value={
@@ -1561,6 +1589,8 @@ export default function SignalementPage() {
                     onChange={(value) => updateField("distinctive_features", value)}
                   />
                 </div>
+              </>
+            )}
               </>
             )}
           </div>
@@ -1890,6 +1920,7 @@ export default function SignalementPage() {
           </section>
         )}
 
+          {!(tauiAnimalChoice === "oui" && selectedCompanion) && (
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
             État de l&apos;animal
@@ -1927,6 +1958,7 @@ export default function SignalementPage() {
             />
           </div>
         </section>
+          )}
 
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
@@ -1995,6 +2027,7 @@ export default function SignalementPage() {
           )}
         </section>
 
+          {!(tauiAnimalChoice === "oui" && selectedCompanion) && (
         <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-black text-[#064b42]">
             Vos coordonnées
@@ -2100,6 +2133,7 @@ export default function SignalementPage() {
             </label>
           </div>
         </section>
+          )}
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <button
