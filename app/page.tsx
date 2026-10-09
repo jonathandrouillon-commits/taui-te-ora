@@ -163,35 +163,61 @@ export default function HomePage() {
   ] = useState<AnimalFilter[]>([]);
 
   const loadWelcomePreferences = useCallback(async () => {
+
     try {
+
       const savedFilters = sessionStorage.getItem(FILTER_STORAGE_KEY);
+
       if (savedFilters) {
+
         const parsed: unknown = JSON.parse(savedFilters);
+
         if (Array.isArray(parsed)) {
+
           setSelectedTypes(parsed.filter((value): value is AnimalFilter =>
+
             typeof value === "string" && ["chien", "chat", "cheval", "autre"].includes(value)
+
           ));
+
         }
+
       }
+
     } catch (error) {
+
       console.error("Erreur préférences adoption :", error);
+
     } finally {
+
       setWelcomeReady(true);
+
       setWelcomeOpen(true);
+
     }
+
   }, []);
 
   function openAdoption() {
+
     window.history.pushState({}, "", "/?adopter=1");
+
     setAdoptionMode(true);
+
     void loadWelcomePreferences();
+
     window.scrollTo({ top: 0, behavior: "instant" });
+
   }
 
   function backToMenu() {
+
     window.history.pushState({}, "", "/");
+
     setAdoptionMode(false);
+
     setWelcomeOpen(false);
+
   }
 
   function toggleAnimalType(
@@ -769,12 +795,19 @@ export default function HomePage() {
     selectedTypes.length;
 
   if (!adoptionMode) {
+
     return (
+
       <TauiPageBackground>
+
         <TauiHomeMenu onAdopt={openAdoption} />
+
         <BottomMenu />
+
       </TauiPageBackground>
+
     );
+
   }
 
   return (
@@ -965,22 +998,6 @@ export default function HomePage() {
 
                 }
 
-                onOpenFilter={() =>
-
-                  setWelcomeOpen(
-
-                    true
-
-                  )
-
-                }
-
-                filterCount={
-
-                  filterCount
-
-                }
-
               />
 
             )}
@@ -996,22 +1013,6 @@ export default function HomePage() {
                  language={language}
 
                 onNext={goNext}
-
-                onOpenFilter={() =>
-
-                  setWelcomeOpen(
-
-                    true
-
-                  )
-
-                }
-
-                filterCount={
-
-                  filterCount
-
-                }
 
               />
 
@@ -1251,9 +1252,7 @@ function SwipeAdCard({
 
   onNext,
 
-  onOpenFilter,
 
-  filterCount,
 
 }: {
 
@@ -1263,9 +1262,7 @@ function SwipeAdCard({
 
   onNext: () => void;
 
-  onOpenFilter: () => void;
 
-  filterCount: number;
 
 }) {
 
@@ -1829,56 +1826,6 @@ function SwipeAdCard({
 
         </button>
 
-        <button
-
-          type="button"
-
-          onClick={onOpenFilter}
-
-          className="
-
-            min-h-[52px]
-
-            rounded-full
-
-            border-2
-
-            border-white
-
-            bg-[#f3e7df]/95
-
-            px-5
-
-            py-3
-
-            text-base
-
-            font-black
-
-            text-[#064b42]
-
-            shadow-xl
-
-            backdrop-blur
-
-            transition
-
-            active:scale-95
-
-          "
-
-        >
-
-          {en ? "Filters" : "Filtres"}
-
-          {filterCount > 0
-
-            ? ` (${filterCount})`
-
-            : ""}
-
-        </button>
-
       </div>
 
     </div>
@@ -1888,8 +1835,10 @@ function SwipeAdCard({
 }
 
 /* =========================================================
+
    FENETRE ACCUEIL / FILTRE
-========================================================= */
+
+\========================================================= */
 
 function WelcomeModal({
 
@@ -2836,8 +2785,10 @@ function WelcomeModal({
 }
 
 /* =========================================================
+
    MENU BAS
-========================================================= */
+
+\========================================================= */
 
 function getProfileDestination(role: unknown) {
 
