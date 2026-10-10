@@ -14,6 +14,7 @@ import GlobalNotificationBadge from "./components/GlobalNotificationBadge";
 import PageTextOverridesRuntime from "./components/admin/PageTextOverridesRuntime";
 import VisualPageEditor from "./components/admin/VisualPageEditor";
 import TauiSplashScreen from "./components/TauiSplashScreen";
+import AdoptantQuestionnaireGuard from "./components/AdoptantQuestionnaireGuard";
 
 export const metadata: Metadata = {
   title: "Taui Te Ora",
@@ -82,6 +83,8 @@ export default function RootLayout({
         <PageTextOverridesRuntime />
 
         <VisualPageEditor />
+
+        <AdoptantQuestionnaireGuard />
 
         {children}
 

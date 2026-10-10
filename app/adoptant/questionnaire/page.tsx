@@ -523,6 +523,8 @@ export default function AdoptantQuestionnairePage() {
 
         special_needs:
           getSpecialNeedsLabel(),
+
+        adopter_questionnaire_completed_at: new Date().toISOString(),
       };
 
       const {

@@ -1,5 +1,4 @@
-﻿
-"use client";
+﻿"use client";
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
@@ -8,6 +7,32 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
+
+type AdoptantProfile = {
+  id: string;
+  role: string | null;
+  is_active: boolean | null;
+  approval_status: string | null;
+  adopter_questionnaire_completed_at: string | null;
+};
+
+function getSafeRedirect(value: string | null): string | null {
+  if (!value) return null;
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  if (value.includes("\\") || /[\r\n]/.test(value)) {
+    return null;
+  }
+
+  if (value === "/login" || value.startsWith("/login?")) {
+    return null;
+  }
+
+  return value;
+}
 
 function LoginContent() {
   const router = useRouter();
@@ -19,26 +44,6 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  function getSafeRedirect(value: string | null): string | null {
-    if (!value) return null;
-
-    // Autoriser uniquement les chemins internes.
-    if (!value.startsWith("/") || value.startsWith("//")) {
-      return null;
-    }
-
-    if (value.includes("\\") || /[\r\n]/.test(value)) {
-      return null;
-    }
-
-    // Éviter de retourner vers la page de connexion.
-    if (value === "/login" || value.startsWith("/login?")) {
-      return null;
-    }
-
-    return value;
-  }
 
   async function login() {
     if (loading) return;
@@ -71,26 +76,37 @@ function LoginContent() {
         );
       }
 
-      const { data: profile, error: profileError } =
+      const { data: profileData, error: profileError } =
         await supabase
           .from("profiles")
-          .select("id, role, is_active, approval_status")
+          .select(
+            "id, role, is_active, approval_status, adopter_questionnaire_completed_at"
+          )
           .eq("id", user.id)
           .maybeSingle();
 
       if (profileError) throw profileError;
 
+      const profile = profileData as AdoptantProfile | null;
+
       if (profile?.is_active === false) {
         await supabase.auth.signOut();
+
         setErrorMessage(
           "Ce compte est actuellement désactivé."
         );
         return;
       }
 
-      // Conserver la destination d'une action en cours.
-      // Sinon, TOUS les profils arrivent au menu principal.
       const destination = getSafeRedirect(redirectTo) || "/";
+
+      if (profile?.role === "adoptant" && !profile.adopter_questionnaire_completed_at) {
+        const next = destination === "/adoptant/questionnaire" || destination.startsWith("/adoptant/questionnaire?")
+          ? destination
+          : "/adoptant/questionnaire?redirect=" + encodeURIComponent(destination);
+        router.replace(next);
+        return;
+      }
 
       router.replace(destination);
       router.refresh();
@@ -131,7 +147,7 @@ function LoginContent() {
 
           <p className="mt-2 text-gray-500">
             Connectez-vous à TAUI TE ORA pour retrouver
-            vos compagnons et accéder à toutes les fonctionnalités.
+            vos compagnons et accéder à toutes les fonctionnalit├®s.
           </p>
         </div>
 
@@ -141,7 +157,7 @@ function LoginContent() {
               htmlFor="email"
               className="mb-2 block font-bold text-[#064b42]"
             >
-              📧 Adresse email
+              ✉️ Adresse email
             </label>
 
             <input
@@ -208,7 +224,7 @@ function LoginContent() {
             href="/"
             className="flex w-full items-center justify-center rounded-full border-2 border-[#064b42] bg-white px-6 py-3 text-center font-black text-[#064b42] shadow-sm transition hover:bg-[#eef7f4] active:scale-[0.98]"
           >
-            🐾 Découvrir TAUI TE ORA sans compte
+            🐾 D├®couvrir TAUI TE ORA sans compte
           </Link>
 
           <div className="border-t pt-6 text-center">
