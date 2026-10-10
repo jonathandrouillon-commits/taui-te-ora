@@ -295,8 +295,13 @@ type AdoptionRequestSummary = {
 
 
   match_level?: string | null;
-
-
+  meeting_proposed_at?: string | null;
+  meeting_scheduled_at?: string | null;
+  meeting_location?: string | null;
+  meeting_confirmed_at?: string | null;
+  meeting_completed_at?: string | null;
+  meeting_notes?: string | null;
+  adoption_finalized_at?: string | null;
 
 };
 
@@ -569,6 +574,11 @@ export default function ConversationPage() {
 
 
 
+
+  const [meetingDate, setMeetingDate] = useState("");
+  const [meetingLocation, setMeetingLocation] = useState("");
+  const [meetingBusy, setMeetingBusy] = useState(false);
+  const [meetingError, setMeetingError] = useState("");
 
   const [messages, setMessages] =
 
@@ -1852,7 +1862,13 @@ export default function ConversationPage() {
 
 
 
-              match_level
+              match_level,
+              meeting_proposed_at,
+              meeting_scheduled_at,
+              meeting_location,
+              meeting_confirmed_at,
+              meeting_completed_at,
+              adoption_finalized_at
 
 
 
@@ -1916,6 +1932,12 @@ export default function ConversationPage() {
 
 
 
+        if (requestData?.meeting_scheduled_at) {
+          const dt = new Date(requestData.meeting_scheduled_at);
+          const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000);
+          setMeetingDate(local.toISOString().slice(0, 16));
+        }
+        setMeetingLocation(requestData?.meeting_location || "");
         setAdoptionRequest(
 
 
@@ -3857,6 +3879,172 @@ export default function ConversationPage() {
 
 
 
+
+   /* =======================================================
+      RENCONTRES D'ADOPTION
+   ======================================================= */
+
+  async function notifyMeeting(recipientId: string, title: string, message: string) {
+    if (!conversation || !adoptionRequest) return;
+    try {
+      const { error } = await supabase.from("notifications").insert({
+        recipient_id: recipientId,
+        animal_id: conversation.animal_id,
+        adoption_request_id: adoptionRequest.id,
+        conversation_id: conversation.id,
+        type: "chat_message",
+        title,
+        message,
+        is_read: false,
+      });
+      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await fetch("/api/push/user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            recipientId, title, body: message,
+            url: `/messages/${conversation.id}`,
+            type: "chat_message",
+            tag: `adoption-meeting-${adoptionRequest.id}`,
+            conversationId: conversation.id,
+            animalId: conversation.animal_id || undefined,
+            adoptionRequestId: adoptionRequest.id,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error("Notification rencontre :", err);
+    }
+  }
+
+  async function proposeMeeting() {
+    if (!conversation || !adoptionRequest || meetingBusy) return;
+    if (currentUserId !== conversation.owner_id) return;
+    if (!meetingDate || !meetingLocation.trim()) {
+      setMeetingError("Indiquez une date, une heure et un lieu.");
+      return;
+    }
+    const scheduled = new Date(meetingDate);
+    if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) {
+      setMeetingError("Choisissez une date de rencontre future.");
+      return;
+    }
+    if (adoptionRequest.status !== "pending" && adoptionRequest.status !== "meeting") return;
+    try {
+      setMeetingBusy(true);
+      setMeetingError("");
+      const payload = {
+        status: "meeting",
+        meeting_proposed_at: new Date().toISOString(),
+        meeting_scheduled_at: scheduled.toISOString(),
+        meeting_location: meetingLocation.trim(),
+        meeting_confirmed_at: null,
+      };
+      const { data, error } = await supabase.from("adoption_requests")
+        .update(payload).eq("id", adoptionRequest.id)
+        .eq("owner_id", currentUserId)
+        .select("*").single();
+      if (error) throw error;
+      setAdoptionRequest(prev => prev ? { ...prev, ...data } : prev);
+      await notifyMeeting(conversation.requester_id,
+        "Rencontre d'adoption proposée",
+        `Une rencontre est proposée pour ${animal?.animal_name || "l'animal"}. Ouvrez la conversation pour confirmer.`);
+    } catch (err) {
+      setMeetingError(err instanceof Error ? err.message : "Impossible de proposer la rencontre.");
+    } finally {
+      setMeetingBusy(false);
+    }
+  }
+
+  async function confirmMeeting() {
+    if (!conversation || !adoptionRequest || meetingBusy) return;
+    if (currentUserId !== conversation.requester_id || adoptionRequest.status !== "meeting") return;
+    if (!adoptionRequest.meeting_scheduled_at || !adoptionRequest.meeting_location) return;
+    try {
+      setMeetingBusy(true);
+      setMeetingError("");
+      const { data, error } = await supabase.from("adoption_requests")
+        .update({ meeting_confirmed_at: new Date().toISOString() })
+        .eq("id", adoptionRequest.id)
+        .eq("requester_id", currentUserId)
+        .select("*").single();
+      if (error) throw error;
+      setAdoptionRequest(prev => prev ? { ...prev, ...data } : prev);
+      await notifyMeeting(conversation.owner_id, "Rencontre confirmée",
+        `Le candidat a confirmé la rencontre pour ${animal?.animal_name || "l'animal"}.`);
+    } catch (err) {
+      setMeetingError(err instanceof Error ? err.message : "Impossible de confirmer.");
+    } finally {
+      setMeetingBusy(false);
+    }
+  }
+
+  async function completeMeeting() {
+    if (!conversation || !adoptionRequest || meetingBusy) return;
+    if (currentUserId !== conversation.owner_id || !adoptionRequest.meeting_confirmed_at) return;
+    if (!window.confirm("Confirmer que la rencontre a bien eu lieu ?")) return;
+    try {
+      setMeetingBusy(true);
+      setMeetingError("");
+      const { data, error } = await supabase.from("adoption_requests")
+        .update({ meeting_completed_at: new Date().toISOString() })
+        .eq("id", adoptionRequest.id)
+        .eq("owner_id", currentUserId)
+        .select("*").single();
+      if (error) throw error;
+      setAdoptionRequest(prev => prev ? { ...prev, ...data } : prev);
+      await notifyMeeting(conversation.requester_id, "Rencontre effectuée",
+        "La rencontre a été enregistrée. La structure peut maintenant décider de la suite.");
+    } catch (err) {
+      setMeetingError(err instanceof Error ? err.message : "Impossible de terminer la rencontre.");
+    } finally {
+      setMeetingBusy(false);
+    }
+  }
+
+  async function finalizeAdoption() {
+    if (!conversation || !adoptionRequest || meetingBusy) return;
+    if (currentUserId !== conversation.owner_id || !adoptionRequest.meeting_completed_at) return;
+    if (!window.confirm("Valider définitivement cette adoption ? Cette action retire l'animal des adoptions disponibles.")) return;
+    try {
+      setMeetingBusy(true);
+      setMeetingError("");
+
+      // Une seule transaction côté Supabase : candidature et animal sont validés ensemble.
+      const { error: finalizeError } = await supabase.rpc("finalize_animal_adoption", {
+        p_request_id: adoptionRequest.id,
+      });
+      if (finalizeError) throw finalizeError;
+
+      // Relire le résultat confirmé par la base avant d'actualiser l'interface.
+      const { data: updatedRequest, error: refreshError } = await supabase
+        .from("adoption_requests")
+        .select("*")
+        .eq("id", adoptionRequest.id)
+        .single();
+      if (refreshError) {
+        setAdoptionRequest(prev => prev ? { ...prev, status: "accepted" } : prev);
+      } else {
+        setAdoptionRequest(prev => prev ? { ...prev, ...updatedRequest } : prev);
+      }
+
+      try {
+        await notifyMeeting(conversation.requester_id, "Adoption validée",
+          `L'adoption de ${animal?.animal_name || "l'animal"} a été validée. Félicitations !`);
+      } catch (notificationError) {
+        console.error("Adoption validée, notification non envoyée :", notificationError);
+      }
+    } catch (err) {
+      setMeetingError(err instanceof Error ? err.message : "Impossible de finaliser l'adoption.");
+    } finally {
+      setMeetingBusy(false);
+    }
+  }
 
   async function deleteMessage(message: Message) {
 
@@ -6636,6 +6824,83 @@ export default function ConversationPage() {
 
 
 
+
+      {/* SUIVI DE LA CANDIDATURE : uniquement pour les conversations d'adoption */}
+      {conversation.adoption_request_id && adoptionRequest && (
+        <section className="max-h-[38dvh] shrink-0 overflow-y-auto border-b border-[#eadfd8] bg-[#fffaf7] px-4 py-3">
+          <div className="mx-auto max-w-3xl space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-sm text-[#064b42]">🐾 Suivi de l'adoption</strong>
+              <span className="rounded-full bg-[#e8f5f1] px-3 py-1 text-xs font-bold text-[#064b42]">
+                {adoptionRequest.status === "pending" ? "Candidature reçue" :
+                 adoptionRequest.status === "meeting" ? "Rencontre en cours" :
+                 adoptionRequest.status === "accepted" ? "Adoption validée" :
+                 adoptionRequest.status === "rejected" ? "Candidature refusée" :
+                 adoptionRequest.status === "cancelled" ? "Candidature annulée" : adoptionRequest.status}
+              </span>
+            </div>
+            {currentUserId === conversation.owner_id && (
+              <button type="button"
+                onClick={() => router.push(`/adoptant/${conversation.requester_id}?request=${adoptionRequest.id}`)}
+                className="text-xs font-bold text-[#064b42] underline underline-offset-2">
+                Voir le questionnaire complet du candidat
+                {typeof adoptionRequest.match_score === "number" ? ` — ${adoptionRequest.match_score}% de compatibilité` : ""} →
+              </button>
+            )}
+            {adoptionRequest.meeting_scheduled_at && (
+              <div className="rounded-xl bg-[#f4eee3] p-3 text-xs leading-relaxed">
+                <p className="font-bold text-[#064b42]">📅 Rencontre proposée</p>
+                <p>{new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeStyle: "short", timeZone: "Pacific/Tahiti" }).format(new Date(adoptionRequest.meeting_scheduled_at))} (heure de Tahiti)</p>
+                <p>📍 {adoptionRequest.meeting_location}</p>
+                <p className="mt-1 font-semibold">{adoptionRequest.meeting_completed_at ? "✓ Rencontre effectuée" : adoptionRequest.meeting_confirmed_at ? "✓ Confirmée par le candidat" : "En attente de confirmation du candidat"}</p>
+              </div>
+            )}
+            {currentUserId === conversation.owner_id &&
+             (adoptionRequest.status === "pending" ||
+              (adoptionRequest.status === "meeting" && !adoptionRequest.meeting_completed_at)) && (
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex min-w-[150px] flex-1 flex-col gap-1 text-[11px] font-bold">
+                  Date et heure
+                  <input type="datetime-local" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}
+                    disabled={meetingBusy} className="min-h-10 rounded-xl border border-[#e4d8cf] bg-white px-2 text-xs" />
+                </label>
+                <label className="flex min-w-[150px] flex-1 flex-col gap-1 text-[11px] font-bold">
+                  Lieu de rencontre
+                  <input type="text" value={meetingLocation} onChange={e => setMeetingLocation(e.target.value)}
+                    disabled={meetingBusy} placeholder="Lieu du rendez-vous"
+                    className="min-h-10 rounded-xl border border-[#e4d8cf] bg-white px-3 text-xs" />
+                </label>
+                <button type="button" disabled={meetingBusy} onClick={() => void proposeMeeting()}
+                  className="min-h-10 rounded-xl bg-[#064b42] px-4 text-xs font-bold text-white disabled:opacity-50">
+                  {adoptionRequest.meeting_scheduled_at ? "Modifier la proposition" : "Proposer une rencontre"}
+                </button>
+              </div>
+            )}
+            {currentUserId === conversation.requester_id && adoptionRequest.status === "meeting" &&
+             adoptionRequest.meeting_scheduled_at && !adoptionRequest.meeting_confirmed_at && (
+              <button type="button" disabled={meetingBusy} onClick={() => void confirmMeeting()}
+                className="rounded-xl bg-[#064b42] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+                Confirmer cette rencontre
+              </button>
+            )}
+            {currentUserId === conversation.owner_id && adoptionRequest.status === "meeting" &&
+             adoptionRequest.meeting_confirmed_at && !adoptionRequest.meeting_completed_at && (
+              <button type="button" disabled={meetingBusy} onClick={() => void completeMeeting()}
+                className="rounded-xl bg-[#064b42] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+                Marquer la rencontre comme effectuée
+              </button>
+            )}
+            {currentUserId === conversation.owner_id && adoptionRequest.status === "meeting" &&
+             adoptionRequest.meeting_completed_at && (
+              <button type="button" disabled={meetingBusy} onClick={() => void finalizeAdoption()}
+                className="rounded-xl bg-[#ef8196] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+                Finaliser l'adoption
+              </button>
+            )}
+            {meetingError && <p role="alert" className="text-xs font-semibold text-red-600">{meetingError}</p>}
+          </div>
+        </section>
+      )}
 
       {/* ===================================================
 

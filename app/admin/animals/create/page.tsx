@@ -1,3287 +1,876 @@
 "use client";
 
-
-
 import {
-
-
   useCallback,
-
   useEffect,
-
-  useMemo,
-
   useState,
-
 } from "react";
 
+import { useRouter } from "next/navigation";
 
+import { supabase } from "../../../lib/supabase";
 
-import {
-
-  ArrowLeft,
-
-  Camera,
-
-  PawPrint,
-
-  Save,
-
-  Search,
-
-  X,
-
-} from "lucide-react";
-
-
-
-import {
-
-  useRouter,
-
-} from "next/navigation";
-
-
-
-import {
-
-  supabase,
-
-} from "../../../lib/supabase";
-
-import ImageCropInput from "../../../components/ImageCropInput";
-
+import ProgressBar from "../../../association/add-animal/ProgressBar";
+import Step1General from "../../../association/add-animal/Step1General";
+import Step2Photos from "../../../association/add-animal/Step2Photos";
+import Step3Health from "../../../association/add-animal/Step3Health";
+import Step4Character from "../../../association/add-animal/Step4Character";
+import Step5Story from "../../../association/add-animal/Step5Story";
+import Step6Location from "../../../association/add-animal/Step6Location";
+import Step7Preview from "../../../association/add-animal/Step7Preview";
 
 type Profile = {
-
   id: string;
-
   role?: string | null;
-
   first_name?: string | null;
-
   last_name?: string | null;
-
-  display_name?: string | null;
-
-  full_name?: string | null;
-
   organization_name?: string | null;
-
-  structure_name?: string | null;
-
-  company_name?: string | null;
-
+  display_name?: string | null;
+  full_name?: string | null;
   email?: string | null;
-
-  avatar_url?: string | null;
-
 };
-
-
-
-type AnimalForm = {
-
-  reference_number: string;
-
-  animal_name: string;
-
-  animal_type: string;
-
-  age_label: string;
-
-  sex: string;
-
-  breed: string;
-
-  size_label: string;
-
-
-
-  street_duration: string;
-
-  capture_location: string;
-
-
-
-  island: string;
-
-  city: string;
-
-  map_address: string;
-
-
-
-  description_character: string;
-
-  health_status: string;
-
-  special_needs: string;
-
-  story: string;
-
-
-
-  weight_kg: string;
-
-
-
-  compatible_chiens: string;
-
-  compatible_chats: string;
-
-  compatible_enfants: string;
-
-
-
-  vaccinated: boolean;
-
-  sterilized: boolean;
-
-  microchipped: boolean;
-
-
-
-  is_published: boolean;
-
-};
-
-
-
-const EMPTY_FORM: AnimalForm = {
-
-  reference_number: "",
-
-  animal_name: "",
-
-  animal_type: "",
-
-  age_label: "",
-
-  sex: "",
-
-  breed: "",
-
-  size_label: "",
-
-
-
-  street_duration: "",
-
-  capture_location: "",
-
-
-
-  island: "",
-
-  city: "",
-
-  map_address: "",
-
-
-
-  description_character: "",
-
-  health_status: "",
-
-  special_needs: "",
-
-  story: "",
-
-
-
-  weight_kg: "",
-
-
-
-  compatible_chiens: "",
-
-  compatible_chats: "",
-
-  compatible_enfants: "",
-
-
-
-  vaccinated: false,
-
-  sterilized: false,
-
-  microchipped: false,
-
-
-
-  is_published: false,
-
-};
-
-
-
-function getProfileName(
-
-  profile: Profile
-
-) {
-
-  const organization =
-
-    String(
-
-      profile.organization_name ||
-
-        profile.structure_name ||
-
-        profile.company_name ||
-
-        ""
-
-    ).trim();
-
-
-
-  if (organization) {
-
-    return organization;
-
-  }
-
-
-
-  const completeName =
-
-    `${profile.first_name || ""} ${
-
-      profile.last_name || ""
-
-    }`.trim();
-
-
-
-  if (completeName) {
-
-    return completeName;
-
-  }
-
-
-
-  return (
-
-    profile.display_name ||
-
-    profile.full_name ||
-
-    profile.email ||
-
-    "Profil sans nom"
-
-  );
-
+function profileLabel(p: Profile) {
+  return p.organization_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.display_name || p.full_name || p.email || p.id;
 }
 
+type PublisherRole =
+  | "association"
+  | "refuge"
+  | "benevole"
+  | "fourriere"
+  | "admin";
 
+const ALLOWED_ROLES: PublisherRole[] = [
+  "association",
+  "refuge",
+  "benevole",
+  "fourriere",
+  "admin",
+];
 
-function getRoleLabel(
+type SiblingGroupOption = {
+  id: string;
+  label: string;
+};
 
-  role?: string | null
-
-) {
-
-  const normalized =
-
-    String(role || "")
-
-      .trim()
-
-      .toLowerCase();
-
-
-
-  switch (normalized) {
-
-    case "admin":
-
-      return "Administrateur";
-
-
-
-    case "association":
-
-      return "Association";
-
-
-
-    case "refuge":
-
-      return "Refuge";
-
-
-
-    case "fourriere":
-
-    case "fourrière":
-
-      return "Fourrière";
-
-
-
-    case "benevole":
-
-    case "bénévole":
-
-      return "Bénévole";
-
-
-
-    case "famille_accueil":
-
-      return "Famille d’accueil";
-
-
-
-    case "adoptant":
-
-      return "Adoptant";
-
-
-
-    default:
-
-      return normalized || "Utilisateur";
-
-  }
-
-}
-
-
+const ROLE_LABELS: Record<PublisherRole, string> = {
+  association: "Association",
+  refuge: "Refuge / SIGFA",
+  benevole: "Bénévole indépendant",
+  fourriere: "Fourrière",
+  admin: "Administration",
+};
 
 export default function AdminCreateAnimalPage() {
+  const router = useRouter();
 
-  const router =
+  const [step, setStep] = useState(1);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [ownerId, setOwnerId] = useState("");
+  const [ownerSearch, setOwnerSearch] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [checkingAccess, setCheckingAccess] =
+    useState(true);
 
-    useRouter();
-
-
-
-  const [
-
-    loading,
-
-    setLoading,
-
-  ] = useState(true);
-
-
-
-  const [
-
-    saving,
-
-    setSaving,
-
-  ] = useState(false);
-
-
-
-  const [
-
-    profiles,
-
-    setProfiles,
-
-  ] = useState<Profile[]>([]);
-
-
-
-  const [
-
-    selectedOwnerId,
-
-    setSelectedOwnerId,
-
-  ] = useState("");
-
-
-
-  const [
-
-    profileSearch,
-
-    setProfileSearch,
-
-  ] = useState("");
-
-
-
-  const [
-
-    form,
-
-    setForm,
-
-  ] = useState<AnimalForm>(
-
-    EMPTY_FORM
-
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [video, setVideo] = useState<File | null>(
+    null
   );
 
-
-
   const [
-
-    photos,
-
-    setPhotos,
-
-  ] = useState<File[]>([]);
-
-
-
-  const [
-
-    photoPreviews,
-
-    setPhotoPreviews,
-
+    vigilancePoints,
+    setVigilancePoints,
   ] = useState<string[]>([]);
 
-
-
-  const loadPage =
-
-    useCallback(
-
-      async () => {
-
-        try {
-
-          setLoading(true);
-
-
-
-          const {
-
-            data: {
-
-              user,
-
-            },
-
-            error:
-
-              userError,
-
-          } =
-
-            await supabase.auth.getUser();
-
-
-
-          if (
-
-            userError
-
-          ) {
-
-            throw userError;
-
-          }
-
-
-
-          if (!user) {
-
-            router.replace(
-
-              "/login?redirect=/admin/animals/create"
-
-            );
-
-
-
-            return;
-
-          }
-
-
-
-          const {
-
-            data:
-
-              adminProfile,
-
-            error:
-
-              profileError,
-
-          } =
-
-            await supabase
-
-              .from(
-
-                "profiles"
-
-              )
-
-              .select(
-
-                "role"
-
-              )
-
-              .eq(
-
-                "id",
-
-                user.id
-
-              )
-
-              .maybeSingle();
-
-
-
-          if (
-
-            profileError
-
-          ) {
-
-            throw profileError;
-
-          }
-
-
-
-          if (
-
-            String(
-
-              adminProfile?.role ||
-
-                ""
-
-            )
-
-              .trim()
-
-              .toLowerCase() !==
-
-            "admin"
-
-          ) {
-
-            router.replace(
-
-              "/"
-
-            );
-
-
-
-            return;
-
-          }
-
-
-
-          const {
-
-            data:
-
-              profilesData,
-
-            error:
-
-              profilesError,
-
-          } =
-
-            await supabase
-
-              .from(
-
-                "profiles"
-
-              )
-
-              .select(
-
-                `
-
-                  id,
-
-                  role,
-
-                  first_name,
-
-                  last_name,
-
-                  display_name,
-
-                  full_name,
-
-                  organization_name,
-
-                  structure_name,
-
-                  company_name,
-
-                  email,
-
-                  avatar_url
-
-                `
-
-              )
-
-              .order(
-
-                "created_at",
-
-                {
-
-                  ascending:
-
-                    false,
-
-                }
-
-              );
-
-
-
-          if (
-
-            profilesError
-
-          ) {
-
-            throw profilesError;
-
-          }
-
-
-
-          setProfiles(
-
-            (
-
-              profilesData ||
-
-              []
-
-            ) as Profile[]
-
-          );
-
-        } catch (
-
-          error
-
-        ) {
-
-          console.error(
-
-            "Erreur chargement création animal admin :",
-
-            error
-
-          );
-
-
-
-          alert(
-
-            error instanceof
-
-              Error
-
-              ? error.message
-
-              : "Impossible de charger la page."
-
-          );
-
-        } finally {
-
-          setLoading(
-
-            false
-
-          );
-
-        }
-
-      },
-
-      [router]
-
-    );
-
-
-
-  useEffect(() => {
-
-    void loadPage();
-
-  }, [loadPage]);
-
-
-
-  const filteredProfiles =
-
-    useMemo(() => {
-
-      const query =
-
-        profileSearch
-
-          .trim()
-
-          .toLowerCase();
-
-
-
-      if (!query) {
-
-        return profiles;
-
-      }
-
-
-
-      return profiles.filter(
-
-        (
-
-          profile
-
-        ) => {
-
-          const text =
-
-            [
-
-              getProfileName(
-
-                profile
-
-              ),
-
-              profile.email,
-
-              getRoleLabel(
-
-                profile.role
-
-              ),
-
-            ]
-
-              .filter(
-
-                Boolean
-
-              )
-
-              .join(" ")
-
-              .toLowerCase();
-
-
-
-          return text.includes(
-
-            query
-
-          );
-
-        }
-
-      );
-
-    }, [
-
-      profiles,
-
-      profileSearch,
-
-    ]);
-
-
-
-  const selectedProfile =
-
-    useMemo(
-
-      () =>
-
-        profiles.find(
-
-          (
-
-            profile
-
-          ) =>
-
-            profile.id ===
-
-            selectedOwnerId
-
-        ) || null,
-
-      [
-
-        profiles,
-
-        selectedOwnerId,
-
-      ]
-
-    );
-
-
-
-  function updateField<
-
-    K extends keyof AnimalForm
-
-  >(
-
-    key: K,
-
-    value:
-
-      AnimalForm[K]
-
-  ) {
-
-    setForm(
-
-      (
-
-        previous
-
-      ) => ({
-
-        ...previous,
-
-        [key]:
-
-          value,
-
-      })
-
-    );
-
-  }
-
-
-
-  function handleCroppedPhotos(files: File[]) {
-    const remaining = Math.max(0, 5 - photos.length);
-    if (remaining <= 0) {
-      alert("Maximum 5 photos.");
-      return;
-    }
-
-    const accepted = files.slice(0, remaining);
-    setPhotos((previous) => [...previous, ...accepted]);
-    setPhotoPreviews((previous) => [
-      ...previous,
-      ...accepted.map((file) => URL.createObjectURL(file)),
-    ]);
-  }
-
-  function removePhoto(
-
-    index: number
-
-  ) {
-
-    setPhotos(
-
-      (
-
-        previous
-
-      ) =>
-
-        previous.filter(
-
-          (
-
-            _,
-
-            currentIndex
-
-          ) =>
-
-            currentIndex !==
-
-            index
-
-        )
-
-    );
-
-
-
-    setPhotoPreviews(
-
-      (
-
-        previous
-
-      ) =>
-
-        previous.filter(
-
-          (
-
-            _,
-
-            currentIndex
-
-          ) =>
-
-            currentIndex !==
-
-            index
-
-        )
-
-    );
-
-  }
-
-
-
-  async function saveAnimal() {
-
-    if (
-
-      saving
-
-    ) {
-
-      return;
-
-    }
-
-
-
-    if (
-
-      !selectedOwnerId
-
-    ) {
-
-      alert(
-
-        "Sélectionnez le profil qui sera propriétaire de l'animal."
-
-      );
-
-
-
-      return;
-
-    }
-
-
-
-    if (
-
-      !form.animal_name.trim()
-
-    ) {
-
-      alert(
-
-        "Le nom de l'animal est obligatoire."
-
-      );
-
-
-
-      return;
-
-    }
-
-
-
-    if (
-
-      !form.animal_type.trim()
-
-    ) {
-
-      alert(
-
-        "Le type d'animal est obligatoire."
-
-      );
-
-
-
-      return;
-
-    }
-
-
-
+  const [userId, setUserId] = useState("");
+  const [role, setRole] =
+    useState<PublisherRole | null>(null);
+
+  const [
+    publisherName,
+    setPublisherName,
+  ] = useState("");
+
+  const [
+    siblingGroups,
+    setSiblingGroups,
+  ] = useState<SiblingGroupOption[]>([]);
+
+  const [
+    facebookShareAnimalId,
+    setFacebookShareAnimalId,
+  ] = useState<string | null>(null);
+
+  const [
+    facebookShareAnimalName,
+    setFacebookShareAnimalName,
+  ] = useState("");
+
+  const [animal, setAnimal] = useState({
+    animal_name: "",
+    animal_type: "Chien",
+    breed: "",
+    sex: "Femelle",
+    age_label: "",
+    size_label: "",
+    weight_kg: "",
+    sibling_group_id: "",
+    island: "",
+    city: "",
+    capture_location: "",
+    street_duration_number: "",
+    street_duration_unit: "jours",
+    description_character: "",
+    compatible_chiens: "",
+    compatible_chats: "",
+    compatible_enfants: "",
+    energy_level: "",
+    housing_need: "",
+    alone_tolerance: "",
+    adopter_experience_required: "",
+    education_level: "",
+    human_contact: "",
+    daily_activity_need: "",
+    ideal_family: "",
+    story: "",
+    health_status: "",
+    vaccinated: false,
+    sterilized: false,
+    microchipped: false,
+    is_published: false,
+  });
+
+  const checkAccess = useCallback(async () => {
     try {
-
-      setSaving(
-
-        true
-
-      );
-
-
+      setCheckingAccess(true);
 
       const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-        data: {
-
-          session,
-
-        },
-
-        error:
-
-          sessionError,
-
-      } =
-
-        await supabase.auth.getSession();
-
-
-
-      if (
-
-        sessionError
-
-      ) {
-
-        throw sessionError;
-
-      }
-
-
-
-      if (
-
-        !session?.access_token
-
-      ) {
-
-        throw new Error(
-
-          "Session administrateur introuvable."
-
+      if (error || !user) {
+        router.replace(
+          `/login?redirect=${encodeURIComponent(
+            "/association/add-animal"
+          )}`
         );
 
+        return;
       }
 
-
-
-      const body =
-
-        new FormData();
-
-
-
-      body.append(
-
-        "owner_id",
-
-        selectedOwnerId
-
-      );
-
-
-
-      body.append(
-
-        "reference_number",
-
-        form.reference_number
-
-      );
-
-
-
-      body.append(
-
-        "animal_name",
-
-        form.animal_name
-
-      );
-
-
-
-      body.append(
-
-        "animal_type",
-
-        form.animal_type
-
-      );
-
-
-
-      body.append(
-
-        "age_label",
-
-        form.age_label
-
-      );
-
-
-
-      body.append(
-
-        "sex",
-
-        form.sex
-
-      );
-
-
-
-      body.append(
-
-        "breed",
-
-        form.breed
-
-      );
-
-
-
-      body.append(
-
-        "size_label",
-
-        form.size_label
-
-      );
-
-
-
-      body.append(
-
-        "street_duration",
-
-        form.street_duration
-
-      );
-
-
-
-      body.append(
-
-        "capture_location",
-
-        form.capture_location
-
-      );
-
-
-
-      body.append(
-
-        "island",
-
-        form.island
-
-      );
-
-
-
-      body.append(
-
-        "city",
-
-        form.city
-
-      );
-
-
-
-      body.append(
-
-        "map_address",
-
-        form.map_address
-
-      );
-
-
-
-      body.append(
-
-        "description_character",
-
-        form.description_character
-
-      );
-
-
-
-      body.append(
-
-        "health_status",
-
-        form.health_status
-
-      );
-
-
-
-      body.append(
-
-        "special_needs",
-
-        form.special_needs
-
-      );
-
-
-
-      body.append(
-
-        "story",
-
-        form.story
-
-      );
-
-
-
-      body.append(
-
-        "weight_kg",
-
-        form.weight_kg
-
-      );
-
-
-
-      body.append(
-
-        "compatible_chiens",
-
-        form.compatible_chiens
-
-      );
-
-
-
-      body.append(
-
-        "compatible_chats",
-
-        form.compatible_chats
-
-      );
-
-
-
-      body.append(
-
-        "compatible_enfants",
-
-        form.compatible_enfants
-
-      );
-
-
-
-      body.append(
-
-        "vaccinated",
-
-        String(
-
-          form.vaccinated
-
+      const {
+        data: profileData,
+        error: profileError,
+      } = await supabase
+        .from("profiles")
+        .select(
+          "id, role, first_name, last_name, organization_name, email, approval_status, is_active, is_verified"
         )
+        .eq("id", user.id)
+        .maybeSingle();
 
-      );
+      if (profileError) {
+        throw profileError;
+      }
 
+      if (!profileData) {
+        alert(
+          "Votre profil utilisateur est introuvable."
+        );
 
+        router.replace("/");
+        return;
+      }
 
-      body.append(
+      const userRole = String(
+        profileData.role || ""
+      )
+        .trim()
+        .toLowerCase();
 
-        "sterilized",
+      const approvalStatus = String(
+        profileData.approval_status || "pending"
+      )
+        .trim()
+        .toLowerCase();
 
-        String(
+      if (
+        !ALLOWED_ROLES.includes(
+          userRole as PublisherRole
+        ) ||
+        profileData.is_active === false ||
+        approvalStatus === "rejected" ||
+        approvalStatus === "suspended"
+      ) {
+        alert(
+          "Votre compte ne permet pas actuellement d'ajouter des animaux."
+        );
 
-          form.sterilized
+        router.replace("/");
+        return;
+      }
 
+      if (userRole !== "admin") {
+        router.replace("/admin");
+        return;
+      }
+      const { data: profileRows, error: profileRowsError } = await supabase
+        .from("profiles")
+        .select("id,role,first_name,last_name,organization_name,display_name,full_name,email")
+        .order("created_at", { ascending: false });
+      if (profileRowsError) throw profileRowsError;
+      setProfiles((profileRows || []) as Profile[]);
+      setOwnerId(user.id);
+      const validRole =
+        userRole as PublisherRole;
+
+      setUserId(user.id);
+      setRole(validRole);
+
+      const {
+        data: siblingRows,
+        error: siblingRowsError,
+      } = await supabase
+        .from("animals")
+        .select(
+          "animal_name, sibling_group_id, created_at"
         )
+        .eq("owner_id", user.id)
+        .not("sibling_group_id", "is", null)
+        .order("created_at", {
+          ascending: true,
+        });
 
-      );
+      if (siblingRowsError) {
+        console.error(
+          "Erreur chargement des fratries :",
+          siblingRowsError
+        );
+      } else {
+        const groups = new Map<
+          string,
+          string[]
+        >();
 
+        for (const row of siblingRows || []) {
+          const groupId = String(
+            row.sibling_group_id || ""
+          ).trim();
 
-
-      body.append(
-
-        "microchipped",
-
-        String(
-
-          form.microchipped
-
-        )
-
-      );
-
-
-
-      body.append(
-
-        "is_published",
-
-        String(
-
-          form.is_published
-
-        )
-
-      );
-
-
-
-      photos.forEach(
-
-        (
-
-          photo
-
-        ) => {
-
-          body.append(
-
-            "photos",
-
-            photo
-
-          );
-
-        }
-
-      );
-
-
-
-      const response =
-
-        await fetch(
-
-          "/api/admin/animals",
-
-          {
-
-            method:
-
-              "POST",
-
-
-
-            headers: {
-
-              Authorization:
-
-                `Bearer ${session.access_token}`,
-
-            },
-
-
-
-            body,
-
+          if (!groupId) {
+            continue;
           }
 
+          const names =
+            groups.get(groupId) || [];
+
+          const animalName = String(
+            row.animal_name || ""
+          ).trim();
+
+          if (
+            animalName &&
+            !names.includes(animalName)
+          ) {
+            names.push(animalName);
+          }
+
+          groups.set(groupId, names);
+        }
+
+        setSiblingGroups(
+          Array.from(
+            groups.entries()
+          ).map(
+            ([id, names], index) => ({
+              id,
+              label:
+                names.length > 0
+                  ? `Fratrie : ${names
+                      .slice(0, 3)
+                      .join(", ")}${
+                      names.length > 3
+                        ? "…"
+                        : ""
+                    }`
+                  : `Fratrie ${index + 1}`,
+            })
+          )
         );
-
-
-
-      const result =
-
-        await response.json();
-
-
-
-      if (
-
-        !response.ok
-
-      ) {
-
-        throw new Error(
-
-          result?.error ||
-
-            "Impossible de créer l'animal."
-
-        );
-
       }
 
+      const organizationName =
+        profileData.organization_name ||
+        user.user_metadata
+          ?.organization_name ||
+        "";
 
+      const fullName =
+        user.user_metadata?.full_name ||
+        [
+          profileData.first_name ||
+            user.user_metadata?.first_name,
+          profileData.last_name ||
+            user.user_metadata?.last_name,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
-      alert(
-
-        `${form.animal_name} a été créé et attribué à ${
-
-          selectedProfile
-
-            ? getProfileName(
-
-                selectedProfile
-
-              )
-
-            : "ce profil"
-
-        }.`
-
+      setPublisherName(
+        organizationName ||
+          fullName ||
+          profileData.email ||
+          user.email ||
+          ROLE_LABELS[validRole]
       );
-
-
-
-      router.push(
-
-        `/admin/animals/${result.animal.id}/edit`
-
-      );
-
-
-
-      router.refresh();
-
-    } catch (
-
-      error
-
-    ) {
-
-      console.error(
-
-        "Erreur création animal admin :",
-
-        error
-
-      );
-
-
-
-      alert(
-
-        error instanceof
-
-          Error
-
-          ? error.message
-
-          : "Impossible de créer l'animal."
-
-      );
-
+    } catch (error) {
+      console.error("Erreur chargement admin :", error);
+      setLoadError(error instanceof Error ? error.message : "Erreur de chargement des profils.");
     } finally {
+      setCheckingAccess(false);
+    }
+  }, [router]);
 
-      setSaving(
+  function updateField<
+    K extends keyof typeof animal,
+  >(
+    field: K,
+    value: (typeof animal)[K]
+  ) {
+    setAnimal((previousAnimal) => ({
+      ...previousAnimal,
+      [field]: value,
+    }));
+  }
 
-        false
-
+  function updateCharacterField(
+    field:
+      | keyof typeof animal
+      | "vigilance_points",
+    value: string | string[]
+  ) {
+    if (field === "vigilance_points") {
+      setVigilancePoints(
+        Array.isArray(value) ? value : []
       );
 
+      return;
     }
 
+    if (Array.isArray(value)) {
+      return;
+    }
+
+    updateField(field, value);
   }
 
+  function validateAnimal() {
+    if (!ownerId) {
+      alert("Sélectionne le profil auquel appartient cet animal.");
+      setStep(1);
+      return false;
+    }
+    if (!animal.animal_name.trim()) {
+      alert(
+        "Merci d’indiquer le nom de l’animal."
+      );
 
+      setStep(1);
+      return false;
+    }
 
-  if (
+    if (!animal.animal_type.trim()) {
+      alert(
+        "Merci d’indiquer le type d’animal."
+      );
 
-    loading
+      setStep(1);
+      return false;
+    }
 
+    if (!animal.sex.trim()) {
+      alert(
+        "Merci d’indiquer le sexe de l’animal."
+      );
+
+      setStep(1);
+      return false;
+    }
+
+    if (!animal.island.trim()) {
+      alert("Merci d’indiquer l’île.");
+
+      setStep(6);
+      return false;
+    }
+
+    return true;
+  }
+
+  function getDashboardPath() {
+    switch (role) {
+      case "association":
+        return "/association/dashboard";
+
+      case "refuge":
+        return "/refuge/dashboard";
+
+      case "benevole":
+        return "/benevole/dashboard";
+
+      case "fourriere":
+        return "/fourriere/dashboard";
+
+      case "admin":
+        return "/admin/dashboard";
+
+      default:
+        return "/";
+    }
+  }
+
+  function getAnimalsPath() {
+    return "/admin/animals";
+  }
+
+  function buildFacebookShareUrl(
+    animalId: string
   ) {
+    const publicAnimalUrl =
+      `https://www.taui-te-ora.com/animal/${encodeURIComponent(
+        animalId
+      )}?adoption=1`;
 
     return (
-
-      <main className="flex min-h-screen items-center justify-center bg-[#fbf7ef]">
-
-        <div className="text-center">
-
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#d8e9e3] border-t-[#064b42]" />
-
-
-
-          <p className="mt-4 font-black text-[#064b42]">
-
-            Chargement...
-
-          </p>
-
-        </div>
-
-      </main>
-
+      "https://www.facebook.com/sharer/sharer.php?u=" +
+      encodeURIComponent(publicAnimalUrl)
     );
-
   }
 
+  function closeShareModal() {
+    setFacebookShareAnimalId(null);
+    setFacebookShareAnimalName("");
 
+    router.push(getAnimalsPath());
+  }
+
+  function shareOnPersonalFacebook() {
+    if (!facebookShareAnimalId) {
+      return;
+    }
+
+    const shareUrl =
+      buildFacebookShareUrl(
+        facebookShareAnimalId
+      );
+
+    window.open(
+      shareUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    setFacebookShareAnimalId(null);
+    setFacebookShareAnimalName("");
+
+    router.push(getAnimalsPath());
+  }
+
+  async function saveAnimal(
+    publish: boolean
+  ) {
+    try {
+      if (!validateAnimal()) {
+        return;
+      }
+
+      if (!userId || !role) {
+        alert(
+          "Votre session n'est plus valide. Merci de vous reconnecter."
+        );
+
+        router.push("/login");
+        return;
+      }
+
+      setSaving(true);
+
+      const streetDuration =
+        animal.street_duration_number
+          ? `${animal.street_duration_number} ${animal.street_duration_unit}`
+          : null;
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.access_token) throw new Error("Session administrateur expirée.");
+      const body = new FormData();
+      body.append("owner_id", ownerId);
+      body.append("animal_name", animal.animal_name);
+      body.append("animal_type", animal.animal_type);
+      body.append("street_duration", streetDuration || "");
+      for (const [key, value] of Object.entries(animal)) {
+        if (["animal_name", "animal_type", "street_duration_number", "street_duration_unit", "is_published"].includes(key)) continue;
+        body.append(key, String(value));
+      }
+      body.append("vigilance_points", JSON.stringify(vigilancePoints));
+      body.append("is_published", String(publish));
+      for (const photo of photos) body.append("photos", photo);
+      if (video) body.append("video", video);
+      const response = await fetch("/api/admin/animals", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body,
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.animal?.id) {
+        throw new Error(result?.error || "Impossible d'enregistrer l'animal.");
+      }
+      const createdAnimal = result.animal as { id: string };
+      if (publish) {
+        setFacebookShareAnimalId(
+          createdAnimal.id
+        );
+
+        setFacebookShareAnimalName(
+          animal.animal_name
+        );
+
+        return;
+      }
+
+      alert(
+        "Animal enregistré en brouillon."
+      );
+
+      router.push(getAnimalsPath());
+    } catch (error: unknown) {
+      console.error(
+        "Erreur enregistrement animal COMPLETE :",
+        error
+      );
+
+      const supabaseError =
+        error as {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+        };
+
+      const errorLines = [
+        supabaseError.code
+          ? `Code : ${supabaseError.code}`
+          : null,
+
+        supabaseError.message
+          ? `Message : ${supabaseError.message}`
+          : null,
+
+        supabaseError.details
+          ? `Détails : ${supabaseError.details}`
+          : null,
+
+        supabaseError.hint
+          ? `Aide : ${supabaseError.hint}`
+          : null,
+      ].filter(Boolean);
+
+      alert(
+        errorLines.length > 0
+          ? errorLines.join("\n")
+          : "Erreur inconnue lors de l’enregistrement de l’animal."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void checkAccess();
+    });
+  }, [checkAccess]);
+
+  if (checkingAccess) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[#fbf7ef] px-5">
+        <div className="rounded-[28px] bg-white px-8 py-7 text-center shadow-xl">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#efd5d7] border-t-[#df8995]" />
+
+          <p className="mt-4 font-bold text-[#667568]">
+            Vérification de votre
+            compte...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return <main className="min-h-screen bg-[#fbf7ef] p-8 text-red-700">{loadError}</main>;
+  }
+  if (!role) return null;
 
   return (
-
-    <main className="min-h-screen bg-[#fbf7ef] px-4 pb-20 pt-24 text-[#064b42] sm:px-8">
-
-      <section className="mx-auto max-w-6xl">
-
-        <button
-
-          type="button"
-
-          onClick={() =>
-
-            router.push(
-
-              "/admin/dashboard"
-
-            )
-
-          }
-
-          className="mb-7 flex items-center gap-2 font-black"
-
-        >
-
-          <ArrowLeft
-
-            size={20}
-
-          />
-
-
-
-          Retour dashboard
-
-        </button>
-
-
-
-        <div>
-
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#df8995]">
-
-            Administration
-
-          </p>
-
-
-
-          <h1 className="mt-1 text-4xl font-black sm:text-5xl">
-
-            Créer un animal à adopter
-
-          </h1>
-
-
-
-          <p className="mt-3 max-w-3xl text-[#6f5a47]">
-
-            Créez la fiche pour le compte
-
-            d&apos;une association, d&apos;un
-
-            refuge ou d&apos;un autre profil.
-
-            L&apos;animal appartiendra réellement
-
-            au profil sélectionné.
-
-          </p>
-
-        </div>
-
-
-
-        {/* PROPRIETAIRE */}
-
-
-
-        <div className="mt-8 rounded-3xl border-2 border-[#064b42] bg-white p-6 shadow-sm">
-
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#df8995]">
-
-            Étape importante
-
-          </p>
-
-
-
-          <h2 className="mt-1 text-2xl font-black">
-
-            À quel profil appartient cet animal ?
-
-          </h2>
-
-
-
-          <div className="relative mt-5">
-
-            <Search
-
-              size={19}
-
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-
-            />
-
-
-
-            <input
-
-              type="text"
-
-              value={
-
-                profileSearch
-
-              }
-
-              onChange={(
-
-                event
-
-              ) =>
-
-                setProfileSearch(
-
-                  event.target.value
-
-                )
-
-              }
-
-              placeholder="Rechercher association, refuge, utilisateur, email..."
-
-              className="w-full rounded-2xl border border-[#d8e9e3] bg-[#faf7f2] py-4 pl-12 pr-4 font-bold outline-none"
-
-            />
-
+    <>
+      <main className="min-h-[100dvh] bg-[#fbf7ef] px-4 py-6 text-[#064b42] sm:p-8">
+        <section className="mx-auto max-w-5xl">
+          <div className="rounded-[28px] bg-white p-5 shadow-md sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#df8995]">
+                  Taui Te Ora
+                </p>
+
+                <h1 className="mt-2 text-3xl font-black sm:text-5xl">
+                  Ajouter un animal
+                </h1>
+
+                <p className="mt-2 text-gray-500">
+                  Créez une fiche animal
+                  complète pour
+                  l’adoption.
+                </p>
+              </div>
+
+              <div className="rounded-[20px] bg-[#f8f1ea] px-5 py-4">
+                <p className="text-xs font-black uppercase tracking-wide text-[#a98b73]">
+                  Compte
+                </p>
+
+                <p className="mt-1 font-black text-[#064b42]">
+                  {ROLE_LABELS[role]}
+                </p>
+
+                {publisherName && (
+                  <p className="mt-1 max-w-[240px] truncate text-sm text-[#746c64]">
+                    {publisherName}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
+          <div className="mt-5 rounded-[28px] bg-white p-5 shadow-md sm:p-6">
+            <label className="block text-sm font-black text-[#064b42]">À quel profil appartient cet animal ? *</label>
+            <input className="input mt-3 w-full" placeholder="Rechercher une association, un refuge, un bénévole ou un profil..."
+              value={ownerSearch} onChange={e => setOwnerSearch(e.target.value)} />
+            <select className="input mt-3 w-full" value={ownerId} onChange={e => setOwnerId(e.target.value)}>
+              <option value="">Choisir le propriétaire / responsable</option>
+              {profiles.filter(profile => !ownerSearch || `${profileLabel(profile)} ${profile.role || ""} ${profile.email || ""}`.toLowerCase().includes(ownerSearch.toLowerCase()) || profile.id === ownerId).map(profile => (
+                <option key={profile.id} value={profile.id}>{profileLabel(profile)} — {profile.role || "profil"}</option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-gray-500">La fiche sera rattachée au profil choisi, pas à l'administrateur.</p>
+          </div>
+          <ProgressBar step={step} />
 
-
-          <select
-
-            value={
-
-              selectedOwnerId
-
-            }
-
-            onChange={(
-
-              event
-
-            ) =>
-
-              setSelectedOwnerId(
-
-                event.target.value
-
-              )
-
-            }
-
-            className="mt-4 w-full rounded-2xl border border-[#d8e9e3] bg-white px-4 py-4 font-black outline-none"
-
-          >
-
-            <option value="">
-
-              Sélectionner le propriétaire réel
-
-            </option>
-
-
-
-            {filteredProfiles.map(
-
-              (
-
-                profile
-
-              ) => (
-
-                <option
-
-                  key={
-
-                    profile.id
-
-                  }
-
-                  value={
-
-                    profile.id
-
-                  }
-
-                >
-
-                  {getProfileName(
-
-                    profile
-
-                  )}{" "}
-
-                  —{" "}
-
-                  {getRoleLabel(
-
-                    profile.role
-
-                  )}
-
-                </option>
-
-              )
-
+          <div className="mt-8 rounded-[32px] bg-white p-5 shadow-xl sm:p-8">
+            {step === 1 && (
+              <Step1General
+                animal={animal}
+                siblingGroups={
+                  siblingGroups
+                }
+                updateField={
+                  updateField
+                }
+              />
             )}
 
-          </select>
-
-
-
-          {selectedProfile && (
-
-            <div className="mt-4 rounded-2xl bg-[#e8f5f1] p-4">
-
-              <p className="font-black">
-
-                ✓ Propriétaire sélectionné :
-
-                {" "}
-
-                {getProfileName(
-
-                  selectedProfile
-
-                )}
-
-              </p>
-
-
-
-              <p className="mt-1 text-sm font-bold text-[#6f5a47]">
-
-                {getRoleLabel(
-
-                  selectedProfile.role
-
-                )}
-
-                {selectedProfile.email
-
-                  ? ` • ${selectedProfile.email}`
-
-                  : ""}
-
-              </p>
-
-            </div>
-
-          )}
-
-        </div>
-
-
-
-        {/* INFORMATIONS */}
-
-
-
-        <div className="mt-7 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-
-          <h2 className="text-2xl font-black">
-
-            Informations de l&apos;animal
-
-          </h2>
-
-
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-
-            <Field
-
-              label="Nom *"
-
-              value={
-
-                form.animal_name
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "animal_name",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <Field
-
-              label="Référence"
-
-              value={
-
-                form.reference_number
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "reference_number",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <SelectField
-
-              label="Type *"
-
-              value={
-
-                form.animal_type
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "animal_type",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Chien",
-
-                "Chat",
-
-                "Cheval",
-
-                "Oiseau",
-
-                "Autre",
-
-              ]}
-
-            />
-
-
-
-            <SelectField
-
-              label="Sexe"
-
-              value={
-
-                form.sex
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "sex",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Mâle",
-
-                "Femelle",
-
-              ]}
-
-            />
-
-
-
-            <Field
-
-              label="Âge"
-
-              value={
-
-                form.age_label
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "age_label",
-
-                  value
-
-                )
-
-              }
-
-              placeholder="Ex : 2 ans"
-
-            />
-
-
-
-            <Field
-
-              label="Race"
-
-              value={
-
-                form.breed
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "breed",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <SelectField
-
-              label="Taille"
-
-              value={
-
-                form.size_label
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "size_label",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Petit",
-
-                "Moyen",
-
-                "Grand",
-
-                "Très grand",
-
-              ]}
-
-            />
-
-
-
-            <Field
-
-              label="Poids"
-
-              value={
-
-                form.weight_kg
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "weight_kg",
-
-                  value
-
-                )
-
-              }
-
-              placeholder="Ex : 12.5"
-
-            />
-
-
-
-            <Field
-
-              label="Île"
-
-              value={
-
-                form.island
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "island",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <Field
-
-              label="Commune"
-
-              value={
-
-                form.city
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "city",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <Field
-
-              label="Adresse / secteur"
-
-              value={
-
-                form.map_address
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "map_address",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <Field
-
-              label="Lieu de récupération"
-
-              value={
-
-                form.capture_location
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "capture_location",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <Field
-
-              label="Temps passé dans la rue"
-
-              value={
-
-                form.street_duration
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "street_duration",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-          </div>
-
-
-
-          <div className="mt-5 space-y-5">
-
-            <TextareaField
-
-              label="Caractère"
-
-              value={
-
-                form.description_character
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "description_character",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <TextareaField
-
-              label="État de santé"
-
-              value={
-
-                form.health_status
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "health_status",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <TextareaField
-
-              label="Besoins particuliers"
-
-              value={
-
-                form.special_needs
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "special_needs",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-
-
-            <TextareaField
-
-              label="Son histoire"
-
-              value={
-
-                form.story
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "story",
-
-                  value
-
-                )
-
-              }
-
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {/* COMPATIBILITE */}
-
-
-
-        <div className="mt-7 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-
-          <h2 className="text-2xl font-black">
-
-            Compatibilités
-
-          </h2>
-
-
-
-          <div className="mt-5 grid gap-5 md:grid-cols-3">
-
-            <SelectField
-
-              label="Chiens"
-
-              value={
-
-                form.compatible_chiens
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "compatible_chiens",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Oui",
-
-                "Non",
-
-                "À tester",
-
-                "Inconnu",
-
-              ]}
-
-            />
-
-
-
-            <SelectField
-
-              label="Chats"
-
-              value={
-
-                form.compatible_chats
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "compatible_chats",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Oui",
-
-                "Non",
-
-                "À tester",
-
-                "Inconnu",
-
-              ]}
-
-            />
-
-
-
-            <SelectField
-
-              label="Enfants"
-
-              value={
-
-                form.compatible_enfants
-
-              }
-
-              onChange={(
-
-                value
-
-              ) =>
-
-                updateField(
-
-                  "compatible_enfants",
-
-                  value
-
-                )
-
-              }
-
-              options={[
-
-                "Oui",
-
-                "Non",
-
-                "À tester",
-
-                "Inconnu",
-
-              ]}
-
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {/* SANTE */}
-
-
-
-        <div className="mt-7 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-
-          <h2 className="text-2xl font-black">
-
-            Santé & identification
-
-          </h2>
-
-
-
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-
-            <CheckField
-
-              label="Vacciné"
-
-              checked={
-
-                form.vaccinated
-
-              }
-
-              onChange={(
-
-                checked
-
-              ) =>
-
-                updateField(
-
-                  "vaccinated",
-
-                  checked
-
-                )
-
-              }
-
-            />
-
-
-
-            <CheckField
-
-              label="Stérilisé"
-
-              checked={
-
-                form.sterilized
-
-              }
-
-              onChange={(
-
-                checked
-
-              ) =>
-
-                updateField(
-
-                  "sterilized",
-
-                  checked
-
-                )
-
-              }
-
-            />
-
-
-
-            <CheckField
-
-              label="Identifié / pucé"
-
-              checked={
-
-                form.microchipped
-
-              }
-
-              onChange={(
-
-                checked
-
-              ) =>
-
-                updateField(
-
-                  "microchipped",
-
-                  checked
-
-                )
-
-              }
-
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {/* PHOTOS */}
-
-
-
-        <div className="mt-7 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-
-          <h2 className="text-2xl font-black">
-
-            Photos
-
-          </h2>
-
-
-
-          <p className="mt-2 text-sm text-[#6f5a47]">
-
-            Maximum 5 photos. La première
-
-            sera utilisée comme photo principale.
-
-          </p>
-
-
-
-          <ImageCropInput
-            multiple
-            maxFiles={Math.max(1, 5 - photos.length)}
-            maxSizeMB={15}
-            aspect={1}
-            disabled={photos.length >= 5}
-            onFilesReady={handleCroppedPhotos}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#d8e9e3] bg-[#f8f4ec] px-6 py-6 font-black disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Camera size={22} />
-            {photos.length >= 5
-              ? "Maximum 5 photos"
-              : "Ajouter et recadrer des photos"}
-          </ImageCropInput>
-
-
-
-          {photoPreviews.length >
-
-            0 && (
-
-            <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-
-              {photoPreviews.map(
-
-                (
-
-                  preview,
-
-                  index
-
-                ) => (
-
-                  <div
-
-                    key={
-
-                      `${preview}-${index}`
-
-                    }
-
-                    className="relative overflow-hidden rounded-2xl bg-[#f8f4ec]"
-
-                  >
-
-                    <img
-
-                      src={
-
-                        preview
-
-                      }
-
-                      alt={`Photo ${
-
-                        index +
-
+            {step === 2 && (
+              <Step2Photos
+                photos={photos}
+                setPhotos={
+                  setPhotos
+                }
+                video={video}
+                setVideo={setVideo}
+              />
+            )}
+
+            {step === 3 && (
+              <Step3Health
+                animal={animal}
+                updateField={
+                  updateField
+                }
+              />
+            )}
+
+            {step === 4 && (
+              <Step4Character
+                animal={{
+                  ...animal,
+                  vigilance_points:
+                    vigilancePoints,
+                }}
+                updateField={
+                  updateCharacterField
+                }
+              />
+            )}
+
+            {step === 5 && (
+              <Step5Story
+                animal={animal}
+                updateField={
+                  updateField
+                }
+              />
+            )}
+
+            {step === 6 && (
+              <Step6Location
+                animal={animal}
+                updateField={
+                  updateField
+                }
+              />
+            )}
+
+            {step === 7 && (
+              <Step7Preview
+                animal={animal}
+                photos={photos}
+              />
+            )}
+
+            <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() =>
+                  step === 1
+                    ? router.push(
+                        getDashboardPath()
+                      )
+                    : setStep(
+                        (
+                          currentStep
+                        ) =>
+                          currentStep -
+                          1
+                      )
+                }
+                className="rounded-2xl bg-gray-100 px-6 py-4 font-black disabled:opacity-60"
+              >
+                {step === 1
+                  ? "Annuler"
+                  : "Retour"}
+              </button>
+
+              {step < 7 ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() =>
+                    setStep(
+                      (
+                        currentStep
+                      ) =>
+                        currentStep +
                         1
+                    )
+                  }
+                  className="rounded-2xl bg-[#064b42] px-6 py-4 font-black text-white disabled:opacity-60"
+                >
+                  Suivant
+                </button>
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() =>
+                      saveAnimal(false)
+                    }
+                    className="rounded-2xl bg-gray-100 px-6 py-4 font-black disabled:opacity-60"
+                  >
+                    {saving
+                      ? "Sauvegarde..."
+                      : "Brouillon"}
+                  </button>
 
-                      }`}
-
-                      className="aspect-square h-full w-full object-cover"
-
-                    />
-
-
-
-                    {index ===
-
-                      0 && (
-
-                      <span className="absolute left-2 top-2 rounded-full bg-[#064b42] px-2 py-1 text-xs font-black text-white">
-
-                        Principale
-
-                      </span>
-
-                    )}
-
-
-
-                    <button
-
-                      type="button"
-
-                      onClick={() =>
-
-                        removePhoto(
-
-                          index
-
-                        )
-
-                      }
-
-                      className="absolute right-2 top-2 rounded-full bg-white p-2 shadow"
-
-                    >
-
-                      <X
-
-                        size={16}
-
-                      />
-
-                    </button>
-
-                  </div>
-
-                )
-
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() =>
+                      saveAnimal(true)
+                    }
+                    className="rounded-2xl bg-[#064b42] px-6 py-4 font-black text-white disabled:opacity-60"
+                  >
+                    {saving
+                      ? "Publication..."
+                      : "Publier"}
+                  </button>
+                </div>
               )}
+            </div>
+          </div>
+        </section>
+      </main>
 
+      {facebookShareAnimalId && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-[30px] bg-white p-6 text-center shadow-2xl sm:p-8">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#fcecef] text-3xl">
+              🐾
             </div>
 
-          )}
-
-        </div>
-
-
-
-        {/* PUBLICATION */}
-
-
-
-        <div className="mt-7 rounded-3xl bg-white p-6 shadow-sm">
-
-          <label className="flex items-center justify-between gap-5">
-
-            <div>
-
-              <p className="font-black">
-
-                Publier immédiatement
-
-              </p>
-
-
-
-              <p className="mt-1 text-sm text-[#6f5a47]">
-
-                Si désactivé, la fiche sera
-
-                créée mais restera non publiée.
-
-              </p>
-
-            </div>
-
-
-
-            <input
-
-              type="checkbox"
-
-              checked={
-
-                form.is_published
-
-              }
-
-              onChange={(
-
-                event
-
-              ) =>
-
-                updateField(
-
-                  "is_published",
-
-                  event.target.checked
-
-                )
-
-              }
-
-              className="h-6 w-6"
-
-            />
-
-          </label>
-
-        </div>
-
-
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-
-          <button
-
-            type="button"
-
-            disabled={
-
-              saving
-
-            }
-
-            onClick={() =>
-
-              void saveAnimal()
-
-            }
-
-            className="flex min-h-[56px] flex-1 items-center justify-center gap-2 rounded-2xl bg-[#064b42] px-8 py-4 text-lg font-black text-white shadow disabled:opacity-50"
-
-          >
-
-            <Save
-
-              size={21}
-
-            />
-
-
-
-            {saving
-
-              ? "Création en cours..."
-
-              : "Créer et attribuer l’animal"}
-
-          </button>
-
-
-
-          <button
-
-            type="button"
-
-            disabled={
-
-              saving
-
-            }
-
-            onClick={() =>
-
-              router.push(
-
-                "/admin/animals"
-
-              )
-
-            }
-
-            className="min-h-[56px] rounded-2xl bg-white px-8 py-4 font-black shadow"
-
-          >
-
-            Annuler
-
-          </button>
-
-        </div>
-
-
-
-        {!selectedOwnerId && (
-
-          <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[#fff4e5] p-4 text-[#8b653c]">
-
-            <PawPrint
-
-              size={22}
-
-            />
-
-
-
-            <p className="font-bold">
-
-              Sélectionne d&apos;abord le
-
-              profil propriétaire avant
-
-              d&apos;enregistrer.
-
+            <h2 className="mt-5 text-2xl font-black text-[#064b42]">
+              Animal publié !
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              <strong>
+                {facebookShareAnimalName ||
+                  "L’animal"}
+              </strong>{" "}
+              est maintenant publié sur
+              TAUI TE ORA.
             </p>
 
+            <div className="mt-4 rounded-2xl bg-[#f5f9f7] px-4 py-4 text-sm leading-6 text-[#064b42]">
+              Son annonce sera
+              automatiquement partagée
+              sur la page Facebook{" "}
+              <strong>
+                Les Veilleurs de Kali
+              </strong>
+              .
+            </div>
+
+            <p className="mt-5 font-bold text-[#064b42]">
+              Souhaitez-vous également
+              partager cette annonce sur
+              votre profil Facebook ?
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={
+                  shareOnPersonalFacebook
+                }
+                className="rounded-2xl bg-[#1877f2] px-5 py-4 font-black text-white shadow-md"
+              >
+                Partager sur Facebook
+              </button>
+
+              <button
+                type="button"
+                onClick={closeShareModal}
+                className="rounded-2xl bg-gray-100 px-5 py-4 font-black text-[#064b42]"
+              >
+                Non merci
+              </button>
+            </div>
           </div>
-
-        )}
-
-      </section>
-
-    </main>
-
+        </div>
+      )}
+    </>
   );
-
-}
-
-
-
-function Field({
-
-  label,
-
-  value,
-
-  onChange,
-
-  placeholder = "",
-
-}: {
-
-  label: string;
-
-  value: string;
-
-  onChange: (
-
-    value: string
-
-  ) => void;
-
-  placeholder?: string;
-
-}) {
-
-  return (
-
-    <label className="block">
-
-      <span className="mb-2 block font-black">
-
-        {label}
-
-      </span>
-
-
-
-      <input
-
-        type="text"
-
-        value={
-
-          value
-
-        }
-
-        placeholder={
-
-          placeholder
-
-        }
-
-        onChange={(
-
-          event
-
-        ) =>
-
-          onChange(
-
-            event.target.value
-
-          )
-
-        }
-
-        className="w-full rounded-2xl border border-[#d8e9e3] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
-
-      />
-
-    </label>
-
-  );
-
-}
-
-
-
-function TextareaField({
-
-  label,
-
-  value,
-
-  onChange,
-
-}: {
-
-  label: string;
-
-  value: string;
-
-  onChange: (
-
-    value: string
-
-  ) => void;
-
-}) {
-
-  return (
-
-    <label className="block">
-
-      <span className="mb-2 block font-black">
-
-        {label}
-
-      </span>
-
-
-
-      <textarea
-
-        rows={4}
-
-        value={
-
-          value
-
-        }
-
-        onChange={(
-
-          event
-
-        ) =>
-
-          onChange(
-
-            event.target.value
-
-          )
-
-        }
-
-        className="w-full rounded-2xl border border-[#d8e9e3] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
-
-      />
-
-    </label>
-
-  );
-
-}
-
-
-
-function SelectField({
-
-  label,
-
-  value,
-
-  onChange,
-
-  options,
-
-}: {
-
-  label: string;
-
-  value: string;
-
-  onChange: (
-
-    value: string
-
-  ) => void;
-
-  options: string[];
-
-}) {
-
-  return (
-
-    <label className="block">
-
-      <span className="mb-2 block font-black">
-
-        {label}
-
-      </span>
-
-
-
-      <select
-
-        value={
-
-          value
-
-        }
-
-        onChange={(
-
-          event
-
-        ) =>
-
-          onChange(
-
-            event.target.value
-
-          )
-
-        }
-
-        className="w-full rounded-2xl border border-[#d8e9e3] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
-
-      >
-
-        <option value="">
-
-          Sélectionner
-
-        </option>
-
-
-
-        {options.map(
-
-          (
-
-            option
-
-          ) => (
-
-            <option
-
-              key={
-
-                option
-
-              }
-
-              value={
-
-                option
-
-              }
-
-            >
-
-              {option}
-
-            </option>
-
-          )
-
-        )}
-
-      </select>
-
-    </label>
-
-  );
-
-}
-
-
-
-function CheckField({
-
-  label,
-
-  checked,
-
-  onChange,
-
-}: {
-
-  label: string;
-
-  checked: boolean;
-
-  onChange: (
-
-    checked: boolean
-
-  ) => void;
-
-}) {
-
-  return (
-
-    <label className="flex items-center justify-between rounded-2xl bg-[#f8f4ec] p-4 font-black">
-
-      {label}
-
-
-
-      <input
-
-        type="checkbox"
-
-        checked={
-
-          checked
-
-        }
-
-        onChange={(
-
-          event
-
-        ) =>
-
-          onChange(
-
-            event.target.checked
-
-          )
-
-        }
-
-        className="h-5 w-5"
-
-      />
-
-    </label>
-
-  );
-
 }

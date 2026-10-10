@@ -1,1454 +1,2811 @@
 "use client";
 
 import {
+
   useCallback,
+
   useEffect,
+
   useState,
+
 } from "react";
+
 import {
+
   ArrowLeft,
+
   CheckCircle2,
+
   Eye,
+
   EyeOff,
+
   Save,
+
   Trash2,
+
 } from "lucide-react";
+
 import {
+
   useParams,
+
   useRouter,
+
 } from "next/navigation";
 
 import { supabase } from "../../../../lib/supabase";
+
 import AnimalBreedSelect from "../../../../components/AnimalBreedSelect";
+
 import {
+
   ANIMAL_AGES,
+
   ANIMAL_SEXES,
+
   ANIMAL_SIZES,
+
   ANIMAL_TYPES,
+
   ANIMAL_WEIGHTS,
+
   COMPATIBILITY_OPTIONS,
+
   HEALTH_STATUS_OPTIONS,
+
   POLYNESIA_ISLANDS,
+
   getCommunesForIsland,
+
 } from "../../../../lib/animalFormOptions";
 
 type AnimalStatus =
+
   | "available"
+
   | "adopted"
+
   | "archive";
 
 type AnimalForm = {
+
   reference_number: string;
+
   animal_name: string;
+
   animal_type: string;
+
   age_label: string;
+
   sex: string;
+
   breed: string;
+
   size_label: string;
+
   association_name: string;
+
   street_duration: string;
+
   capture_location: string;
+
   island: string;
+
   city: string;
+
   map_address: string;
+
   description_character: string;
+
   health_status: string;
+
   special_needs: string;
+
   story: string;
+
   weight_kg: string;
+
   status: string;
+
   compatible_chiens: string;
+
   compatible_chats: string;
+
   compatible_enfants: string;
+
   is_published: boolean;
+
   is_adopted: boolean;
+
   vaccinated: boolean;
+
   sterilized: boolean;
+
   microchipped: boolean;
+
 };
 
 const EMPTY_FORM: AnimalForm = {
+
   reference_number: "",
+
   animal_name: "",
+
   animal_type: "",
+
   age_label: "",
+
   sex: "",
+
   breed: "",
+
   size_label: "",
+
   association_name: "",
+
   street_duration: "",
+
   capture_location: "",
+
   island: "",
+
   city: "",
+
   map_address: "",
+
   description_character: "",
+
   health_status: "",
+
   special_needs: "",
+
   story: "",
+
   weight_kg: "",
+
   status: "available",
+
   compatible_chiens: "",
+
   compatible_chats: "",
+
   compatible_enfants: "",
+
   is_published: false,
+
   is_adopted: false,
+
   vaccinated: false,
+
   sterilized: false,
+
   microchipped: false,
+
 };
 
 export default function EditAnimalPage() {
+
   const router = useRouter();
+
   const params = useParams();
 
   const animalId =
+
     params.animalId as string;
 
   const [loading, setLoading] =
+
     useState(true);
 
   const [saving, setSaving] =
+
     useState(false);
 
   const [deleting, setDeleting] =
+
     useState(false);
 
   const [adoptedAt, setAdoptedAt] =
+
     useState<string | null>(null);
 
+  const [conditionsSource, setConditionsSource] = useState<"owner" | "association">("owner");
+  const [conditionsOwnerId, setConditionsOwnerId] = useState("");
+  const [conditionsAssociationId, setConditionsAssociationId] = useState("");
+  const [officialAssociationId, setOfficialAssociationId] = useState("");
+  const [conditions, setConditions] = useState<Array<{ id: string; label: string; sort_order: number; is_active: boolean }>>([]);
+  const [conditionsLoading, setConditionsLoading] = useState(false);
+  const [conditionsSaving, setConditionsSaving] = useState(false);
+  const [newCondition, setNewCondition] = useState("");
+  const [conditionsError, setConditionsError] = useState("");
+
   const [form, setForm] =
+
     useState<AnimalForm>(
+
       EMPTY_FORM
+
     );
 
   const checkAdminAndLoadAnimal =
+
     useCallback(async () => {
+
       try {
+
         setLoading(true);
 
         const {
+
           data: { user },
+
           error: userError,
+
         } =
+
           await supabase.auth.getUser();
 
         if (userError) {
+
           throw userError;
+
         }
 
         if (!user) {
+
           router.replace(
+
             `/login?redirect=/admin/animals/${animalId}/edit`
+
           );
+
           return;
+
         }
 
         const {
+
           data: profile,
+
           error: profileError,
+
         } =
+
           await supabase
+
             .from("profiles")
+
             .select("role")
+
             .eq("id", user.id)
+
             .maybeSingle();
 
         if (profileError) {
+
           throw profileError;
+
         }
 
         if (
+
           String(
+
             profile?.role || ""
+
           )
+
             .trim()
+
             .toLowerCase() !==
+
           "admin"
+
         ) {
+
           router.replace("/");
+
           return;
+
         }
 
         const {
+
           data,
+
           error,
+
         } =
+
           await supabase
+
             .from("animals")
+
             .select("*")
+
             .eq("id", animalId)
+
             .maybeSingle();
 
         if (error) {
+
           throw error;
+
         }
 
         if (!data) {
+
           alert(
+
             "Animal introuvable."
+
           );
 
           router.replace(
+
             "/admin/animals"
+
           );
+
           return;
+
         }
 
+        setConditionsSource(String(data.adoption_conditions_source || "").toLowerCase().includes("association") ? "association" : "owner");
+        setConditionsOwnerId(data.adoption_conditions_owner_id || data.owner_id || "");
+        setOfficialAssociationId(data.official_association_id || "");
+        setConditionsAssociationId(data.adoption_conditions_association_id || data.official_association_id || "");
+
         setAdoptedAt(
+
           data.adopted_at || null
+
         );
 
         setForm({
+
           reference_number:
+
             data.reference_number ||
+
             "",
+
           animal_name:
+
             data.animal_name || "",
+
           animal_type:
+
             data.animal_type || "",
+
           age_label:
+
             data.age_label || "",
+
           sex:
+
             data.sex || "",
+
           breed:
+
             data.breed || "",
+
           size_label:
+
             data.size_label || "",
+
           association_name:
+
             data.association_name ||
+
             "",
+
           street_duration:
+
             data.street_duration ||
+
             "",
+
           capture_location:
+
             data.capture_location ||
+
             "",
+
           island:
+
             data.island || "",
+
           city:
+
             data.city || "",
+
           map_address:
+
             data.map_address || "",
+
           description_character:
+
             data.description_character ||
+
             "",
+
           health_status:
+
             data.health_status || "",
+
           special_needs:
+
             data.special_needs || "",
+
           story:
+
             data.story || "",
+
           weight_kg:
+
             data.weight_kg !==
+
               null &&
+
             data.weight_kg !==
+
               undefined
+
               ? String(
+
                   data.weight_kg
+
                 )
+
               : "",
+
           status:
+
             data.status ||
+
             "available",
+
           compatible_chiens:
+
             data.compatible_chiens ||
+
             "",
+
           compatible_chats:
+
             data.compatible_chats ||
+
             "",
+
           compatible_enfants:
+
             data.compatible_enfants ||
+
             "",
+
           is_published:
+
             !!data.is_published,
+
           is_adopted:
+
             !!data.is_adopted,
+
           vaccinated:
+
             !!data.vaccinated,
+
           sterilized:
+
             !!data.sterilized,
+
           microchipped:
+
             !!data.microchipped,
+
         });
+
       } catch (error: unknown) {
+
         console.error(
+
           "Erreur chargement animal :",
+
           error
+
         );
 
         alert(
+
           error instanceof Error
+
             ? error.message
+
             : "Impossible de charger cet animal."
+
         );
 
         router.replace(
+
           "/admin/animals"
+
         );
+
       } finally {
+
         setLoading(false);
+
       }
+
     }, [animalId, router]);
 
   useEffect(() => {
+
     const timeoutId =
+
       window.setTimeout(
+
         () => {
+
           void checkAdminAndLoadAnimal();
+
         },
+
         0
+
       );
 
     return () => {
+
       window.clearTimeout(timeoutId);
+
     };
+
   }, [
+
     checkAdminAndLoadAnimal,
+
   ]);
 
+  const loadConditions = useCallback(async () => {
+    const ownerId = conditionsOwnerId;
+    const associationId = conditionsAssociationId;
+    if (conditionsSource === "association" ? !associationId : !ownerId) {
+      setConditions([]);
+      return;
+    }
+    setConditionsLoading(true);
+    setConditionsError("");
+    try {
+      let query = supabase.from("adoption_conditions")
+        .select("id, label, sort_order, is_active");
+      query = conditionsSource === "association"
+        ? query.eq("official_association_id", associationId)
+        : query.eq("owner_id", ownerId).is("official_association_id", null);
+      const { data, error } = await query.order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+      if (error) throw error;
+      setConditions((data || []).map((row) => ({
+        id: row.id, label: row.label || "", sort_order: row.sort_order || 0,
+        is_active: Boolean(row.is_active),
+      })));
+    } catch (error) {
+      setConditionsError(error instanceof Error ? error.message : "Chargement impossible.");
+    } finally {
+      setConditionsLoading(false);
+    }
+  }, [conditionsSource, conditionsOwnerId, conditionsAssociationId]);
+
+  useEffect(() => {
+    if (!loading) void loadConditions();
+  }, [loading, loadConditions]);
+
+  async function addCondition() {
+    const label = newCondition.trim();
+    if (!label || conditionsSaving) return;
+    if (conditionsSource === "association" && !conditionsAssociationId) {
+      alert("Cet animal n'est rattaché à aucune association officielle."); return;
+    }
+    setConditionsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Connexion requise.");
+      const { error } = await supabase.from("adoption_conditions").insert({
+        owner_id: conditionsSource === "association" ? user.id : conditionsOwnerId,
+        official_association_id: conditionsSource === "association" ? conditionsAssociationId : null,
+        label,
+        sort_order: conditions.length ? Math.max(...conditions.map((item) => item.sort_order)) + 1 : 0,
+        is_active: true,
+      });
+      if (error) throw error;
+      setNewCondition("");
+      await loadConditions();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Ajout impossible.");
+    } finally {
+      setConditionsSaving(false);
+    }
+  }
+
+  async function saveConditions() {
+    if (conditionsSaving) return;
+    setConditionsSaving(true);
+    try {
+      for (let index = 0; index < conditions.length; index++) {
+        const item = conditions[index];
+        if (!item.label.trim()) throw new Error("Une condition ne peut pas être vide.");
+        const { error } = await supabase.from("adoption_conditions")
+          .update({ label: item.label.trim(), is_active: item.is_active, sort_order: index })
+          .eq("id", item.id);
+        if (error) throw error;
+      }
+      await loadConditions();
+      alert("Conditions enregistrées.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Enregistrement impossible.");
+    } finally {
+      setConditionsSaving(false);
+    }
+  }
+
   function updateField(
+
     name: keyof AnimalForm,
+
     value: string | boolean
+
   ) {
+
     setForm((previous) => ({
+
       ...previous,
+
       [name]: value,
+
     }));
+
   }
 
   function changeStatus(
+
     status: AnimalStatus
+
   ) {
+
     setForm((previous) => {
+
       if (
+
         status === "adopted"
+
       ) {
+
         return {
+
           ...previous,
+
           status: "adopted",
+
           is_adopted: true,
+
           is_published: false,
+
         };
+
       }
 
       if (
+
         status === "archive"
+
       ) {
+
         return {
+
           ...previous,
+
           status: "archive",
+
           is_adopted: false,
+
           is_published: false,
+
         };
+
       }
 
       return {
+
         ...previous,
+
         status: "available",
+
         is_adopted: false,
+
         is_published: false,
+
       };
+
     });
+
   }
 
   function togglePublication() {
+
     if (
+
       form.is_adopted ||
+
       form.status === "adopted"
+
     ) {
+
       alert(
+
         "Un animal adopté ne peut pas être publié."
+
       );
+
       return;
+
     }
 
     if (
+
       form.status === "archive"
+
     ) {
+
       alert(
+
         "Un animal archivé doit d'abord être réactivé."
+
       );
+
       return;
+
     }
 
     setForm((previous) => ({
+
       ...previous,
+
       is_published:
+
         !previous.is_published,
+
     }));
+
   }
 
   async function saveAnimal() {
+
     if (!form.animal_name.trim()) {
+
       alert(
+
         "Le nom de l'animal est obligatoire."
+
       );
+
       return;
+
     }
 
     const weight =
+
       form.weight_kg.trim();
 
     if (
+
       weight &&
+
       (!Number.isFinite(
+
         Number(weight)
+
       ) ||
+
         Number(weight) < 0)
+
     ) {
+
       alert(
+
         "Le poids doit être un nombre valide."
+
       );
+
       return;
+
     }
 
     try {
+
       setSaving(true);
 
       const {
+
         data: { user },
+
         error: userError,
+
       } =
+
         await supabase.auth.getUser();
 
       if (
+
         userError ||
+
         !user
+
       ) {
+
         throw (
+
           userError ||
+
           new Error(
+
             "Utilisateur non connecté."
+
           )
+
         );
+
       }
 
       const normalizedStatus =
+
         form.is_adopted
+
           ? "adopted"
+
           : form.status ===
+
               "archive"
+
             ? "archive"
+
             : "available";
 
       const published =
+
         normalizedStatus ===
+
           "available" &&
+
         form.is_published;
 
       const nextAdoptedAt =
+
         normalizedStatus === "adopted"
+
           ? adoptedAt ||
+
             new Date().toISOString()
+
           : null;
 
       const { error } =
+
         await supabase
+
           .from("animals")
+
           .update({
+
             reference_number:
+
               form.reference_number.trim(),
+
             animal_name:
+
               form.animal_name.trim(),
+
             animal_type:
+
               form.animal_type.trim(),
+
             age_label:
+
               form.age_label.trim(),
+
             sex:
+
               form.sex.trim(),
+
             breed:
+
               form.breed.trim(),
+
             size_label:
+
               form.size_label.trim(),
+
             association_name:
+
               form.association_name.trim(),
+
             street_duration:
+
               form.street_duration.trim(),
+
             capture_location:
+
               form.capture_location.trim(),
+
             island:
+
               form.island.trim(),
+
             city:
+
               form.city.trim(),
+
             map_address:
+
               form.map_address.trim(),
+
             description_character:
+
               form.description_character.trim(),
+
             health_status:
+
               form.health_status.trim(),
+
             special_needs:
+
               form.special_needs.trim(),
+
             story:
+
               form.story.trim(),
+
             weight_kg: weight
+
               ? Number(weight)
+
               : null,
+
             status:
+
               normalizedStatus,
+
             compatible_chiens:
+
               form.compatible_chiens.trim(),
+
             compatible_chats:
+
               form.compatible_chats.trim(),
+
             compatible_enfants:
+
               form.compatible_enfants.trim(),
+
             is_published:
+
               published,
+
             is_adopted:
+
               normalizedStatus ===
+
               "adopted",
+
             adopted_at:
+
               nextAdoptedAt,
+
             vaccinated:
+
               form.vaccinated,
+
             sterilized:
+
               form.sterilized,
+
             microchipped:
+
               form.microchipped,
+
+              adoption_conditions_source: conditionsSource,
+              adoption_conditions_owner_id: conditionsSource === "owner" ? conditionsOwnerId : null,
+              adoption_conditions_association_id: conditionsSource === "association" ? conditionsAssociationId : null,
             updated_at:
+
               new Date().toISOString(),
+
           })
+
           .eq("id", animalId);
 
       if (error) {
+
         throw error;
+
       }
 
       alert(
+
         "Profil animal mis à jour."
+
       );
 
       router.push(
+
         "/admin/animals"
+
       );
+
     } catch (error: unknown) {
+
       console.error(
+
         "Erreur enregistrement animal :",
+
         error
+
       );
 
       alert(
+
         error instanceof Error
+
           ? error.message
+
           : "Erreur lors de l'enregistrement."
+
       );
+
     } finally {
+
       setSaving(false);
+
     }
+
   }
 
   async function deleteAnimal() {
+
     const firstConfirmation =
+
       window.confirm(
+
         `Supprimer définitivement "${
+
           form.animal_name ||
+
           "cet animal"
+
         }" ?`
+
       );
 
     if (!firstConfirmation) return;
 
     const secondConfirmation =
+
       window.confirm(
+
         "ATTENTION : cette opération est définitive. Confirmer une seconde fois ?"
+
       );
 
     if (!secondConfirmation) return;
 
     try {
+
       setDeleting(true);
 
       const {
+
         data: { user },
+
         error: userError,
+
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
+
         throw (
+
           userError ||
+
           new Error(
+
             "Utilisateur non connecté."
+
           )
+
         );
+
       }
 
       const {
+
         data: profile,
+
         error: profileError,
+
       } = await supabase
+
         .from("profiles")
+
         .select("role")
+
         .eq("id", user.id)
+
         .maybeSingle();
 
       if (profileError) {
+
         throw profileError;
+
       }
 
       if (
+
         String(profile?.role || "")
+
           .trim()
+
           .toLowerCase() !== "admin"
+
       ) {
+
         throw new Error(
+
           "Seul un administrateur peut supprimer définitivement un animal."
+
         );
+
       }
 
       const { error } = await supabase
+
         .from("animals")
+
         .delete()
+
         .eq("id", animalId);
 
       if (error) {
+
         throw error;
+
       }
 
       alert(
+
         "Animal supprimé définitivement."
+
       );
 
       router.replace(
+
         "/admin/animals"
+
       );
+
       router.refresh();
+
     } catch (error: unknown) {
+
       console.error(
+
         "Erreur suppression animal :",
+
         error
+
       );
 
       alert(
+
         error instanceof Error
+
           ? error.message
+
           : "Impossible de supprimer cet animal."
+
       );
+
     } finally {
+
       setDeleting(false);
+
     }
+
   }
 
   if (loading) {
+
     return (
+
       <main className="flex min-h-screen items-center justify-center bg-[#f8f4ec]">
+
         <p className="font-bold text-[#064b42]">
+
           Chargement du profil animal...
+
         </p>
+
       </main>
+
     );
+
   }
 
   const currentStatus:
+
     AnimalStatus =
+
       form.is_adopted ||
+
       form.status === "adopted"
+
         ? "adopted"
+
         : form.status ===
+
             "archive"
+
           ? "archive"
+
           : "available";
 
   return (
+
     <main className="min-h-screen bg-[#f8f4ec] px-4 pb-16 pt-24 text-[#064b42] sm:px-8">
+
       <section className="mx-auto max-w-6xl">
 
         <button
+
           type="button"
+
           onClick={() =>
+
             router.push(
+
               "/admin/animals"
+
             )
+
           }
+
           className="mb-6 flex items-center gap-2 font-black"
+
         >
+
           <ArrowLeft size={20} />
+
           Retour aux animaux
+
         </button>
 
         <div>
+
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b68b2f]">
+
             Administration
+
           </p>
 
           <h1 className="mt-1 text-4xl font-black sm:text-5xl">
+
             Modifier le profil animal
+
           </h1>
 
           <p className="mt-2 text-[#6f5a47]">
+
             Gestion complète des informations,
+
             de la publication et du statut.
+
           </p>
+
         </div>
 
         <Section
+
           title="Informations principales"
+
         >
+
           <div className="grid gap-5 md:grid-cols-2">
+
             <Input
+
               label="Référence"
+
               value={
+
                 form.reference_number
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "reference_number",
+
                   value
+
                 )
+
               }
+
             />
 
             <Input
+
               label="Nom de l'animal"
+
               value={
+
                 form.animal_name
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "animal_name",
+
                   value
+
                 )
+
               }
+
             />
 
             <div>
+
               <label className="mb-2 block font-bold text-[#064b42]">
+
                 Type
+
               </label>
 
               <select
+
                 value={form.animal_type}
+
                 onChange={(event) => {
+
                   updateField(
+
                     "animal_type",
+
                     event.target.value
+
                   );
+
                   updateField(
+
                     "breed",
+
                     ""
+
                   );
+
                 }}
+
                 className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+
               >
+
                 <option value="">
+
                   Sélectionner
+
                 </option>
+
                 {ANIMAL_TYPES.map((type) => (
+
                   <option key={type} value={type}>
+
                     {type}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
 
             <OptionSelect
+
               label="Âge"
+
               value={form.age_label}
+
               options={ANIMAL_AGES}
+
               onChange={(value) =>
+
                 updateField(
+
                   "age_label",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="Sexe"
+
               value={form.sex}
+
               options={ANIMAL_SEXES}
+
               onChange={(value) =>
+
                 updateField(
+
                   "sex",
+
                   value
+
                 )
+
               }
+
             />
 
             <div>
+
               <label className="mb-2 block font-bold text-[#064b42]">
+
                 Race
+
               </label>
 
               <AnimalBreedSelect
+
                 species={form.animal_type}
+
                 value={form.breed}
+
                 onChange={(value) =>
+
                   updateField(
+
                     "breed",
+
                     value
+
                   )
+
                 }
+
                 className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+
               />
+
             </div>
 
             <OptionSelect
+
               label="Taille"
+
               value={form.size_label}
+
               options={ANIMAL_SIZES}
+
               onChange={(value) =>
+
                 updateField(
+
                   "size_label",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="Poids kg"
+
               value={form.weight_kg}
+
               options={ANIMAL_WEIGHTS}
+
               optionLabel={(value) =>
+
                 value === "Inconnu"
+
                   ? "Poids inconnu"
+
                   : `${value} kg`
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "weight_kg",
+
                   value === "Inconnu"
+
                     ? ""
+
                     : value
+
                 )
+
               }
+
             />
+
           </div>
+
         </Section>
 
         <Section
+
           title="Structure et localisation"
+
         >
+
           <div className="grid gap-5 md:grid-cols-2">
+
             <Input
+
               label="Structure"
+
               value={
+
                 form.association_name
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "association_name",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="Île"
+
               value={form.island}
+
               options={POLYNESIA_ISLANDS}
+
               onChange={(value) => {
+
                 updateField(
+
                   "island",
+
                   value
+
                 );
+
                 updateField(
+
                   "city",
+
                   ""
+
                 );
+
               }}
+
             />
 
             <OptionSelect
+
               label="Commune"
+
               value={form.city}
+
               options={getCommunesForIsland(
+
                 form.island
+
               )}
+
               disabled={!form.island}
+
               placeholder={
+
                 form.island
+
                   ? "Sélectionner"
+
                   : "Choisissez d'abord l'île"
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "city",
+
                   value
+
                 )
+
               }
+
             />
 
             <Input
+
               label="Adresse carte"
+
               value={
+
                 form.map_address
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "map_address",
+
                   value
+
                 )
+
               }
+
             />
 
             <Input
+
               label="Lieu de capture"
+
               value={
+
                 form.capture_location
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "capture_location",
+
                   value
+
                 )
+
               }
+
             />
 
             <Input
+
               label="Temps dans la rue"
+
               value={
+
                 form.street_duration
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "street_duration",
+
                   value
+
                 )
+
               }
+
             />
+
           </div>
+
         </Section>
 
         <Section
+
           title="Description complète"
+
         >
+
           <div className="space-y-5">
+
             <Textarea
+
               label="Caractère"
+
               value={
+
                 form.description_character
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "description_character",
+
                   value
+
                 )
+
               }
+
             />
 
             <Textarea
+
               label="Histoire"
+
               value={form.story}
+
               onChange={(value) =>
+
                 updateField(
+
                   "story",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="État de santé"
+
               value={form.health_status}
+
               options={HEALTH_STATUS_OPTIONS}
+
               onChange={(value) =>
+
                 updateField(
+
                   "health_status",
+
                   value
+
                 )
+
               }
+
             />
 
             <Textarea
+
               label="Besoins particuliers"
+
               value={
+
                 form.special_needs
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "special_needs",
+
                   value
+
                 )
+
               }
+
             />
+
           </div>
+
         </Section>
 
         <Section
+
           title="Compatibilités et santé"
+
         >
+
           <div className="grid gap-5 md:grid-cols-2">
+
             <OptionSelect
+
               label="Compatible chiens"
+
               value={form.compatible_chiens}
+
               options={COMPATIBILITY_OPTIONS}
+
               onChange={(value) =>
+
                 updateField(
+
                   "compatible_chiens",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="Compatible chats"
+
               value={form.compatible_chats}
+
               options={COMPATIBILITY_OPTIONS}
+
               onChange={(value) =>
+
                 updateField(
+
                   "compatible_chats",
+
                   value
+
                 )
+
               }
+
             />
 
             <OptionSelect
+
               label="Compatible enfants"
+
               value={form.compatible_enfants}
+
               options={COMPATIBILITY_OPTIONS}
+
               onChange={(value) =>
+
                 updateField(
+
                   "compatible_enfants",
+
                   value
+
                 )
+
               }
+
             />
 
             <BooleanSelect
+
               label="Vacciné"
+
               value={
+
                 form.vaccinated
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "vaccinated",
+
                   value
+
                 )
+
               }
+
             />
 
             <BooleanSelect
+
               label="Stérilisé"
+
               value={
+
                 form.sterilized
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "sterilized",
+
                   value
+
                 )
+
               }
+
             />
 
             <BooleanSelect
+
               label="Pucé"
+
               value={
+
                 form.microchipped
+
               }
+
               onChange={(value) =>
+
                 updateField(
+
                   "microchipped",
+
                   value
+
                 )
+
               }
+
             />
+
           </div>
+
+        </Section>
+
+        <Section title="Conditions d'adoption">
+          <p className="mb-5 text-sm leading-6 text-[#6f5a47]">
+            Ces conditions sont partagées par tous les animaux du même profil ou de la même association.
+            Les candidatures déjà signées conservent leur copie.
+          </p>
+          <label className="mb-2 block font-bold">Conditions applicables à cet animal</label>
+          <select
+            value={conditionsSource}
+            onChange={(event) => setConditionsSource(event.target.value as "owner" | "association")}
+            className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3"
+          >
+            <option value="owner">Conditions du profil responsable</option>
+            <option value="association" disabled={!officialAssociationId}>Conditions de l'association officielle</option>
+          </select>
+          {conditionsSource === "association" && !conditionsAssociationId && (
+            <p className="mt-3 text-sm text-red-700">Aucune association officielle n'est renseignée pour cet animal.</p>
+          )}
+          <p className="mt-3 text-xs text-[#6f5a47]">
+            Pour appliquer ce choix à l'animal, cliquez également sur « Enregistrer les modifications » en bas de page.
+          </p>
+          {conditionsLoading ? <p className="mt-5">Chargement des conditions...</p> : (
+            <div className="mt-5 space-y-3">
+              {conditions.map((item, index) => (
+                <div key={item.id} className="rounded-2xl border border-[#eadfce] bg-[#faf7f2] p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold">Condition {index + 1}</span>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={item.is_active}
+                        onChange={(event) => setConditions((prev) => prev.map((row) => row.id === item.id ? { ...row, is_active: event.target.checked } : row))} />
+                      Active
+                    </label>
+                  </div>
+                  <textarea rows={2} value={item.label}
+                    onChange={(event) => setConditions((prev) => prev.map((row) => row.id === item.id ? { ...row, label: event.target.value } : row))}
+                    className="w-full rounded-xl border border-[#eadfce] bg-white p-3" />
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" disabled={index === 0}
+                      onClick={() => setConditions((prev) => { const next = [...prev]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; })}
+                      className="rounded-lg bg-white px-3 py-1 text-sm disabled:opacity-30">Monter</button>
+                    <button type="button" disabled={index === conditions.length - 1}
+                      onClick={() => setConditions((prev) => { const next = [...prev]; [next[index], next[index + 1]] = [next[index + 1], next[index]]; return next; })}
+                      className="rounded-lg bg-white px-3 py-1 text-sm disabled:opacity-30">Descendre</button>
+                  </div>
+                </div>
+              ))}
+              {conditions.length === 0 && <p className="text-sm text-[#6f5a47]">Aucune condition enregistrée pour cette source.</p>}
+            </div>
+          )}
+          {conditionsError && <p className="mt-3 text-sm text-red-700">{conditionsError}</p>}
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <input value={newCondition} onChange={(event) => setNewCondition(event.target.value)}
+              placeholder="Nouvelle condition d'adoption"
+              className="min-w-0 flex-1 rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3" />
+            <button type="button" disabled={conditionsSaving || !newCondition.trim()}
+              onClick={() => void addCondition()}
+              className="rounded-2xl bg-[#df8995] px-5 py-3 font-bold text-white disabled:opacity-40">Ajouter</button>
+          </div>
+          <button type="button" disabled={conditionsSaving || conditionsLoading}
+            onClick={() => void saveConditions()}
+            className="mt-4 rounded-2xl bg-[#064b42] px-6 py-3 font-bold text-white disabled:opacity-40">
+            {conditionsSaving ? "Enregistrement..." : "Enregistrer les conditions"}
+          </button>
         </Section>
 
         <Section
+
           title="Statut et publication"
+
         >
+
           <div className="grid gap-3 md:grid-cols-3">
+
             <StatusButton
+
               active={
+
                 currentStatus ===
+
                 "available"
+
               }
+
               title="Disponible"
+
               description="Animal actif, publiable."
+
               onClick={() =>
+
                 changeStatus(
+
                   "available"
+
                 )
+
               }
+
             />
 
             <StatusButton
+
               active={
+
                 currentStatus ===
+
                 "adopted"
+
               }
+
               title="Adopté"
+
               description="Visible 5 jours dans le swipe avec le badge ADOPTED."
+
               onClick={() =>
+
                 changeStatus(
+
                   "adopted"
+
                 )
+
               }
+
             />
 
             <StatusButton
+
               active={
+
                 currentStatus ===
+
                 "archive"
+
               }
+
               title="Archivé"
+
               description="Conservé dans l'historique."
+
               onClick={() =>
+
                 changeStatus(
+
                   "archive"
+
                 )
+
               }
+
             />
+
           </div>
 
           <div className="mt-6 rounded-3xl border border-[#eadfce] bg-[#faf7f2] p-5">
+
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+
               <div>
+
                 <p className="font-black">
+
                   Publication publique
+
                 </p>
 
                 <p className="mt-1 text-sm text-[#6f5a47]">
+
                   {form.is_published
+
                     ? "Cet animal est actuellement visible sur TAUI TE ORA."
+
                     : "Cet animal n'est pas visible dans les annonces publiques."}
+
                 </p>
+
               </div>
 
               <button
+
                 type="button"
+
                 onClick={
+
                   togglePublication
+
                 }
+
                 disabled={
+
                   currentStatus !==
+
                   "available"
+
                 }
+
                 className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-black disabled:cursor-not-allowed disabled:opacity-40 ${
+
                   form.is_published
+
                     ? "bg-amber-100 text-amber-800"
+
                     : "bg-[#064b42] text-white"
+
                 }`}
+
               >
+
                 {form.is_published ? (
+
                   <>
+
                     <EyeOff
+
                       size={18}
+
                     />
+
                     Dépublier
+
                   </>
+
                 ) : (
+
                   <>
+
                     <Eye
+
                       size={18}
+
                     />
+
                     Publier
+
                   </>
+
                 )}
+
               </button>
+
             </div>
+
           </div>
+
         </Section>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+
           <button
+
             type="button"
+
             onClick={saveAnimal}
+
             disabled={saving}
+
             className="flex items-center justify-center gap-2 rounded-2xl bg-[#064b42] px-8 py-4 font-black text-white shadow disabled:opacity-50"
+
           >
+
             <Save size={19} />
 
             {saving
+
               ? "Enregistrement..."
+
               : "Enregistrer les modifications"}
+
           </button>
 
           <button
+
             type="button"
+
             onClick={() =>
+
               router.push(
+
                 `/animal/${animalId}`
+
               )
+
             }
+
             className="flex items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 font-black text-[#064b42] shadow"
+
           >
+
             <CheckCircle2
+
               size={19}
+
             />
+
             Voir la fiche
+
           </button>
 
           <button
+
             type="button"
+
             onClick={() =>
+
               router.push(
+
                 "/admin/animals"
+
               )
+
             }
+
             className="rounded-2xl bg-white px-8 py-4 font-black text-gray-600 shadow"
+
           >
+
             Annuler
+
           </button>
+
         </div>
 
         <div className="mt-8 rounded-3xl border border-red-200 bg-red-50 p-6">
+
           <h3 className="font-black text-red-800">
+
             Zone dangereuse
+
           </h3>
 
           <p className="mt-2 text-sm text-red-700">
+
             La suppression définitive est réservée à l&apos;administration.
+
             Si des données liées existent encore, Supabase peut refuser la suppression afin de préserver leur intégrité.
+
           </p>
 
           <button
+
             type="button"
+
             onClick={deleteAnimal}
+
             disabled={deleting}
+
             className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-red-700 px-6 py-3 font-black text-white disabled:opacity-50"
+
           >
+
             <Trash2 size={18} />
+
             {deleting
+
               ? "Suppression..."
+
               : "Supprimer définitivement l'animal"}
+
           </button>
+
         </div>
+
       </section>
+
     </main>
+
   );
+
 }
 
 function Section({
+
   title,
+
   children,
+
 }: {
+
   title: string;
+
   children: React.ReactNode;
+
 }) {
+
   return (
+
     <section className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
+
       <h2 className="mb-6 text-2xl font-black text-[#2f241c]">
+
         {title}
+
       </h2>
 
       {children}
+
     </section>
+
   );
+
 }
 
 function Input({
+
   label,
+
   value,
+
   onChange,
+
 }: {
+
   label: string;
+
   value: string;
+
   onChange: (
+
     value: string
+
   ) => void;
+
 }) {
+
   return (
+
     <div>
+
       <label className="mb-2 block font-bold text-[#064b42]">
+
         {label}
+
       </label>
 
       <input
+
         value={value}
+
         onChange={(event) =>
+
           onChange(
+
             event.target.value
+
           )
+
         }
+
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+
       />
+
     </div>
+
   );
+
 }
 
-
 function OptionSelect({
+
   label,
+
   value,
+
   options,
+
   onChange,
+
   disabled = false,
+
   placeholder = "Sélectionner",
+
   optionLabel,
+
 }: {
+
   label: string;
+
   value: string;
+
   options: readonly string[];
+
   onChange: (
+
     value: string
+
   ) => void;
+
   disabled?: boolean;
+
   placeholder?: string;
+
   optionLabel?: (
+
     value: string
+
   ) => string;
+
 }) {
+
   const knownValue =
+
     options.includes(
+
       value
+
     );
 
   return (
+
     <div>
+
       <label className="mb-2 block font-bold text-[#064b42]">
+
         {label}
+
       </label>
 
       <select
+
         value={
+
           knownValue
+
             ? value
+
             : value
+
               ? "__legacy__"
+
               : ""
+
         }
+
         disabled={disabled}
+
         onChange={(event) => {
+
           if (
+
             event.target.value ===
+
             "__legacy__"
+
           ) {
+
             return;
+
           }
 
           onChange(
+
             event.target.value
+
           );
+
         }}
+
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42] disabled:cursor-not-allowed disabled:opacity-50"
+
       >
+
         <option value="">
+
           {placeholder}
+
         </option>
 
         {value &&
+
           !knownValue && (
+
             <option value="__legacy__">
+
               {value} (ancienne valeur)
+
             </option>
+
           )}
 
         {options.map(
+
           (option) => (
+
             <option
+
               key={option}
+
               value={option}
+
             >
+
               {optionLabel
+
                 ? optionLabel(option)
+
                 : option}
+
             </option>
+
           )
+
         )}
+
       </select>
+
     </div>
+
   );
+
 }
 
 function Textarea({
+
   label,
+
   value,
+
   onChange,
+
 }: {
+
   label: string;
+
   value: string;
+
   onChange: (
+
     value: string
+
   ) => void;
+
 }) {
+
   return (
+
     <div>
+
       <label className="mb-2 block font-bold text-[#064b42]">
+
         {label}
+
       </label>
 
       <textarea
+
         value={value}
+
         onChange={(event) =>
+
           onChange(
+
             event.target.value
+
           )
+
         }
+
         rows={5}
+
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+
       />
+
     </div>
+
   );
+
 }
 
 function BooleanSelect({
+
   label,
+
   value,
+
   onChange,
+
 }: {
+
   label: string;
+
   value: boolean;
+
   onChange: (
+
     value: boolean
+
   ) => void;
+
 }) {
+
   return (
+
     <div>
+
       <label className="mb-2 block font-bold text-[#064b42]">
+
         {label}
+
       </label>
 
       <select
+
         value={
+
           value
+
             ? "true"
+
             : "false"
+
         }
+
         onChange={(event) =>
+
           onChange(
+
             event.target.value ===
+
               "true"
+
           )
+
         }
+
         className="w-full rounded-2xl border border-[#eadfce] bg-[#faf7f2] px-4 py-3 outline-none focus:border-[#064b42]"
+
       >
+
         <option value="true">
+
           Oui
+
         </option>
 
         <option value="false">
+
           Non
+
         </option>
+
       </select>
+
     </div>
+
   );
+
 }
 
 function StatusButton({
+
   active,
+
   title,
+
   description,
+
   onClick,
+
 }: {
+
   active: boolean;
+
   title: string;
+
   description: string;
+
   onClick: () => void;
+
 }) {
+
   return (
+
     <button
+
       type="button"
+
       onClick={onClick}
+
       className={`rounded-3xl border p-5 text-left transition ${
+
         active
+
           ? "border-[#064b42] bg-[#064b42] text-white"
+
           : "border-[#eadfce] bg-[#faf7f2] text-[#064b42]"
+
       }`}
+
     >
+
       <p className="font-black">
+
         {title}
+
       </p>
 
       <p
+
         className={`mt-1 text-sm ${
+
           active
+
             ? "text-white/80"
+
             : "text-[#6f5a47]"
+
         }`}
+
       >
+
         {description}
+
       </p>
+
     </button>
+
   );
+
 }

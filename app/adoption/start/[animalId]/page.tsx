@@ -73,6 +73,10 @@ type AnimalRow = {
   animal_name: string | null;
 
   owner_id: string;
+  official_association_id?: string | null;
+  adoption_conditions_source?: string | null;
+  adoption_conditions_owner_id?: string | null;
+  adoption_conditions_association_id?: string | null;
 
   garden_requirement?: string | null;
 
@@ -227,6 +231,8 @@ export default function AdoptionStartPage() {
   const [owner, setOwner] = useState<OwnerProfile | null>(null);
 
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
+  const [conditionProvider, setConditionProvider] = useState("la structure");
+  const [conditionsOwnerId, setConditionsOwnerId] = useState("");
 
   const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
 
@@ -569,58 +575,92 @@ export default function AdoptionStartPage() {
       const typedAnimal = animalData as AnimalRow;
 
       const ownerResponse = await fetch(
+
         `/api/adoption/owner-profile?ownerId=${encodeURIComponent(
+
           typedAnimal.owner_id
+
         )}`,
+
         {
+
           method: "GET",
+
           headers: {
+
             Authorization: `Bearer ${session.access_token}`,
+
           },
+
           cache: "no-store",
+
         }
+
       );
 
       const ownerPayload = (await ownerResponse
+
         .json()
+
         .catch(() => null)) as
+
         | {
+
             owner?: OwnerProfile;
+
             error?: string;
+
           }
+
         | null;
 
       if (!ownerResponse.ok) {
+
         throw new Error(
+
           ownerPayload?.error ||
+
             "Impossible de récupérer le profil de la structure."
+
         );
+
       }
 
       if (!ownerPayload?.owner) {
+
         throw new Error(
+
           "Le profil de la structure est introuvable."
+
         );
+
       }
 
       const ownerData =
+
         ownerPayload.owner;
 
-      const { data: conditionRows, error: conditionError } = await supabase
-
+      // Respecte la source choisie pour cet animal. Les anciennes fiches
+      // sans source explicite conservent les conditions de leur propriétaire.
+      const source = (typedAnimal.adoption_conditions_source || "").toLowerCase();
+      const associationId = typedAnimal.adoption_conditions_association_id || typedAnimal.official_association_id;
+      const useAssociation = source.includes("association") && Boolean(associationId);
+      const providerOwnerId = typedAnimal.adoption_conditions_owner_id || typedAnimal.owner_id;
+      let conditionQuery = supabase
         .from("adoption_conditions")
-
         .select("id, label, sort_order")
-
-        .eq("owner_id", typedAnimal.owner_id)
-
-        .eq("is_active", true)
-
+        .eq("is_active", true);
+      if (useAssociation) {
+        conditionQuery = conditionQuery.eq("official_association_id", associationId!);
+      } else {
+        conditionQuery = conditionQuery.eq("owner_id", providerOwnerId).is("official_association_id", null);
+      }
+      const { data: conditionRows, error: conditionError } = await conditionQuery
         .order("sort_order", { ascending: true })
-
         .order("created_at", { ascending: true });
-
       if (conditionError) throw conditionError;
+      setConditionsOwnerId(useAssociation ? typedAnimal.owner_id : providerOwnerId);
+      setConditionProvider(useAssociation ? "l'association officielle" : ownerDisplayName(ownerData as OwnerProfile));
 
       const typedConditions = (conditionRows || []) as ConditionRow[];
 
@@ -876,7 +916,7 @@ export default function AdoptionStartPage() {
 
       conditions_snapshot: snapshot,
 
-      conditions_owner_id: animal.owner_id,
+      conditions_owner_id: conditionsOwnerId || animal.owner_id,
 
       conditions_accepted_at: now,
 
@@ -994,7 +1034,7 @@ export default function AdoptionStartPage() {
 
           `Bonjour, je souhaite adopter ${animal.animal_name || "cet animal"}. ` +
 
-          `J’ai lu, accepté et signé l’ensemble des conditions d’adoption de ${ownerDisplayName(owner)}.`,
+          `J’ai lu, accepté et signé l’ensemble des conditions d’adoption de ${conditionProvider}.`,
 
       });
 
@@ -1222,7 +1262,7 @@ export default function AdoptionStartPage() {
 
                 Pour envoyer votre demande pour <strong>{animal?.animal_name || "cet animal"}</strong>,
 
-                vous devez accepter toutes les conditions de <strong>{ownerDisplayName(owner)}</strong> puis signer.
+                vous devez accepter toutes les conditions de <strong>{conditionProvider}</strong> puis signer.
 
               </p>
 

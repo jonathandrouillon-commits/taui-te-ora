@@ -1,14 +1,11 @@
 import {
   NextResponse,
 } from "next/server";
-
 import {
   createClient,
 } from "@supabase/supabase-js";
-
 export const runtime =
   "nodejs";
-
 function getBearerToken(
   request: Request
 ) {
@@ -16,7 +13,6 @@ function getBearerToken(
     request.headers.get(
       "authorization"
     );
-
   if (
     !authorization ||
     !authorization
@@ -27,12 +23,10 @@ function getBearerToken(
   ) {
     return null;
   }
-
   return authorization
     .slice(7)
     .trim();
 }
-
 function getText(
   formData: FormData,
   key: string
@@ -41,13 +35,11 @@ function getText(
     formData.get(
       key
     );
-
   return typeof value ===
     "string"
     ? value.trim()
     : "";
 }
-
 function getBoolean(
   formData: FormData,
   key: string
@@ -60,7 +52,6 @@ function getBoolean(
     "true"
   );
 }
-
 function getProfileName(
   profile:
     Record<
@@ -75,30 +66,24 @@ function getProfileName(
         profile.company_name ||
         ""
     ).trim();
-
   if (organization) {
     return organization;
   }
-
   const firstName =
     String(
       profile.first_name ||
         ""
     ).trim();
-
   const lastName =
     String(
       profile.last_name ||
         ""
     ).trim();
-
   const complete =
     `${firstName} ${lastName}`.trim();
-
   if (complete) {
     return complete;
   }
-
   return String(
     profile.display_name ||
       profile.full_name ||
@@ -106,7 +91,6 @@ function getProfileName(
       "Taui Te Ora"
   ).trim();
 }
-
 function getExtension(
   file: File
 ) {
@@ -115,7 +99,6 @@ function getExtension(
       .toLowerCase()
       .split(".")
       .pop();
-
   if (
     extension &&
     [
@@ -131,25 +114,20 @@ function getExtension(
   ) {
     return extension;
   }
-
   return "jpg";
 }
-
 export async function POST(
   request: Request
 ) {
   const supabaseUrl =
     process.env
       .NEXT_PUBLIC_SUPABASE_URL;
-
   const supabaseAnonKey =
     process.env
       .NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   const serviceRoleKey =
     process.env
       .SUPABASE_SERVICE_ROLE_KEY;
-
   if (
     !supabaseUrl ||
     !supabaseAnonKey ||
@@ -166,19 +144,16 @@ export async function POST(
       }
     );
   }
-
   try {
     /*
      * =====================================================
      * AUTHENTIFICATION ADMIN
      * =====================================================
      */
-
     const token =
       getBearerToken(
         request
       );
-
     if (!token) {
       return NextResponse.json(
         {
@@ -191,7 +166,6 @@ export async function POST(
         }
       );
     }
-
     const authClient =
       createClient(
         supabaseUrl,
@@ -200,11 +174,9 @@ export async function POST(
           auth: {
             persistSession:
               false,
-
             autoRefreshToken:
               false,
           },
-
           global: {
             headers: {
               Authorization:
@@ -213,7 +185,6 @@ export async function POST(
           },
         }
       );
-
     const {
       data: {
         user,
@@ -224,7 +195,6 @@ export async function POST(
       await authClient.auth.getUser(
         token
       );
-
     if (
       userError ||
       !user
@@ -240,12 +210,10 @@ export async function POST(
         }
       );
     }
-
     /*
      * Client Service Role.
      * Utilisé uniquement côté serveur.
      */
-
     const adminSupabase =
       createClient(
         supabaseUrl,
@@ -254,13 +222,11 @@ export async function POST(
           auth: {
             persistSession:
               false,
-
             autoRefreshToken:
               false,
           },
         }
       );
-
     const {
       data:
         adminProfile,
@@ -279,13 +245,11 @@ export async function POST(
           user.id
         )
         .maybeSingle();
-
     if (
       adminProfileError
     ) {
       throw adminProfileError;
     }
-
     if (
       String(
         adminProfile?.role ||
@@ -306,34 +270,28 @@ export async function POST(
         }
       );
     }
-
     /*
      * =====================================================
      * FORMULAIRE
      * =====================================================
      */
-
     const formData =
       await request.formData();
-
     const ownerId =
       getText(
         formData,
         "owner_id"
       );
-
     const animalName =
       getText(
         formData,
         "animal_name"
       );
-
     const animalType =
       getText(
         formData,
         "animal_type"
       );
-
     if (!ownerId) {
       return NextResponse.json(
         {
@@ -346,7 +304,6 @@ export async function POST(
         }
       );
     }
-
     if (!animalName) {
       return NextResponse.json(
         {
@@ -359,7 +316,6 @@ export async function POST(
         }
       );
     }
-
     if (!animalType) {
       return NextResponse.json(
         {
@@ -372,13 +328,11 @@ export async function POST(
         }
       );
     }
-
     /*
      * =====================================================
      * VERIFICATION DU VRAI PROPRIETAIRE
      * =====================================================
      */
-
     const {
       data:
         ownerProfile,
@@ -395,13 +349,11 @@ export async function POST(
           ownerId
         )
         .maybeSingle();
-
     if (
       ownerError
     ) {
       throw ownerError;
     }
-
     if (!ownerProfile) {
       return NextResponse.json(
         {
@@ -414,7 +366,6 @@ export async function POST(
         }
       );
     }
-
     const ownerName =
       getProfileName(
         ownerProfile as Record<
@@ -422,23 +373,19 @@ export async function POST(
           unknown
         >
       );
-
     /*
      * =====================================================
      * DONNEES ANIMAL
      * =====================================================
      */
-
     const weightText =
       getText(
         formData,
         "weight_kg"
       );
-
     let weightKg:
       number | null =
       null;
-
     if (
       weightText
     ) {
@@ -449,7 +396,6 @@ export async function POST(
             "."
           )
         );
-
       if (
         !Number.isNaN(
           parsedWeight
@@ -459,183 +405,161 @@ export async function POST(
           parsedWeight;
       }
     }
-
     const animalToCreate = {
       owner_id:
         ownerId,
-
       association_name:
         ownerName,
-
       reference_number:
         getText(
           formData,
           "reference_number"
         ) ||
         null,
-
       animal_name:
         animalName,
-
       animal_type:
         animalType,
-
       age_label:
         getText(
           formData,
           "age_label"
         ) ||
         null,
-
       sex:
         getText(
           formData,
           "sex"
         ) ||
         null,
-
       breed:
         getText(
           formData,
           "breed"
         ) ||
         null,
-
       size_label:
         getText(
           formData,
           "size_label"
         ) ||
         null,
-
       street_duration:
         getText(
           formData,
           "street_duration"
         ) ||
         null,
-
       capture_location:
         getText(
           formData,
           "capture_location"
         ) ||
         null,
-
       island:
         getText(
           formData,
           "island"
         ) ||
         null,
-
       city:
         getText(
           formData,
           "city"
         ) ||
         null,
-
       map_address:
         getText(
           formData,
           "map_address"
         ) ||
         null,
-
       description_character:
         getText(
           formData,
           "description_character"
         ) ||
         null,
-
       health_status:
         getText(
           formData,
           "health_status"
         ) ||
         null,
-
       special_needs:
         getText(
           formData,
           "special_needs"
         ) ||
         null,
-
       story:
         getText(
           formData,
           "story"
         ) ||
         null,
-
       weight_kg:
         weightKg,
-
       compatible_chiens:
         getText(
           formData,
           "compatible_chiens"
         ) ||
         null,
-
       compatible_chats:
         getText(
           formData,
           "compatible_chats"
         ) ||
         null,
-
       compatible_enfants:
         getText(
           formData,
           "compatible_enfants"
         ) ||
         null,
-
       vaccinated:
         getBoolean(
           formData,
           "vaccinated"
         ),
-
       sterilized:
         getBoolean(
           formData,
           "sterilized"
         ),
-
       microchipped:
         getBoolean(
           formData,
           "microchipped"
         ),
-
       status:
         "available",
-
       is_adopted:
         false,
-
-      is_published:
-        getBoolean(
-          formData,
-          "is_published"
-        ),
-
+      is_published: false,
+      sibling_group_id: getText(formData, "sibling_group_id") || null,
+      energy_level: getText(formData, "energy_level") || null,
+      housing_need: getText(formData, "housing_need") || null,
+      alone_tolerance: getText(formData, "alone_tolerance") || null,
+      adopter_experience_required: getText(formData, "adopter_experience_required") || null,
+      education_level: getText(formData, "education_level") || null,
+      human_contact: getText(formData, "human_contact") || null,
+      daily_activity_need: getText(formData, "daily_activity_need") || null,
+      ideal_family: getText(formData, "ideal_family") || null,
+      vigilance_points: (() => {
+        try { const value = JSON.parse(getText(formData, "vigilance_points") || "[]"); return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []; }
+        catch { return []; }
+      })(),
       updated_at:
         new Date()
           .toISOString(),
     };
-
     /*
      * =====================================================
      * CREATION
      * =====================================================
      */
-
     const {
       data:
         animal,
@@ -651,7 +575,6 @@ export async function POST(
         )
         .select("*")
         .single();
-
     if (
       animalError ||
       !animal
@@ -663,18 +586,15 @@ export async function POST(
         )
       );
     }
-
     /*
      * =====================================================
      * PHOTOS
      * =====================================================
      */
-
     const photoValues =
       formData.getAll(
         "photos"
       );
-
     const files =
       photoValues.filter(
         (
@@ -685,11 +605,9 @@ export async function POST(
           value.size >
             0
       );
-
     const uploadedPaths:
       string[] =
       [];
-
     try {
       for (
         let index = 0;
@@ -699,7 +617,6 @@ export async function POST(
       ) {
         const file =
           files[index];
-
         if (
           !file.type.startsWith(
             "image/"
@@ -707,7 +624,6 @@ export async function POST(
         ) {
           continue;
         }
-
         if (
           file.size >
           15 *
@@ -716,18 +632,14 @@ export async function POST(
         ) {
           continue;
         }
-
         const extension =
           getExtension(
             file
           );
-
         const fileName =
           `${Date.now()}-${crypto.randomUUID()}.${extension}`;
-
         const path =
           `${animal.id}/${fileName}`;
-
         const {
           error:
             uploadError,
@@ -742,25 +654,20 @@ export async function POST(
               {
                 cacheControl:
                   "3600",
-
                 upsert:
                   false,
-
                 contentType:
                   file.type,
               }
             );
-
         if (
           uploadError
         ) {
           throw uploadError;
         }
-
         uploadedPaths.push(
           path
         );
-
         const {
           data:
             publicUrlData,
@@ -772,7 +679,6 @@ export async function POST(
             .getPublicUrl(
               path
             );
-
         const {
           error:
             photoError,
@@ -784,18 +690,14 @@ export async function POST(
             .insert({
               animal_id:
                 animal.id,
-
               photo_url:
                 publicUrlData.publicUrl,
-
               is_cover:
                 index ===
                 0,
-
               sort_order:
                 index,
             });
-
         if (
           photoError
         ) {
@@ -811,12 +713,10 @@ export async function POST(
        * on renvoie l'erreur afin de ne pas perdre
        * la fiche saisie.
        */
-
       console.error(
         "Erreur photos animal admin :",
         photoError
       );
-
       return NextResponse.json(
         {
           error:
@@ -824,7 +724,6 @@ export async function POST(
               Error
               ? `Animal créé, mais erreur photo : ${photoError.message}`
               : "Animal créé, mais les photos n'ont pas pu être enregistrées.",
-
           animal,
         },
         {
@@ -833,27 +732,50 @@ export async function POST(
         }
       );
     }
+    // Vidéo, puis publication : les médias doivent être disponibles avant Facebook.
+    const videoValue = formData.get("video");
+    if (videoValue instanceof File && videoValue.size > 0) {
+      if (!videoValue.type.startsWith("video/") || videoValue.size > 100 * 1024 * 1024) {
+        return NextResponse.json({ error: "Animal créé, mais vidéo invalide (maximum 100 Mo).", animal }, { status: 400 });
+      }
+      const ext = (videoValue.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const videoPath = `${animal.id}/videos/${crypto.randomUUID()}.${ext || "mp4"}`;
+      const { error: videoUploadError } = await adminSupabase.storage.from("animals").upload(videoPath, videoValue, {
+        upsert: false,
+        contentType: videoValue.type,
+      });
+      if (videoUploadError) throw new Error(`Animal créé, mais erreur vidéo : ${videoUploadError.message}`);
+      const { data: videoPublic } = adminSupabase.storage.from("animals").getPublicUrl(videoPath);
+      const { error: videoInsertError } = await adminSupabase.from("animal_videos").insert({
+        animal_id: animal.id,
+        video_url: videoPublic.publicUrl,
+        sort_order: 99,
+      });
+      if (videoInsertError) throw new Error(`Animal créé, mais erreur enregistrement vidéo : ${videoInsertError.message}`);
+    }
+
+    if (getBoolean(formData, "is_published")) {
+      const { error: publishError } = await adminSupabase.from("animals")
+        .update({ is_published: true })
+        .eq("id", animal.id);
+      if (publishError) throw new Error(`Animal créé en brouillon, mais publication impossible : ${publishError.message}`);
+    }
 
     /*
      * =====================================================
      * REPONSE
      * =====================================================
      */
-
     return NextResponse.json(
       {
         success:
           true,
-
         animal,
-
         owner: {
           id:
             ownerProfile.id,
-
           name:
             ownerName,
-
           role:
             ownerProfile.role,
         },
@@ -870,7 +792,6 @@ export async function POST(
       "Erreur API création animal admin :",
       error
     );
-
     return NextResponse.json(
       {
         error:
