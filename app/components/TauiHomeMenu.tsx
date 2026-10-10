@@ -54,6 +54,15 @@ const SYSTEM_ITEMS: MenuItem[] = [
   },
 ];
 
+// Tri alphabétique français, sans tenir compte
+// des majuscules, accents ou ponctuations.
+const SORTED_ITEMS = [...SYSTEM_ITEMS].sort((a, b) =>
+  a.label.localeCompare(b.label, "fr", {
+    sensitivity: "base",
+    ignorePunctuation: true,
+  })
+);
+
 const PALETTES = [
   ["#ffe3ee", "#d62e77"],
   ["#e1f3fd", "#1489c2"],
@@ -130,7 +139,7 @@ export default function TauiHomeMenu({
       </h2>
 
       <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-4 lg:grid-cols-5">
-        {SYSTEM_ITEMS.map((item, index) => {
+        {SORTED_ITEMS.map((item, index) => {
           const [background, foreground] =
             PALETTES[index % PALETTES.length];
 
