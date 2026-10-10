@@ -1567,8 +1567,10 @@ export default function AdminDashboardPage() {
               { title: "Réseau d’aide", icon: "🤲", href: "/reseau-aide", description: "Bénévoles et accueil" },
               { title: "Communication", icon: "💬", href: "/admin/communications", description: "Messages et e-mails" },
               { title: "Publicités", icon: "📣", href: "/admin/publicites", description: "Campagnes et partenaires" },
+              { title: "TAUI Auto Post", icon: "📱", href: "/admin/facebook", description: "Publications Facebook automatiques et programmées" },
               { title: "Pages", icon: "📝", href: "/admin/pages", description: "Textes du site" },
               { title: "Vétérinaires", icon: "🩺", href: "/admin/veterinaires", description: "Professionnels" },
+              { title: "Associations officielles", icon: "🏛️", href: "/admin/associations", description: "Rattachements et validations" },
               { title: "Associations", icon: "🏠", href: "/associations", description: "Structures partenaires" },
               { title: "Mes données", icon: "🔒", href: "/profile/mes-donnees", description: "Confidentialité" },
             ].map((item) => {
