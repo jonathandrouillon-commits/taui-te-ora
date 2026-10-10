@@ -1,7 +1,6 @@
-
 "use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Building2,
   Check,
@@ -11,10 +10,9 @@ import {
   Users,
   X,
   Ban,
+  History,
 } from "lucide-react";
-
 import { supabase } from "../../lib/supabase";
-
 type Association = {
   id: string;
   name: string;
@@ -22,7 +20,6 @@ type Association = {
   city: string | null;
   is_active: boolean;
 };
-
 type Profile = {
   id: string;
   first_name: string | null;
@@ -32,7 +29,6 @@ type Profile = {
   approval_status: string | null;
   is_active: boolean;
 };
-
 type Member = {
   id: string;
   association_id: string;
@@ -43,29 +39,24 @@ type Member = {
   approved_at: string | null;
   created_at: string;
 };
-
 type ApiData = {
   associations: Association[];
   profiles: Profile[];
   members: Member[];
 };
-
 const ROLE_LABELS = {
   responsable: "Responsable",
   gestionnaire: "Gestionnaire",
   benevole: "Bénévole",
 };
-
 const STATUS_LABELS = {
   pending: "En attente",
   approved: "Approuvé",
   rejected: "Refusé",
   revoked: "Révoqué",
 };
-
 function getProfileName(profile?: Profile) {
   if (!profile) return "Compte inconnu";
-
   const fullName = [
     profile.first_name,
     profile.last_name,
@@ -73,29 +64,23 @@ function getProfileName(profile?: Profile) {
     .filter(Boolean)
     .join(" ")
     .trim();
-
   return fullName || profile.organization_name || profile.id;
 }
-
 export default function AdminAssociationsPage() {
   const [data, setData] = useState<ApiData>({
     associations: [],
     profiles: [],
     members: [],
   });
-
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [associationId, setAssociationId] = useState("");
   const [profileId, setProfileId] = useState("");
   const [memberRole, setMemberRole] =
     useState<Member["member_role"]>("benevole");
-
   const [filter, setFilter] = useState("all");
-
   const apiRequest = useCallback(
     async (
       method: "GET" | "POST" | "PATCH",
@@ -105,11 +90,9 @@ export default function AdminAssociationsPage() {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-
       if (sessionError || !session?.access_token) {
         throw new Error("Session expirée. Reconnecte-toi.");
       }
-
       const response = await fetch("/api/admin/associations", {
         method,
         cache: "no-store",
@@ -119,22 +102,17 @@ export default function AdminAssociationsPage() {
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(result.error || "Une erreur est survenue.");
       }
-
       return result;
     },
     []
   );
-
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
-
     try {
       const result = (await apiRequest("GET")) as ApiData;
       setData(result);
@@ -146,47 +124,37 @@ export default function AdminAssociationsPage() {
       setLoading(false);
     }
   }, [apiRequest]);
-
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
   const profileMap = useMemo(
     () => new Map(data.profiles.map((p) => [p.id, p])),
     [data.profiles]
   );
-
   const associationMap = useMemo(
     () => new Map(data.associations.map((a) => [a.id, a])),
     [data.associations]
   );
-
   const filteredMembers = useMemo(() => {
     return data.members.filter((member) => {
       if (filter === "all") return true;
       return member.status === filter;
     });
   }, [data.members, filter]);
-
   const pendingCount = data.members.filter(
     (member) => member.status === "pending"
   ).length;
-
   const approvedCount = data.members.filter(
     (member) => member.status === "approved"
   ).length;
-
   async function attachMember() {
     setError("");
     setSuccess("");
-
     if (!associationId || !profileId) {
       setError("Sélectionne une association et un utilisateur.");
       return;
     }
-
     setProcessing(true);
-
     try {
       await apiRequest("POST", {
         action: "attach",
@@ -194,7 +162,6 @@ export default function AdminAssociationsPage() {
         profile_id: profileId,
         member_role: memberRole,
       });
-
       setSuccess("Demande de rattachement créée.");
       setProfileId("");
       await loadData();
@@ -206,7 +173,6 @@ export default function AdminAssociationsPage() {
       setProcessing(false);
     }
   }
-
   async function updateMember(
     memberId: string,
     action: "approve" | "reject" | "revoke"
@@ -217,21 +183,17 @@ export default function AdminAssociationsPage() {
         : action === "reject"
           ? "refuser"
           : "révoquer";
-
     if (!window.confirm(`Confirmer : ${label} ce rattachement ?`)) {
       return;
     }
-
     setProcessing(true);
     setError("");
     setSuccess("");
-
     try {
       await apiRequest("PATCH", {
         member_id: memberId,
         action,
       });
-
       setSuccess("Rattachement mis à jour.");
       await loadData();
     } catch (err) {
@@ -242,7 +204,6 @@ export default function AdminAssociationsPage() {
       setProcessing(false);
     }
   }
-
   return (
     <main className="min-h-[100dvh] bg-[#f4eee3] px-4 pb-28 pt-8 sm:px-6">
       <div className="mx-auto max-w-7xl space-y-7">
@@ -253,16 +214,16 @@ export default function AdminAssociationsPage() {
                 <ShieldCheck size={19} />
                 ADMINISTRATION TAUI TE ORA
               </div>
-
               <h1 className="text-3xl font-black">
                 Associations officielles
               </h1>
-
               <p className="mt-2 text-sm text-white/80">
                 Gestion des membres et validation des rattachements.
               </p>
             </div>
-
+            <Link href="/association/historique" className="flex items-center gap-2 rounded-xl border border-white/50 bg-white/10 px-4 py-3 font-bold text-white hover:bg-white/20">
+              <History size={17} /> Historique des modifications
+            </Link>
             <button
               type="button"
               onClick={() => void loadData()}
@@ -274,19 +235,16 @@ export default function AdminAssociationsPage() {
             </button>
           </div>
         </header>
-
         {error && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-semibold text-red-700">
             {error}
           </div>
         )}
-
         {success && (
           <div className="rounded-2xl border border-green-200 bg-green-50 p-4 font-semibold text-green-800">
             {success}
           </div>
         )}
-
         <div className="grid gap-4 sm:grid-cols-3">
           {[
             {
@@ -306,7 +264,6 @@ export default function AdminAssociationsPage() {
             },
           ].map((item) => {
             const Icon = item.icon;
-
             return (
               <div
                 key={item.title}
@@ -323,7 +280,18 @@ export default function AdminAssociationsPage() {
             );
           })}
         </div>
-
+        <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="mb-4 flex items-center gap-2 text-xl font-black text-[#064b42]">
+            <History size={22} /> Historique par association
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.associations.map((association) => (
+              <Link key={association.id} href={`/association/historique?association=${encodeURIComponent(association.id)}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[#eadfce] bg-[#f8f4ec] p-4 text-sm font-bold text-[#064b42] hover:border-[#064b42]">
+                <span>{association.name}</span><History size={18} className="shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </section>
         <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-3">
             <UserPlus className="text-[#064b42]" size={25} />
@@ -336,7 +304,6 @@ export default function AdminAssociationsPage() {
               </p>
             </div>
           </div>
-
           <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="text-xs font-black uppercase text-gray-500">
@@ -359,7 +326,6 @@ export default function AdminAssociationsPage() {
                   ))}
               </select>
             </label>
-
             <label className="block">
               <span className="text-xs font-black uppercase text-gray-500">
                 Compte utilisateur
@@ -380,7 +346,6 @@ export default function AdminAssociationsPage() {
                   ))}
               </select>
             </label>
-
             <label className="block">
               <span className="text-xs font-black uppercase text-gray-500">
                 Rôle dans l'association
@@ -400,7 +365,6 @@ export default function AdminAssociationsPage() {
               </select>
             </label>
           </div>
-
           <button
             type="button"
             onClick={() => void attachMember()}
@@ -411,7 +375,6 @@ export default function AdminAssociationsPage() {
             Créer le rattachement
           </button>
         </section>
-
         <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -422,7 +385,6 @@ export default function AdminAssociationsPage() {
                 Chaque association peut avoir plusieurs membres.
               </p>
             </div>
-
             <select
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
@@ -435,7 +397,6 @@ export default function AdminAssociationsPage() {
               <option value="revoked">Révoqués</option>
             </select>
           </div>
-
           {loading ? (
             <p className="py-10 text-center text-gray-500">
               Chargement des rattachements...
@@ -451,7 +412,6 @@ export default function AdminAssociationsPage() {
                 const association = associationMap.get(
                   member.association_id
                 );
-
                 return (
                   <article
                     key={member.id}
@@ -462,17 +422,14 @@ export default function AdminAssociationsPage() {
                         <h3 className="font-black text-[#064b42]">
                           {getProfileName(profile)}
                         </h3>
-
                         <p className="text-sm text-gray-700">
                           {association?.name || "Association inconnue"}
                         </p>
-
                         <p className="text-xs text-gray-500">
                           {ROLE_LABELS[member.member_role]} ·{" "}
                           {profile?.approval_status || "Statut inconnu"}
                         </p>
                       </div>
-
                       <div className="flex flex-wrap items-center gap-3">
                         <span
                           className={`rounded-full px-3 py-2 text-xs font-black ${
@@ -485,7 +442,6 @@ export default function AdminAssociationsPage() {
                         >
                           {STATUS_LABELS[member.status]}
                         </span>
-
                         {member.status === "pending" && (
                           <>
                             <button
@@ -499,7 +455,6 @@ export default function AdminAssociationsPage() {
                               <Check size={17} />
                               Approuver
                             </button>
-
                             <button
                               type="button"
                               disabled={processing}
@@ -513,7 +468,6 @@ export default function AdminAssociationsPage() {
                             </button>
                           </>
                         )}
-
                         {member.status === "approved" && (
                           <button
                             type="button"
@@ -535,7 +489,6 @@ export default function AdminAssociationsPage() {
             </div>
           )}
         </section>
-
         <p className="text-center text-xs text-gray-500">
           Les rattachements sont administratifs. Ils ne modifient pas
           automatiquement les droits de publication des animaux.
