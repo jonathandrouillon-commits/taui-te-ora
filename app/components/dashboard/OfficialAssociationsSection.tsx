@@ -52,7 +52,11 @@ export default function OfficialAssociationsSection() {
         } = await supabase.auth.getUser();
 
         if (authError) throw authError;
-        if (!user) return;
+
+        if (!user) {
+          if (!cancelled) setAssociations([]);
+          return;
+        }
 
         const { data: profile, error: profileError } =
           await supabase
@@ -62,65 +66,105 @@ export default function OfficialAssociationsSection() {
             .maybeSingle();
 
         if (profileError) throw profileError;
-        if (!profile?.is_active) return;
+
+        if (!profile || profile.is_active !== true) {
+          if (!cancelled) setAssociations([]);
+          return;
+        }
 
         const isAdmin = profile.role === "admin";
+
+        const approvalStatus = String(
+          profile.approval_status || ""
+        ).toLowerCase();
+
+        if (
+          approvalStatus === "rejected" ||
+          approvalStatus === "suspended"
+        ) {
+          if (!cancelled) setAssociations([]);
+          return;
+        }
 
         let membershipRows: Membership[] = [];
 
         if (!isAdmin) {
-          if (profile.approval_status !== "approved") return;
-
-          const { data, error: memberError } = await supabase
-            .from("association_members")
-            .select("association_id, member_role, status")
-            .eq("profile_id", user.id)
-            .eq("status", "approved");
+          const { data, error: memberError } =
+            await supabase
+              .from("association_members")
+              .select(
+                "association_id, member_role, status"
+              )
+              .eq("profile_id", user.id)
+              .eq("status", "approved");
 
           if (memberError) throw memberError;
 
           membershipRows = (data || []) as Membership[];
 
-          if (membershipRows.length === 0) return;
+          if (membershipRows.length === 0) {
+            if (!cancelled) setAssociations([]);
+            return;
+          }
         }
 
         let query = supabase
           .from("animal_associations")
-          .select("id, name, island, city, is_active")
+          .select(
+            "id, name, island, city, is_active"
+          )
           .eq("is_active", true)
           .order("name");
 
         if (!isAdmin) {
           query = query.in(
             "id",
-            membershipRows.map((member) => member.association_id)
+            membershipRows.map(
+              (member) => member.association_id
+            )
           );
         }
 
-        const { data, error: associationError } = await query;
+        const {
+          data,
+          error: associationError,
+        } = await query;
 
-        if (associationError) throw associationError;
+        if (associationError) {
+          throw associationError;
+        }
 
         const rows = (data || []) as Association[];
 
-        const result = rows.flatMap((association) => {
-          if (isAdmin) {
-            return [{ ...association, memberRole: "admin" }];
-          }
+        const result: AssociationAccess[] =
+          rows.flatMap((association) => {
+            if (isAdmin) {
+              return [
+                {
+                  ...association,
+                  memberRole: "admin",
+                },
+              ];
+            }
 
-          const membership = membershipRows.find(
-            (member) => member.association_id === association.id
-          );
+            const membership = membershipRows.find(
+              (member) =>
+                member.association_id === association.id
+            );
 
-          if (!membership) return [];
+            if (!membership) return [];
 
-          return [{
-            ...association,
-            memberRole: membership.member_role,
-          }];
-        });
+            return [
+              {
+                ...association,
+                memberRole: membership.member_role,
+              },
+            ];
+          });
 
-        if (!cancelled) setAssociations(result);
+        if (!cancelled) {
+          setAssociations(result);
+        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -130,7 +174,9 @@ export default function OfficialAssociationsSection() {
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -141,7 +187,11 @@ export default function OfficialAssociationsSection() {
     };
   }, []);
 
-  if (!loading && !error && associations.length === 0) {
+  if (
+    !loading &&
+    !error &&
+    associations.length === 0
+  ) {
     return null;
   }
 
@@ -157,19 +207,25 @@ export default function OfficialAssociationsSection() {
           Chargement des associations...
         </p>
       ) : error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p
+          role="alert"
+          className="text-sm text-red-700"
+        >
           {error}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {associations.map((association) => {
             const canManage =
-              association.memberRole === "responsable" ||
-              association.memberRole === "gestionnaire" ||
+              association.memberRole ===
+                "responsable" ||
+              association.memberRole ===
+                "gestionnaire" ||
               association.memberRole === "admin";
 
             const canViewHistory =
-              association.memberRole === "responsable" ||
+              association.memberRole ===
+                "responsable" ||
               association.memberRole === "admin";
 
             return (
@@ -182,14 +238,18 @@ export default function OfficialAssociationsSection() {
                 </h3>
 
                 <p className="mt-1 text-sm text-[#6f5a47]">
-                  {[association.city, association.island]
+                  {[
+                    association.city,
+                    association.island,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
 
                 <span className="mt-3 inline-flex rounded-full bg-[#e8f5f1] px-3 py-1 text-xs font-black text-[#064b42]">
-                  {ROLE_LABELS[association.memberRole] ||
-                    association.memberRole}
+                  {ROLE_LABELS[
+                    association.memberRole
+                  ] || association.memberRole}
                 </span>
 
                 <div className="mt-5 flex flex-wrap gap-2">
