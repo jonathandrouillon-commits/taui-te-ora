@@ -5840,7 +5840,7 @@ export default function ConversationPage() {
 
 
 
-              router.back()
+              router.push("/messages")
 
 
 
@@ -6486,6 +6486,31 @@ export default function ConversationPage() {
 
 
       </header>
+
+      {/* Navigation permanente : conversations et retour au site */}
+      <nav
+        aria-label="Navigation de la messagerie"
+        className="z-20 shrink-0 border-b border-[#eadfd8] bg-[#fffaf7] px-3 py-2"
+      >
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/messages")}
+            className="flex min-h-10 items-center gap-2 rounded-full bg-[#f3ebe5] px-3 text-xs font-bold text-[#064b42] sm:px-4 sm:text-sm"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Conversations</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="flex min-h-10 items-center gap-2 rounded-full bg-[#064b42] px-3 text-xs font-bold text-white sm:px-4 sm:text-sm"
+          >
+            <span aria-hidden="true">⌂</span>
+            <span>Accueil TAUI</span>
+          </button>
+        </div>
+      </nav>
 
 
 
