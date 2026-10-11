@@ -1462,9 +1462,21 @@ export default function SignalementPage() {
 
 
 
-  async function sendSignalement() {
+  const [publishedSignalementId, setPublishedSignalementId] = useState<string | null>(null);
+  const [facebookPublicationMessage, setFacebookPublicationMessage] = useState("");
 
-    let facebookShareWindow: Window | null = null;
+  async function copySignalementLink() {
+    if (!publishedSignalementId) return;
+    const url = `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(publishedSignalementId)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Lien du signalement copié.");
+    } catch {
+      window.prompt("Copiez ce lien :", url);
+    }
+  }
+
+  async function sendSignalement() {
 
 
 
@@ -1607,34 +1619,6 @@ export default function SignalementPage() {
         validateFile
 
       );
-
-
-
-      // Ouvre la fenêtre immédiatement après le clic afin d'éviter
-
-      // que le navigateur ne bloque le partage après les opérations async.
-
-      facebookShareWindow = window.open(
-
-        "",
-
-        "taui-facebook-signalement-share",
-
-        "popup=yes,width=760,height=820"
-
-      );
-
-
-
-      if (facebookShareWindow) {
-
-        facebookShareWindow.document.write(
-
-          `<html><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;background:#f8f4ec;color:#064b42"><h2>Publication du signalement…</h2><p>Facebook va s'ouvrir automatiquement.</p></body></html>`
-
-        );
-
-      }
 
 
 
@@ -2094,6 +2078,39 @@ export default function SignalementPage() {
 
 
 
+      // Déclenche la publication sur la page Facebook après l'enregistrement
+      // et l'envoi des photos. Un échec Facebook n'annule pas le signalement.
+      let facebookStatus = "Publication Facebook non tentée.";
+      if (signalement?.id && user) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          if (!token) {
+            facebookStatus = "Publication Facebook en attente : session indisponible.";
+          } else {
+            const facebookResponse = await fetch("/api/facebook/publish-signalement", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ signalementId: signalement.id }),
+            });
+            const facebookResult = await facebookResponse.json().catch(() => null);
+            if (!facebookResponse.ok || facebookResult?.ok === false) {
+              facebookStatus = `Publication Facebook non effectuée : ${facebookResult?.error || "erreur serveur"}`;
+            } else if (facebookResult?.published || facebookResult?.alreadyPublished) {
+              facebookStatus = "Publication sur Les Veilleurs de Kali confirmée.";
+            } else {
+              facebookStatus = "Publication Facebook déjà en cours ou en attente.";
+            }
+          }
+        } catch (facebookError) {
+          console.error("Publication automatique Facebook :", facebookError);
+          facebookStatus = "Publication Facebook non confirmée. Réessayez plus tard.";
+        }
+      }
+
       /*
 
        * Matching automatique perdu <-> trouvé.
@@ -2338,51 +2355,17 @@ export default function SignalementPage() {
 
 
 
-      alert(
-
-        "Signalement envoyé avec succès."
-
-      );
-
-
-
       if (signalement?.id) {
-
-        const facebookShareUrl = buildFacebookSignalementShareUrl(signalement.id);
-
-
-
-        if (facebookShareWindow && !facebookShareWindow.closed) {
-
-          facebookShareWindow.location.href = facebookShareUrl;
-
-        } else {
-
-          window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-
-        }
-
+        setPublishedSignalementId(signalement.id);
+        setFacebookPublicationMessage(facebookStatus);
       }
-
-
-
-      router.push(
-
-        "/"
-
-      );
+      alert("Signalement enregistré avec succès. Vous pouvez maintenant le partager.");
 
     } catch (
 
       caughtError: unknown
 
     ) {
-
-      if (facebookShareWindow && !facebookShareWindow.closed) {
-
-        facebookShareWindow.close();
-
-      }
 
 
 
@@ -4280,6 +4263,37 @@ export default function SignalementPage() {
 
 
 
+        {publishedSignalementId && (
+          <section className="mt-8 rounded-[2rem] border border-[#d5ebe4] bg-white p-6 shadow-lg">
+            <h2 className="text-xl font-black text-[#064b42]">Signalement enregistré</h2>
+            <p className="mt-2 text-sm text-[#6f5a47]">{facebookPublicationMessage}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href={buildFacebookSignalementShareUrl(publishedSignalementId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full bg-[#1877f2] px-5 py-3 font-bold text-white"
+              >
+                Partager sur Facebook
+              </a>
+              <button
+                type="button"
+                onClick={() => void copySignalementLink()}
+                className="rounded-full bg-[#064b42] px-5 py-3 font-bold text-white"
+              >
+                Copier le lien
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/signalement/public/${encodeURIComponent(publishedSignalementId)}`)}
+                className="rounded-full border border-[#064b42] px-5 py-3 font-bold text-[#064b42]"
+              >
+                Voir le signalement
+              </button>
+            </div>
+          </section>
+        )}
+
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
 
           <button
@@ -4292,11 +4306,7 @@ export default function SignalementPage() {
 
             }
 
-            disabled={
-
-              loading
-
-            }
+            disabled={loading || Boolean(publishedSignalementId)}
 
             className="rounded-full bg-red-600 px-8 py-4 text-lg font-black text-white disabled:opacity-60"
 
