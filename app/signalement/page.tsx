@@ -426,7 +426,8 @@ export default function SignalementPage() {
 
   const [reporterProfile, setReporterProfile] = useState<{
 
-    full_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
 
     phone: string | null;
 
@@ -670,7 +671,7 @@ export default function SignalementPage() {
 
           .from("profiles")
 
-          .select("full_name, phone, email")
+          .select("first_name, last_name, phone, email")
 
           .eq("id", user.id)
 
@@ -1923,7 +1924,7 @@ export default function SignalementPage() {
 
                 ? ""
 
-                : (tauiAnimalChoice === "oui" ? reporterProfile?.full_name || "" : form.reporter_name),
+                : (tauiAnimalChoice === "oui" ? [reporterProfile?.first_name, reporterProfile?.last_name].filter(Boolean).join(" ") : form.reporter_name),
 
 
 
