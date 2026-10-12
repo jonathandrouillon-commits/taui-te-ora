@@ -518,6 +518,14 @@ export default function NotificationsPage() {
     /*
      * Signalement / matching
      */
+    // TAUI_OBSERVATION_PRIVATE_NOTIFICATIONS_V1
+    if (
+      notification.type === "nouvelle_observation" &&
+      notification.signalement_id
+    ) {
+      return `/signalements/observations/${notification.signalement_id}`;
+    }
+
 
     if (
       notification

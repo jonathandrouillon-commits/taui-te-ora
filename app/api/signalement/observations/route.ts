@@ -258,6 +258,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // TAUI_OBSERVATION_PRIVATE_NOTIFICATIONS_V1
+    // Ne jamais inclure les donnees du temoin dans une notification.
+    // Une notification n'implique pas que l'animal a ete retrouve.
+    try {
+      const recipients = new Set<string>();
+      if (report.user_id) recipients.add(String(report.user_id));
+
+      const { data: adminProfiles, error: adminError } = await db
+        .from("profiles")
+        .select("id,role,is_active")
+        .in("role", ["admin", "administrateur"])
+        .eq("is_active", true);
+
+      if (adminError) {
+        console.error("Administrateurs pour observations :", adminError);
+      } else {
+        for (const adminProfile of adminProfiles || []) {
+          if (adminProfile.id) recipients.add(String(adminProfile.id));
+        }
+      }
+
+      if (recipients.size > 0) {
+        const rows = Array.from(recipients).map((recipientId) => ({
+          recipient_id: recipientId,
+          type: "nouvelle_observation",
+          title: "Nouvelle observation d'un animal",
+          message: "Un temoin a transmis une information. Consultez cette piste privee.",
+          signalement_id: id,
+          is_read: false,
+          read_at: null,
+        }));
+        const { error: notificationError } = await db
+          .from("notifications")
+          .insert(rows);
+        if (notificationError) {
+          console.error("Notifications privees observation :", notificationError);
+        }
+      }
+    } catch (notificationError) {
+      // L'observation reste enregistree meme si la notification echoue.
+      console.error("Creation notifications observation :", notificationError);
+    }
+
+
     return response(
       {
         ok: true,
