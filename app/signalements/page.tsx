@@ -607,7 +607,7 @@ function SignalementCard({
     "";
   return (
     <Link
-      href={`/signalement/${item.id}`}
+      href={`/signalement/public/${item.id}`}
       className="
         overflow-hidden
         rounded-[28px]
