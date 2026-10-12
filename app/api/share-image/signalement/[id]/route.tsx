@@ -142,11 +142,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const photo = await safeImage(mediaImage?.file_url, new URL(supabaseUrl).hostname);
 
     const origin = new URL(request.url).origin;
-    const [background, logo] = await Promise.all([
-      localPng(origin, "taui-signalement-fond-carre.png", 8 * 1024 * 1024),
-      localPng(origin, "taui-logo-officiel.png", 4 * 1024 * 1024),
-    ]);
-    if (!background) return new Response("Fond d'affiche manquant : public/taui-signalement-fond-carre.png", { status: 500 });
+    const background = await localPng(origin, "taui-signalement-fond-auto.png", 8 * 1024 * 1024);
+    if (!background) return new Response("Fond d'affiche manquant : public/taui-signalement-fond-auto.png", { status: 500 });
 
     const officialUrl = `https://www.taui-te-ora.com/signalement/public/${id}`;
     const qrSvg = await QRCode.toString(officialUrl, {
@@ -155,62 +152,62 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
     const qr = `data:image/svg+xml;base64,${btoa(qrSvg)}`;
 
-    const w = wording(item.type_signalement);
-    const lost = kind(item.type_signalement) === "lost";
-    const name = shorten(clean(item.animal_name) || "ANIMAL SIGNALÉ", 22).toUpperCase();
-    const location = [clean(item.city), clean(item.island)].filter(Boolean).join(" • ");
-    const rawDate = (lost ? item.disappearance_at : item.found_at) || item.created_at;
-    const descriptor = [clean(item.animal_type), clean(item.sex), clean(item.age_label)]
-      .filter(Boolean).join("  ·  ");
-    const color = clean(item.color);
-    const features = clean(item.distinctive_features);
-    const eventDate = dateLabel(rawDate);
-    const shortLocation = shorten(location, 39);
-    const shortFeatures = shorten(features, 95);
+    // This template has a permanent "ALERTE DISPARITION" title.
+    // Do not publish it for another reporting category.
+    if (kind(item.type_signalement) !== "lost") {
+      return new Response("Ce modèle est réservé aux disparitions", { status: 422 });
+    }
 
+    const name = shorten(clean(item.animal_name) || "SANS NOM", 19).toUpperCase();
+    const location = [clean(item.city), clean(item.island)].filter(Boolean).join(" • ");
+    const eventDate = dateLabel(item.disappearance_at || item.created_at);
     const dataRows = [
-      { label: "Espèce", value: clean(item.animal_type) },
-      { label: "Sexe", value: clean(item.sex) },
-      { label: "Âge", value: clean(item.age_label) },
-      { label: "Couleur", value: clean(item.color) },
-      { label: "Secteur", value: location },
-      { label: w.date, value: eventDate },
-      { label: "Signes particuliers", value: features },
+      { value: clean(item.animal_type), y: 466, max: 23 },
+      { value: clean(item.sex), y: 523, max: 23 },
+      { value: clean(item.age_label), y: 581, max: 23 },
+      { value: clean(item.color), y: 639, max: 26 },
+      { value: location, y: 695, max: 26 },
+      { value: eventDate, y: 752, max: 26 },
     ];
+    const features = shorten(clean(item.distinctive_features), 74);
 
     return new ImageResponse(
       <div style={{ display: "flex", position: "relative", width: W, height: H, overflow: "hidden", fontFamily: "Arial, sans-serif", backgroundColor: "#fffaf0" }}>
+        {/* A single flat background with original tropical artwork, title, logo,
+            labels and footer. No text backgrounds are generated. */}
         <img src={background} width={W} height={H} alt="" style={{ position: "absolute", top: 0, left: 0 }} />
 
-        {/* Le logo officiel remplace le logo illustratif. */}
-        {logo && <div style={{ display: "flex", position: "absolute", top: 10, left: 970, width: 290, height: 258, alignItems: "center", justifyContent: "center", backgroundColor: "#fffefa", borderRadius: 145 }}>
-          <img src={logo} width={250} height={250} alt="TAUI TE ORA" style={{ objectFit: "contain" }} />
-        </div>}
-
-        {/* Le titre imprimé sur le fond concerne les disparitions. */}
-        {!lost && <div style={{ display: "flex", position: "absolute", top: 42, left: 250, width: 670, height: 225, backgroundColor: RED, flexDirection: "column", justifyContent: "center", paddingLeft: 16 }}>
-          <div style={{ display: "flex", fontSize: 63, fontWeight: 900, color: YELLOW }}>{w.title}</div>
-          <div style={{ display: "flex", fontSize: 25, fontWeight: 800, color: "white" }}>{w.subtitle}</div>
-        </div>}
-
-        {/* Photo réelle : masque entièrement la photo fictive du modèle. */}
-        <div style={{ display: "flex", position: "absolute", top: 343, left: 39, width: 606, height: 565, border: "8px solid white", borderRadius: 24, backgroundColor: "#e2ece9", overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px rgba(0,0,0,0.15)" }}>
-          {photo ? <img src={photo} width={606} height={565} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ display: "flex", fontSize: 29, color: GREEN, fontWeight: 800 }}>PHOTO NON DISPONIBLE</div>}
+        {/* Real animal photo replaces the illustration in its reserved area. */}
+        <div style={{ display: "flex", position: "absolute", left: 42, top: 345, width: 614, height: 583, border: "7px solid #ffffff", borderRadius: 23, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "#d6e7e2" }}>
+          {photo ? (
+            <img src={photo} alt="" width={614} height={583} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div style={{ display: "flex", fontSize: 26, color: GREEN }}>PHOTO NON DISPONIBLE</div>
+          )}
         </div>
 
-        {/* Le nom masque NOM, qui n'est qu'un repère sur la maquette. */}
-        <div style={{ display: "flex", position: "absolute", top: 307, left: 790, width: 322, height: 109, backgroundColor: "#ffe82c", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ display: "flex", color: GREEN, fontWeight: 900, fontSize: name.length > 13 ? 46 : name.length > 9 ? 60 : 78, lineHeight: 1, textAlign: "center" }}>{name}</div>
+        {/* Name directly on the yellow brush, without a colored box. */}
+        <div style={{ display: "flex", position: "absolute", top: 314, left: 805, width: 328, height: 100, alignItems: "center", justifyContent: "center" }}>
+          <div style={{ display: "flex", fontWeight: 900, color: GREEN, fontSize: name.length > 14 ? 49 : name.length > 10 ? 61 : 83, lineHeight: 1, textAlign: "center" }}>{name}</div>
         </div>
 
-        {/* Les libellés sont déjà sur le fond ; seules les valeurs sont ajoutées. */}
-        {dataRows.map((row, index) => row.value ? <div key={index} style={{ display: "flex", position: "absolute", top: 468 + index * 57, left: 915, width: 310, height: 44, backgroundColor: "#fffaf0", alignItems: "center", paddingLeft: 6 }}>
-          <div style={{ display: "flex", fontSize: index === 6 ? 21 : 26, fontWeight: 800, color: GREEN, lineHeight: 1.05 }}>{shorten(row.value, index === 6 ? 42 : 29)}</div>
-        </div> : null)}
+        {/* Values are overlaid next to labels printed on the background. */}
+        {dataRows.map((row, index) => row.value ? (
+          <div key={index} style={{ display: "flex", position: "absolute", top: row.y, left: 1006, width: 242, height: 41, alignItems: "center" }}>
+            <div style={{ display: "flex", fontSize: row.value.length > 23 ? 19 : 24, fontWeight: 800, lineHeight: 1.08, color: GREEN }}>{shorten(row.value, row.max)}</div>
+          </div>
+        ) : null)}
 
-        {/* QR réel, propre à ce signalement. */}
-        <div style={{ display: "flex", position: "absolute", top: 1034, left: 26, width: 199, height: 200, borderRadius: 15, backgroundColor: "white", alignItems: "center", justifyContent: "center", padding: 9 }}>
-          <img src={qr} width={181} height={181} alt="QR code unique" />
+        {/* Signs: compact and limited to the available area above the warning. */}
+        {features ? (
+          <div style={{ display: "flex", position: "absolute", top: 812, left: 1020, width: 230, height: 60, alignItems: "flex-start" }}>
+            <div style={{ display: "flex", fontSize: 17, fontWeight: 800, lineHeight: 1.13, color: GREEN }}>{features}</div>
+          </div>
+        ) : null}
+
+        {/* Unique, working QR; the white QR quiet zone is required for scanning. */}
+        <div style={{ display: "flex", position: "absolute", left: 28, top: 1036, width: 198, height: 199, alignItems: "center", justifyContent: "center" }}>
+          <img src={qr} alt="QR code du signalement" width={194} height={194} />
         </div>
       </div>,
       { width: W, height: H, headers: { "Cache-Control": "no-store" } }
