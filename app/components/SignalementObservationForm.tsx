@@ -1,9 +1,24 @@
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
 const COMMUNES: Record<string, string[]> = {
-  Tahiti: ["Arue", "Faa'a", "Hitia'a O Te Ra", "Mahina", "Paea", "Papara", "Papeete", "Pirae", "Punaauia", "Taiarapu-Est", "Taiarapu-Ouest", "Teva I Uta"],
+  Tahiti: [
+    "Arue",
+    "Faa'a",
+    "Hitia'a O Te Ra",
+    "Mahina",
+    "Paea",
+    "Papara",
+    "Papeete",
+    "Pirae",
+    "Punaauia",
+    "Taiarapu-Est",
+    "Taiarapu-Ouest",
+    "Teva I Uta",
+  ],
   Moorea: ["Moorea-Maiao"],
   "Bora Bora": ["Bora Bora"],
   Raiatea: ["Taputapuatea", "Tumaraa", "Uturoa"],
@@ -11,68 +26,734 @@ const COMMUNES: Record<string, string[]> = {
   Huahine: ["Huahine"],
   Maupiti: ["Maupiti"],
 };
+
 const QUARTIERS: Record<string, string[]> = {
-  Papeete: ["Centre-ville", "Mamao", "Paofai", "Taunoa", "Tipaerui", "Titioro", "Vaininiore"],
+  Papeete: [
+    "Centre-ville",
+    "Mamao",
+    "Paofai",
+    "Taunoa",
+    "Tipaerui",
+    "Titioro",
+    "Vaininiore",
+  ],
   Punaauia: ["Outumaoro", "Punavai", "Taapuna"],
   "Faa'a": ["Heiri", "Pamatai", "Puurai"],
 };
-const selectClass = "w-full rounded-xl border border-[#c7ded7] bg-white p-3 text-[#064b42]";
-function SelectField({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (v: string) => void }) {
-  return <label className="block space-y-1 text-sm font-semibold text-[#064b42]">{label}<select className={selectClass} value={value} onChange={e => onChange(e.target.value)}><option value="">Choisir</option>{values.map(v => <option key={v} value={v}>{v}</option>)}</select></label>;
+
+const selectClass =
+  "w-full rounded-xl border border-[#c7ded7] bg-white p-3 text-[#064b42]";
+
+type ProfileRow = {
+  first_name?: string | null;
+  last_name?: string | null;
+  phone?: string | null;
+};
+
+type Props = {
+  signalementId: string;
+  animalType?: string;
+};
+
+function SelectField({
+  label,
+  value,
+  values,
+  onChange,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  values: string[];
+  onChange: (value: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <label className="block space-y-1 text-sm font-semibold text-[#064b42]">
+      <span>
+        {label}
+        {required ? " *" : ""}
+      </span>
+
+      <select
+        className={selectClass}
+        value={value}
+        required={required}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Choisir</option>
+        {values.map((item) => (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
-export default function SignalementObservationForm({ signalementId, animalType = "" }: { signalementId: string; animalType?: string }) {
+export default function SignalementObservationForm({
+  signalementId,
+  animalType = "",
+}: Props) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+
   const [island, setIsland] = useState("Tahiti");
+  const [otherIsland, setOtherIsland] = useState("");
+
   const [commune, setCommune] = useState("");
+  const [otherCommune, setOtherCommune] = useState("");
+
   const [quartier, setQuartier] = useState("");
   const [otherQuartier, setOtherQuartier] = useState("");
+
   const [locationDetails, setLocationDetails] = useState("");
+
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsMessage, setGpsMessage] = useState("");
+
   const [color, setColor] = useState("");
   const [behavior, setBehavior] = useState("");
   const [certainty, setCertainty] = useState("");
   const [comments, setComments] = useState("");
+
+  const [observationMediaFiles, setObservationMediaFiles] = useState<File[]>([]);
+  const [mediaUploadFeedback, setMediaUploadFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [success, setSuccess] = useState(false);
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setFeedback(""); setSending(true);
-    try {
-      const observed_at = new Date(`${date}T${time}:00`).toISOString();
-      const response = await fetch("/api/signalement/observations", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signalement_id: signalementId, observed_at, island, commune,
-          quartier: quartier === "Autre" ? otherQuartier : quartier,
-          location_details: locationDetails, animal_type: animalType, color, behavior, certainty, comments })
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Erreur d'envoi");
-      setSuccess(true); setFeedback("Merci ! Votre observation a été enregistrée et sera vérifiée.");
-    } catch (err) { setFeedback(err instanceof Error ? err.message : "Erreur d'envoi"); }
-    finally { setSending(false); }
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfile() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user || !active) return;
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("first_name,last_name,phone")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!active || error || !data) return;
+
+        const profile = data as ProfileRow;
+
+        setFirstName(profile.first_name || "");
+        setLastName(profile.last_name || "");
+        setPhone(profile.phone || "");
+        setProfileLoaded(true);
+      } catch (error) {
+        console.error("Préremplissage du profil :", error);
+      }
+    }
+
+    void loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function useCurrentLocation() {
+    setGpsMessage("");
+
+    if (!navigator.geolocation) {
+      setGpsMessage(
+        "La géolocalisation n'est pas disponible sur cet appareil."
+      );
+      return;
+    }
+
+    setGpsLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+        setGpsAccuracy(position.coords.accuracy);
+
+        setGpsMessage(
+          "Position GPS récupérée. Vérifiez qu'elle correspond bien au lieu où vous avez aperçu l'animal."
+        );
+
+        setGpsLoading(false);
+      },
+      (error) => {
+        let message = "Impossible de récupérer votre position.";
+
+        if (error.code === 1) {
+          message =
+            "Autorisation refusée. Vous pouvez indiquer le lieu manuellement.";
+        } else if (error.code === 2) {
+          message =
+            "Position indisponible. Essayez à nouveau ou saisissez le lieu manuellement.";
+        } else if (error.code === 3) {
+          message =
+            "La recherche GPS a pris trop de temps. Essayez à nouveau.";
+        }
+
+        setGpsMessage(message);
+        setGpsLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
   }
-  return <section className="rounded-2xl bg-[#eaf5f1] p-5 text-[#064b42]">
-    <h2 className="text-lg font-black">Vous avez des informations ?</h2>
-    <p className="my-3 text-sm">Décrivez ce que vous avez observé. Les informations transmises ne seront pas publiées sur la fiche.</p>
-    {success ? <p role="status" className="font-semibold">{feedback}</p> : <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-semibold">Date de l'observation<input required type="date" max={new Date().toISOString().slice(0,10)} value={date} onChange={e => setDate(e.target.value)} className={selectClass}/></label>
-        <label className="block text-sm font-semibold">Heure de l'observation<input required type="time" value={time} onChange={e => setTime(e.target.value)} className={selectClass}/></label>
-      </div>
-      <SelectField label="Île" value={island} values={[...Object.keys(COMMUNES), "Autre île"]} onChange={v => { setIsland(v); setCommune(""); setQuartier(""); }}/>
-      <SelectField label="Commune" value={commune} values={[...(COMMUNES[island] || []), "Autre commune"]} onChange={v => { setCommune(v); setQuartier(""); }}/>
-      <SelectField label="Quartier" value={quartier} values={[...(QUARTIERS[commune] || []), "Autre", "Je ne sais pas"]} onChange={setQuartier}/>
-      {quartier === "Autre" && <label className="block text-sm font-semibold">Précisez le quartier<input required value={otherQuartier} onChange={e => setOtherQuartier(e.target.value)} className={selectClass}/></label>}
-      <label className="block text-sm font-semibold">Point de repère (facultatif)<input value={locationDetails} onChange={e => setLocationDetails(e.target.value)} className={selectClass} placeholder="Rue, commerce, endroit connu"/></label>
-      <SelectField label="Couleur observée" value={color} values={["Gris", "Noir", "Blanc", "Marron", "Roux", "Beige", "Multicolore", "Je ne sais pas"]} onChange={setColor}/>
-      <SelectField label="Comportement" value={behavior} values={["Calme", "Peureux / fuyant", "Amical / sociable", "Blessé", "En déplacement", "Immobile", "Je ne sais pas"]} onChange={setBehavior}/>
-      <SelectField label="Votre niveau de certitude" value={certainty} values={["certain", "possible", "incertain"]} onChange={setCertainty}/>
-      <label className="block text-sm font-semibold">Informations complémentaires<textarea rows={4} maxLength={3000} value={comments} onChange={e => setComments(e.target.value)} className={selectClass} placeholder="Décrivez ce que vous avez vu..."/></label>
-      <p className="text-xs text-[#42695f]">Les photos et l'analyse IA seront activées lors de la prochaine étape. Ne transmettez pas de données sensibles dans le commentaire.</p>
-      <button disabled={sending || !date || !time || !island || !commune || !certainty} type="submit" className="rounded-full bg-[#064b42] px-5 py-3 font-bold text-white disabled:opacity-50">{sending ? "Envoi..." : "Envoyer mon observation"}</button>
-      {feedback && <p role="status" className="text-sm font-semibold">{feedback}</p>}
-    </form>}
-  </section>;
+
+  function clearGps() {
+    setLatitude(null);
+    setLongitude(null);
+    setGpsAccuracy(null);
+    setGpsMessage("Position GPS supprimée du formulaire.");
+  }
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (sending) return;
+
+    setFeedback("");
+
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
+    const cleanPhone = phone.trim();
+
+    if (!cleanFirstName || !cleanLastName || !cleanPhone) {
+      setFeedback("Veuillez renseigner votre prénom, nom et téléphone.");
+      return;
+    }
+
+    const finalIsland =
+      island === "Autre île" ? otherIsland.trim() : island;
+
+    const finalCommune =
+      commune === "Autre commune" ? otherCommune.trim() : commune;
+
+    const finalQuartier =
+      quartier === "Autre" ? otherQuartier.trim() : quartier;
+
+    if (!finalIsland || !finalCommune || !certainty) {
+      setFeedback(
+        "Veuillez compléter la localisation et votre niveau de certitude."
+      );
+      return;
+    }
+
+    const observationDate = new Date(`${date}T${time}:00`);
+
+    if (
+      !date ||
+      !time ||
+      Number.isNaN(observationDate.getTime()) ||
+      observationDate.getTime() > Date.now()
+    ) {
+      setFeedback("Veuillez indiquer une date et une heure valides.");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const response = await fetch("/api/signalement/observations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          signalement_id: signalementId,
+          observed_at: observationDate.toISOString(),
+
+          first_name: cleanFirstName,
+          last_name: cleanLastName,
+          phone: cleanPhone,
+
+          island: finalIsland,
+          commune: finalCommune,
+          quartier: finalQuartier,
+          location_details: locationDetails.trim(),
+
+          latitude,
+          longitude,
+          gps_accuracy: gpsAccuracy,
+
+          animal_type: animalType,
+          color,
+          behavior,
+          certainty,
+          comments: comments.trim(),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de l'envoi.");
+      }
+
+      let uploaded = 0;
+      if (observationMediaFiles.length) {
+        if (!data.observation_id || !data.media_token) {
+          setMediaUploadFeedback("Témoignage enregistré, mais transfert des médias indisponible. Contactez l'équipe TAUI TE ORA.");
+        } else {
+          for (const file of observationMediaFiles) {
+            try {
+              const prepare = await fetch("/api/signalement/observations/media", {
+                method: "POST", headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({action:"prepare", observation_id:data.observation_id, media_token:data.media_token, mime_type:file.type, file_size:file.size})
+              });
+              const prepared = await prepare.json();
+              if (!prepare.ok) throw new Error(prepared.error || "Préparation impossible");
+              const { error: uploadError } = await supabase.storage.from("observation-medias").uploadToSignedUrl(prepared.path,prepared.token,file,{contentType:file.type});
+              if (uploadError) throw uploadError;
+              const complete = await fetch("/api/signalement/observations/media",{
+                method:"POST",headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({action:"complete",observation_id:data.observation_id,media_token:data.media_token,path:prepared.path,mime_type:file.type,file_size:file.size})
+              });
+              const result = await complete.json();
+              if (!complete.ok) throw new Error(result.error || "Confirmation impossible");
+              uploaded++;
+            } catch (mediaError) {
+              console.error("Transfert média",mediaError);
+              setMediaUploadFeedback("Une pièce jointe n’a pas pu être envoyée.");
+            }
+          }
+          if (uploaded === observationMediaFiles.length) setMediaUploadFeedback("Tous les médias ont été transmis.");
+          else setMediaUploadFeedback("Témoignage enregistré. Médias transmis : " + uploaded + "/" + observationMediaFiles.length);
+        }
+      }
+      setSuccess(true);
+      setFeedback(
+        "Merci ! Votre observation a été enregistrée et sera vérifiée."
+      );
+    } catch (error) {
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer votre observation."
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl bg-[#eaf5f1] p-5 text-[#064b42] sm:p-6">
+      <h2 className="text-xl font-black">
+        🐾 Vous avez des informations ?
+      </h2>
+
+      <p className="my-3 text-sm text-[#42695f]">
+        Vous pensez avoir aperçu cet animal ? Transmettez votre
+        observation pour aider à le retrouver.
+      </p>
+
+      <p className="mb-5 text-sm font-semibold">
+        Aucun compte TAUI TE ORA nécessaire.
+      </p>
+
+      {success ? (
+        <div
+          role="status"
+          className="rounded-xl bg-white p-5 font-semibold text-[#064b42]"
+        >
+          {feedback}
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-6">
+          <div className="space-y-4 rounded-2xl bg-white p-4">
+            <h3 className="text-lg font-black">
+              1. Vos coordonnées
+            </h3>
+
+            <p className="text-sm text-[#42695f]">
+              Ces informations permettent de vous recontacter
+              si des précisions sont nécessaires.
+            </p>
+
+            {profileLoaded && (
+              <p className="rounded-lg bg-[#eaf5f1] p-3 text-sm">
+                Vos coordonnées ont été préremplies depuis
+                votre compte. Vous pouvez les modifier.
+              </p>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-sm font-semibold">
+                Prénom *
+                <input
+                  required
+                  autoComplete="given-name"
+                  maxLength={100}
+                  value={firstName}
+                  onChange={(event) =>
+                    setFirstName(event.target.value)
+                  }
+                  className={selectClass}
+                  placeholder="Votre prénom"
+                />
+              </label>
+
+              <label className="block space-y-1 text-sm font-semibold">
+                Nom *
+                <input
+                  required
+                  autoComplete="family-name"
+                  maxLength={100}
+                  value={lastName}
+                  onChange={(event) =>
+                    setLastName(event.target.value)
+                  }
+                  className={selectClass}
+                  placeholder="Votre nom"
+                />
+              </label>
+            </div>
+
+            <label className="block space-y-1 text-sm font-semibold">
+              Téléphone *
+              <input
+                required
+                type="tel"
+                autoComplete="tel"
+                maxLength={30}
+                pattern="[+0-9().\s-]{6,30}"
+                title="Saisissez un numéro de téléphone valide."
+                value={phone}
+                onChange={(event) =>
+                  setPhone(event.target.value)
+                }
+                className={selectClass}
+                placeholder="+689 87 XX XX XX"
+              />
+            </label>
+
+            <p className="text-xs text-[#42695f]">
+              Vos coordonnées ne seront pas affichées
+              publiquement ni partagées sur Facebook.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-black">
+              2. Quand avez-vous vu l'animal ?
+            </h3>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-sm font-semibold">
+                Date de l'observation *
+                <input
+                  required
+                  type="date"
+                  max={new Date().toLocaleDateString("en-CA")}
+                  value={date}
+                  onChange={(event) =>
+                    setDate(event.target.value)
+                  }
+                  className={selectClass}
+                />
+              </label>
+
+              <label className="block space-y-1 text-sm font-semibold">
+                Heure de l'observation *
+                <input
+                  required
+                  type="time"
+                  value={time}
+                  onChange={(event) =>
+                    setTime(event.target.value)
+                  }
+                  className={selectClass}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-black">
+              3. Où avez-vous aperçu l'animal ?
+            </h3>
+
+            <SelectField
+              label="Île"
+              required
+              value={island}
+              values={[...Object.keys(COMMUNES), "Autre île"]}
+              onChange={(value) => {
+                setIsland(value);
+                setCommune("");
+                setQuartier("");
+                setOtherIsland("");
+                setOtherCommune("");
+                setOtherQuartier("");
+              }}
+            />
+
+            {island === "Autre île" && (
+              <label className="block space-y-1 text-sm font-semibold">
+                Précisez l'île *
+                <input
+                  required
+                  value={otherIsland}
+                  onChange={(event) =>
+                    setOtherIsland(event.target.value)
+                  }
+                  className={selectClass}
+                />
+              </label>
+            )}
+
+            <SelectField
+              label="Commune"
+              required
+              value={commune}
+              values={[
+                ...(COMMUNES[island] || []),
+                "Autre commune",
+              ]}
+              onChange={(value) => {
+                setCommune(value);
+                setQuartier("");
+                setOtherCommune("");
+                setOtherQuartier("");
+              }}
+            />
+
+            {commune === "Autre commune" && (
+              <label className="block space-y-1 text-sm font-semibold">
+                Précisez la commune *
+                <input
+                  required
+                  value={otherCommune}
+                  onChange={(event) =>
+                    setOtherCommune(event.target.value)
+                  }
+                  className={selectClass}
+                />
+              </label>
+            )}
+
+            <SelectField
+              label="Quartier"
+              value={quartier}
+              values={[
+                ...(QUARTIERS[commune] || []),
+                "Autre",
+                "Je ne sais pas",
+              ]}
+              onChange={setQuartier}
+            />
+
+            {quartier === "Autre" && (
+              <label className="block space-y-1 text-sm font-semibold">
+                Précisez le quartier *
+                <input
+                  required
+                  value={otherQuartier}
+                  onChange={(event) =>
+                    setOtherQuartier(event.target.value)
+                  }
+                  className={selectClass}
+                />
+              </label>
+            )}
+
+            <label className="block space-y-1 text-sm font-semibold">
+              Point de repère (facultatif)
+              <input
+                maxLength={500}
+                value={locationDetails}
+                onChange={(event) =>
+                  setLocationDetails(event.target.value)
+                }
+                className={selectClass}
+                placeholder="Rue, commerce, rond-point, bâtiment..."
+              />
+            </label>
+
+            <div className="space-y-3 rounded-2xl border border-[#c7ded7] bg-white p-4">
+              <h4 className="font-black">
+                📍 Géolocalisation GPS
+              </h4>
+
+              <p className="text-sm text-[#42695f]">
+                Si vous êtes encore à l'endroit où vous
+                avez aperçu l'animal, vous pouvez transmettre
+                votre position actuelle.
+              </p>
+
+              <button
+                type="button"
+                disabled={gpsLoading}
+                onClick={useCurrentLocation}
+                className="w-full rounded-full bg-[#064b42] px-5 py-3 font-bold text-white disabled:opacity-50"
+              >
+                {gpsLoading
+                  ? "Recherche de votre position..."
+                  : "📍 Utiliser ma position GPS"}
+              </button>
+
+              {latitude !== null && longitude !== null && (
+                <div className="space-y-2 rounded-xl bg-[#eaf5f1] p-3">
+                  <p className="text-sm font-semibold">
+                    Position GPS enregistrée dans le formulaire.
+                  </p>
+
+                  <p className="break-all text-xs">
+                    Latitude : {latitude.toFixed(6)}
+                    <br />
+                    Longitude : {longitude.toFixed(6)}
+                  </p>
+
+                  {gpsAccuracy !== null && (
+                    <p className="text-xs">
+                      Précision estimée :{" "}
+                      {Math.round(gpsAccuracy)} mètres
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={clearGps}
+                    className="text-sm font-bold underline"
+                  >
+                    Supprimer cette position
+                  </button>
+                </div>
+              )}
+
+              {gpsMessage && (
+                <p role="status" className="text-sm">
+                  {gpsMessage}
+                </p>
+              )}
+
+              <p className="text-xs text-[#42695f]">
+                Le GPS est facultatif. Votre navigateur
+                demandera votre autorisation. La position
+                précise ne doit pas être publiée sur la
+                fiche publique.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-black">
+              4. Décrivez l'animal aperçu
+            </h3>
+
+            <SelectField
+              label="Couleur observée"
+              value={color}
+              values={[
+                "Gris",
+                "Noir",
+                "Blanc",
+                "Marron",
+                "Roux",
+                "Beige",
+                "Multicolore",
+                "Je ne sais pas",
+              ]}
+              onChange={setColor}
+            />
+
+            <SelectField
+              label="Comportement"
+              value={behavior}
+              values={[
+                "Calme",
+                "Peureux / fuyant",
+                "Amical / sociable",
+                "Blessé",
+                "En déplacement",
+                "Immobile",
+                "Je ne sais pas",
+              ]}
+              onChange={setBehavior}
+            />
+
+            <SelectField
+              label="Votre niveau de certitude"
+              required
+              value={certainty}
+              values={["certain", "possible", "incertain"]}
+              onChange={setCertainty}
+            />
+
+            <label className="block space-y-1 text-sm font-semibold">
+              Informations complémentaires
+              <textarea
+                rows={4}
+                maxLength={3000}
+                value={comments}
+                onChange={(event) =>
+                  setComments(event.target.value)
+                }
+                className={selectClass}
+                placeholder="Décrivez ce que vous avez vu..."
+              />
+            </label>
+          </div>
+
+          <div className="space-y-3 rounded-2xl bg-white p-4">
+              <h3 className="text-lg font-black">5. Photos et vidéo (facultatif)</h3>
+              <p className="text-sm text-[#42695f]">Jusqu'à 3 photos (8 Mo chacune) et 1 vidéo (20 Mo). Ces fichiers restent privés.</p>
+              <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple
+                className="block w-full text-sm"
+                onChange={(event) => {
+                  const files = Array.from(event.target.files || []);
+                  const photos=files.filter(f=>f.type.startsWith("image/"));
+                  const videos=files.filter(f=>f.type.startsWith("video/"));
+                  if (photos.length>3 || videos.length>1 || files.length>4 || files.some(f=>!(["image/jpeg","image/png","image/webp","video/mp4","video/webm","video/quicktime"].includes(f.type))) || files.some(f=>f.size>(f.type.startsWith("image/")?8:20)*1024*1024)) {
+                    setFeedback("Maximum 3 photos de 8 Mo et 1 vidéo de 20 Mo. Formats JPG, PNG, WebP, MP4, WebM, MOV.");
+                    setObservationMediaFiles([]);
+                    event.target.value="";
+                    return;
+                  }
+                  setFeedback(""); setObservationMediaFiles(files);
+                }} />
+              {observationMediaFiles.length>0 && <ul className="text-sm">{observationMediaFiles.map((f,i)=><li key={i}>✓ {f.name} ({(f.size/1024/1024).toFixed(1)} Mo)</li>)}</ul>}
+            </div>
+
+          <button
+            disabled={sending}
+            type="submit"
+            className="w-full rounded-full bg-[#064b42] px-5 py-4 font-black text-white disabled:opacity-50"
+          >
+            {sending
+              ? "Envoi en cours..."
+              : "Envoyer mon observation"}
+          </button>
+
+          {feedback && (
+            <p
+              role="alert"
+              className="rounded-xl bg-white p-3 text-sm font-semibold"
+            >
+              {feedback}
+            {mediaUploadFeedback && <p className="mt-3 text-sm">{mediaUploadFeedback}</p>}
+            </p>
+          )}
+        </form>
+      )}
+    </section>
+  );
 }
