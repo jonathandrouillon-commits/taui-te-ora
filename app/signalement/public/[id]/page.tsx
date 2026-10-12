@@ -65,6 +65,7 @@ export default function PublicSignalementPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -102,6 +103,7 @@ export default function PublicSignalementPage() {
         if (!active || mediaError || !media) return;
         const urls = (media as MediaRow[])
           .map((row) =>
+            safePhotoUrl(row.file_url) ||
             safePhotoUrl(row.public_url) ||
             safePhotoUrl(row.media_url) ||
             safePhotoUrl(row.url) ||
@@ -122,6 +124,36 @@ export default function PublicSignalementPage() {
 
   const publicUrl = `https://www.taui-te-ora.com/signalement/public/${encodeURIComponent(id)}`;
   const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Signalement TAUI TE ORA : ${report?.type_signalement || "Animal signalé"} - ${report?.animal_name || report?.animal_type || "Animal"} - ${[report?.city, report?.island].filter(Boolean).join(", ")}\n${publicUrl}`)}`;
+  const messengerUrl = `fb-messenger://share/?link=${encodeURIComponent(publicUrl)}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setShareMessage("Lien copié !");
+    } catch {
+      window.prompt("Copiez le lien du signalement :", publicUrl);
+    }
+  }
+
+  async function nativeShare() {
+    const shareData = {
+      title: `TAUI TE ORA - ${report?.type_signalement || "Signalement"}`,
+      text: [report?.animal_name, report?.animal_type, report?.city, report?.island].filter(Boolean).join(" · "),
+      url: publicUrl,
+    };
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError") {
+          setShareMessage("Partage indisponible sur cet appareil. Utilisez Copier le lien.");
+        }
+      }
+    } else {
+      await copyLink();
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f8f4ec] px-4 pb-24 pt-20 text-[#064b42] sm:px-6">
@@ -180,11 +212,20 @@ export default function PublicSignalementPage() {
                 <h2 className="text-lg font-black">Vous avez des informations ?</h2>
                 <p className="mt-2 text-sm text-[#42695f]">Consultez les signalements sur TAUI TE ORA pour aider la communauté. Les coordonnées privées du déclarant ne sont pas affichées ici.</p>
               </section>
-              <div className="flex flex-wrap gap-3">
-                <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#1877f2] px-5 py-3 text-sm font-bold text-white">Partager sur Facebook</a>
-                <button type="button" onClick={() => { void navigator.clipboard.writeText(publicUrl).then(() => alert("Lien copié !")).catch(() => window.prompt("Copiez le lien :", publicUrl)); }} className="rounded-full bg-[#064b42] px-5 py-3 text-sm font-bold text-white">Copier le lien</button>
-                <Link href="/signalements" className="rounded-full border border-[#064b42] px-5 py-3 text-sm font-bold">Autres signalements</Link>
-              </div>
+              <section className="rounded-2xl border border-[#d5ebe4] bg-[#f5faf8] p-5">
+                <h2 className="text-lg font-black">Partager ce signalement</h2>
+                <p className="mt-2 text-sm text-[#42695f]">Aidez la communauté à retrouver cet animal. Seules les informations publiques de cette fiche sont partagées.</p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#1877f2] px-5 py-3 text-sm font-bold text-white">Facebook</a>
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#178f59] px-5 py-3 text-sm font-bold text-white">WhatsApp</a>
+                  <a href={messengerUrl} className="rounded-full bg-[#7360db] px-5 py-3 text-sm font-bold text-white">Messenger</a>
+                  <button type="button" onClick={() => void nativeShare()} className="rounded-full bg-[#ef8998] px-5 py-3 text-sm font-bold text-white">Autres applications</button>
+                  <button type="button" onClick={() => void copyLink()} className="rounded-full bg-[#064b42] px-5 py-3 text-sm font-bold text-white">Copier le lien</button>
+                </div>
+                <p className="mt-3 break-all text-xs text-[#42695f]">{publicUrl}</p>
+                {shareMessage && <p role="status" className="mt-2 text-sm font-semibold text-[#064b42]">{shareMessage}</p>}
+              </section>
+              <Link href="/signalements" className="inline-flex rounded-full border border-[#064b42] px-5 py-3 text-sm font-bold">Autres signalements</Link>
             </div>
           </article>
         )}
