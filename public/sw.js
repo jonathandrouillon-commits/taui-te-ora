@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const STATIC_CACHE = `taui-te-ora-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -189,7 +189,12 @@ self.addEventListener(
           1
       );
 
-    const options = {
+const imageUrl =
+  data.image ||
+  data.imageUrl ||
+  data.photoUrl ||
+  null;    
+const options = {
       body,
 
       icon:
@@ -250,6 +255,23 @@ self.addEventListener(
       },
     };
 
+if (imageUrl) {
+  try {
+    const photo = new URL(
+      imageUrl,
+      self.location.origin
+    );
+
+    if (photo.protocol === "https:") {
+      options.image = photo.href;
+    }
+  } catch (error) {
+    console.error(
+      "URL photo notification invalide :",
+      error
+    );
+  }
+}
     const tasks = [
       self.registration
         .showNotification(

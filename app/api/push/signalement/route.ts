@@ -1,23 +1,12 @@
-import {
-  createHash,
-  timingSafeEqual,
-} from "crypto";
 
-import {
-  NextResponse,
-} from "next/server";
-
-import {
-  createClient,
-} from "@supabase/supabase-js";
-
+import { createHash, timingSafeEqual } from "crypto";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
-export const runtime =
-  "nodejs";
+export const runtime = "nodejs";
 
-const ANONYMOUS_PUSH_WINDOW_MS =
-  30 * 60 * 1000;
+const ANONYMOUS_PUSH_WINDOW_MS = 30 * 60 * 1000;
 
 type PushSubscriptionRow = {
   id: string;
@@ -28,183 +17,86 @@ type PushSubscriptionRow = {
 
 type Signalement = {
   id: string;
-
-  type_signalement:
-    | string
-    | null;
-
-  animal_type:
-    | string
-    | null;
-
-  animal_name:
-    | string
-    | null;
-
-  island:
-    | string
-    | null;
-
-  city:
-    | string
-    | null;
-
-  color:
-    | string
-    | null;
-
-  breed:
-    | string
-    | null;
-
-  push_sent_at:
-    | string
-    | null;
-
-  user_id:
-    | string
-    | null;
-
-  upload_token_hash:
-    | string
-    | null;
-
+  type_signalement: string | null;
+  animal_type: string | null;
+  animal_name: string | null;
+  island: string | null;
+  city: string | null;
+  color: string | null;
+  breed: string | null;
+  push_sent_at: string | null;
+  user_id: string | null;
+  upload_token_hash: string | null;
   created_at: string;
 };
 
-function jsonError(
-  message: string,
-  status: number
-) {
+function jsonError(message: string, status: number) {
   return NextResponse.json(
-    {
-      error: message,
-    },
-    {
-      status,
-    }
+    { error: message },
+    { status }
   );
 }
 
-function sha256(
-  value: string
-) {
-  return createHash(
-    "sha256"
-  )
-    .update(
-      value,
-      "utf8"
-    )
-    .digest(
-      "hex"
-    );
+function sha256(value: string) {
+  return createHash("sha256")
+    .update(value, "utf8")
+    .digest("hex");
 }
 
-function safeHashEquals(
-  left: string,
-  right: string
-) {
+function safeHashEquals(left: string, right: string) {
   if (
-    !/^[a-f0-9]{64}$/i.test(
-      left
-    ) ||
-    !/^[a-f0-9]{64}$/i.test(
-      right
-    )
+    !/^[a-f0-9]{64}$/i.test(left) ||
+    !/^[a-f0-9]{64}$/i.test(right)
   ) {
     return false;
   }
 
   return timingSafeEqual(
-    Buffer.from(
-      left.toLowerCase(),
-      "hex"
-    ),
-    Buffer.from(
-      right.toLowerCase(),
-      "hex"
-    )
+    Buffer.from(left.toLowerCase(), "hex"),
+    Buffer.from(right.toLowerCase(), "hex")
   );
 }
 
 function getAdmin() {
-  const url =
-    process.env
-      .NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const serviceRole =
-    process.env
-      .SUPABASE_SERVICE_ROLE_KEY;
-
-  if (
-    !url ||
-    !serviceRole
-  ) {
+  if (!url || !serviceRole) {
     throw new Error(
       "Configuration Supabase serveur manquante."
     );
   }
 
-  return createClient(
-    url,
-    serviceRole,
-    {
-      auth: {
-        persistSession:
-          false,
-
-        autoRefreshToken:
-          false,
-      },
-    }
-  );
+  return createClient(url, serviceRole, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
-function getBearerToken(
-  request: Request
-) {
+function getBearerToken(request: Request) {
   const header =
-    request.headers.get(
-      "authorization"
-    ) || "";
+    request.headers.get("authorization") || "";
 
-  if (
-    !header
-      .toLowerCase()
-      .startsWith(
-        "bearer "
-      )
-  ) {
+  if (!header.toLowerCase().startsWith("bearer ")) {
     return "";
   }
 
-  return header
-    .slice(7)
-    .trim();
+  return header.slice(7).trim();
 }
 
 function configureWebPush() {
   const publicKey =
-    process.env
-      .NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey =
-    process.env
-      .VAPID_PRIVATE_KEY;
-
+    process.env.VAPID_PRIVATE_KEY;
   const subject =
-    process.env
-      .VAPID_SUBJECT ||
+    process.env.VAPID_SUBJECT ||
     "mailto:contact@taui-te-ora.com";
 
-  if (
-    !publicKey ||
-    !privateKey
-  ) {
-    throw new Error(
-      "Clés VAPID manquantes."
-    );
+  if (!publicKey || !privateKey) {
+    throw new Error("Clés VAPID manquantes.");
   }
 
   webpush.setVapidDetails(
@@ -214,106 +106,94 @@ function configureWebPush() {
   );
 }
 
-function buildBody(
-  signalement: Signalement
-) {
-  const parts: string[] =
-    [];
+function buildBody(signalement: Signalement) {
+  const parts: string[] = [];
 
-  if (
-    signalement.animal_name
-  ) {
-    parts.push(
-      signalement.animal_name
-    );
-  } else if (
-    signalement.animal_type
-  ) {
-    parts.push(
-      signalement.animal_type
-    );
+  if (signalement.animal_name) {
+    parts.push(signalement.animal_name);
+  } else if (signalement.animal_type) {
+    parts.push(signalement.animal_type);
   } else {
-    parts.push(
-      "Animal"
-    );
+    parts.push("Animal");
   }
 
-  if (
-    signalement.city
-  ) {
-    parts.push(
-      signalement.city
-    );
+  if (signalement.city) {
+    parts.push(signalement.city);
   }
 
-  if (
-    signalement.island
-  ) {
-    parts.push(
-      signalement.island
-    );
+  if (signalement.island) {
+    parts.push(signalement.island);
   }
 
-  const description: string[] =
-    [];
+  const description: string[] = [];
 
-  if (
-    signalement.color
-  ) {
-    description.push(
-      signalement.color
-    );
+  if (signalement.color) {
+    description.push(signalement.color);
   }
 
-  if (
-    signalement.breed
-  ) {
-    description.push(
-      signalement.breed
-    );
+  if (signalement.breed) {
+    description.push(signalement.breed);
   }
 
-  let body =
-    parts.join(
-      " • "
-    );
+  let body = parts.join(" • ");
 
-  if (
-    description.length >
-    0
-  ) {
-    body +=
-      ` — ${description.join(
-        ", "
-      )}`;
+  if (description.length > 0) {
+    body += ` — ${description.join(", ")}`;
   }
 
   return body;
 }
 
-export async function POST(
-  request: Request
-) {
+async function getSignalementPhoto(
+  supabase: ReturnType<typeof getAdmin>,
+  signalementId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("signalement_medias")
+    .select("file_url,file_type")
+    .eq("signalement_id", signalementId)
+    .order("created_at", { ascending: true })
+    .limit(20);
+
+  if (error) {
+    console.error(
+      "Erreur récupération photo signalement :",
+      error
+    );
+    return null;
+  }
+
+  const photo = (data || []).find((media) => {
+    const fileType = String(media.file_type || "")
+      .toLowerCase();
+
+    const fileUrl = String(media.file_url || "");
+
+    return (
+      fileType.startsWith("image/") &&
+      fileUrl.startsWith("https://")
+    );
+  });
+
+  return photo?.file_url || null;
+}
+
+export async function POST(request: Request) {
   try {
     configureWebPush();
 
-    const body =
-      (await request.json()) as {
-        signalementId?: string;
-        uploadToken?: string;
-      };
+    const body = (await request.json()) as {
+      signalementId?: string;
+      uploadToken?: string;
+    };
 
-    const signalementId =
-      String(
-        body.signalementId ||
-          ""
-      ).trim();
+    const signalementId = String(
+      body.signalementId || ""
+    ).trim();
 
-    const uploadToken =
-      String(
-        body.uploadToken ||
-          ""
-      ).trim();
+    const uploadToken = String(
+      body.uploadToken || ""
+    ).trim();
 
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -326,43 +206,33 @@ export async function POST(
       );
     }
 
-    const supabase =
-      getAdmin();
+    const supabase = getAdmin();
 
     const {
       data,
-      error:
-        signalementError,
-    } =
-      await supabase
-        .from(
-          "signalements"
-        )
-        .select(
-          `
-          id,
-          type_signalement,
-          animal_type,
-          animal_name,
-          island,
-          city,
-          color,
-          breed,
-          push_sent_at,
-          user_id,
-          upload_token_hash,
-          created_at
+      error: signalementError,
+    } = await supabase
+      .from("signalements")
+      .select(
         `
-        )
-        .eq(
-          "id",
-          signalementId
-        )
-        .maybeSingle();
+        id,
+        type_signalement,
+        animal_type,
+        animal_name,
+        island,
+        city,
+        color,
+        breed,
+        push_sent_at,
+        user_id,
+        upload_token_hash,
+        created_at
+        `
+      )
+      .eq("id", signalementId)
+      .maybeSingle();
 
-    if (
-      signalementError
-    ) {
+    if (signalementError) {
       console.error(
         "Signalement push lookup:",
         signalementError
@@ -374,106 +244,69 @@ export async function POST(
       );
     }
 
-    if (
-      !data
-    ) {
+    if (!data) {
       return jsonError(
         "Signalement introuvable.",
         404
       );
     }
 
-    const signalement =
-      data as Signalement;
+    const signalement = data as Signalement;
 
     /*
-     * ------------------------------------------------
      * AUTORISATION
-     * ------------------------------------------------
      *
-     * Deux possibilités :
+     * Utilisateur connecté :
+     * le bearer token doit correspondre
+     * au propriétaire du signalement.
      *
-     * 1. Signalement d'un utilisateur connecté :
-     *    Bearer token obligatoire et user_id doit
-     *    correspondre au propriétaire du signalement.
-     *
-     * 2. Signalement anonyme :
-     *    uploadToken obligatoire, vérifié avec le
-     *    SHA-256 stocké en base.
+     * Signalement anonyme :
+     * le jeton d'upload doit correspondre
+     * au hash SHA-256 enregistré.
      */
 
-    let authenticatedUserId:
-      | string
-      | null = null;
+    let authenticatedUserId: string | null = null;
 
-    const accessToken =
-      getBearerToken(
-        request
-      );
+    const accessToken = getBearerToken(request);
 
-    if (
-      accessToken
-    ) {
+    if (accessToken) {
       const {
         data: authData,
         error: authError,
-      } =
-        await supabase.auth.getUser(
-          accessToken
-        );
+      } = await supabase.auth.getUser(accessToken);
 
-      if (
-        !authError &&
-        authData.user
-      ) {
-        authenticatedUserId =
-          authData.user.id;
+      if (!authError && authData.user) {
+        authenticatedUserId = authData.user.id;
       }
     }
 
     const isAuthenticatedOwner =
-      Boolean(
-        authenticatedUserId
-      ) &&
-      signalement.user_id ===
-        authenticatedUserId;
+      Boolean(authenticatedUserId) &&
+      signalement.user_id === authenticatedUserId;
 
-    let hasAnonymousProof =
-      false;
+    let hasAnonymousProof = false;
 
-    if (
-      !signalement.user_id
-    ) {
-      const createdAt =
-        new Date(
-          signalement.created_at
-        ).getTime();
+    if (!signalement.user_id) {
+      const createdAt = new Date(
+        signalement.created_at
+      ).getTime();
 
-      const age =
-        Date.now() -
-        createdAt;
+      const age = Date.now() - createdAt;
 
       const isFresh =
-        Number.isFinite(
-          createdAt
-        ) &&
+        Number.isFinite(createdAt) &&
         age >= 0 &&
-        age <=
-          ANONYMOUS_PUSH_WINDOW_MS;
+        age <= ANONYMOUS_PUSH_WINDOW_MS;
 
       if (
         isFresh &&
         uploadToken &&
-        typeof signalement.upload_token_hash ===
-          "string"
+        typeof signalement.upload_token_hash === "string"
       ) {
-        hasAnonymousProof =
-          safeHashEquals(
-            sha256(
-              uploadToken
-            ),
-            signalement.upload_token_hash
-          );
+        hasAnonymousProof = safeHashEquals(
+          sha256(uploadToken),
+          signalement.upload_token_hash
+        );
       }
     }
 
@@ -488,23 +321,16 @@ export async function POST(
     }
 
     /*
-     * ------------------------------------------------
      * TYPE DE SIGNALEMENT
-     * ------------------------------------------------
      */
 
     const isLost =
-      signalement.type_signalement ===
-      "Animal perdu";
+      signalement.type_signalement === "Animal perdu";
 
     const isFound =
-      signalement.type_signalement ===
-      "Animal trouvé";
+      signalement.type_signalement === "Animal trouvé";
 
-    if (
-      !isLost &&
-      !isFound
-    ) {
+    if (!isLost && !isFound) {
       return NextResponse.json({
         ok: true,
         sent: 0,
@@ -513,14 +339,10 @@ export async function POST(
     }
 
     /*
-     * ------------------------------------------------
      * ANTI-DOUBLON
-     * ------------------------------------------------
      */
 
-    if (
-      signalement.push_sent_at
-    ) {
+    if (signalement.push_sent_at) {
       return NextResponse.json({
         ok: true,
         sent: 0,
@@ -528,46 +350,25 @@ export async function POST(
       });
     }
 
-    const sentAt =
-      new Date()
-        .toISOString();
+    const sentAt = new Date().toISOString();
 
     const {
       data: claimed,
-      error:
-        claimError,
-    } =
-      await supabase
-        .from(
-          "signalements"
-        )
-        .update({
-          push_sent_at:
-            sentAt,
-        })
-        .eq(
-          "id",
-          signalement.id
-        )
-        .is(
-          "push_sent_at",
-          null
-        )
-        .select(
-          "id"
-        );
+      error: claimError,
+    } = await supabase
+      .from("signalements")
+      .update({
+        push_sent_at: sentAt,
+      })
+      .eq("id", signalement.id)
+      .is("push_sent_at", null)
+      .select("id");
 
-    if (
-      claimError
-    ) {
+    if (claimError) {
       throw claimError;
     }
 
-    if (
-      !claimed ||
-      claimed.length ===
-        0
-    ) {
+    if (!claimed || claimed.length === 0) {
       return NextResponse.json({
         ok: true,
         sent: 0,
@@ -576,165 +377,120 @@ export async function POST(
     }
 
     /*
-     * ------------------------------------------------
      * ABONNEMENTS PUSH
-     * ------------------------------------------------
      */
 
-    let query =
-      supabase
-        .from(
-          "push_subscriptions"
-        )
-        .select(
-          `
-          id,
-          endpoint,
-          p256dh,
-          auth
+    let query = supabase
+      .from("push_subscriptions")
+      .select(
         `
-        );
+        id,
+        endpoint,
+        p256dh,
+        auth
+        `
+      );
 
-    if (
-      isLost
-    ) {
-      query =
-        query.eq(
-          "alert_lost",
-          true
-        );
+    if (isLost) {
+      query = query.eq("alert_lost", true);
     }
 
-    if (
-      isFound
-    ) {
-      query =
-        query.eq(
-          "alert_found",
-          true
-        );
+    if (isFound) {
+      query = query.eq("alert_found", true);
     }
 
     const {
-      data:
-        subscriptions,
-      error:
-        subscriptionsError,
-    } =
-      await query;
+      data: subscriptions,
+      error: subscriptionsError,
+    } = await query;
 
-    if (
-      subscriptionsError
-    ) {
+    if (subscriptionsError) {
       throw subscriptionsError;
     }
 
     /*
-     * ------------------------------------------------
-     * PAYLOAD
-     * ------------------------------------------------
+     * PHOTO PRINCIPALE
+     *
+     * La première image enregistrée dans
+     * signalement_medias est utilisée.
+     *
+     * Si aucune photo n'existe, la notification
+     * reste fonctionnelle sans grande image.
      */
 
-    const title =
-      isLost
-        ? "🚨 Animal perdu"
-        : "🐾 Animal trouvé";
+    const photoUrl = await getSignalementPhoto(
+      supabase,
+      signalement.id
+    );
 
-    const payload =
-      JSON.stringify({
-        title,
+    /*
+     * CONTENU DE LA NOTIFICATION
+     */
 
-        body:
-          buildBody(
-            signalement
-          ),
+    const animalName =
+      signalement.animal_name ||
+      signalement.animal_type ||
+      "Animal";
 
-        url:
-          `/signalement/${signalement.id}`,
+    const title = isLost
+      ? `🚨 ANIMAL PERDU — ${animalName}`
+      : `🐾 ANIMAL TROUVÉ — ${animalName}`;
 
-        signalementId:
-          signalement.id,
+    const payload = JSON.stringify({
+      title,
+      body: buildBody(signalement),
 
-        type:
-          isLost
-            ? "lost"
-            : "found",
-      });
+      image: photoUrl,
+
+      url: `/signalement/public/${signalement.id}`,
+
+      signalementId: signalement.id,
+
+      type: isLost ? "lost" : "found",
+    });
+
+    /*
+     * ENVOI DES NOTIFICATIONS
+     */
 
     let sent = 0;
     let removed = 0;
 
-    const rows =
-      (
-        subscriptions ||
-        []
-      ) as PushSubscriptionRow[];
+    const rows = (
+      subscriptions || []
+    ) as PushSubscriptionRow[];
 
-    /*
-     * ------------------------------------------------
-     * ENVOI
-     * ------------------------------------------------
-     */
-
-    for (
-      const subscription
-      of rows
-    ) {
+    for (const subscription of rows) {
       try {
         await webpush.sendNotification(
           {
-            endpoint:
-              subscription.endpoint,
-
+            endpoint: subscription.endpoint,
             keys: {
-              p256dh:
-                subscription.p256dh,
-
-              auth:
-                subscription.auth,
+              p256dh: subscription.p256dh,
+              auth: subscription.auth,
             },
           },
           payload,
           {
-            TTL:
-              60 *
-              60 *
-              12,
-
-            urgency:
-              "high",
+            TTL: 60 * 60 * 12,
+            urgency: "high",
           }
         );
 
         sent += 1;
-      } catch (
-        caughtError
-      ) {
-        const pushError =
-          caughtError as {
-            statusCode?: number;
-          };
+      } catch (caughtError) {
+        const pushError = caughtError as {
+          statusCode?: number;
+        };
 
-        /*
-         * Abonnement supprimé
-         * du navigateur ou du
-         * téléphone.
-         */
         if (
-          pushError.statusCode ===
-            404 ||
-          pushError.statusCode ===
-            410
+          pushError.statusCode === 404 ||
+          pushError.statusCode === 410
         ) {
           await supabase
-            .from(
-              "push_subscriptions"
-            )
+            .from("push_subscriptions")
             .delete()
-            .eq(
-              "id",
-              subscription.id
-            );
+            .eq("id", subscription.id);
 
           removed += 1;
         } else {
@@ -751,9 +507,7 @@ export async function POST(
       sent,
       removed,
     });
-  } catch (
-    caughtError
-  ) {
+  } catch (caughtError) {
     console.error(
       "signalement push:",
       caughtError

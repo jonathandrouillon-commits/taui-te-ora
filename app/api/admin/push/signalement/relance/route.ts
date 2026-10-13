@@ -21,6 +21,8 @@ type Signalement = {
   animal_type: string | null;
   city: string | null;
   island: string | null;
+  color: string | null;
+  breed: string | null;
   status: string | null;
   archived_at: string | null;
 };
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
       await supabase
         .from("signalements")
         .select(
-          "id,type_signalement,animal_name,animal_type,city,island,status,archived_at"
+          "id,type_signalement,animal_name,animal_type,city,island,color,breed,status,archived_at"
         )
         .eq("id", signalementId)
         .maybeSingle();
@@ -152,6 +154,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Conserver la protection de 12 heures
     const { data: relanceId, error: claimError } =
       await supabase.rpc("claim_signalement_push_relance", {
         p_signalement_id: signalement.id,
@@ -174,19 +177,89 @@ export async function POST(request: Request) {
       vapidPrivate
     );
 
+    // Récupérer la première photo du signalement
+    // Sans bloquer la relance si la photo est absente
+
+    let photoUrl: string | null = null;
+
+    try {
+      const { data: medias, error: mediasError } =
+        await supabase
+          .from("signalement_medias")
+          .select("file_url,file_type")
+          .eq("signalement_id", signalement.id)
+          .order("created_at", { ascending: true })
+          .limit(20);
+
+      if (mediasError) {
+        console.error(
+          "Erreur récupération photo relance :",
+          mediasError
+        );
+      } else {
+        const photo = (medias || []).find((media) => {
+          const fileType = String(
+            media.file_type || ""
+          ).toLowerCase();
+
+          const fileUrl = String(
+            media.file_url || ""
+          );
+
+          return (
+            fileType.startsWith("image/") &&
+            fileUrl.startsWith("https://")
+          );
+        });
+
+        photoUrl = photo?.file_url || null;
+      }
+    } catch (photoError) {
+      console.error(
+        "Erreur photo relance :",
+        photoError
+      );
+    }
+
+    // Construire le titre et la description
+
+    const animalName =
+      signalement.animal_name ||
+      signalement.animal_type ||
+      "Animal";
+
+    const title = isLost
+      ? `🚨 ANIMAL PERDU — ${animalName}`
+      : `🐾 ANIMAL TROUVÉ — ${animalName}`;
+
+    const location = [
+      signalement.city,
+      signalement.island,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+    const characteristics = [
+      signalement.color,
+      signalement.breed,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const description = [
+      animalName,
+      location,
+      characteristics,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+    // Notification avec photo et lien public
+
     const payload = JSON.stringify({
-      title: isLost
-        ? "🚨 Rappel : animal perdu"
-        : "🐾 Rappel : animal trouvé",
-      body: [
-        signalement.animal_name ||
-          signalement.animal_type ||
-          "Animal",
-        signalement.city,
-        signalement.island,
-      ]
-        .filter(Boolean)
-        .join(" • "),
+      title,
+      body: description,
+      image: photoUrl,
       url: `/signalement/public/${signalement.id}`,
       signalementId: signalement.id,
       type: isLost ? "lost" : "found",
@@ -272,6 +345,7 @@ export async function POST(request: Request) {
                   }
                 } else {
                   failed++;
+
                   console.error(
                     "Erreur relance push :",
                     error
@@ -297,6 +371,8 @@ export async function POST(request: Request) {
         error
       );
     }
+
+    // Conserver l'historique de la relance
 
     const { error: logError } = await supabase
       .from("signalement_push_relances")
