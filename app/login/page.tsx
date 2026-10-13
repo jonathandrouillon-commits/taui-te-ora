@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
@@ -100,15 +100,41 @@ function LoginContent() {
 
       const destination = getSafeRedirect(redirectTo) || "/";
 
+      // Présenter l'activation des notifications uniquement si cet appareil
+      // ne possède pas déjà un abonnement push actif.
+      let needsPushSetup = false;
+      try {
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          "serviceWorker" in navigator &&
+          "PushManager" in window &&
+          Notification.permission !== "denied"
+        ) {
+          const registration = await navigator.serviceWorker.getRegistration("/");
+          const subscription = registration
+            ? await registration.pushManager.getSubscription()
+            : null;
+          needsPushSetup = Notification.permission !== "granted" || !subscription;
+        }
+      } catch (pushCheckError) {
+        // Un problème de notifications ne doit jamais bloquer la connexion.
+        console.warn("Vérification des notifications indisponible :", pushCheckError);
+      }
+
+      const nextDestination = needsPushSetup
+        ? "/notifications/setup?next=" + encodeURIComponent(destination)
+        : destination;
+
       if (profile?.role === "adoptant" && !profile.adopter_questionnaire_completed_at) {
         const next = destination === "/adoptant/questionnaire" || destination.startsWith("/adoptant/questionnaire?")
           ? destination
-          : "/adoptant/questionnaire?redirect=" + encodeURIComponent(destination);
+          : "/adoptant/questionnaire?redirect=" + encodeURIComponent(nextDestination);
         router.replace(next);
         return;
       }
 
-      router.replace(destination);
+      router.replace(nextDestination);
       router.refresh();
     } catch (error: unknown) {
       console.error("Erreur connexion :", error);
