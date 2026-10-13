@@ -1,0 +1,520 @@
+
+      .subscribe();
+
+    return () => {
+
+      void supabase.removeChannel(
+
+        channel
+
+      );
+
+    };
+
+  }, [id, loadAnimal, loadLikesCount]);
+
+  const loadCompatibility =
+
+    useCallback(async () => {
+
+      if (!animal) return;
+
+      try {
+
+        setMatchLoading(true);
+
+        setMatchError("");
+
+        const {
+
+          data: { user },
+
+          error: userError,
+
+        } =
+
+          await supabase.auth.getUser();
+
+        if (userError) {
+
+          throw userError;
+
+        }
+
+        if (!user) {
+
+          router.replace(
+
+            "/login?redirect=" +
+
+              encodeURIComponent(
+
+                `/adoption/start/${id}`
+
+              )
+
+          );
+
+          return;
+
+        }
+
+        const access =
+
+          await animalService.getCurrentUserAccess();
+
+        if (
+
+          access.role !==
+
+          "adoptant"
+
+        ) {
+
+          throw new Error(
+
+            "La demande d'adoption doit Ǧtre effectuǸe avec un compte Adoptant."
+
+          );
+
+        }
+
+        if (!access.isActive) {
+
+          throw new Error(
+
+            "Votre compte est actuellement dǸsactivǸ."
+
+          );
+
+        }
+
+        if (
+
+          access.approvalStatus ===
+
+            "rejected" ||
+
+          access.approvalStatus ===
+
+            "suspended"
+
+        ) {
+
+          throw new Error(
+
+            "Votre compte ne permet pas actuellement d'effectuer une demande d'adoption."
+
+          );
+
+        }
+
+        const {
+
+          data,
+
+          error,
+
+        } = await supabase
+
+          .from("profiles")
+
+          .select(
+
+            `
+
+              adopter_experience,
+
+              current_animals,
+
+              adoption_for,
+
+              children_age,
+
+              garden_type,
+
+              ideal_age,
+
+              ideal_sex,
+
+              ideal_size,
+
+              ideal_activity,
+
+              ideal_breed,
+
+              hypoallergenic,
+
+              cleanliness,
+
+              special_needs
+
+            `
+
+          )
+
+          .eq("id", user.id)
+
+          .maybeSingle();
+
+        if (error) {
+
+          throw error;
+
+        }
+
+        if (
+
+          !data ||
+
+          !data.adopter_experience ||
+
+          !data.garden_type ||
+
+          !data.ideal_age ||
+
+          !data.ideal_sex ||
+
+          !data.ideal_size ||
+
+          !data.ideal_activity
+
+        ) {
+
+          router.replace(
+
+            "/adoptant/questionnaire?redirect=" +
+
+              encodeURIComponent(
+
+                `/adoption/start/${id}`
+
+              )
+
+          );
+
+          return;
+
+        }
+
+        const questionnaire: QuestionnaireData = {
+
+          proprietaire_animal:
+
+            data.adopter_experience ||
+
+            "",
+
+          animal_actuel:
+
+            data.current_animals ||
+
+            "Aucun",
+
+          adoption_pour:
+
+            data.adoption_for ||
+
+            "Moi / Ma famille",
+
+          enfants:
+
+            data.children_age ||
+
+            "Non",
+
+          jardin:
+
+            data.garden_type ||
+
+            "Pas de jardin",
+
+          age_souhaite:
+
+            data.ideal_age || "",
+
+          sexe_souhaite:
+
+            data.ideal_sex || "",
+
+          taille_souhaitee:
+
+            data.ideal_size || "",
+
+          activite_souhaitee:
+
+            data.ideal_activity ||
+
+            "Pas de prǸfǸrence",
+
+          hypoallergenique:
+
+            data.hypoallergenic ||
+
+            "Pas de prǸfǸrence",
+
+          proprete:
+
+            data.cleanliness ||
+
+            "Pas de prǸfǸrence",
+
+          besoins_speciaux:
+
+            data.special_needs ||
+
+            "Non",
+
+          race_souhaitee:
+
+            data.ideal_breed || "",
+
+        };
+
+        const compatibilitySource = animal as Animal & {
+
+          housing_need?: string | null;
+
+          garden_requirement?: string | null;
+
+          accepte_foyer_chiens?: string | null;
+
+          accepte_foyer_chats?: string | null;
+
+          accepte_foyer_autres?: string | null;
+
+          foyer_chiens?: string | null;
+
+          foyer_chats?: string | null;
+
+          foyer_autres?: string | null;
+
+          enfants_moins_8?: string | null;
+
+          enfants_8_14?: string | null;
+
+          enfants_15_plus?: string | null;
+
+          activity_level?: string | null;
+
+          experience_recommandee?: string | null;
+
+          handicap?: unknown;
+
+          traitement_regulier?: unknown;
+
+          craintif_traumatise?: unknown;
+
+          education_a_poursuivre?: unknown;
+
+        };
+
+        const compatibilityAnimal = {
+
+          id: compatibilitySource.id,
+
+          animal_name:
+
+            compatibilitySource.animal_name ||
+
+            compatibilitySource.nom ||
+
+            null,
+
+          owner_id:
+
+            compatibilitySource.owner_id ||
+
+            compatibilitySource.created_by ||
+
+            null,
+
+          garden_requirement:
+
+            compatibilitySource.housing_need ||
+
+            compatibilitySource.garden_requirement ||
+
+            null,
+
+          enfants_moins_8:
+
+            compatibilitySource.enfants_moins_8 ||
+
+            null,
+
+          enfants_8_14:
+
+            compatibilitySource.enfants_8_14 ||
+
+            null,
+
+          enfants_15_plus:
+
+            compatibilitySource.enfants_15_plus ||
+
+            null,
+
+          foyer_chiens:
+
+            compatibilitySource.accepte_foyer_chiens ||
+
+            compatibilitySource.foyer_chiens ||
+
+            null,
+
+          foyer_chats:
+
+            compatibilitySource.accepte_foyer_chats ||
+
+            compatibilitySource.foyer_chats ||
+
+            null,
+
+          foyer_autres:
+
+            compatibilitySource.accepte_foyer_autres ||
+
+            compatibilitySource.foyer_autres ||
+
+            null,
+
+          activity_level:
+
+            compatibilitySource.activity_level ||
+
+            null,
+
+          experience_recommandee:
+
+            compatibilitySource.experience_recommandee ||
+
+            null,
+
+          handicap:
+
+            compatibilitySource.handicap,
+
+          traitement_regulier:
+
+            compatibilitySource.traitement_regulier,
+
+          craintif_traumatise:
+
+            compatibilitySource.craintif_traumatise,
+
+          education_a_poursuivre:
+
+            compatibilitySource.education_a_poursuivre,
+
+        };
+
+        setMatchResult(
+
+          compatibilityService.calculate(
+
+            questionnaire,
+
+            compatibilityAnimal
+
+          )
+
+        );
+
+      } catch (error: unknown) {
+
+        console.error(
+
+          "Erreur calcul compatibilitǸ :",
+
+          error
+
+        );
+
+        setMatchError(
+
+          error instanceof Error
+
+            ? error.message
+
+            : "Impossible de calculer la compatibilitǸ."
+
+        );
+
+      } finally {
+
+        setMatchLoading(false);
+
+      }
+
+    }, [animal, id, router]);
+
+  useEffect(() => {
+
+    if (
+
+      typeof window ===
+
+      "undefined"
+
+    ) {
+
+      return;
+
+    }
+
+    const shouldShowAdoption =
+
+      new URLSearchParams(
+
+        window.location.search
+
+      ).get("adoption") === "1";
+
+    const timeoutId =
+
+      window.setTimeout(
+
+        () => {
+
+          setAdoptionMode(
+
+            shouldShowAdoption
+
+          );
+
+          if (
+
+            shouldShowAdoption &&
+
+            animal
+
+          ) {
+
+            void loadCompatibility();
+
+          }
+
+        },
+
+        0
+
+      );
+
+    return () => {
+
+      window.clearTimeout(
+
+        timeoutId
+
+      );
+
+    };
+
+  }, [animal, loadCompatibility]);
+
+  /* =========================================================
+
+     CHARGEMENT
+
+  ========================================================= */
