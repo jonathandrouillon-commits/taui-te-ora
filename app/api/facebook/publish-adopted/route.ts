@@ -1,23 +1,14 @@
-import {
-  NextRequest,
-  NextResponse,
-} from "next/server";
 
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import {
-  createClient,
-} from "@supabase/supabase-js";
+  generateFacebookAnimalMessage,
+  type FacebookAnimal,
+} from "../../../lib/facebook-animal-ai";
 
 export const runtime = "nodejs";
 
-type AnimalWebhookRecord = {
-  id?: string;
-  animal_name?: string | null;
-  animal_type?: string | null;
-  age_label?: string | null;
-  sex?: string | null;
-  breed?: string | null;
-  city?: string | null;
-  island?: string | null;
+type AnimalRecord = FacebookAnimal & {
   is_published?: boolean | null;
   is_adopted?: boolean | null;
   facebook_adopted_shared_at?: string | null;
@@ -25,12 +16,12 @@ type AnimalWebhookRecord = {
   facebook_adopted_share_status?: string | null;
 };
 
-type SupabaseWebhookBody = {
+type WebhookPayload = {
   type?: string;
   table?: string;
   schema?: string;
-  record?: AnimalWebhookRecord | null;
-  old_record?: AnimalWebhookRecord | null;
+  record?: AnimalRecord | null;
+  old_record?: AnimalRecord | null;
 };
 
 type AnimalPhoto = {
@@ -40,368 +31,137 @@ type AnimalPhoto = {
 };
 
 function getSupabaseAdmin() {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (
-    !supabaseUrl ||
-    !serviceRoleKey
-  ) {
-    throw new Error(
-      "Configuration Supabase serveur manquante."
-    );
+  if (!url || !key) {
+    throw new Error("Configuration Supabase serveur manquante.");
   }
 
-  return createClient(
-    supabaseUrl,
-    serviceRoleKey,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 function getFacebookConfig() {
-  const pageId =
-    process.env.FACEBOOK_PAGE_ID;
-
+  const pageId = process.env.FACEBOOK_PAGE_ID;
   const pageAccessToken =
     process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-
-  const graphVersion =
-    process.env.FACEBOOK_GRAPH_VERSION ||
-    "v26.0";
-
-  const siteUrl =
-    (
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://www.taui-te-ora.com"
-    ).replace(/\/+$/, "");
-
   const webhookSecret =
     process.env.FACEBOOK_WEBHOOK_SECRET;
 
-  if (
-    !pageId ||
-    !pageAccessToken ||
-    !webhookSecret
-  ) {
-    throw new Error(
-      "Configuration Facebook serveur manquante."
-    );
+  if (!pageId || !pageAccessToken || !webhookSecret) {
+    throw new Error("Configuration Facebook serveur manquante.");
   }
 
   return {
     pageId,
     pageAccessToken,
-    graphVersion,
-    siteUrl,
     webhookSecret,
+    graphVersion:
+      process.env.FACEBOOK_GRAPH_VERSION || "v26.0",
+    siteUrl: (
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://www.taui-te-ora.com"
+    ).replace(/\/+$/, ""),
   };
 }
 
-function cleanValue(
-  value: string | null | undefined
-) {
-  return String(
-    value || ""
-  ).trim();
-}
-
-function buildFacebookAdoptedMessage(
-  animal: AnimalWebhookRecord
-) {
-  const name =
-    cleanValue(
-      animal.animal_name
-    ) || "Cet animal";
-
-  const animalType =
-    cleanValue(
-      animal.animal_type
-    );
-
-  const city =
-    cleanValue(
-      animal.city
-    );
-
-  const island =
-    cleanValue(
-      animal.island
-    );
-
-  const location =
-    [
-      city,
-      island,
-    ].filter(Boolean);
-
-  const lines: string[] = [];
-
-  lines.push(
-    `🎉🐾 ${name.toUpperCase()} A TROUVÉ SA FAMILLE ! ❤️`
-  );
-
-  lines.push("");
-
-  lines.push(
-    "Une annonce de moins."
-  );
-
-  lines.push(
-    "Une famille de plus. 🏡"
-  );
-
-  lines.push("");
-
-  if (animalType) {
-    lines.push(
-      `${animalType} adopté(e) avec succès.`
-    );
-  }
-
-  if (location.length > 0) {
-    lines.push(
-      `📍 ${location.join(" • ")}`
-    );
-  }
-
-  if (
-    animalType ||
-    location.length > 0
-  ) {
-    lines.push("");
-  }
-
-  lines.push(
-    `Bonne route ${name}. ❤️`
-  );
-
-  lines.push("");
-
-  lines.push(
-    "Merci à toutes les personnes qui ont partagé, suivi et soutenu son histoire."
-  );
-
-  lines.push("");
-
-  lines.push(
-    "On ne sauvera pas le monde, mais on sauvera le leur. 🐾"
-  );
-
-  lines.push("");
-
-  lines.push(
-    "TAUI TE ORA × LES VEILLEURS DE KALI"
-  );
-
-  lines.push("");
-
-  lines.push(
-    "#TauiTeOra #LesVeilleursDeKali #Adopte #AdoptionReussie #PolynesieFrancaise"
-  );
-
-  return lines.join("\n");
-}
-
-async function publishFacebookPhoto({
-  pageId,
-  pageAccessToken,
-  graphVersion,
-  photoUrl,
-  caption,
-}: {
-  pageId: string;
-  pageAccessToken: string;
-  graphVersion: string;
-  photoUrl: string;
-  caption: string;
-}) {
+async function publishFacebookPhoto(
+  config: ReturnType<typeof getFacebookConfig>,
+  photoUrl: string,
+  caption: string
+): Promise<string> {
   const endpoint =
-    `https://graph.facebook.com/${graphVersion}/${pageId}/photos`;
+    `https://graph.facebook.com/${config.graphVersion}` +
+    `/${config.pageId}/photos`;
 
-  const body =
-    new URLSearchParams();
+  const body = new URLSearchParams({
+    url: photoUrl,
+    caption,
+    published: "true",
+    access_token: config.pageAccessToken,
+  });
 
-  body.set(
-    "url",
-    photoUrl
-  );
+  const response = await fetch(endpoint, {
+    method: "POST",
+    body,
+    cache: "no-store",
+  });
 
-  body.set(
-    "caption",
-    caption
-  );
-
-  body.set(
-    "published",
-    "true"
-  );
-
-  body.set(
-    "access_token",
-    pageAccessToken
-  );
-
-  const response =
-    await fetch(
-      endpoint,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/x-www-form-urlencoded",
-        },
-        body:
-          body.toString(),
-        cache:
-          "no-store",
-      }
-    );
-
-  const result =
-    await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    const message =
-      result?.error?.message ||
-      "Erreur Facebook lors de la publication de la photo d'adoption.";
-
     throw new Error(
-      message
+      result?.error?.message ||
+        "Erreur Facebook lors de la publication."
     );
   }
 
-  return {
-    id:
-      String(
-        result?.post_id ||
-        result?.id ||
-        ""
-      ),
-  };
+  return String(result?.post_id || result?.id || "");
 }
 
-async function publishFacebookText({
-  pageId,
-  pageAccessToken,
-  graphVersion,
-  message,
-}: {
-  pageId: string;
-  pageAccessToken: string;
-  graphVersion: string;
-  message: string;
-}) {
+async function publishFacebookText(
+  config: ReturnType<typeof getFacebookConfig>,
+  message: string
+): Promise<string> {
   const endpoint =
-    `https://graph.facebook.com/${graphVersion}/${pageId}/feed`;
+    `https://graph.facebook.com/${config.graphVersion}` +
+    `/${config.pageId}/feed`;
 
-  const body =
-    new URLSearchParams();
+  const body = new URLSearchParams({
+    message,
+    access_token: config.pageAccessToken,
+  });
 
-  body.set(
-    "message",
-    message
-  );
+  const response = await fetch(endpoint, {
+    method: "POST",
+    body,
+    cache: "no-store",
+  });
 
-  body.set(
-    "access_token",
-    pageAccessToken
-  );
-
-  const response =
-    await fetch(
-      endpoint,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/x-www-form-urlencoded",
-        },
-        body:
-          body.toString(),
-        cache:
-          "no-store",
-      }
-    );
-
-  const result =
-    await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    const message =
-      result?.error?.message ||
-      "Erreur Facebook lors de la publication de l'adoption.";
-
     throw new Error(
-      message
+      result?.error?.message ||
+        "Erreur Facebook lors de la publication."
     );
   }
 
-  return {
-    id:
-      String(
-        result?.id ||
-        ""
-      ),
-  };
+  return String(result?.id || "");
 }
 
-export async function POST(
-  request: NextRequest
-) {
-  const supabase =
-    getSupabaseAdmin();
+export async function POST(request: NextRequest) {
+  const expectedSecret =
+    process.env.FACEBOOK_WEBHOOK_SECRET;
 
-  const config =
-    getFacebookConfig();
-
-  const receivedSecret =
-    request.headers.get(
-      "x-facebook-webhook-secret"
-    );
+  const receivedSecret = request.headers.get(
+    "x-facebook-webhook-secret"
+  );
 
   if (
+    !expectedSecret ||
     !receivedSecret ||
-    receivedSecret !==
-      config.webhookSecret
+    receivedSecret !== expectedSecret
   ) {
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Webhook non autorisé.",
-      },
-      {
-        status: 401,
-      }
+      { ok: false, error: "Webhook non autorisé." },
+      { status: 401 }
     );
   }
 
-  let payload:
-    SupabaseWebhookBody;
+  let payload: WebhookPayload;
 
   try {
-    payload =
-      (await request.json()) as
-        SupabaseWebhookBody;
+    payload = (await request.json()) as WebhookPayload;
   } catch {
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Payload invalide.",
-      },
-      {
-        status: 400,
-      }
+      { ok: false, error: "Payload invalide." },
+      { status: 400 }
     );
   }
 
@@ -412,249 +172,166 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason:
-        "Table ignorée.",
+      reason: "Table ignorée.",
     });
   }
 
-  const record =
-    payload.record;
+  const record = payload.record;
 
-  if (
-    !record ||
-    !record.id
-  ) {
+  if (!record?.id) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason:
-        "Animal absent.",
+      reason: "Animal absent.",
     });
   }
 
-  const animalId =
-    record.id;
-
-  if (
-    record.is_adopted !== true
-  ) {
+  if (record.is_adopted !== true) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason:
-        "Animal non adopté.",
+      reason: "Animal non adopté.",
     });
   }
 
   if (
     record.facebook_adopted_shared_at ||
-    record.facebook_adopted_share_status ===
-      "published"
+    record.facebook_adopted_share_status === "published"
   ) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason:
-        "Adoption déjà publiée sur Facebook.",
+      reason: "Adoption déjà publiée.",
     });
   }
 
-  const {
-    data: claimedAnimal,
-    error: claimError,
-  } =
+  const animalId = record.id;
+  const supabase = getSupabaseAdmin();
+
+  // Verrou atomique contre les webhooks simultanés.
+  const { data: animal, error: claimError } =
     await supabase
       .from("animals")
       .update({
-        facebook_adopted_share_status:
-          "processing",
-        facebook_adopted_share_error:
-          null,
+        facebook_adopted_share_status: "processing",
+        facebook_adopted_share_error: null,
       })
-      .eq(
-        "id",
-        animalId
-      )
-      .eq(
-        "is_adopted",
-        true
-      )
-      .is(
-        "facebook_adopted_shared_at",
-        null
-      )
+      .eq("id", animalId)
+      .eq("is_adopted", true)
+      .is("facebook_adopted_shared_at", null)
       .or(
-        "facebook_adopted_share_status.is.null,facebook_adopted_share_status.eq.error"
+        "facebook_adopted_share_status.is.null," +
+          "facebook_adopted_share_status.eq.error"
       )
-      .select(
-        `
-          id,
-          animal_name,
-          animal_type,
-          age_label,
-          sex,
-          breed,
-          city,
-          island,
-          is_published,
-          is_adopted,
-          facebook_adopted_shared_at,
-          facebook_adopted_post_id,
-          facebook_adopted_share_status
-        `
-      )
+      .select(`
+        id,
+        animal_name,
+        animal_type,
+        age_label,
+        sex,
+        breed,
+        city,
+        island,
+        story,
+        description_character,
+        health_status,
+        special_needs,
+        ideal_family,
+        relation_humain,
+        matching_notes,
+        compatible_chiens,
+        compatible_chats,
+        compatible_enfants,
+        is_adopted,
+        facebook_adopted_shared_at,
+        facebook_adopted_post_id,
+        facebook_adopted_share_status
+      `)
       .maybeSingle();
 
   if (claimError) {
-    console.error(
-      "Erreur verrou Facebook adoption :",
-      claimError
-    );
-
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          claimError.message,
-      },
-      {
-        status: 500,
-      }
+      { ok: false, error: claimError.message },
+      { status: 500 }
     );
   }
 
-  if (!claimedAnimal) {
+  if (!animal) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason:
-        "Publication adoption déjà traitée ou en cours.",
+      reason: "Publication déjà traitée ou en cours.",
     });
   }
 
+  let publicationAttempted = false;
+  let facebookPostId: string | null = null;
+
   try {
-    const {
-      data: photos,
-      error: photosError,
-    } =
+    const config = getFacebookConfig();
+
+    const animalUrl =
+      `${config.siteUrl}/animal/` +
+      encodeURIComponent(animalId);
+
+    const message = await generateFacebookAnimalMessage(
+      animal,
+      animalUrl,
+      "adopted"
+    );
+
+    const { data: photos, error: photosError } =
       await supabase
-        .from(
-          "animal_photos"
-        )
-        .select(
-          "photo_url, is_cover, sort_order"
-        )
-        .eq(
-          "animal_id",
-          animalId
-        )
-        .order(
-          "is_cover",
-          {
-            ascending: false,
-          }
-        )
-        .order(
-          "sort_order",
-          {
-            ascending: true,
-          }
-        );
+        .from("animal_photos")
+        .select("photo_url,is_cover,sort_order")
+        .eq("animal_id", animalId)
+        .order("is_cover", { ascending: false })
+        .order("sort_order", { ascending: true });
 
     if (photosError) {
       console.error(
-        "Erreur photos Facebook adoption :",
+        "Erreur récupération photos adoption :",
         photosError
       );
     }
 
-    const photoRows =
-      (photos ||
-        []) as AnimalPhoto[];
+    const photoRows = (photos || []) as AnimalPhoto[];
 
-    const photoUrl =
-      photoRows.find(
-        (photo) =>
-          Boolean(
-            photo.is_cover &&
-              photo.photo_url
-          )
-      )?.photo_url ||
-      photoRows.find(
-        (photo) =>
-          Boolean(
-            photo.photo_url
-          )
-      )?.photo_url ||
-      null;
+    const hasPhoto = photoRows.some(
+      (photo) => Boolean(photo.photo_url)
+    );
 
-    const message =
-      buildFacebookAdoptedMessage(
-        claimedAnimal
+    const shareImageUrl =
+      `${config.siteUrl}/api/facebook/share-image/` +
+      `${encodeURIComponent(animalId)}?mode=adopted`;
+
+    // Dès que l'appel Facebook commence, on interdit
+    // toute relance automatique en cas d'incertitude.
+    publicationAttempted = true;
+
+    if (hasPhoto) {
+      facebookPostId = await publishFacebookPhoto(
+        config,
+        shareImageUrl,
+        message
       );
-
-    let result: {
-      id: string;
-    };
-
-    /*
-     * Même principe que le post initial :
-     * on publie une image Taui Te Ora
-     * générée automatiquement, cette fois
-     * en mode "adopted".
-     */
-    const facebookShareImageUrl =
-      `${config.siteUrl}/api/facebook/share-image/${encodeURIComponent(
-        animalId
-      )}?mode=adopted`;
-
-    if (photoUrl) {
-      result =
-        await publishFacebookPhoto({
-          pageId:
-            config.pageId,
-          pageAccessToken:
-            config.pageAccessToken,
-          graphVersion:
-            config.graphVersion,
-          photoUrl:
-            facebookShareImageUrl,
-          caption:
-            message,
-        });
     } else {
-      result =
-        await publishFacebookText({
-          pageId:
-            config.pageId,
-          pageAccessToken:
-            config.pageAccessToken,
-          graphVersion:
-            config.graphVersion,
-          message,
-        });
+      facebookPostId = await publishFacebookText(
+        config,
+        message
+      );
     }
 
-    const {
-      error: saveError,
-    } =
-      await supabase
-        .from("animals")
-        .update({
-          facebook_adopted_shared_at:
-            new Date()
-              .toISOString(),
-          facebook_adopted_post_id:
-            result.id || null,
-          facebook_adopted_share_status:
-            "published",
-          facebook_adopted_share_error:
-            null,
-        })
-        .eq(
-          "id",
-          animalId
-        );
+    const { error: saveError } = await supabase
+      .from("animals")
+      .update({
+        facebook_adopted_shared_at:
+          new Date().toISOString(),
+        facebook_adopted_post_id: facebookPostId || null,
+        facebook_adopted_share_status: "published",
+        facebook_adopted_share_error: null,
+      })
+      .eq("id", animalId);
 
     if (saveError) {
       throw saveError;
@@ -663,12 +340,9 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       published: true,
-      type:
-        "adopted",
-      animal_id:
-        animalId,
-      facebook_post_id:
-        result.id || null,
+      type: "adopted",
+      animal_id: animalId,
+      facebook_post_id: facebookPostId,
     });
   } catch (error: unknown) {
     const message =
@@ -681,39 +355,41 @@ export async function POST(
       error
     );
 
+    // Une erreur après une tentative Facebook est
+    // potentiellement ambiguë : Facebook peut avoir
+    // publié même si notre serveur reçoit une erreur.
+    //
+    // On conserve le statut "processing" afin
+    // d'empêcher une nouvelle tentative automatique.
+    // Une vérification administrative sera nécessaire.
+    const status = publicationAttempted
+      ? "processing"
+      : "error";
+
+    const explanation = publicationAttempted
+      ? "Publication Facebook à vérifier manuellement : " +
+        message
+      : message;
+
     await supabase
       .from("animals")
       .update({
-        facebook_adopted_share_status:
-          "error",
+        facebook_adopted_share_status: status,
         facebook_adopted_share_error:
-          message.slice(
-            0,
-            1000
-          ),
+          explanation.slice(0, 1000),
       })
-      .eq(
-        "id",
-        animalId
-      )
-      .is(
-        "facebook_adopted_shared_at",
-        null
-      );
+      .eq("id", animalId)
+      .is("facebook_adopted_shared_at", null);
 
     return NextResponse.json(
       {
         ok: false,
-        type:
-          "adopted",
-        animal_id:
-          animalId,
-        error:
-          message,
+        type: "adopted",
+        animal_id: animalId,
+        verification_required: publicationAttempted,
+        error: explanation,
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
