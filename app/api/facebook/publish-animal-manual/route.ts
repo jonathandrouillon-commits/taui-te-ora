@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import {
   requireAdmin,
@@ -16,6 +17,21 @@ type AnimalRow = FacebookAnimal & {
   is_adopted: boolean | null;
   status: string | null;
   adopted_at: string | null;
+};
+
+type MetaError = {
+  message?: string;
+  type?: string;
+  code?: number;
+  error_subcode?: number;
+  fbtrace_id?: string;
+};
+
+type MetaResponse = {
+  id?: string;
+  name?: string;
+  post_id?: string;
+  error?: MetaError;
 };
 
 function clean(value: unknown): string {
@@ -39,9 +55,7 @@ function getFacebookConfig(request: Request) {
     process.env.NEXT_PUBLIC_SITE_URL
   );
 
-  const requestOrigin = new URL(
-    request.url
-  ).origin;
+  const requestOrigin = new URL(request.url).origin;
 
   const siteUrl = (
     configuredSiteUrl &&
@@ -54,9 +68,7 @@ function getFacebookConfig(request: Request) {
   ).replace(/\/+$/, "");
 
   if (!pageId) {
-    throw new Error(
-      "FACEBOOK_PAGE_ID manquant."
-    );
+    throw new Error("FACEBOOK_PAGE_ID manquant.");
   }
 
   if (!pageAccessToken) {
@@ -71,6 +83,107 @@ function getFacebookConfig(request: Request) {
     graphVersion,
     siteUrl,
   };
+}
+
+async function readMetaResponse(
+  response: Response
+): Promise<MetaResponse> {
+  const text = await response.text();
+
+  let result: MetaResponse = {};
+
+  try {
+    result = text
+      ? (JSON.parse(text) as MetaResponse)
+      : {};
+  } catch {
+    throw new Error(
+      `Réponse Facebook invalide (HTTP ${response.status}).`
+    );
+  }
+
+  if (!response.ok || result.error) {
+    const error = result.error;
+
+    const details = [
+      `HTTP ${response.status}`,
+      error?.type
+        ? `type ${error.type}`
+        : null,
+      typeof error?.code === "number"
+        ? `code ${error.code}`
+        : null,
+      typeof error?.error_subcode === "number"
+        ? `sous-code ${error.error_subcode}`
+        : null,
+      error?.fbtrace_id
+        ? `trace ${error.fbtrace_id}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    throw new Error(
+      `Facebook : ${
+        error?.message || "Erreur inconnue."
+      } (${details})`
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Vérifie l'identité réelle du jeton configuré
+ * sur le serveur avant toute publication.
+ *
+ * Aucun jeton n'est renvoyé au navigateur.
+ */
+async function verifyFacebookPage(config: {
+  pageId: string;
+  pageAccessToken: string;
+  graphVersion: string;
+}): Promise<string> {
+  const endpoint = new URL(
+    `https://graph.facebook.com/${config.graphVersion}/me`
+  );
+
+  endpoint.searchParams.set(
+    "fields",
+    "id,name"
+  );
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Authorization:
+        `Bearer ${config.pageAccessToken}`,
+    },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+
+  const result = await readMetaResponse(response);
+
+  const actualPageId = clean(result.id);
+
+  if (!actualPageId) {
+    throw new Error(
+      "Facebook ne retourne pas l'identifiant de la page."
+    );
+  }
+
+  if (actualPageId !== config.pageId) {
+    throw new Error(
+      "Le jeton Facebook configuré sur Vercel " +
+      `correspond à l'identifiant ${actualPageId}, ` +
+      `mais FACEBOOK_PAGE_ID vaut ${config.pageId}. ` +
+      "La publication est bloquée pour éviter " +
+      "d'utiliser la mauvaise page."
+    );
+  }
+
+  return actualPageId;
 }
 
 async function publishFacebookPhoto({
@@ -95,60 +208,23 @@ async function publishFacebookPhoto({
   body.set("url", photoUrl);
   body.set("caption", caption);
   body.set("published", "true");
-  body.set("access_token", pageAccessToken);
 
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
+      Authorization: `Bearer ${pageAccessToken}`,
       "Content-Type":
         "application/x-www-form-urlencoded",
     },
     body: body.toString(),
     cache: "no-store",
+    signal: AbortSignal.timeout(30000),
   });
 
-  const responseText = await response.text();
-
-  let result: {
-    post_id?: string;
-    id?: string;
-    error?: {
-      message?: string;
-      type?: string;
-      code?: number;
-      error_subcode?: number;
-      fbtrace_id?: string;
-    };
-  } | null = null;
-
-  try {
-    result = responseText ? JSON.parse(responseText) : null;
-  } catch {
-    result = null;
-  }
-
-  if (!response.ok || result?.error) {
-    const metaError = result?.error;
-    const details = [
-      `HTTP ${response.status}`,
-      metaError?.type ? `type ${metaError.type}` : null,
-      typeof metaError?.code === "number" ? `code ${metaError.code}` : null,
-      typeof metaError?.error_subcode === "number"
-        ? `sous-code ${metaError.error_subcode}`
-        : null,
-      metaError?.fbtrace_id ? `trace ${metaError.fbtrace_id}` : null,
-    ].filter(Boolean).join(" | ");
-
-    // Ne jamais renvoyer le corps brut : il pourrait contenir un secret.
-    const facebookMessage = metaError?.message ||
-      "Reponse Facebook invalide ou erreur sans message.";
-    throw new Error(`Facebook : ${facebookMessage} (${details})`);
-  }
+  const result = await readMetaResponse(response);
 
   return {
-    id: clean(
-      result?.post_id || result?.id
-    ),
+    id: clean(result.post_id || result.id),
   };
 }
 
@@ -156,11 +232,6 @@ export async function POST(request: Request) {
   let animalId = "";
 
   try {
-    /*
-     * S├®curit├® :
-     * v├®rifie la session Supabase
-     * et le r├┤le administrateur.
-     */
     const adminSupabase =
       await requireAdmin(request);
 
@@ -180,11 +251,6 @@ export async function POST(request: Request) {
       );
     }
 
-    /*
-     * R├®cup├®ration des donn├®es de l'animal,
-     * y compris les champs n├®cessaires
-     * ├á la r├®daction personnalis├®e.
-     */
     const {
       data: animalData,
       error: animalError,
@@ -233,21 +299,11 @@ export async function POST(request: Request) {
 
     const animal = animalData as AnimalRow;
 
-    /*
-     * D├®termine si la publication
-     * concerne une adoption r├®ussie
-     * ou un animal disponible.
-     */
     const adopted =
       animal.is_adopted === true ||
       clean(animal.status).toLowerCase() ===
         "adopted";
 
-    /*
-     * Emp├¬che de promouvoir un animal
-     * qui n'est ni disponible
-     * ni officiellement adopt├®.
-     */
     if (
       !adopted &&
       (
@@ -260,7 +316,8 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            "Cet animal n'est pas actuellement disponible ├á l'adoption.",
+            "Cet animal n'est pas actuellement " +
+            "disponible à l'adoption.",
         },
         { status: 409 }
       );
@@ -268,25 +325,23 @@ export async function POST(request: Request) {
 
     const facebook = getFacebookConfig(request);
 
+    /*
+     * Vérification côté serveur :
+     * le jeton doit appartenir à la page attendue.
+     */
+    const verifiedPageId =
+      await verifyFacebookPage(facebook);
+
     const animalUrl =
       `${facebook.siteUrl}/animal/` +
       encodeURIComponent(animalId);
 
-    /*
-     * Image officielle de partage.
-     * La version adopt├®e conserve
-     * son visuel sp├®cifique.
-     */
     const shareImageUrl =
       `${facebook.siteUrl}/api/facebook/share-image/` +
-      `${encodeURIComponent(animalId)}` +
+      encodeURIComponent(animalId) +
       `?mode=${adopted ? "adopted" : "available"}` +
       `&v=${Date.now()}`;
 
-    /*
-     * V├®rification de l'image
-     * avant toute publication.
-     */
     const imageCheck = await fetch(
       shareImageUrl,
       {
@@ -298,7 +353,7 @@ export async function POST(request: Request) {
 
     if (!imageCheck.ok) {
       throw new Error(
-        `Image Facebook inaccessible (${imageCheck.status}) : ${shareImageUrl}`
+        `Image Facebook inaccessible (${imageCheck.status}).`
       );
     }
 
@@ -312,19 +367,11 @@ export async function POST(request: Request) {
       )
     ) {
       throw new Error(
-        "Le serveur ne retourne pas une image Facebook valide."
+        "Le serveur ne retourne pas " +
+        "une image Facebook valide."
       );
     }
 
-    /*
-     * G├®n├®ration IA :
-     *
-     * - available : recherche de famille
-     * - adopted : annonce d'adoption
-     *
-     * Le module utilise automatiquement
-     * un texte classique si OpenAI ├®choue.
-     */
     const message =
       await generateFacebookAnimalMessage(
         animal,
@@ -332,14 +379,9 @@ export async function POST(request: Request) {
         adopted ? "adopted" : "available"
       );
 
-    /*
-     * Publication sur la page Facebook.
-     * Le texte et l'image sont envoy├®s
-     * dans la m├¬me publication.
-     */
     const result =
       await publishFacebookPhoto({
-        pageId: facebook.pageId,
+        pageId: verifiedPageId,
         pageAccessToken:
           facebook.pageAccessToken,
         graphVersion:
@@ -355,15 +397,9 @@ export async function POST(request: Request) {
       mode: adopted
         ? "adopted"
         : "available",
-      facebook_post_id:
-        result.id || null,
+      facebook_post_id: result.id || null,
     });
   } catch (error: unknown) {
-    /*
-     * Les erreurs d'authentification
-     * sont trait├®es par la fonction
-     * de s├®curit├® existante.
-     */
     if (
       error instanceof Error &&
       (
@@ -381,7 +417,7 @@ export async function POST(request: Request) {
 
     console.error(
       "Publication Facebook manuelle impossible :",
-      error
+      message
     );
 
     return NextResponse.json(
