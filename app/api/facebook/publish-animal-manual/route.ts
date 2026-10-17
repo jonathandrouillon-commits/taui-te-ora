@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import {
   requireAdmin,
@@ -115,24 +114,35 @@ async function publishFacebookPhoto({
     id?: string;
     error?: {
       message?: string;
+      type?: string;
+      code?: number;
+      error_subcode?: number;
+      fbtrace_id?: string;
     };
   } | null = null;
 
   try {
-    result = responseText
-      ? JSON.parse(responseText)
-      : null;
+    result = responseText ? JSON.parse(responseText) : null;
   } catch {
     result = null;
   }
 
-  if (!response.ok) {
-    const facebookMessage =
-      result?.error?.message ||
-      responseText ||
-      `Facebook Graph API erreur ${response.status}.`;
+  if (!response.ok || result?.error) {
+    const metaError = result?.error;
+    const details = [
+      `HTTP ${response.status}`,
+      metaError?.type ? `type ${metaError.type}` : null,
+      typeof metaError?.code === "number" ? `code ${metaError.code}` : null,
+      typeof metaError?.error_subcode === "number"
+        ? `sous-code ${metaError.error_subcode}`
+        : null,
+      metaError?.fbtrace_id ? `trace ${metaError.fbtrace_id}` : null,
+    ].filter(Boolean).join(" | ");
 
-    throw new Error(facebookMessage);
+    // Ne jamais renvoyer le corps brut : il pourrait contenir un secret.
+    const facebookMessage = metaError?.message ||
+      "Reponse Facebook invalide ou erreur sans message.";
+    throw new Error(`Facebook : ${facebookMessage} (${details})`);
   }
 
   return {
@@ -147,9 +157,9 @@ export async function POST(request: Request) {
 
   try {
     /*
-     * Sécurité :
-     * vérifie la session Supabase
-     * et le rôle administrateur.
+     * S├®curit├® :
+     * v├®rifie la session Supabase
+     * et le r├┤le administrateur.
      */
     const adminSupabase =
       await requireAdmin(request);
@@ -171,9 +181,9 @@ export async function POST(request: Request) {
     }
 
     /*
-     * Récupération des données de l'animal,
-     * y compris les champs nécessaires
-     * à la rédaction personnalisée.
+     * R├®cup├®ration des donn├®es de l'animal,
+     * y compris les champs n├®cessaires
+     * ├á la r├®daction personnalis├®e.
      */
     const {
       data: animalData,
@@ -224,8 +234,8 @@ export async function POST(request: Request) {
     const animal = animalData as AnimalRow;
 
     /*
-     * Détermine si la publication
-     * concerne une adoption réussie
+     * D├®termine si la publication
+     * concerne une adoption r├®ussie
      * ou un animal disponible.
      */
     const adopted =
@@ -234,9 +244,9 @@ export async function POST(request: Request) {
         "adopted";
 
     /*
-     * Empêche de promouvoir un animal
+     * Emp├¬che de promouvoir un animal
      * qui n'est ni disponible
-     * ni officiellement adopté.
+     * ni officiellement adopt├®.
      */
     if (
       !adopted &&
@@ -250,7 +260,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            "Cet animal n'est pas actuellement disponible à l'adoption.",
+            "Cet animal n'est pas actuellement disponible ├á l'adoption.",
         },
         { status: 409 }
       );
@@ -264,8 +274,8 @@ export async function POST(request: Request) {
 
     /*
      * Image officielle de partage.
-     * La version adoptée conserve
-     * son visuel spécifique.
+     * La version adopt├®e conserve
+     * son visuel sp├®cifique.
      */
     const shareImageUrl =
       `${facebook.siteUrl}/api/facebook/share-image/` +
@@ -274,7 +284,7 @@ export async function POST(request: Request) {
       `&v=${Date.now()}`;
 
     /*
-     * Vérification de l'image
+     * V├®rification de l'image
      * avant toute publication.
      */
     const imageCheck = await fetch(
@@ -307,13 +317,13 @@ export async function POST(request: Request) {
     }
 
     /*
-     * Génération IA :
+     * G├®n├®ration IA :
      *
      * - available : recherche de famille
      * - adopted : annonce d'adoption
      *
      * Le module utilise automatiquement
-     * un texte classique si OpenAI échoue.
+     * un texte classique si OpenAI ├®choue.
      */
     const message =
       await generateFacebookAnimalMessage(
@@ -324,8 +334,8 @@ export async function POST(request: Request) {
 
     /*
      * Publication sur la page Facebook.
-     * Le texte et l'image sont envoyés
-     * dans la même publication.
+     * Le texte et l'image sont envoy├®s
+     * dans la m├¬me publication.
      */
     const result =
       await publishFacebookPhoto({
@@ -351,8 +361,8 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     /*
      * Les erreurs d'authentification
-     * sont traitées par la fonction
-     * de sécurité existante.
+     * sont trait├®es par la fonction
+     * de s├®curit├® existante.
      */
     if (
       error instanceof Error &&
