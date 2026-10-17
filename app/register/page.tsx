@@ -38,7 +38,9 @@ type ProfileGroup =
 
   | "independent_volunteer"
 
-  | "municipality_pound";
+  | "municipality_pound"
+
+  | "pet_boarding";
 
 type ProfileSubtype =
 
@@ -56,7 +58,9 @@ type ProfileSubtype =
 
   | "commune"
 
-  | "fourriere";
+  | "fourriere"
+
+  | "pension";
 
 type UserRole =
 
@@ -81,6 +85,8 @@ const ALLOWED_GROUPS: ProfileGroup[] = [
   "independent_volunteer",
 
   "municipality_pound",
+
+  "pet_boarding",
 
 ];
 
@@ -332,6 +338,10 @@ function getDefaultSubtype(
 
       return "commune";
 
+    case "pet_boarding":
+
+      return "pension";
+
   }
 
 }
@@ -364,6 +374,10 @@ function getTechnicalRole(
 
       return "fourriere";
 
+    case "pet_boarding":
+
+      return "benevole";
+
   }
 
 }
@@ -395,6 +409,10 @@ function getGroupLabel(
     case "municipality_pound":
 
       return "Commune & Fourrière";
+
+    case "pet_boarding":
+
+      return "Pension / Gardiennage";
 
   }
 
@@ -439,6 +457,10 @@ function getSubtypeLabel(
     case "fourriere":
 
       return "Fourrière";
+
+    case "pension":
+
+      return "Pension / Gardiennage";
 
   }
 
@@ -720,7 +742,9 @@ export default function RegisterPage() {
 
       "fourriere",
 
-    ].includes(
+        "pension",
+
+      ].includes(
 
       profileSubtype
 
@@ -732,7 +756,7 @@ export default function RegisterPage() {
 
   const canUploadAvatar =
 
-    canPublishAnimals;
+    canPublishAnimals || profileGroup === "pet_boarding";
 
   /* =======================================================
 
@@ -838,11 +862,15 @@ export default function RegisterPage() {
 
         case "fourriere":
 
-          nextGroup =
+            nextGroup = "municipality_pound";
 
-            "municipality_pound";
+            break;
 
-          break;
+          case "pension":
+
+            nextGroup = "pet_boarding";
+
+            break;
 
         case "adoptant":
 
@@ -904,13 +932,9 @@ export default function RegisterPage() {
 
         ],
 
-        municipality_pound: [
+        municipality_pound: ["commune", "fourriere"],
 
-          "commune",
-
-          "fourriere",
-
-        ],
+        pet_boarding: ["pension"],
 
       };
 
@@ -1322,7 +1346,11 @@ export default function RegisterPage() {
 
         case "fourriere":
 
-          return "Nom de la fourrière";
+            return "Nom de la fourrière";
+
+          case "pension":
+
+            return "Nom de la pension / garderie";
 
         default:
 
@@ -1385,6 +1413,12 @@ export default function RegisterPage() {
   }
 
   function getDestinationAfterSignup() {
+
+    if (profileGroup === "pet_boarding") {
+
+      return redirectAfterAuth || "/";
+
+    }
 
     if (
 
@@ -2035,55 +2069,87 @@ export default function RegisterPage() {
   ======================================================= */
 
   function validateForm() {
+
     const parts = fullName.trim().split(/\s+/).filter(Boolean);
+
     if (parts.length < 2 || parts.some((part) => !/[\p{L}]/u.test(part))) {
+
       alert("Merci de renseigner votre prénom et votre nom de famille dans le champ Nom complet.");
+
       return false;
+
     }
 
     const cleanEmail = email.trim();
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+
       alert("Merci de renseigner une adresse e-mail valide.");
+
       return false;
+
     }
 
     if (!password.trim() || password.length < 6) {
+
       alert("Le mot de passe doit contenir au moins 6 caractères.");
+
       return false;
+
     }
 
     if (isOrganization && !organizationName.trim()) {
+
       alert(`Merci d'indiquer : ${organizationPlaceholder}.`);
+
       return false;
+
     }
 
     if (!countryName) {
+
       alert("Merci d'indiquer votre pays.");
+
       return false;
+
     }
 
     const digits = cleanPhoneNumber(phone);
+
     if (digits.length < 6 || digits.length > 15) {
+
       alert("Merci de renseigner un numéro de téléphone valide.");
+
       return false;
+
     }
 
     if (!/^\+?\d{1,4}$/.test(dialCode.trim())) {
+
       alert("Merci de renseigner un indicatif téléphonique valide.");
+
       return false;
+
     }
 
     if (!city.trim()) {
+
       alert("Merci d'indiquer votre ville ou commune.");
+
       return false;
+
     }
 
     if (isFrenchPolynesia && !island.trim()) {
+
       alert("Merci d'indiquer votre île.");
+
       return false;
+
     }
 
     return true;
+
   }
 
   /* =======================================================
@@ -2873,6 +2939,12 @@ export default function RegisterPage() {
               <option value="independent_volunteer">
 
                 Bénévole indépendant
+
+              </option>
+
+              <option value="pet_boarding">
+
+                Pension / Gardiennage
 
               </option>
 
@@ -3708,9 +3780,17 @@ export default function RegisterPage() {
 
           {/* INFO PROFIL */}
 
-          {profileGroup ===
+          {profileGroup === "pet_boarding" ? (
 
-          "user" ? (
+            <div className="rounded-[22px] bg-[#eaf5f1] p-4 text-sm leading-relaxed text-[#48675e]">
+
+              Le profil Pension / Gardiennage dispose des mêmes possibilités que Bénévole indépendant,
+
+              selon les règles de validation et de publication de Taui Te Ora.
+
+            </div>
+
+          ) : profileGroup === "user" ? (
 
             <div className="rounded-[22px] bg-[#fce8ec] p-4 text-sm leading-relaxed text-[#76545b]">
 
